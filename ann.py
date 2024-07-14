@@ -14,7 +14,7 @@ from tensorflow.keras.layers import Dense
 
 
 
-df = pd.read_csv("/kaggle/input/ann-car-sales-price-prediction/car_purchasing.csv",encoding='ISO-8859-1')
+df = pd.read_csv("car_purchasing.csv",encoding='ISO-8859-1')
 
 
 df.shape

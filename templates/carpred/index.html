@@ -6,5 +6,20 @@
 {% endblock %}
 
 {% block body %}
-			Hello world!
+
+	<py-config>
+	
+	- pandas
+	- matplotlib
+	- numpy
+	
+	</py-config>
+
+	<py-script >
+	
+	import numpy
+	x=numpy.zeros(4)
+	print(x)
+	
+	</py-script>
 {% endblock %}

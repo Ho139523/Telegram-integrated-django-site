@@ -1684,4 +1684,11 @@ h1, h2, h3, h4, h5, h6, figure {
   opacity: 0;
 }
 
+
+.myown {
+    font-size: 18px;
+    line-height: 1.5;
+    color: #828282;
+}
+
 /*# sourceMappingURL=style.css.map */

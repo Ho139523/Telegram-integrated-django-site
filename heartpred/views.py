@@ -3,4 +3,4 @@ from utils import graph
 
 def home(request):
     context={'y': graph.plotting()}
-    return render(request, 'carpred/index.html', context=context)
+    return render(request, 'heartpred/index.html', context=context)

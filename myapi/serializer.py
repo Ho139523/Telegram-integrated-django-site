@@ -1,6 +1,8 @@
-from django.apps import AppConfig
+from rest_framework import serializer
+from heartpred.models import heart
 
 
-class MyapiConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'myapi'
+class HeartSerializer(serializer.ModelSerializer):
+    class Meta:
+        model = heart
+        fields = "__all__"

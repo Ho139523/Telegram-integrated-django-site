@@ -1,6 +1,5 @@
 from django.shortcuts import render
-from utils import graph
 
 def home(request):
-    context={'y': graph.plotting()}
+    context={}
     return render(request, 'heartpred/index.html', context=context)

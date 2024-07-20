@@ -1,8 +1,6 @@
-from django.contrib import admin
+from .views import HeartCreateAPIView
 from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
 
 urlpatterns = [
-    #path(),
+    path("", HeartCreateAPIView.as_view()),
 ]

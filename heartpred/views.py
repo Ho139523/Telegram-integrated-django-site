@@ -1,6 +1,8 @@
 from django.shortcuts import render
+from .form import heartpredform
 
 
-def home(request):
-    context={}
-    return render(request, 'heartpred/index.html', context=context)
+def heartpred(request):
+    form = heartpredform()
+    context={'form': form}
+    return render(request, 'heartpred/heartpredform.html', context=context)

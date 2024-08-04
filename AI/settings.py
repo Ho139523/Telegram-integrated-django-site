@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'heartpred',
     "myapi",
     "rest_framework",
+    "cv",
 ]
 
 MIDDLEWARE = [

@@ -7,20 +7,20 @@ class heartpredform(forms.ModelForm):
         fields='__all__'
         widgets={
             
-        'created':forms.NumberInput(attrs={class:'form-control'}),
-        'age':forms.NumberInput(attrs={class:'form-control'}),
-        'anaemia':forms.NumberInput(attrs={class:'form-control'}),
-        'creatinine_phosphokinase':forms.NumberInput(attrs={class:'form-control'}),
-        'ejection_fraction':forms.NumberInput(attrs={class:'form-control'}),
-        'high_blood_pressure':forms.NumberInput(attrs={class:'form-control'}),
-        'platelets':forms.NumberInput(attrs={class:'form-control'}),
-        'serum_creatinine':forms.NumberInput(attrs={class:'form-control'}),
-        'serum_sodium':forms.NumberInput(attrs={class:'form-control'}),
-        'sex':forms.NumberInput(attrs={class:'form-control'}),
-        'smoking':forms.NumberInput(attrs={class:'form-control'}),
-        'time':forms.NumberInput(attrs={class:'form-control'}),
-        'DEATH_EVENT':forms.NumberInput(attrs={class:'form-control'}),
+        'created':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'age':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'anaemia':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'creatinine_phosphokinase':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'ejection_fraction':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'high_blood_pressure':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'platelets':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'serum_creatinine':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'serum_sodium':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'sex':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'smoking':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'time':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'DEATH_EVENT':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         }
         
     class Media:
-        css={'all': ('cv/assets/css/main.css',)}
+        css={'all': ('cv/form/css/formcss.css',)}

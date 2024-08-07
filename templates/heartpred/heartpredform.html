@@ -3,7 +3,7 @@
 
 {% block body %}
 
-<form actions='' method='POST'>
+<form actions="{% url 'heartpred:heartpred' %}" method='POST'>
 	{{form.media}}
 	{% csrf_token %}
 	<div class='form-div'>

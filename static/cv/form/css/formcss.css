@@ -111,8 +111,6 @@
     position: relative;
     overflow: hidden;
     cursor: pointer;
-	justify-content: center;
-    align-items: center;
 }
 
 .sub > .check-box{

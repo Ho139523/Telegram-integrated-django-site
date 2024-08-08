@@ -1,8 +1,15 @@
 from django.shortcuts import render
 from .form import heartpredform
+from rest_framework.decorators import api_view
+import joblib
+import pandas as pd
+import numpy as np
+from sklearn import preprocessing
+from sklearn.preprocessing import StandardScaler
 
 
-def heartpred(request):
+
+def heartpredfrom(request):
     form = heartpredform()
     if request.method=='POST':
         form = heartpredform(request.POST)
@@ -12,3 +19,24 @@ def heartpred(request):
             form = heartpredform()
     context={'form': form}
     return render(request, 'heartpred/heartpredform.html', context=context)
+    
+    
+@api_view(["POST"])
+def heartpred(request):
+    try:
+        model = joblib.load("../utils/heart_failure_ann.pkl")
+        data = request.data
+        input_data = input_data=np.array(list(data.values())[1:13]).reshape(1,-1)
+        input_col = input_col=list(data.keys())[1:13]
+        s_scaler = joblib.load("../utils/heart_failure_ann.pkl")
+        input_scaled= s_scaler.fit_transform(input_data)
+        input=pd.DataFrame(input_scaled, columns=input_col)
+        y_pred = model.predict(input_scaled)
+        y_pred = (y_pred>58)
+        y_df = pd.DataFrame(y_pred, columns=["Death_event"])
+        y_df = y_df.replace({1: "die", 0: "stay alive"})
+        context = {"prediction": y_df}
+        return render(request, "heartpred/heartpredform.html", context=context)
+    except ValueError as e:
+        return Response(e.args[0], status.HTTP_400_BAD_REQUEST)
+        

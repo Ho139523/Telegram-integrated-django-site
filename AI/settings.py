@@ -13,7 +13,7 @@ SECRET_KEY = 'django-insecure-h2m2n_@z918sl*95-sc2$k-3+&-prw&z3)#g61n+a*m&kl8tn!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['inteleum.pythonanywhere.com']
+ALLOWED_HOSTS = ['inteleum.pyhonanywhere.com', '127.0.0.1']
 
 
 # Application definition

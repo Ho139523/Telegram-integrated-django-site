@@ -4,6 +4,7 @@ class heart(models.Model):
     age = models.FloatField()
     anaemia = models.IntegerField()
     creatinine_phosphokinase = models.IntegerField()
+    diabetes =  models.IntegerField()
     ejection_fraction = models.IntegerField()
     high_blood_pressure = models.IntegerField()
     platelets = models.FloatField()

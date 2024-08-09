@@ -11,6 +11,7 @@ class heartpredform(forms.ModelForm):
         'age':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         'anaemia':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         'creatinine_phosphokinase':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'diabetes':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top: 5px; margin-bottom: 10px;'}),
         'ejection_fraction':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         'high_blood_pressure':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         'platelets':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),

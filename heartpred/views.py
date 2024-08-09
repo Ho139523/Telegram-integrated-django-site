@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 
-def heartpredfrom(request):
+def heartpredformshow(request):
     form = heartpredform()
     if request.method=='POST':
         form = heartpredform(request.POST)
@@ -21,13 +21,13 @@ def heartpredfrom(request):
     return render(request, 'heartpred/heartpredform.html', context=context)
     
     
-@api_view(["POST"])
+@api_view(["POST",])
 def heartpred(request):
     try:
         model = joblib.load("../utils/heart_failure_ann.pkl")
         data = request.data
-        input_data = input_data=np.array(list(data.values())[1:13]).reshape(1,-1)
-        input_col = input_col=list(data.keys())[1:13]
+        input_data = np.array(list(data.values())[1:13]).reshape(1,-1)
+        input_col = list(data.keys())[1:13]
         s_scaler = joblib.load("../utils/heart_failure_ann.pkl")
         input_scaled= s_scaler.fit_transform(input_data)
         input=pd.DataFrame(input_scaled, columns=input_col)

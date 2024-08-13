@@ -1,0 +1,6 @@
+myenv/
+*.md
+.git
+__pycache__/
+*.pyc
+*.pyo

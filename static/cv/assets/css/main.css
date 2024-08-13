@@ -1273,3 +1273,8 @@ section,
 .starter-section {
   /* Add your styles here */
 }
+
+nav a:link{
+	color: white !important;
+}
+

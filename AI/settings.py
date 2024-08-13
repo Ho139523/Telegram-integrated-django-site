@@ -16,6 +16,10 @@ DEBUG = True
 ALLOWED_HOSTS = ['inteleum.pyhonanywhere.com', '127.0.0.1']
 
 
+LOGIN_REDIRECT_URL='cv:cv'
+LOGIN_URL='accounts:login'
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -25,10 +29,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "rest_framework",
+    'widget_tweaks',
     'accounts',
     'heartpred',
     "myapi",
-    "rest_framework",
     "cv",
 ]
 

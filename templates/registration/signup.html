@@ -1,0 +1,48 @@
+{% load static %}
+{% load widget_tweaks %}
+
+<link href="{% static 'registration/signup.css' %}" rel="stylesheet">
+<div class="flex-container">
+  <div class="content-container">
+    <div class="form-container">
+      <form action="{% url 'accounts:signup' %}" method='POST'>
+	  {% csrf_token %}
+		<!-- <div class='logo'> -->
+		<!-- <img src='{% static "logo/IMG-1762-PNG.png" %}'> -->
+		<!-- </div> -->
+        <h1>
+          Signup
+        </h1>
+        <br>
+        <br>
+		
+        
+        <br>
+		<!-- <div class='input-content'> -->
+		{{form.email|attr:"placeholder:Emial Address"|add_class:"form-control"}}
+		<!-- </div> -->
+        <br>
+		
+		<br>
+		<!-- <div class='input-content'> -->
+		{{form.username|attr:"placeholder:Username"|add_class:"form-control"}}
+		<!-- </div> -->
+        <br>
+        
+		<br>
+		<!-- <div class='input-content'> -->
+		{{form.password1|attr:"placeholder:Password"|add_class:"form-control"}}
+		<!-- </div> -->
+        <br>
+		
+        <br>
+		<!-- <div class='input-content'> -->
+		{{form.password2|attr:"placeholder:Repeat Password"|add_class:"form-control"}}
+		<!-- </div> -->
+        <br><br>
+        <input type="submit" value="SUBMIT" class="submit-btn">
+      </form>
+    </div>
+  </div>
+</div>
+

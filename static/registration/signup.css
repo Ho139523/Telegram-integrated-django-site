@@ -52,7 +52,7 @@ h1 {
   width: 100vw;
   
 
-  margin-top: 60px;
+  margin-top: -20px;
 
   display: flex;
   justify-content: right;
@@ -75,7 +75,7 @@ h1 {
   
 
   width: 500px;
-  height: 450px;
+  height: 550px;
 
   margin-top: 5px;
   padding-top: 20px;

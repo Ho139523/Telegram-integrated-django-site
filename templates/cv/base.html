@@ -68,17 +68,14 @@
 		
 			<div class="navbar" id="navbarText">
 				<ul class="navbar-nav me-auto mb-2 mb-lg-0">
-					{% if user.is_authenticated %}
-					<li class="nav-item">
-						<a class="focus" aria-current="page" href="{% url 'accounts:logout' %}">Log out</a>
-					</li>
+					{% if user.is_authenticated == True%}
+					
+					<a style="color:#ffffff;" class="focus" aria-current="page" href="{% url 'accounts:logout' %}">Log out</a>
+					
 					{% else %}
-					<li class="nav-item">
-						<a class="focus" aria-current="page" href="{% url 'accounts:login' %}">Log in</a>
-					</li>
-					<li class="nav-item">
-						<a class="focus" aria-current="page" href="{% url 'accounts:signup' %}">Sign Up</a>
-					</li>
+						<a style="color:#ffffff;" class="focus" aria-current="page" href="{% url 'accounts:login' %}">Log in</a>
+						<a style="color:#ffffff;" class="focus" aria-current="page" href="{% url 'accounts:signup' %}">Sign Up</a>
+					
 					{% endif %}
 					
 				</ul>

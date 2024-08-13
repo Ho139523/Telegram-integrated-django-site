@@ -3,6 +3,6 @@ from .views import *
 
 app_name='cv'
 urlpatterns = [
-    path('accounts/cv/', cv_view, name='cv'),
+    path('accounts/<slug:username>/cv/', cv_view, name='cv'),
 ]
 

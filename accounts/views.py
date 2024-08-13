@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+# from django import forms
 
 
 
@@ -14,7 +15,7 @@ def login_user(request):
         if user is not None:
             login(request, user)
             messages.success(request, ('Successfully Logged in.'))
-            return redirect("cv:cv")
+            return redirect("cv:cv", username=username)
         else:
             messages.error(request, ('User Not Found!'))
             return render(request, 'registration/login.html')
@@ -26,3 +27,8 @@ def logout_user(request):
     logout(request)
     messages.success(request, ('Successfully Logged out.'))
     return redirect("heartpred:heartpred")
+    
+    
+def signup_user(request):
+    
+    return render(request, 'registration/signup.html')

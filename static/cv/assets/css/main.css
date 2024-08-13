@@ -1274,7 +1274,7 @@ section,
   /* Add your styles here */
 }
 
-nav a:link{
+nav > a:link{
 	color: white !important;
 }
 

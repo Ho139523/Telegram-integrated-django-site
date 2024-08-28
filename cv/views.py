@@ -1,9 +1,11 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from accounts.models import User
+from accounts.models import ProfileModel
 
 
 @login_required
 def cv_view(request, username):
-    context={}
+    profile=ProfileModel.objects.get(user__username=username)
+    context={'profile': profile}
     return render(request, 'cv/resume.html', context=context)

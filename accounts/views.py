@@ -4,8 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
+from .models import User
 from .form import SignUpForm
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 
 
@@ -30,7 +32,7 @@ def logout_user(request):
     
     
 def signup_user(request):
-    form=SignUpForm()
+    
     if request.method=='POST':
         form=SignUpForm(request.POST)
         print(form.errors)
@@ -41,11 +43,12 @@ def signup_user(request):
             password=form.cleaned_data['password1']
             user=authenticate(request, username=username, password=password)
             login(request, user)
-            return redirect('cv:cv')
+            return redirect('cv:cv', username=username)
         else:
             context={'form': form}
             return redirect('accounts:signup')    
     else:
+        form=SignUpForm()
         context={'form': form}
         return render(request, 'registration/signup.html', context=context)
             

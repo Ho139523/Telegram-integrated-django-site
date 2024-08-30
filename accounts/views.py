@@ -21,9 +21,9 @@ def login_user(request):
             login(request, user)
             return redirect("cv:cv", username=username)
         else:
-            return render(request, 'registration/login.html')
+            return render(request, 'registration/login1.html')
     else:
-        return render(request, 'registration/login.html')
+        return render(request, 'registration/login1.html')
     
     
 def logout_user(request):
@@ -50,5 +50,5 @@ def signup_user(request):
     else:
         form=SignUpForm()
         context={'form': form}
-        return render(request, 'registration/signup.html', context=context)
+        return render(request, 'registration/signup1.html', context=context)
             

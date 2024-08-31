@@ -49,7 +49,17 @@
               <div class="card card-plain">
                 <div class="card-header">
                   <h4 class="font-weight-bolder">Sign Up</h4>
-                  <p class="mb-0">Enter your email and password to register</p>
+				  {% if form.password.errors %}
+					<div class='form-error'>
+					{% for error in form.password.errors %}
+						<span>{{ error }}</span>
+					{% endfor %}
+					</div>
+				  {% else %}
+					<div class='form-error'>
+					<p class="mb-0">Enter your email and password to register</p>
+					</div>
+				  {% endif %}
                 </div>
                 <div class="card-body">
 						<form role="form" action="{% url 'accounts:signup' %}" method='POST'>
@@ -64,28 +74,46 @@
 							</div>
 							<div class="input-group input-group-outline mb-3">
 							  <label class="form-label">Password</label>
-							  {{form.password1|attr:"id:password"|attr:"type:password"|add_class:"form-control"}}<span class="password-toggle-icon"><i class="fa fa-eye icon"></i></span>
+							  {{form.password1|attr:"type:password"|add_class:"form-control"}}
 							</div>
 							<div class="input-group input-group-outline mb-3">
 							  <label class="form-label">Repeat Password</label>
-							  {{form.password2|attr:"id:password1"|attr:"type:password"|add_class:"form-control"}}<span class="password-toggle-icon"><i class="fa fa-eye icon"></i></span>
+							  {{form.password2|attr:"id:id_password"|attr:"type:password"|add_class:"form-control"}}<div class="toggleclick"><img src="{% static 'registration/dashboard/assets/img/icons/eye.png' %}" id="togglePassword" class="toggle icon"></div>
 							</div>
-							<div class="form-check form-check-info text-start ps-0">
-							  <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault" checked>
-							  <label class="form-check-label" for="flexCheckDefault">
-								I agree the <a href="javascript:;" class="text-dark font-weight-bolder">Terms and Conditions</a>
-							  </label>
-							</div>
-							<div class="text-center">
-							  <button type="submit" class="btn btn-lg bg-gradient-primary btn-lg w-100 mt-4 mb-0">Sign Up</button>
+							<div class="row mt-3">
+								<div class="col-í text-center ms-auto">
+									<div class="form-check form-check-info text-start ps-0">
+									  <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault" checked>
+								    <label class="form-check-label" for="flexCheckDefault">
+									    I agree the <a href="javascript:;" class="text-dark font-weight-bolder">Terms and Conditions</a>
+								    </label>
+									</div>
+								</div>
+								<div class="col-4 text-end ms-auto">
+									  <a class="btn btn-link px-2" href="javascript:;">
+										<i class="fa fa-facebook text-black text-lg"></i>
+									  </a>
+									
+									  <a class="btn btn-link px-2" href="javascript:;">
+										<i class="fa fa-github text-black text-lg"></i>
+									  </a>
+									
+									  <a class="btn btn-link px-2" href="javascript:;">
+										<i class="fa fa-google text-black text-lg"></i>
+									  </a>
+									</div>
+								</div>
+							  <div>
+							<div class="text-center py-2">
+							  <button type="submit" class="btn bg-gradient-primary btn-lg w-90 mt-4 mb-0">Sign Up</button>
 							</div>
 						</form>
-                </div>
-                <div class="card-footer text-center pt-0 px-lg-2 px-1">
-                  <p class="mb-2 text-sm mx-auto">
-                    Already have an account?
-                    <a href="../pages/sign-in.html" class="text-primary text-gradient font-weight-bold">Sign in</a>
-                  </p>
+						<div class="card-footer text-center pt-0 px-lg-2 px-1">
+						  <p class="mb-2 text-sm mx-auto">
+							Already have an account?
+							<a href="{% url 'accounts:login' %}" class="text-primary text-gradient font-weight-bold">Sign in</a>
+						  </p>
+						</div>
                 </div>
               </div>
             </div>
@@ -99,43 +127,33 @@
   <script src="{% static 'registration/dashboard/assets/js/core/bootstrap.min.js' %}"></script>
   <script src="{% static 'registration/dashboard/assets/js/plugins/perfect-scrollbar.min.js' %}"></script>
   <script src="{% static 'registration/dashboard/assets/js/plugins/smooth-scrollbar.min.js' %}"></script>
+  
+  
   <script>
-    var win = navigator.platform.indexOf('Win') > -1;
-    if (win && document.querySelector('#sidenav-scrollbar')) {
-      var options = {
-        damping: '0.5'
-      }
-      Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
-    }
-	
-	const passwordField = document.getElementById("password");
-	const togglePassword = document.querySelector(".password-toggle-icon i");
-	const passwordField2 = document.getElementById("password1");
-	const togglePassword2 = document.querySelector(".password-toggle-icon i");
 
+const toggle = document.querySelector(".toggle"),
 
-	togglePassword.addEventListener("click", function () {
-		if (passwordField.type === "password") {
-		passwordField.type = "text";
-		togglePassword.classList.remove("fa-eye");
-		togglePassword.classList.add("fa-eye-slash");
-		} else {
-		passwordField.type = "password";
-		togglePassword.classList.remove("fa-eye-slash");
-		togglePassword.classList.add("fa-eye");
-	}});
-	togglePassword2.addEventListener("click", function () {
-		if (passwordField2.type === "password") {
-		passwordField2.type = "text";
-		togglePassword2.classList.remove("fa-eye");
-		togglePassword2.classList.add("fa-eye-slash");
-	  } else {
-		passwordField2.type = "password";
-		togglePassword2.classList.remove("fa-eye-slash");
-		togglePassword2.classList.add("fa-eye");
-	}
+input = document.querySelector("#id_password"),
+toggleclick = document.querySelector(".toggleclick");
+
+toggleclick.addEventListener("click", function () {
+if (input.type ==="password"){
+input.type = "text";
+
+toggle.src="{% static 'registration/dashboard/assets/img/icons/visible.png' %}";
+
+}else{
+
+input.type = "password";
+toggle.src="{% static 'registration/dashboard/assets/img/icons/eye.png' %}";
+
+}
+
 });
-  </script>
+
+</script>
+  
+  
   <!-- Github buttons -->
   <script async defer src="https://buttons.github.io/buttons.js"></script>
   <!-- Control Center for Material Dashboard: parallax effects, scripts for the example pages etc -->

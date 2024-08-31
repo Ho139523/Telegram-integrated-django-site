@@ -8,6 +8,7 @@ urlpatterns = [
     path('login/', login.as_view(), name='login'),
     path('logout/', logout_user, name='logout'),
     path('signup/', signup_user, name='signup'),
+    path('dashboard/<slug:username>/profile', profile, name="profile"),
 
 
     # path("login/", views.LoginView.as_view(), name="login"),

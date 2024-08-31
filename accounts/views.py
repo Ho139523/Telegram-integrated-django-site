@@ -6,6 +6,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User
 from .form import SignUpForm
+from django.contrib.auth.views import LoginView
+from django.urls import reverse_lazy
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
@@ -24,6 +26,18 @@ def login_user(request):
             return render(request, 'registration/login1.html')
     else:
         return render(request, 'registration/login1.html')
+        
+        
+class login(LoginView):
+    
+    def get_success_url(self):
+        
+        username=self.request.POST['username']
+        print(username)
+        return reverse_lazy("cv:cv", kwargs={"username":username})
+        
+        
+ 
     
     
 def logout_user(request):

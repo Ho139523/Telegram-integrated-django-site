@@ -1,7 +1,13 @@
 @import url("dashboard/assets/css/material-dashboard.css");
 
 
-
-body {
-	
+.icon {
+	padding: 10px;
+	color: black;
+	min-width: 30px;
+	text-align: center;
+	height: 40px;
+	width: auto;
 }
+
+

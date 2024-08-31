@@ -65,4 +65,12 @@ def signup_user(request):
         form=SignUpForm()
         context={'form': form}
         return render(request, 'registration/signup1.html', context=context)
+        
+        
+def profile(request, username):
+    
+    context={
+        
+    }
+    return render(request, "registration/profile.html", context=context)
             

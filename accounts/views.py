@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
@@ -82,7 +83,7 @@ def profile(request, username):
     return render(request, "registration/dashboard/profile.html", context=context)
     
     
-class PasswordReset(PasswordResetView):
+class PasswordReset(LoginRequiredMixin, PasswordResetView):
     
     template_name="registration/dashboard/password_reset.html"
     # def get_queryset(self):

@@ -1,5 +1,5 @@
 from .models import User
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from django import forms
 
 
@@ -17,3 +17,15 @@ class SignUpForm(UserCreationForm):
     class Meta:
         model=User
         fields=("username", "email", "password1", "password2")
+        
+        
+        
+class PasswordResetFormChanged(PasswordResetForm):
+    Last_changed=forms.DateTimeField()
+    
+    def __init__(self, *args, **kwargs):
+
+        super(PasswordResetFormChanged, self).__init__(*args, **kwargs)
+        today = datetime.date.now()
+        self.fields["Last_changed"].initial = today
+    

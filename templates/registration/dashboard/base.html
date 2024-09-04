@@ -62,7 +62,7 @@
 		</li>
 
 		{% endif %}
-		{% if item == sidebaritem %}
+		{% if item|capfirst == view %}
 		<li class="nav-item">
 		  <a class="nav-link active bg-gradient-primary text-white " href="{% url app_name|add:item profile.user.username %}">
 			<div class="text-white text-center me-2 d-flex align-items-center justify-content-center">

@@ -89,3 +89,12 @@ class PasswordReset(PasswordResetView):
         # self.username=self.kwargs.get("username")
         # return self.username
     # PasswordReset=ProfileModel.objects.get(user__username=get_queryset)
+    
+    def get_context_data(self, **kwargs):
+        data=super().get_context_data(**kwargs)
+        username=self.kwargs.get("username")
+        data["profile"]=ProfileModel.objects.get(user__username=username)
+        data["sidebar"]=[(item, logo ) for item , logo in sidebar]
+        data["view"]="Reset Password"
+        data["app_name"]="accounts:"
+        return data

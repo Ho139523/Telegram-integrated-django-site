@@ -13,7 +13,7 @@ urlpatterns = [
     path('panel/<slug:username>/billing', profile, name="billing"),
     path('panel/<slug:username>/notifications', profile, name="notifications"),
 
-    path('panel/<slug:username>/password-reset', PasswordReset.as_view(), name="reset Password"),
+    path('panel/<slug:username>/password-reset', PasswordReset.as_view(), name="Reset Password"),
 
 
     # path("login/", views.LoginView.as_view(), name="login"),

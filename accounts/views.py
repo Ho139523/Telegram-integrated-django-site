@@ -4,10 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
+from django.contrib import messages
 from .models import User
 from .form import SignUpForm
-from django.contrib.auth.views import LoginView, PasswordResetView
+from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView
 from django.urls import reverse_lazy
 from .models import ProfileModel
 from django.contrib.auth import get_user_model
@@ -83,19 +84,38 @@ def profile(request, username):
     return render(request, "registration/dashboard/profile.html", context=context)
     
     
-class PasswordReset(LoginRequiredMixin, PasswordResetView):
+class ChangePassword(LoginRequiredMixin, PasswordChangeView):
     
-    template_name="registration/dashboard/password_reset.html"
-    # def get_queryset(self):
-        # self.username=self.kwargs.get("username")
-        # return self.username
-    # PasswordReset=ProfileModel.objects.get(user__username=get_queryset)
+    template_name="registration/dashboard/password_change.html"
+    
+    def get_success_url(self):
+        messages.add_message(self.request, messages.SUCCESS, "Your password has been successfully changed.")
+        kwargs={
+        "username": self.kwargs.get("username")
+        }
+        return reverse_lazy("accounts:profile", kwargs=kwargs)
     
     def get_context_data(self, **kwargs):
         data=super().get_context_data(**kwargs)
         username=self.kwargs.get("username")
         data["profile"]=ProfileModel.objects.get(user__username=username)
         data["sidebar"]=[(item, logo ) for item , logo in sidebar]
-        data["view"]="Reset Password"
+        data["view"]="Change Password"
         data["app_name"]="accounts:"
+        form=PasswordChangeForm(self.request.POST)
+        
         return data
+        
+        
+        
+        
+# class PasswordChangeDone(LoginRequiredMixin, PasswordChangeDoneView):
+    # template_name = "registration/dashboard/profile.html"
+    
+    
+    # def dispatch(self, *args, **kwargs):
+
+        # messages.add_message(self.request, messages.SUCCESS, "Your password has been successfully changed.")
+        # return super().dispatch(*args, **kwargs)
+        
+    

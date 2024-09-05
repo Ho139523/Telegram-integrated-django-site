@@ -8,7 +8,7 @@ from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib import messages
 from .models import User
 from .form import SignUpForm
-from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView
+from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
 from django.urls import reverse_lazy
 from .models import ProfileModel
 from django.contrib.auth import get_user_model
@@ -107,15 +107,31 @@ class ChangePassword(LoginRequiredMixin, PasswordChangeView):
         return data
         
         
+class PasswordReset(PasswordResetView):
+    
+    template_name="registration/password_reset_form.html"
+    success_url=reverse_lazy("accounts:login")
+    
+    def get_success_url(self):
+        messages.add_message(self.request, messages.SUCCESS, "Recovery Email Has Been Successfully Sent To Your Email Address.")
+        kwargs={
+        
+        }
+        return reverse_lazy("accounts:login", kwargs=kwargs)
         
         
-# class PasswordChangeDone(LoginRequiredMixin, PasswordChangeDoneView):
-    # template_name = "registration/dashboard/profile.html"
+class PasswordResetConfirm(PasswordResetConfirmView):
     
+    template_name="registration/password_reset_confirm.html"
+    success_url=reverse_lazy("accounts:login")
     
-    # def dispatch(self, *args, **kwargs):
-
-        # messages.add_message(self.request, messages.SUCCESS, "Your password has been successfully changed.")
-        # return super().dispatch(*args, **kwargs)
+    def get_success_url(self):
+        messages.add_message(self.request, messages.SUCCESS, "Your Password Has Been Successfully Changed.")
+        kwargs={
+        
+        }
+        return reverse_lazy("accounts:login", kwargs=kwargs)
+    
+        
         
     

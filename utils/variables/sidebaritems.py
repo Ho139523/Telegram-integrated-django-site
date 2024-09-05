@@ -4,7 +4,7 @@ sidebar=(
 ("billing", "receipt_long"),
 ("notifications", "notifications"),
 ("profile", "person"),
-("Reset Password", "key"),
+("Change Password", "key"),
 
 )
 

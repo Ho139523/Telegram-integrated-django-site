@@ -1,5 +1,10 @@
 from pathlib import Path 
-from decouple import config 
+from decouple import config
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
  
 # Build paths inside the project like this: BASE_DIR / 'subdir'. 
 BASE_DIR = Path(__file__).resolve().parent.parent 
@@ -37,7 +42,12 @@ INSTALLED_APPS = [
     'accounts', 
     'heartpred', 
     "myapi", 
-    "cv", 
+    "cv",
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    "social_django",
 ] 
  
 MIDDLEWARE = [ 
@@ -47,7 +57,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware', 
     'django.contrib.auth.middleware.AuthenticationMiddleware', 
     'django.contrib.messages.middleware.MessageMiddleware', 
-    'django.middleware.clickjacking.XFrameOptionsMiddleware', 
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ] 
  
 ROOT_URLCONF = 'AI.urls' 
@@ -138,3 +149,21 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS')
 EMAIL_PORT = config('EMAIL_PORT') 
 EMAIL_HOST_USER = config('EMAIL_HOST_USER') 
 EMAIL_HOST_PASSWORD =config('EMAIL_HOST_PASSWORD')
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+    "social_core.backends.google.GoogleOAuth2"
+]
+
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "738516811497-5777oj4g9962knteoo62nvtnoqa9o69c.apps.googleusercontent.com"
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "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"
+
+SITE_ID = 1
+
+
+LOGIN_URL = "auth/login/google-oauth2"
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+SOCIAL_AUTH_URL_NAMESPACE = 'social'

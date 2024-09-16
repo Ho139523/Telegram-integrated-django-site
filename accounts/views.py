@@ -5,7 +5,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
-from django.contrib import messages
 from .models import User
 from .form import SignUpForm
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
@@ -134,7 +133,7 @@ def activate(request, uidb64, token):
         return redirect('accounts:login') 
         
     
-@login_required    
+@login_required
 def profile(request, username):
     
     try:
@@ -224,3 +223,4 @@ def billing(request, username):
     }
     
     return render(request, 'registration/dashboard/billing.html', context=context)
+    

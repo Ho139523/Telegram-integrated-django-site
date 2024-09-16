@@ -1,12 +1,14 @@
 from django.urls import path, re_path
 from .views import *
 from django.contrib.auth import views
+from utils.funcs.django_social_redirect import custom_complete
 
 app_name = 'accounts'
 urlpatterns = [
 
     path('login/', login.as_view(), name='login'),
     path('logout/', logout_user, name='logout'),
+    path('socials/complete/google-oauth2/', custom_complete, name="custom_complete"),
     
     path('signup/', signup_user, name='signup'),
     path('activate/<uidb64>/<token>/', activate, name='activate'),

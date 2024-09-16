@@ -4,8 +4,8 @@ from rest_framework.decorators import api_view
 import joblib
 import pandas as pd
 import numpy as np
-from sklearn import preprocessing
-from sklearn.preprocessing import StandardScaler
+# from sklearn import preprocessing
+# from sklearn.preprocessing import StandardScaler
 from rest_framework import status
 from rest_framework.response import Response
 

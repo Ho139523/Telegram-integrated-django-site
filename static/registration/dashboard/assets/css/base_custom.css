@@ -2,3 +2,143 @@
 	margin: 0;
 	margin-top: auto;
 }
+
+
+/* Alert wrapper to fix the alert at the top of the container */
+/* .alert-wrapper { */
+    /* position: relative; */
+    /* overflow: hidden;  /* Ensure no overflow outside the wrapper */ */
+    /* margin-bottom: 0; /* Ensure it doesn’t overlap other content */ */
+	/* padding-bottom: 0; */
+	/* padding-top: 0.05rem; */
+/* } */
+
+Alert box
+/* .alert { */
+    
+    /* z-index: 9999; /* Ensure alert is on top */ */
+    /* width: calc(100% - 15px); /* Fit within container with padding */ */
+    /* opacity: 0.9 !important; /* Slight transparency */ */
+    /* transition: opacity 1s ease; /* Smooth fade-out */ */
+    /* display: flex; /* Ensure flexbox alignment */ */
+    /* align-items: center; /* Vertically center alert text and close button */ */
+    /* justify-content: space-between; /* Space between text and button */ */
+    /* padding: 0.5rem; */
+	/* list-style-type: none; /* Removes the bullets */ */
+    /* padding-left: 0; */
+	/* margin-bottom: 5px; */
+/* } */
+
+Center the close button
+/* .alert .btn-close { */
+    /* transition: opacity 1s ease; /* Fade-out within 1 second */ */
+    /* padding: 0; /* Remove default padding for proper alignment */ */
+    /* font-size: 1.3rem !important; /* Adjust font size for the close button */ */
+    /* line-height: 1; /* Align text inside button properly */ */
+/* } */
+
+/* .alert-dismissible .btn-close { */
+    /* transition: opacity 1s ease; /* Smooth fade-out on close */ */
+/* } */
+
+Fade-out effect
+/* .alert.fade-out { */
+    /* opacity: 0; */
+    /* transition: opacity 1s ease; /* Smooth fade-out within 1 second */ */
+/* } */
+
+/* .alert.show { */
+    /* opacity: 0.9; */
+/* } */
+
+/* ul { */
+    /* list-style-type: none; /* Removes the bullets */ */
+    /* padding-left: 0; /* Removes any default padding */ */
+/* } */
+
+/* ul li { */
+    /* margin-bottom: 10px; /* Optional: Adds space between messages */ */
+/* } */
+
+
+/* .btn-close { */
+    /* font-size: 40px; /* Increases the size of the close button */ */
+    /* line-height: 1; /* Makes sure it's not too large vertically */ */
+    /* height: 100%; /* Ensures it takes the full height of the alert */ */
+    /* display: flex; */
+    /* align-items: center; /* Center it within its container */ */
+    /* padding: 0; /* Remove extra padding */ */
+    /* background-color: transparent; */
+    /* border: none; */
+    /* color: white; */
+	/* opacity: 1; */
+/* } */
+
+
+
+
+
+
+
+
+
+/* Alert wrapper to fix the alert at the top of the container */
+.alert-wrapper {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    padding-top: 0.05rem;
+    transition: opacity 1s ease; /* Smooth transition for wrapper */
+}
+
+
+	
+	
+/* Alert box */
+.alert {
+    z-index: 9999;
+    width: calc(100% - 15px);
+    opacity: 0.9;
+    transition: opacity 1s ease; /* Smooth transition for alert */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    list-style-type: none;
+    padding-left: 0;
+    margin-bottom: 5px;
+}
+
+
+
+
+/* Fade-out effect */
+.alert.fade-out {
+    opacity: 0;
+    transition: opacity 1s ease; /* Smooth fade-out within 1 second */
+}
+
+.alert-wrapper.fade-out {
+    opacity: 0;
+    transition: opacity 1s ease; /* Smooth fade-out within 1 second */
+}
+
+/* Center the close button */
+.btn-close {
+    font-size: 1.3rem;
+    line-height: 1;
+    height: 100%;
+    align-items: center;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    color: white;
+    opacity: 1;
+	line-height: 1;
+}
+
+/* transition: opacity 1s ease; /* Fade-out within 1 second */ */
+    /* padding: 0; /* Remove default padding for proper alignment */ */
+    /* font-size: 1.3rem !important; /* Adjust font size for the close button */ */
+    /* line-height: 1; /* Align text inside button properly */ */

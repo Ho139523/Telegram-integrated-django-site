@@ -7,26 +7,27 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <link rel="apple-touch-icon" sizes="76x76" href="{% static 'registration/dashboard/assets/img/apple-icon.png' %}">
-  <link rel="icon" type="image/png" href="{% static 'registration/dashboard/assets/img/favicon.png' %}">
-  <title>
-    Material Dashboard 2 by Creative Tim
-  </title>
-  <!--     Fonts and icons     -->
-  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,900|Roboto+Slab:400,700" />
-  <!-- Nucleo Icons -->
-  <link href="{% static 'registration/dashboard/assets/css/nucleo-icons.css' %}" rel="stylesheet" />
-  <link href="{% static 'registration/dashboard/assets/css/nucleo-svg.css' %}" rel="stylesheet" />
-  <!-- Font Awesome Icons -->
-  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
-  <!-- Material Icons -->
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <!-- CSS Files -->
-  <link id="pagestyle" href="{% static 'registration/dashboard/assets/css/material-dashboard.css' %}?v=3.0.0" rel="stylesheet" />
-  <link id="pagestyle" href="{% static 'registration/signup1.css' %}?v=3.0.0" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="apple-touch-icon" sizes="76x76" href="{% static 'registration/dashboard/assets/img/apple-icon.png' %}">
+	<link rel="icon" type="image/png" href="{% static 'registration/dashboard/assets/img/favicon.png' %}">
+	<title>
+	Intelleum | Sign Up
+	</title>
+	<!--     Fonts and icons     -->
+	<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,900|Roboto+Slab:400,700" />
+	<!-- Nucleo Icons -->
+	<link href="{% static 'registration/dashboard/assets/css/nucleo-icons.css' %}" rel="stylesheet" />
+	<link href="{% static 'registration/dashboard/assets/css/nucleo-svg.css' %}" rel="stylesheet" />
+	<!-- Font Awesome Icons -->
+	<script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+	<!-- Material Icons -->
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+	<!-- CSS Files -->
+	<link id="pagestyle" href="{% static 'registration/dashboard/assets/css/material-dashboard.css' %}?v=3.0.0" rel="stylesheet" />
+	<link id="pagestyle" href="{% static 'registration/signup1.css' %}?v=3.0.0" rel="stylesheet" />
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <!-- assets/css/material-dashboard.css?v=3.0.0 -->
 <body class="">
@@ -51,7 +52,25 @@
               <div class="card card-plain">
                 <div class="card-header">
                   <h4 class="font-weight-bolder">Sign Up</h4>
-                  <p class="mb-0">Enter your email and password to register</p>
+					{% if form.non_field_errors %}
+	
+					  {% for error in form.non_field_errors %}
+						<div class="d-flex justify-content-center card-body p-3 pb-0">
+						<div class="col-8 alert alert-Danger alert-dismissible text-bold text-center text-white" role="alert">
+						<span class="text-sm">{{error}}</span>
+						<button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+						</div>
+						</div>
+					  {% endfor %}
+							  
+					{% else %}
+					
+						<p class="mb-0">Enter your email and password to register</p>
+				
+					{% endif %}
+                  
                 </div>
                 <div class="card-body">
       <form role="form" action="{% url 'accounts:signup' %}" method='POST'>
@@ -70,16 +89,16 @@
        </div>
        <div class="input-group input-group-outline mb-3">
          <label class="form-label">Repeat Password</label>
-         {{form.password2|attr:"id:password"|attr:"type:password"|add_class:"form-control"}}<span class="password-toggle-icon"><i class="fa fa-eye-slash icon"></i></span>
+         {{form.password2|attr:"id:id_password"|attr:"type:password"|add_class:"form-control"}}<div class="toggleclick"><img src="{% static 'registration/dashboard/assets/img/icons/eye.png' %}" id="togglePassword" class="toggle icon"></div>
        </div>
        <div class="form-check form-check-info text-start ps-0">
-         <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault" checked>
-         <label class="form-check-label" for="flexCheckDefault">
+         <input class="form-check-input" type="checkbox" value="" id="terms-checkbox">
+         <label class="form-check-label" for="terms-checkbox">
         I agree the <a href="javascript:;" class="text-dark font-weight-bolder">Terms and Conditions</a>
          </label>
        </div>
        <div class="text-center">
-         <button type="submit" class="btn btn-lg bg-gradient-primary btn-lg w-100 mt-4 mb-0">Sign Up</button>
+         <button type="submit" id="submit-button" disabled class="btn btn-lg bg-gradient-primary btn-lg w-100 mt-4 mb-0">Sign Up</button>
        </div>
       </form>
                 </div>
@@ -109,22 +128,48 @@
       }
       Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
     }
- 
- const passwordField = document.getElementById("password");
- const togglePassword = document.querySelector(".password-toggle-icon i");
+	
+	
+	const toggle = document.querySelector(".toggle"),
 
+	input = document.querySelector("#id_password"),
+	toggleclick = document.querySelector(".toggleclick");
 
- togglePassword.addEventListener("click", function () {
-  if (passwordField.type === "password") {
-  passwordField.type = "text";
-  togglePassword.classList.remove("fa-eye-slash");
-  togglePassword.classList.add("fa-eye");
-  } else {
-  passwordField.type = "password";
-  togglePassword.classList.remove("fa-eye");
-  togglePassword.classList.add("fa-eye-slash");
- }});
-  </script>
+	toggleclick.addEventListener("click", function () {
+	if (input.type ==="password"){
+	input.type = "text";
+
+	toggle.src="{% static 'registration/dashboard/assets/img/icons/visible.png' %}";
+
+	}else{
+
+	input.type = "password";
+	toggle.src="{% static 'registration/dashboard/assets/img/icons/eye.png' %}";
+
+	}
+
+	});
+	
+	
+	</script>
+	<script>
+	
+    // Wait for the DOM to load
+    document.addEventListener("DOMContentLoaded", function() {
+        // Get the checkbox and the submit button
+        const termsCheckbox = document.getElementById("terms-checkbox");
+        const submitButton = document.getElementById("submit-button");
+        
+        // Add an event listener to the checkbox
+        termsCheckbox.addEventListener("change", function() {
+            // Enable the submit button if the checkbox is checked, otherwise disable it
+            submitButton.disabled = !termsCheckbox.checked;
+        });
+    });
+	
+	</script>
+  
+  
   <!-- Github buttons -->
   <script async defer src="https://buttons.github.io/buttons.js"></script>
   <!-- Control Center for Material Dashboard: parallax effects, scripts for the example pages etc -->

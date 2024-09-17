@@ -138,7 +138,6 @@ Fade-out effect
 	line-height: 1;
 }
 
-/* transition: opacity 1s ease; /* Fade-out within 1 second */ */
-    /* padding: 0; /* Remove default padding for proper alignment */ */
-    /* font-size: 1.3rem !important; /* Adjust font size for the close button */ */
-    /* line-height: 1; /* Align text inside button properly */ */
+ul {
+list-style-type: none;
+}

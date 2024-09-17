@@ -152,25 +152,45 @@ class ChangePassword(LoginRequiredMixin, PasswordChangeView):
     template_name="registration/dashboard/password_change.html"
     
     def get_success_url(self):
-        messages.add_message(self.request, messages.SUCCESS, "Your password has been successfully changed.")
-        kwargs={
-        "username": self.kwargs.get("username")
+        kwargs = {
+            "username": self.kwargs.get("username")
         }
         return reverse_lazy("accounts:profile", kwargs=kwargs)
-    
-    def get_context_data(self, **kwargs):
-        data=super().get_context_data(**kwargs)
-        username=self.kwargs.get("username")
-        data["username"]=username
-        has_password = User.objects.get(username=username).has_usable_password()
-        data["has_passsword"] = has_password
-        # data["profile"]=ProfileModel.objects.get(user__username=username)
-        data["view"]="Change Password"
-        form=PasswordChangeForm(self.request.POST)
-        if not has_password:
+
+    def get_form(self, form_class=None):
+        """Override get_form to remove old password field for users without a password"""
+        form = super().get_form(form_class)
+        user = self.get_user()
+        if not user.has_usable_password():
             form.fields.pop('old_password')
+        return form
+
+    def get_user(self):
+        """Get the user from the URL or the request."""
+        username = self.kwargs.get("username")
+        return User.objects.get(username=username)
+
+    def form_valid(self, form):
+        """If the form is valid, proceed to change the password."""
+        messages.add_message(self.request, messages.SUCCESS, "Your password has been successfully changed.")
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        """If the form is invalid, handle errors and display messages."""
+        for error in form.errors.values():
+            messages.add_message(self.request, messages.ERROR, error)
         
-        return data
+        return self.render_to_response(self.get_context_data(form=form))
+
+    def get_context_data(self, **kwargs):
+        """Pass additional context data to the template."""
+        context = super().get_context_data(**kwargs)
+        username = self.kwargs.get("username")
+        user = self.get_user()
+        context["username"] = username
+        context["has_password"] = user.has_usable_password()
+        context["view"] = "Change Password"
+        return context
         
         
     

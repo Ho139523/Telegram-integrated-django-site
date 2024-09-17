@@ -163,19 +163,27 @@
     <!-- End Navbar -->
 	
 	{% if messages %}
-	
-          {% for message in messages %}
-            <div class="card-body p-3 pb-0 text-center text-bold">
-            <div class="alert alert-{{ message.tags }} alert-dismissible text-white" role="alert">
-			<span class="text-sm">{{message}}</span>
-			<button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert" aria-label="Close">
-				<span aria-hidden="true">&times;</span>
+	<div class="alert-wrapper">
+		{% for message in messages %}
+		<div class="alert
+			{% if message.tags == 'error' %}
+				alert-danger
+			{% elif message.tags == 'success' %}
+				alert-success
+			{% elif message.tags == 'warning' %}
+				alert-warning
+			{% else %}
+				alert-info
+			{% endif %}
+		alert-dismissible fade show text-bold text-center text-white justify-content-center" role="alert">
+			<span>{{ message }}</span>
+			<button type="button" class="btn-close text-lg px-3" data-bs-dismiss="alert" aria-label="Close">
+				&times;
 			</button>
-			</div>
-			</div>
-          {% endfor %}
-	
-    {% endif %}
+		</div>
+		{% endfor %}
+	</div>
+{% endif %}
 	
     <div class="d-flex flex-column min-vh-100 container-fluid py-4">
       

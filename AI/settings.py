@@ -56,7 +56,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware', 
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-] 
+]
+
  
 ROOT_URLCONF = 'AI.urls' 
  
@@ -149,9 +150,10 @@ EMAIL_HOST_PASSWORD =config('EMAIL_HOST_PASSWORD')
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
+    'social_core.backends.google.GoogleOAuth2',  # Ensure this is properly listed
     'allauth.account.auth_backends.AuthenticationBackend',
-    "social_core.backends.google.GoogleOAuth2"
 ]
+
 
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
@@ -165,15 +167,19 @@ LOGOUT_REDIRECT_URL = '/'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 
 
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_SAVE_EVERY_REQUEST = True
+
+
 SOCIAL_AUTH_PIPELINE = (
-    'social_core.pipeline.social_auth.social_details',  # Fetch the user’s details
-    'social_core.pipeline.social_auth.social_uid',      # Get the user’s unique ID
-    'social_core.pipeline.social_auth.auth_allowed',    # Check if authentication is allowed
-    'social_core.pipeline.social_auth.social_user',     # Get or associate the user with the social account
-    'social_core.pipeline.user.get_username',           # Get the username
-    'social_core.pipeline.user.create_user',            # Create a new user if one doesn’t exist
-    'social_core.pipeline.social_auth.associate_user',  # Associate the user with their social account
-    'social_core.pipeline.social_auth.load_extra_data', # Load extra data from the provider
-    'social_core.pipeline.user.user_details',           # Update the user details with data from the provider
-    'utils.funcs.django_social_redirect.custom_complete',  # Add your custom redirect step here
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+    'utils.funcs.django_social_redirect.custom_complete',  # Moved here
 )

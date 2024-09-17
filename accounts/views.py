@@ -11,7 +11,6 @@ from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordCha
 from django.urls import reverse_lazy
 from .models import ProfileModel
 from django.contrib.auth import get_user_model
-from utils.variables.sidebaritems import sidebar
 User = get_user_model()
 
 
@@ -25,20 +24,6 @@ from django.core.mail import EmailMessage
 
 
 
-def login_user(request):
-    
-    if request.method=='POST':
-        username=request.POST['username']
-        password=request.POST['password']
-        user=authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect("cv:cv", username=username)
-        else:
-            return render(request, 'registration/login1.html')
-    else:
-        return render(request, 'registration/login1.html')
-        
         
 class login(LoginView):
     
@@ -55,28 +40,7 @@ def logout_user(request):
     logout(request)
     return redirect("heartpred:heartpred")
     
-    
-# def signup_user(request):
-    
-    # if request.method=='POST':
-        # form=SignUpForm(request.POST)
-        # print(form.errors)
-        # if form.is_valid():
-            # form.save()
-            # email=form.cleaned_data['email']
-            # username=form.cleaned_data['username']
-            # password=form.cleaned_data['password1']
-            # user=authenticate(request, username=username, password=password)
-            # login(request, user)
-            # return redirect('accounts:login')
-        # else:
-            # context={'form': form}
-            # return redirect('accounts:signup')    
-    # else:
-        # form=SignUpForm()
-        # context={'form': form}
-        # return render(request, 'registration/signup.html', context=context)
-        
+ 
         
         
 def signup_user(request):  
@@ -107,8 +71,8 @@ def signup_user(request):
             
         else:
             
-            messages.add_message(request, messages.SUCCESS, "Something went wrong!")
-            return redirect('accounts:login')
+            messages.add_message(request, messages.WARNING, "Something went wrong!")
+            return redirect('accounts:signup')
             
     else:  
         form = SignUpForm()  
@@ -132,56 +96,7 @@ def activate(request, uidb64, token):
         messages.add_message(request, messages.SUCCESS, "The link is invalid or expired! Please try again.")
         return redirect('accounts:login') 
         
-    
-@login_required
-def profile(request, username):
-    
-    try:
-        profile=ProfileModel.objects.get(user__username=username)
-    except:
-        profile={
-        'user': User.objects.get(username=username),
-        'fname': 'First Name',
-        'lname': 'Last Name',
-        'avatar': '',
-        'background_pic': '',
-        'birthday': '',
-        'Phone': '',
-        'address': '',
-        }
-    
-    context={
-        "profile": profile,
-        "sidebar": [(item, logo ) for item , logo in sidebar],
-        "view": "Profile",
-        "app_name": "accounts:"
-    }
-    return render(request, "registration/dashboard/profile.html", context=context)
-    
-    
-class ChangePassword(LoginRequiredMixin, PasswordChangeView):
-    
-    template_name="registration/dashboard/password_change.html"
-    
-    def get_success_url(self):
-        messages.add_message(self.request, messages.SUCCESS, "Your password has been successfully changed.")
-        kwargs={
-        "username": self.kwargs.get("username")
-        }
-        return reverse_lazy("accounts:profile", kwargs=kwargs)
-    
-    def get_context_data(self, **kwargs):
-        data=super().get_context_data(**kwargs)
-        username=self.kwargs.get("username")
-        data["profile"]=ProfileModel.objects.get(user__username=username)
-        data["sidebar"]=[(item, logo ) for item , logo in sidebar]
-        data["view"]="Change Password"
-        data["app_name"]="accounts:"
-        form=PasswordChangeForm(self.request.POST)
-        
-        return data
-        
-        
+
 class PasswordReset(PasswordResetView):
     
     template_name="registration/password_reset_form.html"
@@ -206,9 +121,60 @@ class PasswordResetConfirm(PasswordResetConfirmView):
         
         }
         return reverse_lazy("accounts:login", kwargs=kwargs)
+
+
+@login_required
+def profile(request, username):
     
+    try:
+        profile=ProfileModel.objects.get(user__username=username)
+    except:
+        profile={
+        'user': User.objects.get(username=username),
+        'fname': 'First Name',
+        'lname': 'Last Name',
+        'avatar': '',
+        'background_pic': '',
+        'birthday': '',
+        'Phone': '',
+        'address': '',
+        }
+    
+    context={
+        "profile": profile,
+        'view': 'Profile'
+    }
+    return render(request, "registration/dashboard/profile.html", context=context)
+    
+
+class ChangePassword(LoginRequiredMixin, PasswordChangeView):
+    
+    template_name="registration/dashboard/password_change.html"
+    
+    def get_success_url(self):
+        messages.add_message(self.request, messages.SUCCESS, "Your password has been successfully changed.")
+        kwargs={
+        "username": self.kwargs.get("username")
+        }
+        return reverse_lazy("accounts:profile", kwargs=kwargs)
+    
+    def get_context_data(self, **kwargs):
+        data=super().get_context_data(**kwargs)
+        username=self.kwargs.get("username")
+        data["username"]=username
+        has_password = User.objects.get(username=username).has_usable_password()
+        data["has_passsword"] = has_password
+        # data["profile"]=ProfileModel.objects.get(user__username=username)
+        data["view"]="Change Password"
+        form=PasswordChangeForm(self.request.POST)
+        if not has_password:
+            form.fields.pop('old_password')
+        
+        return data
         
         
+    
+@login_required        
 def billing(request, username):
     try:
         profile=ProfileModel.objects.get(user__username=username)
@@ -217,9 +183,7 @@ def billing(request, username):
         return redirect('accounts:profile', username=username)
     context={
         "profile": profile,
-        "sidebar": [(item, logo ) for item , logo in sidebar],
         "view": "Billing",
-        "app_name": "accounts:"
     }
     
     return render(request, 'registration/dashboard/billing.html', context=context)

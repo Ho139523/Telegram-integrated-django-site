@@ -6,6 +6,7 @@ from social_django.models import UserSocialAuth
 from django.contrib import messages
 from accounts.models import User  # Django's User model
 from django.contrib.auth import load_backend
+from accounts.models import ProfileModel
 
 
 
@@ -27,6 +28,17 @@ def custom_complete(backend, user=None, response=None, *args, **kwargs):
                 user.last_name = response.get('family_name')
                 user.set_unusable_password()
                 user.save()
+                profile=ProfileModel(
+                        user=user,
+                        fname= user.first_name,
+                        lname=user.last_name,
+                        avatar=response.get('picture'),
+                        birthday=response.get('birthday'),
+                        Phone=response.get('phone'),
+                        address=response.get('address'),
+                        )
+                profile.save()
+                
 
         if user and user.is_authenticated:
             # Attach the backend explicitly

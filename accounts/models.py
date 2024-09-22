@@ -67,14 +67,17 @@ class User(AbstractUser):
     
 class ProfileModel(models.Model):
     
-    user=models. ForeignKey(User, on_delete=models.CASCADE)
-    fname=models.CharField(max_length=100, default="Alex", blank=False, null=True)
-    lname=models.CharField(max_length=150, default="Smith", blank=False, null=True)
-    avatar=models.ImageField(default="", upload_to="registration/user_avatars")
-    background_pic=models.ImageField(default="", upload_to="registration/user_avatars")
-    birthday=models.DateField()
-    Phone=models.CharField(max_length=10)
+    user=models.ForeignKey(User, unique=True, on_delete=models.CASCADE)
+    fname=models.CharField(max_length=100, blank=True, null=True)
+    lname=models.CharField(max_length=150, blank=True, null=True)
+    avatar=models.ImageField(default="registration/user_avatars/default-avatar.png", upload_to="registration/user_avatars")
+    background_pic=models.ImageField(default="registration/user_headers/default_header.avif", upload_to="registration/user_headers")
+    birthday=models.DateField(blank=True, null=True)
+    Phone=models.CharField(max_length=10, blank=True, null=True)
     address=models.ForeignKey(IranAddressModel, blank=True, null=True, on_delete=models.SET_NULL)
+    about_me=models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)")
+    instagram=models.CharField(max_length=120, blank=True, null=True)
+    tweeter=models.CharField(max_length=120, blank=True, null=True)
 
 
     @property

@@ -90,6 +90,9 @@ def activate(request, uidb64, token):
     if user is not None and generate_token.check_token(user, token):  
         user.is_active = True  
         user.save()
+        
+        profile=ProfileModel(user=user)
+        profile.save()
         messages.add_message(request, messages.SUCCESS, "Your account has been activated successfully.")
         return redirect('accounts:login')
     else:

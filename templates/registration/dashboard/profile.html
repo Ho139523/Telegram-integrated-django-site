@@ -21,13 +21,26 @@
 {% block content %}
     <div class="container-fluid px-2 px-md-4">
       <div class="page-header min-height-300 border-radius-xl mt-4" style="background-image: url({{ profile.background_pic.url }});">
-        <span class="mask bg-gradient-primary opacity-6"></span>
+        <span class="mask bg-gradient-primary opacity-6">
+		    <form id="headerForm" action="{% url 'accounts:change_header_image' %}" method="POST" enctype="multipart/form-data">
+			{% csrf_token %}
+				<label for="id_header_image" class="position-absolute top-0 end-0 p-3 change-header-icon" title="Change Header">
+					<i class="justify-content-end fa fa-camera fa-2x" aria-hidden="true">{{ header_form.background_pic|attr:"id:id_header_image"|attr:"accept:image/*"|add_class:"justify-content-end fa fa-camera fa-2x"|attr:"style:display: none"}}</i>
+				</label>
+			</form>
+		</span>
       </div>
       <div class="card card-body mx-3 mx-md-4 mt-n6">
         <div class="row gx-4 mb-2">
           <div class="col-auto">
             <div class="avatar avatar-xl position-relative">
 				<img src="{{ profile.avatar.url }}" alt="profile_image" class="w-100 border-radius-lg shadow-sm">
+				<form id="avatarForm" action="{% url 'accounts:change_avatar_image' %}" method="POST" enctype="multipart/form-data">
+				{% csrf_token %}
+					<label for="id_avatar_image" class="position-absolute buttom-0 end-0 p-1 change-header-icon" title="Change Avatar">
+						<i class="justify-content-end fa fa-camera fa-lg" aria-hidden="true">{{ avatar_form.avatar|attr:"id:id_avatar_image"|attr:"accept:image/*"|add_class:"justify-content-end fa fa-camera fa-lg"|attr:"style:display: none"}}</i>
+					</label>
+				</form>
             </div>
           </div>
           <div class="col-auto my-auto">

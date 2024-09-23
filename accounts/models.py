@@ -67,7 +67,7 @@ class User(AbstractUser):
     
 class ProfileModel(models.Model):
     
-    user=models.ForeignKey(User, unique=True, on_delete=models.CASCADE)
+    user=models.OneToOneField(User, unique=True, on_delete=models.CASCADE)
     fname=models.CharField(max_length=100, blank=True, null=True)
     lname=models.CharField(max_length=150, blank=True, null=True)
     avatar=models.ImageField(default="registration/user_avatars/default-avatar.png", upload_to="registration/user_avatars")
@@ -78,6 +78,9 @@ class ProfileModel(models.Model):
     about_me=models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)")
     instagram=models.CharField(max_length=120, blank=True, null=True)
     tweeter=models.CharField(max_length=120, blank=True, null=True)
+    
+    def __str__(self):
+        return self.user.username
 
 
     @property
@@ -90,8 +93,6 @@ class ProfileModel(models.Model):
         )
         return age
 
-    def __str__(self):
-        return self.fname + " " + self.lname
         
         
         

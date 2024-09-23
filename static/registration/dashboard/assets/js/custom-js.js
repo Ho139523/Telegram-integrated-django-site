@@ -22,3 +22,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+
+
+
+
+// Submit the form when an image is selected
+document.addEventListener('DOMContentLoaded', function() {
+    let fileInput = document.getElementById('id_header_image');
+    
+    if (fileInput) {  // Ensure the file input is found
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                document.getElementById('headerForm').submit();
+                console.log("form submitted.");
+            } else {
+                console.log("No file selected.");
+            }
+        });
+    }
+});
+
+
+// Submit the form when an image is selected
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('id_avatar_image')) {  // Ensure the file input is found
+        document.getElementById('id_avatar_image').addEventListener('change', function() {
+            if (this.files.length > 0) {
+                document.getElementById('avatarForm').submit();
+            } else {
+                console.log("No file selected.");
+            }
+        });
+    }
+});
+

@@ -6,7 +6,7 @@ from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import User
-from .form import SignUpForm
+from .form import SignUpForm, HeaderImageForm, AvatarImageForm
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
 from django.urls import reverse_lazy
 from .models import ProfileModel
@@ -91,7 +91,8 @@ def activate(request, uidb64, token):
         user.is_active = True  
         user.save()
         
-        profile=ProfileModel(user=user)
+        profile=ProfileModel.objects.create(user=user)
+        user.profilemodel.save()
         profile.save()
         messages.add_message(request, messages.SUCCESS, "Your account has been activated successfully.")
         return redirect('accounts:login')
@@ -128,24 +129,17 @@ class PasswordResetConfirm(PasswordResetConfirmView):
 
 @login_required
 def profile(request, username):
-    
-    try:
-        profile=ProfileModel.objects.get(user__username=username)
-    except:
-        profile={
-        'user': User.objects.get(username=username),
-        'fname': 'First Name',
-        'lname': 'Last Name',
-        'avatar': '',
-        'background_pic': '',
-        'birthday': '',
-        'Phone': '',
-        'address': '',
-        }
+   
+    profile=ProfileModel.objects.get(user__username=username)
+    header_form = HeaderImageForm()
+    avatar_form = AvatarImageForm()
     
     context={
         "profile": profile,
-        'view': 'Profile'
+        'view': 'Profile',
+        "header_form": header_form,
+        "avatar_form": avatar_form,
+
     }
     return render(request, "registration/dashboard/profile.html", context=context)
     
@@ -211,3 +205,30 @@ def billing(request, username):
     
     return render(request, 'registration/dashboard/billing.html', context=context)
     
+
+
+@login_required
+def change_header_image(request):
+    if request.method == 'POST':
+        form = HeaderImageForm(request.POST, request.FILES, instance=request.user.profilemodel)
+        if form.is_valid():
+            form.save()
+            return redirect('accounts:profile', username=request.user.username)  # Redirect to the profile page after saving
+    else:
+        form = HeaderImageForm(instance=request.user.profilemodel)
+    
+    return render(request, 'registration/dashboard/profile.html', {'header_form': form})
+    
+    
+    
+@login_required
+def change_avatar_image(request):
+    if request.method == 'POST':
+        form = AvatarImageForm(request.POST, request.FILES, instance=request.user.profilemodel)
+        if form.is_valid():
+            form.save()
+            return redirect('accounts:profile', username=request.user.username)  # Redirect to the profile page after saving
+    else:
+        form = AvatarImageForm(instance=request.user.profilemodel)
+    
+    return render(request, 'registration/dashboard/profile.html', {'avatar_form': form})

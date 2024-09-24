@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     "social_django",
+    'crispy_forms',
+    "crispy_bootstrap4",
 ] 
  
 MIDDLEWARE = [ 
@@ -183,3 +185,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.user_details',
     'utils.funcs.django_social_redirect.custom_complete',  # Moved here
 )
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
+
+CRISPY_TEMPLATE_PACK = "bootstrap4"

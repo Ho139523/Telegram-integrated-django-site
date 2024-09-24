@@ -6,7 +6,7 @@ from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import User
-from .form import SignUpForm, HeaderImageForm, AvatarImageForm
+from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
 from django.urls import reverse_lazy
 from .models import ProfileModel
@@ -133,12 +133,24 @@ def profile(request, username):
     profile=ProfileModel.objects.get(user__username=username)
     header_form = HeaderImageForm()
     avatar_form = AvatarImageForm()
+    update_form = ProfileUpdateForm(initial={
+                                            "fname": profile.fname,
+                                            "lname": profile.lname,
+                                            "Phone": profile.Phone,
+                                            "address": profile.address,
+                                            "about_me": profile.about_me,
+                                            "birthday": profile.birthday,
+                                            "tweeter": profile.tweeter,
+                                            "instagram": profile.instagram,
+                                            },)
+    
     
     context={
         "profile": profile,
         'view': 'Profile',
         "header_form": header_form,
         "avatar_form": avatar_form,
+        "update_form": update_form,
 
     }
     return render(request, "registration/dashboard/profile.html", context=context)
@@ -232,3 +244,19 @@ def change_avatar_image(request):
         form = AvatarImageForm(instance=request.user.profilemodel)
     
     return render(request, 'registration/dashboard/profile.html', {'avatar_form': form})
+    
+    
+
+@login_required
+def profile_update_view(request):
+    profile = request.user.profilemodel  # Assuming profile is linked with User as a OneToOneField
+
+    if request.method == 'POST':
+        form = ProfileUpdateForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('accounts:profile', username=request.user.username)  # Redirect to profile page after saving
+    else:
+        form = ProfileUpdateForm(instance=profile)
+
+    return render(request, 'registration/dashboard/profile.html', {'form': form, 'profile': profile})

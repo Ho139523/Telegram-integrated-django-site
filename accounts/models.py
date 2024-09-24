@@ -68,16 +68,16 @@ class User(AbstractUser):
 class ProfileModel(models.Model):
     
     user=models.OneToOneField(User, unique=True, on_delete=models.CASCADE)
-    fname=models.CharField(max_length=100, blank=True, null=True)
-    lname=models.CharField(max_length=150, blank=True, null=True)
+    fname=models.CharField(max_length=100, blank=True, null=True, verbose_name="First Name")
+    lname=models.CharField(max_length=150, blank=True, null=True, verbose_name="Last Name")
     avatar=models.ImageField(default="registration/user_avatars/default-avatar.png", upload_to="registration/user_avatars")
-    background_pic=models.ImageField(default="registration/user_headers/default_header.avif", upload_to="registration/user_headers")
+    background_pic=models.ImageField(default="registration/user_headers/default_header.avif", upload_to="registration/user_headers", verbose_name="Header Image")
     birthday=models.DateField(blank=True, null=True)
-    Phone=models.CharField(max_length=10, blank=True, null=True)
+    Phone=models.CharField(max_length=10, blank=True, null=True, verbose_name="Phone Number")
     address=models.ForeignKey(IranAddressModel, blank=True, null=True, on_delete=models.SET_NULL)
-    about_me=models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)")
-    instagram=models.CharField(max_length=120, blank=True, null=True)
-    tweeter=models.CharField(max_length=120, blank=True, null=True)
+    about_me=models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)", verbose_name="About Me")
+    instagram=models.CharField(max_length=120, blank=True, null=True, verbose_name="Instagram ID")
+    tweeter=models.CharField(max_length=120, blank=True, null=True, verbose_name="Tweeter ID")
     
     def __str__(self):
         return self.user.username

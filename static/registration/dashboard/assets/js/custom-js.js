@@ -57,3 +57,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+
+
+document.getElementById('editProfileBtn').addEventListener('click', function() {
+  // Toggle visibility of profile info and form fields
+  const aboutMeText = document.getElementById('aboutMeText');
+  const fullNameText = document.getElementById('fullNameText');
+  const phoneText = document.getElementById('phoneText');
+  const addressText = document.getElementById('addressText');
+  const birthdayText = document.getElementById('birthdayText');
+  const socialText = document.getElementById('socialText');
+  
+  const aboutmeField = document.getElementById('aboutmeField');
+  const fnameField = document.getElementById('fnameField');
+  const lnameField = document.getElementById('lnameField');
+  const phoneField = document.getElementById('phoneField');
+  const addressField = document.getElementById('addressField');
+  const birthdayField = document.getElementById('birthdayField');
+  const tweeterField = document.getElementById('tweeterField');
+  const instagramField = document.getElementById('instagramField');
+  
+  // Hide static text and show form fields
+  aboutMeText.classList.toggle('d-none');
+  fullNameText.classList.toggle('d-none');
+  phoneText.classList.toggle('d-none');
+  addressText.classList.toggle('d-none');
+  birthdayText.classList.toggle('d-none');
+  socialText.classList.toggle('d-none');
+  
+  aboutmeField.classList.remove('d-none');
+  fnameField.classList.remove('d-none');
+  lnameField.classList.remove('d-none');
+  phoneField.classList.remove('d-none');
+  addressField.classList.remove('d-none');
+  birthdayField.classList.remove('d-none');
+  tweeterField.classList.remove('d-none');
+  instagramField.classList.remove('d-none');
+
+  // Change the edit icon to a submit button
+  const icon = this.querySelector('i');
+  if (icon.classList.contains('fa-user-edit')) {
+    icon.classList.remove('fa-user-edit');
+    icon.classList.add('fa-check');
+    icon.setAttribute('title', 'Submit Changes');
+    
+  } else {
+    // Submit the form when the tick icon is clicked
+    document.getElementById('profileForm').submit();
+  }
+});
+

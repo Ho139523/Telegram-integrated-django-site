@@ -31,6 +31,7 @@ urlpatterns = [
     #header and avatar image uploading
     path('panel/change-header-image/', change_header_image, name='change_header_image'),
     path('panel/change-avatar-image/', change_avatar_image, name='change_avatar_image'),
+    path('panel/change-profile-data/', profile_update_view, name='change_profile_data'),
 
 
 ]

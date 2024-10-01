@@ -1,7 +1,8 @@
 from .models import User
 from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from django import forms
-from .models import ProfileModel
+from .models import ProfileModel, ShippingAddressModel
+from django.forms import inlineformset_factory
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from crispy_forms.helper import FormHelper
@@ -83,3 +84,26 @@ class ProfileUpdateForm(forms.ModelForm):
             Field('tweeter', css_class='form-control', wrapper_class='col-6', id='tweeterField'),
             Field('instagram', css_class='form-control', wrapper_class='col-6'),
         )
+
+
+class ShippingAddressForm(forms.ModelForm):
+    class Meta:
+        model=ShippingAddressModel
+        fields="__all__"
+        
+        widgets = {
+                'shipping_line1': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 1"}),
+                'shipping_line2': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 2"}),
+                'shipping_city': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "City"}),
+                'shipping_country': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Country"}),
+                'shipping_province': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Province"}),
+                'shipping_zip': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Zip Code"}),
+                'shipping_home_phone': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Residential Phone Number"}),
+            }
+            
+ShippingAddressFormSet = inlineformset_factory(
+    ProfileModel, ShippingAddressModel,  # Parent model and related model
+    form=ShippingAddressForm,
+    extra=1,  # How many empty forms to show initially
+    can_delete=True,  # Allow deletion of related addresses
+)

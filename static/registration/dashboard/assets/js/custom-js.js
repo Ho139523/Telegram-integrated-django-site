@@ -67,15 +67,16 @@ document.getElementById('editProfileBtn').addEventListener('click', function() {
   const addressText = document.getElementById('addressText');
   const birthdayText = document.getElementById('birthdayText');
   const socialText = document.getElementById('socialText');
+  const shippingAddressText = document.getElementById('shippingAddressText');
   
   const aboutmeField = document.getElementById('aboutmeField');
   const fnameField = document.getElementById('fnameField');
   const lnameField = document.getElementById('lnameField');
   const phoneField = document.getElementById('phoneField');
-  const addressField = document.getElementById('addressField');
   const birthdayField = document.getElementById('birthdayField');
   const tweeterField = document.getElementById('tweeterField');
   const instagramField = document.getElementById('instagramField');
+  const shippingAddressField = document.getElementById('shippingAddressField');
   
   // Hide static text and show form fields
   aboutMeText.classList.toggle('d-none');
@@ -93,6 +94,8 @@ document.getElementById('editProfileBtn').addEventListener('click', function() {
   birthdayField.classList.remove('d-none');
   tweeterField.classList.remove('d-none');
   instagramField.classList.remove('d-none');
+  shippingAddressField.classList.remove('d-none');
+  shippingAddressText.classList.remove('d-none');
 
   // Change the edit icon to a submit button
   const icon = this.querySelector('i');

@@ -184,13 +184,12 @@
 						  </div>
 						  <div class="col-6">
 							<span>
-							  {% if profile.address.country %}
-								{{ profile.address.city }}, {{ profile.address.province }}
+							  {% if profile.address %}
+								{{ profile.address.country }}
 							  {% else %}
 								Your Address
 							  {% endif %}
 							</span>
-							{{ update_form.address|as_crispy_field }}
 						  </div>
 						</div>
 					  </li>
@@ -206,26 +205,23 @@
 						<li id="shippingAddressField" class="list-group-item d-none border-0 ps-0 text-sm">
 							<div class="row">
 								{{ address_formset.management_form }}
-								{% for form in address_formset %}
+								{% for shipping_form in address_formset %}
 									<div class="col-md-12">
-										{{ form.shipping_line1|as_crispy_field }}
+										{{ shipping_form.shipping_line1|as_crispy_field }}
 									</div>
 									<div class="col-md-12">
-										{{ form.shipping_line2|as_crispy_field }}
+										{{ shipping_form.shipping_line2|as_crispy_field }}
 									</div>
 									<div class="col-md-6">
-										{{ form.shipping_country|as_crispy_field }}
-										{{ form.shipping_province|as_crispy_field }}
+										{{ shipping_form.shipping_country|as_crispy_field }}
+										{{ shipping_form.shipping_province|as_crispy_field }}
 									</div>
 									
 									<div class="col-md-6">
-										{{ form.shipping_city|as_crispy_field }}
-										{{ form.shipping_province|as_crispy_field }}
+										{{ shipping_form.shipping_city|as_crispy_field }}
+										{{ shipping_form.shipping_zip|as_crispy_field }}
 									</div>
-									<div class="col-md-12">
-										{{ form.shipping_zip|as_crispy_field }}
-									</div>
-									</div>
+									
 								{% endfor %}
 							</div>
 						</li>

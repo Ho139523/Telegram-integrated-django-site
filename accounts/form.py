@@ -57,7 +57,7 @@ class AvatarImageForm(forms.ModelForm):
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = ProfileModel
-        fields = ['fname', 'lname', 'Phone', 'about_me', 'address', 'birthday', 'tweeter', 'instagram']
+        fields = ['fname', 'lname', 'Phone', 'about_me', 'birthday', 'tweeter', 'instagram']
         
         widgets = {
                 'about_me': forms.TextInput(attrs={"placeholder": "Describe yourself and let others know you better", 'class': 'form-control d-none', 'id': 'aboutmeField'}),
@@ -65,7 +65,7 @@ class ProfileUpdateForm(forms.ModelForm):
                 'lname': forms.TextInput(attrs={"placeholder": "Type in your last name", 'class': 'form-control d-none', 'id': 'lnameField'}),
                 'Phone': forms.TextInput(attrs={"placeholder": "Type in your phone number", 'class': 'form-control d-none', 'id': 'phoneField'}),
                 'birthday': forms.TextInput(attrs={"placeholder": "Type in your birthday date", 'class': 'form-control d-none', 'id': 'birthdayField'}),
-                'address': forms.TextInput(attrs={"placeholder": "Type in your address", 'class': 'form-control d-none', 'id': 'addressField'}),
+                # 'address': forms.TextInput(attrs={"placeholder": "Type in your address", 'class': 'form-control d-none', 'id': 'addressField'}),
                 'tweeter': forms.TextInput(attrs={"placeholder": "Type in your Tweeter ID", 'class': 'form-control'}),
                 'instagram': forms.TextInput(attrs={"placeholder": "Type in your Instagram", 'class': 'form-control'}),
             }
@@ -79,7 +79,7 @@ class ProfileUpdateForm(forms.ModelForm):
             Field('about_me', css_class='form-control d-none', wrapper_class='col-6', id='aboutmeField'),
             Field('lname', css_class='form-control d-none', wrapper_class='col-6', id='lnameField'),
             Field('Phone', css_class='form-control d-none', wrapper_class='col-6', id='phoneField'),
-            Field('address', css_class='form-control d-none', wrapper_class='col-6', id='addressField'),
+            # Field('address', css_class='form-control d-none', wrapper_class='col-6', id='addressField'),
             Field('birthday', css_class='form-control d-none', wrapper_class='col-6'),
             Field('tweeter', css_class='form-control', wrapper_class='col-6', id='tweeterField'),
             Field('instagram', css_class='form-control', wrapper_class='col-6'),
@@ -88,18 +88,18 @@ class ProfileUpdateForm(forms.ModelForm):
 
 class ShippingAddressForm(forms.ModelForm):
     class Meta:
-        model=ShippingAddressModel
-        fields="__all__"
+        model = ShippingAddressModel
+        exclude = ['profile']  # Exclude profile since we're setting it manually in the view
         
         widgets = {
-                'shipping_line1': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 1"}),
-                'shipping_line2': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 2"}),
-                'shipping_city': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "City"}),
-                'shipping_country': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Country"}),
-                'shipping_province': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Province"}),
-                'shipping_zip': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Zip Code"}),
-                'shipping_home_phone': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Residential Phone Number"}),
-            }
+            'shipping_line1': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 1"}),
+            'shipping_line2': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 2"}),
+            'shipping_city': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "City"}),
+            'shipping_country': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Country"}),
+            'shipping_province': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Province"}),
+            'shipping_zip': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Zip Code"}),
+            'shipping_home_phone': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Residential Phone Number"}),
+        }
             
 ShippingAddressFormSet = inlineformset_factory(
     ProfileModel, ShippingAddressModel,  # Parent model and related model

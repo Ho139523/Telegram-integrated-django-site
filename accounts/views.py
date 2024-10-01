@@ -92,10 +92,11 @@ def activate(request, uidb64, token):
         user.is_active = True  
         user.save()
         
-        profile=ProfileModel.objects.create(user=user)
-        shippingaddress=ShippingAddressModel.objects.create(profile=profile)
+        profile=ProfileModel(user=user)
+        shippingaddress=ShippingAddressModel(profile=profile)
         user.profilemodel.save()
         profile.save()
+        shippingaddress.save()
         messages.add_message(request, messages.SUCCESS, "Your account has been activated successfully.")
         return redirect('accounts:login')
     else:
@@ -262,16 +263,14 @@ def change_avatar_image(request):
 @login_required
 def profile_update_view(request):
     profile = request.user.profilemodel  # Get the profile associated with the user
-    shipping_address = profile.address  # Get the associated shipping address (if it exists)
+    shipping_address = getattr(profile, 'shippingaddressmodel', None)  # Handle if no address exists
 
     # Forms for updating avatar and header images (if needed)
     header_form = HeaderImageForm()
     avatar_form = AvatarImageForm()
 
-    # Initialize the profile update form
+    # Initialize the profile update form and shipping address form
     update_form = ProfileUpdateForm(instance=profile)
-
-    # Initialize the shipping address form
     address_form = ShippingAddressForm(instance=shipping_address)
 
     if request.method == 'POST':
@@ -281,11 +280,12 @@ def profile_update_view(request):
 
         if update_form.is_valid() and address_form.is_valid():
             # Save profile changes
-            update_form.save()
+            profile = update_form.save()
 
-            # Save or create the shipping address associated with the profile
-            address_form.save()
-            
+            # Save or create the new shipping address
+            shipping_address = address_form.save(commit=False)
+            shipping_address.profile = profile  # Ensure the address is linked to the profile
+            shipping_address.save()
 
             # Redirect after successful save
             return render(request, 'registration/dashboard/profile.html', {
@@ -296,8 +296,13 @@ def profile_update_view(request):
                 'header_form': header_form,
                 'avatar_form': avatar_form,
             })
-            
-    
-    # Render the form with the profile and address data on GET request
+        else:
+            # Debug form errors
+            print(update_form.errors)
+            print(address_form.errors)
+
+    # If it's a GET request, redirect to the profile page
     return redirect('accounts:profile', username=request.user.username)
+
+
 

@@ -90,7 +90,7 @@ document.getElementById('editProfileBtn').addEventListener('click', function() {
   fnameField.classList.remove('d-none');
   lnameField.classList.remove('d-none');
   phoneField.classList.remove('d-none');
-  addressField.classList.remove('d-none');
+  // addressField.classList.remove('d-none');
   birthdayField.classList.remove('d-none');
   tweeterField.classList.remove('d-none');
   instagramField.classList.remove('d-none');

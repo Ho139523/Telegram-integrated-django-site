@@ -4,49 +4,20 @@ from django.utils import timezone
 
 
 
-provinces=(
-('West Azerbaija', 'West Azerbaija',),
-('East Azerbaijan', 'East Azerbaijan',),
-('Ardabil', 'Ardabil',),
-('Kurdistan', 'Kurdistan',),
-('Zanjan', 'Zanjan',),
-('Gilan', 'Gilan',),
-('Kermanshah', 'Kermanshah',),
-('Hamadan', 'Hamadan',),
-('Qazvin', 'Qazvin',),
-('Ilam', 'Ilam',),
-('Lorestan', 'Lorestan',),
-('Markazi', 'Markazi',),
-('Qom', 'Qom',),
-('Tehran', 'Tehran',),
-('Alborz', 'Alborz',),
-('Mazandaran', 'Mazandaran',),
-('Golestan', 'Golestan',),
-('North Khorasan', 'North Khorasan',),
-('Khuzestan', 'Khuzestan',),
-('Chaharmahal and Bakhtiari', 'Chaharmahal and Bakhtiari',),
-('Kohgiluyeh and Boyer-Ahmad', 'Kohgiluyeh and Boyer-Ahmad',),
-('Isfahan', 'Isfahan',),
-('Semnan', 'Semnan',),
-('Razavi Khorasan', 'Razavi Khorasan',),
-('Yazd', 'Yazd',),
-('South Khorasan', 'South Khorasan',),
-('Bushehr', 'Bushehr',),
-('Fars', 'Fars',),
-('Kerman', 'Kerman',),
-('Sistan and Baluchestan', 'Sistan and Baluchestan',),
-('Hormozgan', 'Hormozgan'))
+
         
-class IranAddressModel(models.Model):
-    line1=models.CharField(max_length=300, verbose_name="Address Line 1")
-    line2=models.CharField(max_length=300, verbose_name="Address Line 2")
-    city=models.CharField(max_length=10, verbose_name="City")
-    province=models.CharField(max_length=30, choices=provinces, verbose_name="Province")
-    zip=models.CharField(max_length=10, verbose_name="Zip Code")
-    phone=models.CharField(max_length=8, verbose_name="Residential Phone Number")
+class ShippingAddressModel(models.Model):
+    profile=models.OneToOneField("ProfileModel", on_delete=models.CASCADE, verbose_name="User Profile")
+    shipping_line1=models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 1")
+    shipping_line2=models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 2")
+    shipping_country=models.CharField(max_length=10, blank=True, null=True, verbose_name="Country")
+    shipping_city=models.CharField(max_length=10, blank=True, null=True, verbose_name="City")
+    shipping_province=models.CharField(max_length=30, blank=True, null=True, verbose_name="Province")
+    shipping_zip=models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
+    shipping_home_phone=models.CharField(max_length=8, blank=True, null=True, verbose_name="Residential Phone Number")
     
     def __str__(self):
-        return "Zipcode: " + self.zip + ", " + self.city + ", " + self.province
+        return "Zipcode: " + str(self.shipping_zip) + ", " + str(self.shipping_city) + ", " + str(self.shipping_province)
 
 
 
@@ -74,7 +45,7 @@ class ProfileModel(models.Model):
     background_pic=models.ImageField(default="registration/user_headers/default_header.avif", upload_to="registration/user_headers", verbose_name="Header Image")
     birthday=models.DateField(blank=True, null=True)
     Phone=models.CharField(max_length=10, blank=True, null=True, verbose_name="Phone Number")
-    address=models.ForeignKey(IranAddressModel, blank=True, null=True, on_delete=models.SET_NULL)
+    address=models.OneToOneField(ShippingAddressModel, blank=True, null=True, on_delete=models.SET_NULL)
     about_me=models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)", verbose_name="About Me")
     instagram=models.CharField(max_length=120, blank=True, null=True, verbose_name="Instagram ID")
     tweeter=models.CharField(max_length=120, blank=True, null=True, verbose_name="Tweeter ID")

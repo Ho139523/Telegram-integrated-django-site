@@ -6,10 +6,11 @@ from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import User
-from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm
+from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm, ShippingAddressForm, ShippingAddressFormSet
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
-from django.urls import reverse_lazy
-from .models import ProfileModel
+from django.urls import reverse_lazy, reverse
+from .models import ProfileModel, ShippingAddressModel
+from django.forms import inlineformset_factory
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
@@ -92,6 +93,7 @@ def activate(request, uidb64, token):
         user.save()
         
         profile=ProfileModel.objects.create(user=user)
+        shippingaddress=ShippingAddressModel.objects.create(profile=profile)
         user.profilemodel.save()
         profile.save()
         messages.add_message(request, messages.SUCCESS, "Your account has been activated successfully.")
@@ -131,6 +133,7 @@ class PasswordResetConfirm(PasswordResetConfirmView):
 def profile(request, username):
    
     profile=ProfileModel.objects.get(user__username=username)
+    shippingaddress=ShippingAddressModel.objects.get(profile=profile)
     header_form = HeaderImageForm()
     avatar_form = AvatarImageForm()
     update_form = ProfileUpdateForm(initial={
@@ -143,6 +146,14 @@ def profile(request, username):
                                             "tweeter": profile.tweeter,
                                             "instagram": profile.instagram,
                                             },)
+    address_formset=ShippingAddressFormSet(initial=[{
+                                                    "shipping_line1": shippingaddress.shipping_line1,
+                                                    "shipping_line2": shippingaddress.shipping_line2,
+                                                    "shipping_city": shippingaddress.shipping_city,
+                                                    "shipping_province": shippingaddress.shipping_province,
+                                                    "shipping_zip": shippingaddress.shipping_zip,
+                                                    "shipping_home_phone": shippingaddress.shipping_home_phone,
+                                                    },])
     
     
     context={
@@ -151,6 +162,7 @@ def profile(request, username):
         "header_form": header_form,
         "avatar_form": avatar_form,
         "update_form": update_form,
+        "address_formset": address_formset,
 
     }
     return render(request, "registration/dashboard/profile.html", context=context)
@@ -249,14 +261,43 @@ def change_avatar_image(request):
 
 @login_required
 def profile_update_view(request):
-    profile = request.user.profilemodel  # Assuming profile is linked with User as a OneToOneField
+    profile = request.user.profilemodel  # Get the profile associated with the user
+    shipping_address = profile.address  # Get the associated shipping address (if it exists)
+
+    # Forms for updating avatar and header images (if needed)
+    header_form = HeaderImageForm()
+    avatar_form = AvatarImageForm()
+
+    # Initialize the profile update form
+    update_form = ProfileUpdateForm(instance=profile)
+
+    # Initialize the shipping address form
+    address_form = ShippingAddressForm(instance=shipping_address)
 
     if request.method == 'POST':
-        form = ProfileUpdateForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
-            return redirect('accounts:profile', username=request.user.username)  # Redirect to profile page after saving
-    else:
-        form = ProfileUpdateForm(instance=profile)
+        # Handle the profile form submission
+        update_form = ProfileUpdateForm(request.POST, instance=profile)
+        address_form = ShippingAddressForm(request.POST, instance=shipping_address)
 
-    return render(request, 'registration/dashboard/profile.html', {'form': form, 'profile': profile})
+        if update_form.is_valid() and address_form.is_valid():
+            # Save profile changes
+            update_form.save()
+
+            # Save or create the shipping address associated with the profile
+            address_form.save()
+            
+
+            # Redirect after successful save
+            return render(request, 'registration/dashboard/profile.html', {
+                'update_form': update_form,
+                'address_form': address_form,
+                'profile': profile,
+                'view': 'Profile',
+                'header_form': header_form,
+                'avatar_form': avatar_form,
+            })
+            
+    
+    # Render the form with the profile and address data on GET request
+    return redirect('accounts:profile', username=request.user.username)
+

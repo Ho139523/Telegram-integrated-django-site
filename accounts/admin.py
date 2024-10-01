@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, ProfileModel, IranAddressModel
+from .models import User, ProfileModel, ShippingAddressModel
 
 
 UserAdmin.list_display += ("is_special_user",)
@@ -16,4 +16,4 @@ admin.site.register(User, UserAdmin)
 
 admin.site.register(ProfileModel)
 
-admin.site.register(IranAddressModel)
+admin.site.register(ShippingAddressModel)

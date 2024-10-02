@@ -6,7 +6,7 @@ from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import User
-from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm, ShippingAddressForm, ShippingAddressFormSet
+from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm, ShippingAddressForm
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
 from django.urls import reverse_lazy, reverse
 from .models import ProfileModel, ShippingAddressModel
@@ -147,14 +147,15 @@ def profile(request, username):
                                             "tweeter": profile.tweeter,
                                             "instagram": profile.instagram,
                                             },)
-    address_formset=ShippingAddressFormSet(initial=[{
-                                                    "shipping_line1": shippingaddress.shipping_line1,
-                                                    "shipping_line2": shippingaddress.shipping_line2,
-                                                    "shipping_city": shippingaddress.shipping_city,
-                                                    "shipping_province": shippingaddress.shipping_province,
-                                                    "shipping_zip": shippingaddress.shipping_zip,
-                                                    "shipping_home_phone": shippingaddress.shipping_home_phone,
-                                                    },])
+    address_form=ShippingAddressForm(initial={
+                                            "shipping_line1": shippingaddress.shipping_line1,
+                                            "shipping_line2": shippingaddress.shipping_line2,
+                                            "shipping_city": shippingaddress.shipping_city,
+                                            "shipping_country": shippingaddress.shipping_country,
+                                            "shipping_province": shippingaddress.shipping_province,
+                                            "shipping_zip": shippingaddress.shipping_zip,
+                                            "shipping_home_phone": shippingaddress.shipping_home_phone,
+                                            })
     
     
     context={
@@ -163,7 +164,7 @@ def profile(request, username):
         "header_form": header_form,
         "avatar_form": avatar_form,
         "update_form": update_form,
-        "address_formset": address_formset,
+        "address_form": address_form,
 
     }
     return render(request, "registration/dashboard/profile.html", context=context)
@@ -272,15 +273,6 @@ def profile_update_view(request):
     # Initialize the profile update form and shipping address form
     update_form = ProfileUpdateForm(instance=profile)
     address_form = ShippingAddressForm(instance=shipping_address)
-    
-    address_formset=ShippingAddressFormSet(initial=[{
-                                                    "shipping_line1": shipping_address.shipping_line1,
-                                                    "shipping_line2": shipping_address.shipping_line2,
-                                                    "shipping_city": shipping_address.shipping_city,
-                                                    "shipping_province": shipping_address.shipping_province,
-                                                    "shipping_zip": shipping_address.shipping_zip,
-                                                    "shipping_home_phone": shipping_address.shipping_home_phone,
-                                                    },])
 
     if request.method == 'POST':
         # Handle the profile form submission
@@ -297,22 +289,23 @@ def profile_update_view(request):
             shipping_address.save()
 
             # Redirect after successful save
-            return render(request, 'registration/dashboard/profile.html', {
-                'update_form': update_form,
-                'address_form': address_form,
-                'profile': profile,
-                'view': 'Profile',
-                'header_form': header_form,
-                'avatar_form': avatar_form,
-                "address_formset": address_formset,
-            })
+            return redirect('accounts:profile', username=request.user.username)
         else:
             # Debug form errors
             print(update_form.errors)
             print(address_form.errors)
 
-    # If it's a GET request, redirect to the profile page
-    return redirect('accounts:profile', username=request.user.username)
+    context = {
+        'update_form': update_form,
+        'address_form': address_form,
+        'profile': profile,
+        'view': 'Profile',
+        'header_form': header_form,
+        'avatar_form': avatar_form,
+    }
+
+    return render(request, 'registration/dashboard/profile.html', context)
+
 
 
 

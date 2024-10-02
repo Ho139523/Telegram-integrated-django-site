@@ -100,10 +100,3 @@ class ShippingAddressForm(forms.ModelForm):
             'shipping_zip': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Zip Code"}),
             'shipping_home_phone': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Residential Phone Number"}),
         }
-            
-ShippingAddressFormSet = inlineformset_factory(
-    ProfileModel, ShippingAddressModel,  # Parent model and related model
-    form=ShippingAddressForm,
-    extra=1,  # How many empty forms to show initially
-    can_delete=True,  # Allow deletion of related addresses
-)

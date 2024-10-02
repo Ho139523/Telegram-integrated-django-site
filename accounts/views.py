@@ -272,6 +272,15 @@ def profile_update_view(request):
     # Initialize the profile update form and shipping address form
     update_form = ProfileUpdateForm(instance=profile)
     address_form = ShippingAddressForm(instance=shipping_address)
+    
+    address_formset=ShippingAddressFormSet(initial=[{
+                                                    "shipping_line1": shipping_address.shipping_line1,
+                                                    "shipping_line2": shipping_address.shipping_line2,
+                                                    "shipping_city": shipping_address.shipping_city,
+                                                    "shipping_province": shipping_address.shipping_province,
+                                                    "shipping_zip": shipping_address.shipping_zip,
+                                                    "shipping_home_phone": shipping_address.shipping_home_phone,
+                                                    },])
 
     if request.method == 'POST':
         # Handle the profile form submission
@@ -295,6 +304,7 @@ def profile_update_view(request):
                 'view': 'Profile',
                 'header_form': header_form,
                 'avatar_form': avatar_form,
+                "address_formset": address_formset,
             })
         else:
             # Debug form errors

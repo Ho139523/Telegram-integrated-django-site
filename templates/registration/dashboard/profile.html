@@ -107,7 +107,7 @@
 				  <div class="card-body p-3">
 					<!-- Display user profile info as text -->
 					<p class="text-sm" id="aboutMeText">{{ profile.about_me }}</p>
-					{{ update_form.about_me|as_crispy_field }}
+					{{ update_form.about_me|crispy }}
 
 					<hr class="horizontal gray-light my-4">
 
@@ -131,10 +131,10 @@
 							</span>
 							<div class="row">
 							<div class="col-6">
-							{{ update_form.fname|as_crispy_field }}
+							{{ update_form.fname|crispy }}
 							</div>
 							<div class="col-6">
-							{{ update_form.lname|as_crispy_field }}
+							{{ update_form.lname|crispy }}
 							</div>
 							</div>
 						  </div>
@@ -154,7 +154,7 @@
 									Your  Birthday
 								{% endif %}
 							</span>
-							{{ update_form.birthday|as_crispy_field }}
+							{{ update_form.birthday|crispy }}
 						  </div>
 						</div>
 					  </li>
@@ -172,7 +172,7 @@
 									Your Phone Number
 								{% endif %}
 							</span>
-							{{ update_form.Phone|as_crispy_field }}
+							{{ update_form.Phone|crispy }}
 						  </div>
 						</div>
 					  </li>
@@ -204,25 +204,23 @@
 						</li>
 						<li id="shippingAddressField" class="list-group-item d-none border-0 ps-0 text-sm">
 							<div class="row">
-								{{ address_formset.management_form }}
-								{% for shipping_form in address_formset %}
-									<div class="col-md-12">
-										{{ shipping_form.shipping_line1|as_crispy_field }}
-									</div>
-									<div class="col-md-12">
-										{{ shipping_form.shipping_line2|as_crispy_field }}
-									</div>
-									<div class="col-md-6">
-										{{ shipping_form.shipping_country|as_crispy_field }}
-										{{ shipping_form.shipping_province|as_crispy_field }}
-									</div>
+							
+								<div class="col-md-12">
+									{{ address_form.shipping_line1|crispy }}
+								</div>
+								<div class="col-md-12">
+									{{ address_form.shipping_line2|crispy }}
+								</div>
+								<div class="col-md-6">
+									{{ address_form.shipping_country|crispy }}
+									{{ address_form.shipping_province|crispy }}
+								</div>
+								
+								<div class="col-md-6">
+									{{ address_form.shipping_city|crispy }}
+									{{ address_form.shipping_zip|crispy }}
+								</div>
 									
-									<div class="col-md-6">
-										{{ shipping_form.shipping_city|as_crispy_field }}
-										{{ shipping_form.shipping_zip|as_crispy_field }}
-									</div>
-									
-								{% endfor %}
 							</div>
 						</li>
 					  
@@ -254,10 +252,10 @@
 							</span>
 							<div class="row" id="socialText">
 								<div class="col-6 d-none" id="tweeterField">
-									{{ update_form.tweeter|as_crispy_field }}
+									{{ update_form.tweeter|crispy }}
 								</div>
 								<div class="col-6 d-none" id="instagramField">
-									{{ update_form.instagram|as_crispy_field }}
+									{{ update_form.instagram|crispy }}
 								</div>
 							</div>
 							</div>

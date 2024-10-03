@@ -24,6 +24,10 @@ from .tokens import generate_token
 from django.core.mail import EmailMessage
 
 
+#countries, provinces and cities
+from django.http import JsonResponse
+import pycountry
+
 
         
 class login(LoginView):
@@ -309,3 +313,9 @@ def profile_update_view(request):
 
 
 
+def get_provinces(request):
+    country_code = request.GET.get('country_code')
+    provinces = [(subdivision.code, subdivision.name) for subdivision in pycountry.subdivisions if subdivision.country_code == country_code]
+    
+    return JsonResponse(provinces, safe=False)
+    

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from utils.variables.countries import countries
 
 
 
@@ -10,7 +11,7 @@ class ShippingAddressModel(models.Model):
     profile=models.OneToOneField("ProfileModel", on_delete=models.CASCADE, verbose_name="User Profile")
     shipping_line1=models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 1")
     shipping_line2=models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 2")
-    shipping_country=models.CharField(max_length=10, blank=True, null=True, verbose_name="Country")
+    shipping_country=models.CharField(max_length=10, choices=countries, blank=True, null=True, verbose_name="Country")
     shipping_city=models.CharField(max_length=10, blank=True, null=True, verbose_name="City")
     shipping_province=models.CharField(max_length=30, blank=True, null=True, verbose_name="Province")
     shipping_zip=models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")

@@ -7,6 +7,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field
+from utils.variables.countries import countries
 
 
 
@@ -87,6 +88,8 @@ class ProfileUpdateForm(forms.ModelForm):
 
 
 class ShippingAddressForm(forms.ModelForm):
+    shipping_country=forms.ChoiceField(choices=countries)
+    
     class Meta:
         model = ShippingAddressModel
         exclude = ['profile']  # Exclude profile since we're setting it manually in the view
@@ -95,8 +98,8 @@ class ShippingAddressForm(forms.ModelForm):
             'shipping_line1': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 1"}),
             'shipping_line2': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 2"}),
             'shipping_city': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "City"}),
-            'shipping_country': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Country"}),
-            'shipping_province': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Province"}),
+            # 'shipping_country': forms.TextInput(choices=countries, attrs={"class": 'form-control', 'placeholder': "Country"}),
+            # 'shipping_province': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Province"}),
             'shipping_zip': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Zip Code"}),
             'shipping_home_phone': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Residential Phone Number"}),
         }
@@ -104,3 +107,6 @@ class ShippingAddressForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_show_labels = False
+        
+    class Media:
+        js = ('https://code.jquery.com/jquery-3.6.0.min.js', 'registration/dashboard/assets/js/province.js')

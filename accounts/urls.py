@@ -33,6 +33,8 @@ urlpatterns = [
     path('panel/change-avatar-image/', change_avatar_image, name='change_avatar_image'),
     path('panel/change-profile-data/', profile_update_view, name='change_profile_data'),
 
+    #countries, provinces and cities
+    path('get-provinces/', get_provinces, name='get_provinces'),
 
 ]
 

@@ -67,7 +67,7 @@ class ProfileUpdateForm(forms.ModelForm):
                 'birthday': forms.TextInput(attrs={"placeholder": "Type in your birthday date", 'class': 'form-control d-none', 'id': 'birthdayField'}),
                 # 'address': forms.TextInput(attrs={"placeholder": "Type in your address", 'class': 'form-control d-none', 'id': 'addressField'}),
                 'tweeter': forms.TextInput(attrs={"placeholder": "Type in your Tweeter ID", 'class': 'form-control'}),
-                'instagram': forms.TextInput(attrs={"placeholder": "Type in your Instagram", 'class': 'form-control'}),
+                'instagram': forms.TextInput(attrs={"placeholder": "Type in your Instagram", 'class': 'form-control',}),
             }
 
     def __init__(self, *args, **kwargs):
@@ -100,3 +100,7 @@ class ShippingAddressForm(forms.ModelForm):
             'shipping_zip': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Zip Code"}),
             'shipping_home_phone': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Residential Phone Number"}),
         }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_show_labels = False

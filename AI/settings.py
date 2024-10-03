@@ -186,6 +186,6 @@ SOCIAL_AUTH_PIPELINE = (
     'utils.funcs.django_social_redirect.custom_complete',  # Moved here
 )
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 
 CRISPY_TEMPLATE_PACK = 'bootstrap5'

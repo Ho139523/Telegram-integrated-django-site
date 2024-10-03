@@ -107,13 +107,17 @@
 				  <div class="card-body p-3 ">
 					<!-- Display user profile info as text -->
 					<p class="text-sm" id="aboutMeText">{{ profile.about_me }}</p>
-					{{ update_form.about_me|as_crispy_field }}
+					<div class="row input-group input-group-outline my-3 is-filled is-focused">
+						<div class="col-12">
+							{{ update_form.about_me|as_crispy_field }}
+						</div>
+					</div>
 
 					<hr class="horizontal gray-light my-4">
 
 					<ul class="list-group">
 					  <li class="list-group-item border-0 ps-0 text-sm">
-						<div class="row input-group input-group-outline my-3">
+						<div class="row input-group input-group-outline my-3 is-filled is-focused">
 						  <div class="col-4">
 							<strong class="text-dark">Full Name:</strong>
 						  </div>
@@ -148,7 +152,7 @@
 					  </li>
 					  
 					  <li class="list-group-item border-0 ps-0 text-sm">
-						<div class="row input-group input-group-outline my-3">
+						<div class="row input-group input-group-outline my-3 is-filled is-focused">
 						  <div class="col-4">
 							<strong class="text-dark">Birthday:</strong>
 						  </div>
@@ -166,7 +170,7 @@
 					  </li>
 
 					  <li class="list-group-item border-0 ps-0 text-sm">
-						<div class="row input-group input-group-outline my-3">
+						<div class="row input-group input-group-outline my-3 is-filled is-focused">
 						  <div class="col-4">
 							<strong class="text-dark">Mobile:</strong>
 						  </div>
@@ -184,14 +188,14 @@
 					  </li>
 
 					  <li id="addressText" class="list-group-item border-0 ps-0 text-sm">
-						<div class="row input-group input-group-outline my-3">
+						<div class="row input-group input-group-outline my-3 is-filled is-focused">
 						  <div class="col-4">
 							<strong class="text-dark">Address:</strong>
 						  </div>
 						  <div class="col-8">
 							<span>
-							  {% if profile.address %}
-								{{ profile.address.country }}
+							  {% if profile.shippingaddressmodel.shipping_country or profile.shippingaddressmodel.shipping_line1 or profile.shippingaddressmodel.shipping_line2 %}
+								{% if profile.shippingaddressmodel.shipping_line1 or profile.shippingaddressmodel.shipping_line2 %}{{ profile.shippingaddressmodel.shipping_line1 }}, {{ profile.shippingaddressmodel.shipping_line2 }}, {% endif %}{% if profile.shippingaddressmodel.shipping_city %}{{ profile.shippingaddressmodel.shipping_city }}, {% endif %}{% if profile.shippingaddressmodel.shipping_province %}{{ profile.shippingaddressmodel.shipping_province }}, {% endif %}{% if profile.shippingaddressmodel.shipping_country %}{{ profile.shippingaddressmodel.shipping_country }}{% endif %}
 							  {% else %}
 								Your Address
 							  {% endif %}
@@ -211,35 +215,35 @@
 						<li id="shippingAddressField" class="list-group-item d-none border-0 ps-0 text-sm">
 							<div class="row">
 							
-								<div class="input-group input-group-outline my-3">
+								<div class="input-group input-group-outline my-3 is-filled is-focused">
 									<label class="form-label">Address Line 1</label>
 									<div class="col-md-12">
 										{{ address_form.shipping_line1|as_crispy_field }}
 									</div>
 								</div>
-								<div class="input-group input-group-outline my-3">
+								<div class="input-group input-group-outline my-3 is-filled is-focused">
 									<label class="form-label">Address Line 2</label>
 									<div class="col-md-12">
 										{{ address_form.shipping_line2|as_crispy_field }}
 									</div>
 								</div>
 								<div class="col-md-6">
-									<div class="input-group input-group-outline my-3">
+									<div class="input-group input-group-outline my-3 is-filled is-focused">
 										<label class="form-label">Country</label>
 										{{ address_form.shipping_country|as_crispy_field }}
 									</div>
-									<div class="input-group input-group-outline my-3">
+									<div class="input-group input-group-outline my-3 is-filled is-focused">
 										<label class="form-label">Province</label>
 										{{ address_form.shipping_province|as_crispy_field }}
 									</div>
 								</div>
 								
 								<div class="col-md-6">
-									<div class="input-group input-group-outline my-3">
+									<div class="input-group input-group-outline my-3 is-filled is-focused">
 										<label class="form-label">City</label>
 										{{ address_form.shipping_city|as_crispy_field }}
 									</div>
-									<div class="input-group input-group-outline my-3">
+									<div class="input-group input-group-outline my-3 is-filled is-focused ">
 										<label class="form-label">Zip Code</label>
 										{{ address_form.shipping_zip|as_crispy_field }}
 									</div>
@@ -250,7 +254,7 @@
 						</li>
 					  
 					  <li class="list-group-item border-0 ps-0 pb-0">
-					    <div class="row input-group input-group-outline my-3">
+					    <div class="row input-group input-group-outline my-3 is-filled is-focused">
 						  <div class="col-4">
 							  <strong class="text-dark text-sm">Social:</strong> &nbsp;
 						  </div>
@@ -277,7 +281,7 @@
 							</span>
 							<div class="row" id="socialText">
 								<div class="col-6 d-none" id="tweeterField">
-									<div class="input-group input-group-outline mb-3">
+									<div class="input-group input-group-outline mb-3 is-filled is-focused">
 										<label class="form-label">Tweeter ID</label>
 										{{ update_form.tweeter|as_crispy_field }}
 									</div>

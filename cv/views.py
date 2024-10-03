@@ -4,7 +4,7 @@ from accounts.models import User
 from accounts.models import ProfileModel
 
 
-@login_required
+
 def cv_view(request, username):
     profile=ProfileModel.objects.get(user__username=username)
     context={'profile': profile}

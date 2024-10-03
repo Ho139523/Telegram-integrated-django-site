@@ -29,7 +29,13 @@
                   <li><i class="bi bi-chevron-right"></i> <strong>Birthday:</strong> <span>{{profile.birthday|date:"d M Y"}}</span></li>
                   <li><i class="bi bi-chevron-right"></i> <strong>Website:</strong> <span>www.example.com</span></li>
                   <li><i class="bi bi-chevron-right"></i> <strong>Phone:</strong> <span>+98 {{profile.Phone}}</span></li>
-                  <li><i class="bi bi-chevron-right"></i> <strong>City:</strong> <span>{{profile.address.city}}, {{profile.address.province}}, Iran</span></li>
+                  <li><i class="bi bi-chevron-right"></i> <strong>City:</strong> <span>
+					{% if profile.shippingaddressmodel.shipping_city %}
+						{{ profile.shippingaddressmodel.shipping_city }}
+					{% else %}
+						Your City
+					{% endif %}
+				  </span></li>
                 </ul>
               </div>
               <div class="col-lg-6">

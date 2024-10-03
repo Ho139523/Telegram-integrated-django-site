@@ -86,7 +86,7 @@
         <div class="row">
           <div class="row">
             
-            <div class="col-12 col-xl-5">
+            <div class="col-12 col-xl-7">
               <div class="card card-plain h-100">
                 <!-- profile.html -->
 				<div class="card-header pb-0 p-3">
@@ -114,15 +114,15 @@
 					<ul class="list-group">
 					  <li class="list-group-item border-0 ps-0 text-sm">
 						<div class="row input-group input-group-outline my-3">
-						  <div class="col-6">
-							<label class="form-label" for="fnameField"><strong class="text-dark">Full Name:</strong></label>
+						  <div class="col-4">
+							<strong class="text-dark">Full Name:</strong>
 						  </div>
-						  <div class="col-6">
+						  <div class="col-8">
 							<span id="fullNameText">
 							  {% if profile.fname and profile.lname %}
 								{{ profile.fname }} {{ profile.lname }}
 							  {% elif profile.fname %}
-								<span style="padding-right: 2rem;">{{ profile.fname }}</span> Your Last Name
+								<span style="padding-right: 2rem;">{{ profile.fname }}</span> Your Last Name</span>
 							  {% elif profile.lname %}
 								<span>Your First Name</span><span style="padding-left: 2rem;">{{ profile.lname }}</span>
 							  {% else %}
@@ -130,12 +130,18 @@
 							  {% endif %}
 							</span>
 							<div class="row">
-							<div class="col-6">
-							{{ update_form.fname|as_crispy_field }}
-							</div>
-							<div class="col-6">
-							{{ update_form.lname|as_crispy_field }}
-							</div>
+								<div class="col-6">
+									<div class="input-group input-group-outline mb-3 d-none" id='fnameField'>
+										<label class="form-label">First Name</label>
+										{{ update_form.fname|as_crispy_field }}
+									</div>
+								</div>
+								<div class="col-6">
+									<div class="input-group input-group-outline mb-3 d-none" id='lnameField'>
+										<label class="form-label">Last Name</label>
+										{{ update_form.lname|as_crispy_field }}
+									</div>
+								</div>
 							</div>
 						  </div>
 						</div>
@@ -143,10 +149,10 @@
 					  
 					  <li class="list-group-item border-0 ps-0 text-sm">
 						<div class="row input-group input-group-outline my-3">
-						  <div class="col-6">
-							<label class="form-label" for="birthdayField"><strong class="text-dark">Birthday:</strong></label>
+						  <div class="col-4">
+							<strong class="text-dark">Birthday:</strong>
 						  </div>
-						  <div class="col-6">
+						  <div class="col-8">
 							<span id="birthdayText">
 								{% if profile.birthday %}
 									{{ profile.birthday }}
@@ -161,10 +167,10 @@
 
 					  <li class="list-group-item border-0 ps-0 text-sm">
 						<div class="row input-group input-group-outline my-3">
-						  <div class="col-6">
-							<label class="form-label" for="phoneField"><strong class="text-dark">Mobile:</strong></label>
+						  <div class="col-4">
+							<strong class="text-dark">Mobile:</strong>
 						  </div>
-						  <div class="col-6">
+						  <div class="col-8">
 							<span id="phoneText">
 								{% if profile.Phone %}
 									{{ profile.Phone }}
@@ -179,10 +185,10 @@
 
 					  <li id="addressText" class="list-group-item border-0 ps-0 text-sm">
 						<div class="row input-group input-group-outline my-3">
-						  <div class="col-6">
+						  <div class="col-4">
 							<strong class="text-dark">Address:</strong>
 						  </div>
-						  <div class="col-6">
+						  <div class="col-8">
 							<span>
 							  {% if profile.address %}
 								{{ profile.address.country }}
@@ -245,10 +251,10 @@
 					  
 					  <li class="list-group-item border-0 ps-0 pb-0">
 					    <div class="row input-group input-group-outline my-3">
-						  <div class="col-6">
+						  <div class="col-4">
 							  <strong class="text-dark text-sm">Social:</strong> &nbsp;
 						  </div>
-						  <div class="col-6">
+						  <div class="col-8">
 							<span id="socialText">
 							  {% if profile.tweeter %}
 								  <a class="btn btn-twitter btn-simple mb-0 ps-1 pe-2 py-0" href="https://twitter.com/{{ profile.tweeter }}">
@@ -271,10 +277,16 @@
 							</span>
 							<div class="row" id="socialText">
 								<div class="col-6 d-none" id="tweeterField">
-									{{ update_form.tweeter|as_crispy_field }}
+									<div class="input-group input-group-outline mb-3">
+										<label class="form-label">Tweeter ID</label>
+										{{ update_form.tweeter|as_crispy_field }}
+									</div>
 								</div>
 								<div class="col-6 d-none" id="instagramField">
-									{{ update_form.instagram|as_crispy_field }}
+									<div class="input-group input-group-outline mb-3 is-filled is-focused">
+										<label class="form-label">Instagram ID</label>
+										{{ update_form.instagram|as_crispy_field }}
+									</div>
 								</div>
 							</div>
 							</div>

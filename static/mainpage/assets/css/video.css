@@ -1,0 +1,479 @@
+.controllers::after,
+.controllers::before {
+    content: "";
+    height: 100px;
+    right: 0;
+    position: absolute
+}
+
+#volumeRange:focus,
+.control {
+    outline: 0
+}
+
+.video-container {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: top;
+    color: #fff;
+    background-color: #010001;
+    position: relative;
+    font-size: 10px;
+    outline: 0;
+    height: 264px;
+    width: 469.33px
+}
+
+.video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%
+}
+
+video::-webkit-media-controls {
+    display: none !important
+}
+
+video::-webkit-media-controls-enclosure {
+    display: none !important
+}
+
+.controllers {
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    position: relative;
+    opacity: 0;
+    transition: opacity .5s ease-in-out
+}
+
+.controllers::after {
+    bottom: 0;
+    width: 100%;
+    background-image: linear-gradient(360deg, #070707 20%, transparent 100%)
+}
+
+.controllers::before {
+    top: 0;
+    width: 100%;
+    background-image: linear-gradient(180deg, #070707a2 20%, transparent 100%)
+}
+
+.bottom-controllers,
+.top-controllers {
+    position: absolute;
+    right: 0;
+    width: 100%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    padding: 15px 25px
+}
+
+.top-controllers {
+    top: 0
+}
+
+.bottom-controllers {
+    bottom: 0;
+    flex-wrap: wrap
+}
+
+.bottom-controllers-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%
+}
+
+.control {
+    background-color: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    font-size: 21px;
+    position: relative
+}
+
+.control:not(.control:first-child, .bottom-controllers .control:nth-last-child(2), .bottom-controllers .control:nth-last-child(5)) {
+    margin-right: 10px
+}
+
+#timeProgress,
+.control-tooltip {
+    position: absolute;
+    top: -25px;
+    background: rgb(255 255 255 / 4%);
+    width: auto;
+    min-width: 45px;
+    border-radius: 12px;
+    white-space: nowrap;
+    font-size: 14px;
+    padding-right: 5px;
+    padding-left: 5px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    visibility: hidden;
+    z-index: 2
+}
+
+#volumeRange,
+.progress-video {
+    background-color: rgba(255, 255, 255, .2);
+    cursor: pointer
+}
+
+.logo {
+    margin-left: auto
+}
+
+.logo img {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px
+}
+
+.progress-video {
+    flex: auto;
+    height: 5px;
+    width: 100%;
+    border-radius: 50px;
+    position: relative;
+    margin-bottom: 15px
+}
+
+.progress-hidden {
+    width: 100%;
+    height: 5px
+}
+
+#progressMarker,
+.buffered {
+    width: 0%;
+    height: 5px;
+    left: 0;
+    top: 0;
+    transition: width .4s ease-in-out;
+    border-radius: 50px;
+    position: absolute
+}
+
+#progressMarker {
+    background-color: #58aafe;
+    z-index: 2
+}
+
+#timeProgress {
+    padding: 5px !important;
+    top: -35px !important
+}
+
+.buffered {
+    background-color: #ccc
+}
+
+.loading,
+.zoomist-section {
+    transform: translate(-50%, -50%);
+    left: 50%
+}
+
+.tool-section-center {
+    margin-right: auto;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 2
+}
+
+.tool-section-center .control {
+    margin-right: 0 !important
+}
+
+.tool-section-center .control:nth-child(2) {
+    margin-right: 10px !important;
+    margin-left: 10px
+}
+
+.tool-section-left {
+    justify-content: end
+}
+
+.tool-section-left,
+.tool-section-right {
+    display: flex;
+    flex: 1
+}
+
+.times {
+    margin-bottom: 4px;
+    opacity: 0;
+    transition: opacity .5s ease-in-out
+}
+
+.controllers.show,
+.times.show {
+    opacity: 1;
+    transition: opacity .5s ease-in-out
+}
+
+#volumeContainer {
+    display: flex;
+    margin-right: 15px;
+    transition: width .3s ease-in-out
+}
+
+#volumeContainer .control {
+    margin-right: 5px
+}
+
+#volumeRange {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 10px 0;
+    height: 3px;
+    border-radius: 50px;
+    direction: ltr;
+    transition: opacity .3s ease-in-out
+}
+
+#volumeRange::-webkit-slider-thumb {
+    border: 4px solid #fff;
+    height: 3px;
+    width: 5px;
+    border-radius: 50%;
+    background: 0 0;
+    cursor: pointer;
+    -webkit-appearance: none
+}
+
+#volumeRange::-moz-range-track {
+    width: 100%;
+    height: 12.8px;
+    cursor: pointer;
+    animate: 0.2s;
+    background: 0 0;
+    border-radius: 25px;
+    border: 0 solid #000101
+}
+
+#volumeRange::-moz-range-thumb {
+    border: 4px solid #fff;
+    height: 1px;
+    width: 1px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer
+}
+
+#volumeRange::-ms-track {
+    width: 100%;
+    height: 12.8px;
+    cursor: pointer;
+    animate: 0.2s;
+    background: 0 0;
+    border-color: transparent;
+    border-width: 39px 0;
+    color: transparent
+}
+
+@media only screen and (min-width:576px) {
+    #volumeContainer {
+        width: 32px
+    }
+    #volumeRange {
+        opacity: 0
+    }
+}
+
+.loading {
+    display: none;
+    position: absolute;
+    top: 50%;
+    width: 80px;
+    height: 80px
+}
+
+.loading div {
+    box-sizing: border-box;
+    display: block;
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    margin: 8px;
+    border: 8px solid #fff;
+    border-radius: 50%;
+    animation: 1.2s cubic-bezier(.5, 0, .5, 1) infinite loading;
+    border-color: #fff transparent transparent
+}
+
+.loading div:first-child {
+    animation-delay: -.45s
+}
+
+.loading div:nth-child(2) {
+    animation-delay: -.3s
+}
+
+.loading div:nth-child(3) {
+    animation-delay: -.15s
+}
+
+@keyframes loading {
+    0% {
+        transform: rotate(0)
+    }
+    100% {
+        transform: rotate(360deg)
+    }
+}
+
+.user-information {
+    position: absolute;
+    top: 65%;
+    right: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: #146da5;
+    opacity: .7;
+    font-weight: 700;
+    font-family: morabba
+}
+
+.setting-panel {
+    position: absolute;
+    top: 0;
+    right: -300px;
+    background: rgba(255, 255, 255, .02);
+    border-left: 1px solid rgba(255, 255, 255, .08);
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(16px);
+    width: 300px;
+    height: 100%;
+    box-shadow: -3px 0 10px #05050866;
+    z-index: 4;
+    padding: 10px;
+    transition: right .3s
+}
+
+.alarm,
+.zoomist-section {
+    position: absolute;
+    top: 50%
+}
+
+.setting-panel-content .control {
+    font-size: 12px;
+    gap: 5px;
+    text-shadow: 1px 1px 4px #050508
+}
+
+@media only screen and (max-width:768px) {
+    #timeProgress,
+    .control-tooltip {
+        display: none
+    }
+    .bottom-controllers,
+    .top-controllers {
+        padding: 10px
+    }
+}
+
+.alarm {
+    opacity: 0;
+    right: -100%;
+    margin-left: 25px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    background: rgb(255 255 255);
+    border: 1px solid rgb(255 0 0);
+    backdrop-filter: blur(16px);
+    padding: 2px 6px;
+    transition: 1s ease-in-out
+}
+
+.zoomist-image,
+.zoomist-image img,
+.zoomist-slider,
+.zoomist-wrapper,
+.zoomist-zoomer {
+    border-radius: 20px !important
+}
+
+.alarm-text {
+    color: red
+}
+
+.w-h-25 {
+    --w-h-multiple: 1;
+    width: calc(25px * var(--w-h-multiple));
+    height: calc(25px * var(--w-h-multiple))
+}
+
+.zoomist-section {
+    z-index: 10
+}
+
+.zoomist-container {
+    width: 469.33px;
+    max-width: 100vw
+}
+
+.zoomist-image {
+    width: 100%;
+    aspect-ratio: 1
+}
+
+.zoomist-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center
+}
+
+.zoomist-zoomer {
+    bottom: 15px;
+    top: auto !important;
+    right: 20px !important;
+    display: flex;
+    flex-direction: row-reverse;
+    border: 1px solid
+}
+
+.zoomist-dimmer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #101113;
+    z-index: 9
+}
+
+.closeZoomistBtn {
+    bottom: 58px;
+    left: 20px;
+    z-index: 4;
+    --w-h-multiple: 1.5;
+    background-color: #fff !important;
+    box-shadow: rgb(255 0 22 / 27%) 0 0 .25em, rgb(255 0 22 / 27%) 0 .25em 1em
+}
+
+.closeZoomistBtn,
+.zoomist-zoomer {
+    box-shadow: rgba(67, 71, 85, .27) 0 0 .25em, rgba(90, 125, 188, .05) 0 .25em 1em
+}

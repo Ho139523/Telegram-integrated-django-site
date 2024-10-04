@@ -34,12 +34,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions', 
     'django.contrib.messages', 
     'django.contrib.staticfiles', 
+    # Packages
     "rest_framework", 
-    'widget_tweaks', 
-    'accounts', 
-    'heartpred', 
-    "myapi", 
-    "cv",
+    'widget_tweaks',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -47,6 +44,12 @@ INSTALLED_APPS = [
     "social_django",
     'crispy_forms',
     'crispy_bootstrap5',
+    # Apps
+    'accounts', 
+    'heartpred', 
+    "myapi", 
+    "cv",
+    "mainpage",
 ] 
  
 MIDDLEWARE = [ 

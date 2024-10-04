@@ -1,0 +1,241 @@
+.hero-search-container,
+.next-section {
+    cursor: pointer
+}
+
+.light {
+    height: 50vh
+}
+
+.hero-section input {
+    border: 1px solid rgba(88, 88, 88, .5);
+    border-radius: 999px;
+    background: rgba(3, 0, 20, .08) !important;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    max-width: 100%;
+    width: 500px;
+    padding: .5rem;
+    padding-right: 2.5rem !important;
+    cursor: pointer;
+    pointer-events: none
+}
+
+.hero-section input::placeholder {
+    color: #cecece !important
+}
+
+.scrolldown {
+    --color: white;
+    --sizeX: 30px;
+    --sizeY: 50px;
+    position: relative;
+    width: var(--sizeX);
+    height: var(--sizeY);
+    margin-left: var(sizeX / 2);
+    border: calc(var(--sizeX)/ 10) solid var(--color);
+    border-radius: 50px;
+    box-sizing: border-box;
+    margin-bottom: 16px
+}
+
+.scrolldown::before {
+    content: "";
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    margin-left: -3px;
+    background-color: var(--color);
+    border-radius: 100%;
+    animation: 2s infinite scrolldown-anim;
+    box-sizing: border-box;
+    box-shadow: 0 -5px 3px 1px #ffffff66
+}
+
+@keyframes scrolldown-anim {
+    0% {
+        opacity: 0;
+        height: 6px
+    }
+    40% {
+        opacity: 1;
+        height: 10px
+    }
+    80% {
+        transform: translate(0, 20px);
+        height: 10px;
+        opacity: 0
+    }
+    100% {
+        height: 3px;
+        opacity: 0
+    }
+}
+
+.chevrons {
+    padding: 6px 0 0;
+    margin-top: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center
+}
+
+.chevrondown {
+    margin-top: -6px;
+    position: relative;
+    border: solid var(--color);
+    border-width: 0 3px 3px 0;
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    transform: rotate(45deg)
+}
+
+.chevrondown:nth-child(odd) {
+    animation: .5s infinite alternate pulse
+}
+
+.chevrondown:nth-child(2n) {
+    animation: .5s 250ms infinite alternate pulse
+}
+
+.hero-section {
+    margin-top: 0;
+    padding-top: 50px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(181deg, transparent 85%, #101113 95%);
+    min-height: auto !important;
+    height: 60vh
+}
+
+#heroImg {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1
+}
+
+.next-section {
+    bottom: 20px;
+    border: none;
+    background-color: transparent
+}
+
+@keyframes pulse {
+    from {
+        opacity: 0
+    }
+    to {
+        opacity: .5
+    }
+}
+
+.splide__arrow svg {
+    fill: #fff
+}
+
+.splide-btn-next,
+.splide-btn-prev {
+    top: -50px;
+    width: 40px;
+    height: 40px;
+    line-height: 50px;
+    border: 1px solid rgba(255, 255, 255, .08) !important
+}
+
+.splide-btn-next {
+    left: 0 !important
+}
+
+.splide-btn-prev {
+    left: 50px !important;
+    right: unset !important
+}
+
+.splide-btn-next svg {
+    rotate: -180deg
+}
+
+.splide-btn-next::before,
+.splide-btn-prev::before {
+    all: unset
+}
+
+.about-codena {
+    border: 1px solid rgba(255, 255, 255, 8%) !important;
+    width: fit-content;
+    margin: auto;
+    border-radius: 1rem;
+    padding: 1rem
+}
+
+.more-about-codena-title {
+    border-bottom: 2px dashed rgba(187, 188, 190, .25);
+    padding-bottom: 1rem
+}
+
+#road-map {
+    margin-top: 20px
+}
+
+.roade-map-img {
+    border: 1px solid rgba(255, 255, 255, 8%);
+    transition: transform .3s ease-in-out
+}
+
+.roade-map-img:hover {
+    transition: transform .1s
+}
+
+@media only screen and (max-width:768px) {
+    .col-auto {
+        width: 50%
+    }
+}
+
+@media only screen and (max-width:576px) {
+    .courses .card-data {
+        margin-top: 0 !important
+    }
+    .courses .card-body {
+        padding-top: .625rem;
+        padding-bottom: .625rem
+    }
+    #startCoding {
+        display: block;
+        margin-right: auto;
+        margin-left: auto
+    }
+    .next-section {
+        transform: translateX(-50%);
+        left: 50%
+    }
+    .hero-section {
+        padding-top: 0
+    }
+    .splide-btn-next,
+    .splide-btn-prev {
+        top: 112%
+    }
+    .title-and-show-more {
+        flex-direction: column;
+        gap: 10px
+    }
+    .more-about-codena-title,
+    h1 {
+        font-size: 1.5rem
+    }
+    h1 svg {
+        width: 40px;
+        height: 40px
+    }
+    .more-btn {
+        font-size: 14px
+    }
+}

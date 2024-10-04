@@ -6,7 +6,7 @@ from utils.funcs.django_social_redirect import custom_complete
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('heartpred.urls')),
+    path('', include('mainpage.urls')),
     path('api/', include('myapi.urls')),
     path('', include('cv.urls')),
     path('accounts/', include('accounts.urls')),

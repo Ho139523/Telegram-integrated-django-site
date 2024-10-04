@@ -1,0 +1,42 @@
+.swiper {
+    overflow-y: visible
+}
+
+.swiper-backface-hidden .swiper-slide {
+    display: flex;
+    align-items: center;
+    justify-content: center
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+    top: var(--swiper-navigation-top-offset, calc(0% - 35px));
+    width: 40px;
+    height: 40px;
+    line-height: 50px
+}
+
+.swiper-button-next::after,
+.swiper-button-prev::after {
+    all: unset;
+    content: '' !important
+}
+
+.swiper-button-next {
+    left: 0 !important
+}
+
+.swiper-button-prev {
+    left: 50px !important;
+    right: unset !important
+}
+
+.swiper-button-prev svg {
+    rotate: -180deg
+}
+
+.swiper-button-next-hero,
+.swiper-button-prev-hero {
+    top: var(--swiper-navigation-top-offset, 90%);
+    margin-left: 1rem
+}

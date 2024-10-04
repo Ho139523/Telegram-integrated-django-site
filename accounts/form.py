@@ -9,6 +9,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field
 from utils.variables.countries import countries
 
+import pycountry
 
 
 error_messages_email = {
@@ -87,26 +88,48 @@ class ProfileUpdateForm(forms.ModelForm):
         )
 
 
+
+
 class ShippingAddressForm(forms.ModelForm):
-    shipping_country=forms.ChoiceField(choices=countries)
-    
+    shipping_country = forms.ChoiceField(choices=countries)
+    shipping_province = forms.ChoiceField(choices=[], required=False)
+
     class Meta:
         model = ShippingAddressModel
-        exclude = ['profile']  # Exclude profile since we're setting it manually in the view
-        
+        exclude = ['profile']
+
         widgets = {
             'shipping_line1': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 1"}),
             'shipping_line2': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 2"}),
             'shipping_city': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "City"}),
-            # 'shipping_country': forms.TextInput(choices=countries, attrs={"class": 'form-control', 'placeholder': "Country"}),
-            # 'shipping_province': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Province"}),
             'shipping_zip': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Zip Code"}),
             'shipping_home_phone': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Residential Phone Number"}),
         }
+
     def __init__(self, *args, **kwargs):
+        # Retrieve the country_code from the instance or POST data
+        instance = kwargs.get('instance')
+        country_code = kwargs.pop('country_code', None)
+        
+        
         super().__init__(*args, **kwargs)
+        
+        if instance and instance.shipping_country:
+            country_code = instance.shipping_country
+            
+        if country_code:
+            shipping_province = forms.ChoiceField(choices=self.update_province_choices(country_code), required=False)
+        
+        
+
+    def update_province_choices(self, country_code):
+        """Update the province choices based on the selected country."""
+        provinces = [(subdivision.code, subdivision.name) for subdivision in pycountry.subdivisions if subdivision.country_code == country_code]
+        self.fields['shipping_province'].choices = provinces
+
         self.helper = FormHelper()
         self.helper.form_show_labels = False
-        
+
     class Media:
         js = ('https://code.jquery.com/jquery-3.6.0.min.js', 'registration/dashboard/assets/js/province.js')
+

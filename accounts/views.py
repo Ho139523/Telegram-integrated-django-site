@@ -311,11 +311,11 @@ def profile_update_view(request):
     return render(request, 'registration/dashboard/profile.html', context)
 
 
-
-
 def get_provinces(request):
     country_code = request.GET.get('country_code')
-    provinces = [(subdivision.code, subdivision.name) for subdivision in pycountry.subdivisions if subdivision.country_code == country_code]
     
-    return JsonResponse(provinces, safe=False)
+    if country_code:
+        provinces = [(subdivision.code, subdivision.name) for subdivision in pycountry.subdivisions if subdivision.country_code == country_code]
+        return JsonResponse(provinces, safe=False)
     
+    return JsonResponse({"error": "No country code provided"}, status=400)

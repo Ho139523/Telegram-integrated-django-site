@@ -41,7 +41,7 @@ optree==0.12.1
 packaging==24.1
 pandas==2.2.2
 pillow==10.4.0
-protobuf==4.20.0
+protobuf==4.20.3
 pycountry==24.6.1
 pycparser==2.22
 Pygments==2.18.0

@@ -1,748 +1,9 @@
+{% extends "mainpage/base.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="fa">
 
-<head>
 
-
-
-
-
-    <script>
-        ! function(t, e, n) {
-            t.yektanetAnalyticsObject = n, t[n] = t[n] || function() {
-                t[n].q.push(arguments)
-            }, t[n].q = t[n].q || [];
-            var a = new Date,
-                r = a.getFullYear().toString() + "0" + a.getMonth() + "0" + a.getDate() + "0" + a.getHours(),
-                c = e.getElementsByTagName("script")[0],
-                s = e.createElement("script");
-            s.id = "ua-script-uzl2dxBj";
-            s.dataset.analyticsobject = n;
-            s.async = 1;
-            s.type = "text/javascript";
-            s.src = "https://cdn.yektanet.com/rg_woebegone/scripts_v3/uzl2dxBj/rg.complete.js?v=" + r, c.parentNode.insertBefore(s, c)
-        }(window, document, "yektanet");
-    </script>
-    <!-- meta tags -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- title and favicon -->
-
-    <script src="{% static 'cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js' %}"></script>
-
-    <link rel="stylesheet" href="{% static 'cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.rtl.min.css' %}" />
-    <!-- Default theme -->
-    <link rel="stylesheet" href="{% static 'cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.rtl.min.css' %}" />
-    <!-- Semantic UI theme -->
-    <link rel="stylesheet" href="{% static 'cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/semantic.rtl.min.css' %}" />
-    <!-- Bootstrap theme -->
-    <link rel="stylesheet" href="{% static 'cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/bootstrap.rtl.min.css' %}" />
-
-    <link rel="shortcut icon" href="https://codena.org/favicon.ico" type="image/x-icon">
-
-    <!-- bootstrap css -->
-
-    <link rel="stylesheet" href="{% static 'mainpage/assets/css/bootstrap.rtl.min.css' %}">
-
-
-    <!-- base css -->
-    <link rel="stylesheet" href="{% static 'mainpage/assets/css/base.css' %}">
-
-    <!-- stars animation -->
-
-    <link rel="stylesheet" href="{% static 'mainpage/assets/css/stars-anim.css' %}">
-
-    <!-- coustom style for diffrent pages -->
-
-    <!-- pwa -->
-    <link rel="manifest" href="{% static 'mainpage/manifest.json' %}">
-    <meta name="theme-color" content="#00b1f1">
-    <link rel="apple-touch-icon" sizes="16x16" href="{% static 'mainpage/icons/16x16.png' %}">
-    <link rel="apple-touch-icon" sizes="32x32" href="{% static 'mainpage/icons/32x32.png' %}">
-    <link rel="apple-touch-icon" sizes="72x72" href="{% static 'mainpage/icons/72x72.png' %}">
-    <link rel="apple-touch-icon" sizes="96x96" href="{% static 'mainpage/icons/96x96.png' %}">
-    <link rel="apple-touch-icon" sizes="120x120" href="{% static 'mainpage/icons/120x120.png' %}">
-    <link rel="apple-touch-icon" sizes="128x128" href="{% static 'mainpage/icons/128x128.png' %}">
-    <link rel="apple-touch-icon" sizes="144x144" href="{% static 'mainpage/icons/144x144.png' %}">
-    <link rel="apple-touch-icon" sizes="152x152" href="{% static 'mainpage/icons/152x152.png' %}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'mainpage/icons/180x180.png' %}">
-    <link rel="apple-touch-icon" sizes="192x192" href="{% static 'mainpage/icons/192x192.png' %}">
-    <link rel="apple-touch-icon" sizes="384x384" href="{% static 'mainpage/icons/384x384.png' %}">
-    <link rel="apple-touch-icon" sizes="512x512" href="{% static 'mainpage/icons/512x512.png' %}">
-    <link rel="apple-touch-startup-image" href="{% static 'mainpage/icons/192x192.png' %}">
-    <meta name="apple-mobile-web-app-title" content="کدنا">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="#00b1f1">
-
-
-    <meta name="enamad" content="230305" />
-    <meta name="samandehi" content="999756510" />
-    <!-- swiper css -->
-    <link rel="stylesheet" href="{% static 'mainpage/assets/css/swiper-bundle.min.css' %}">
-    <link rel="stylesheet" href="{% static 'mainpage/assets/css/swiper-custom.css' %}">
-    <!-- video css -->
-    <link rel="stylesheet" href="{% static 'mainpage/assets/css/video.css' %}"
-    <!-- index css -->
-    <link rel="stylesheet" href="{% static 'mainpage/assets/css/index.css' %}">
-
-
-    <title>
-
-        آکادمی کدنا
-
-    </title>
-</head>
-
-<body>
-    <div class="light"></div>
-
-
-    <div class="install-app install-app d-lg-none d-block">
-        <div class="container h-100 d-flex align-items-center gap-2">
-            <div>
-                <button class="btn btn-natural" id="hideInstallApp">
-                <svg width="30px" height="30px" viewBox="0 0 1024 1024">
-                    <path id="closeNavIcon"
-                          d="M195.2 195.2a64 64 0 0 1 90.496 0L512 421.504 738.304 195.2a64 64 0 0 1 90.496 90.496L602.496 512 828.8 738.304a64 64 0 0 1-90.496 90.496L512 602.496 285.696 828.8a64 64 0 0 1-90.496-90.496L421.504 512 195.2 285.696a64 64 0 0 1 0-90.496z">
-                    </path>
-                </svg>
-            </button>
-            </div>
-            <div class="not-support h-100 d-flex align-items-center justify-content-center">
-                <p class="mb-0 text-light">
-                    برای نصب اپلیکیشن می توانید از سه نقطه ی بالای مرورگر روی add to home screen کلید نمایید.
-                </p>
-            </div>
-            <div class="support flex-grow-1 d-none d-flex align-items-center justify-content-between h-100">
-                <h3 class="fm-morabba text-light fw-bold mb-0">اپلیکیشن کدنا</h3>
-                <button class="btn btn-secondary shadow btn-lg" id="installPwaBtn">
-                نصب
-            </button>
-            </div>
-        </div>
-    </div>
-
-
-    <header class="shadow-sm">
-
-        <div class="container">
-            <nav class="navbar navbar-expand-lg" data-bs-theme="dark">
-                <div class="container-fluid">
-                    <div class="nav-section -first">
-                        <button class="menu-toggle-btn me-3 btn btn-tool" id="toggleNav" aria-label="Main Menu">
-                    <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none"
-                         xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 6H20M4 12H20M4 18H20" stroke="#fff" stroke-width="2" stroke-linecap="round"
-                              stroke-linejoin="round"/>
-                    </svg>
-                </button>
-                    </div>
-                    <div class="nav-section -second">
-                        <a class="navbar-brand" aria-label="لینک صفحه ی اصلی" href="/">
-                    <img src="{% static 'mainpage/assets/img/logo.webp' %}" alt="">
-                </a>
-                    </div>
-                    <div class="collapse navbar-collapse has-banner" id="navbarSupportedContent">
-                        <div id="topBarNavbarCollapse" class="d-flex align-items-center justify-content-between mb-3 pb-0">
-                            <a class="navbar-brand" aria-label="لینک صفحه ی اصلی" href="/">
-                        <img src="{% static 'mainpage/assets/img/logo.webp' %}" alt="">
-                    </a>
-                            <button class="btn btn-danger" id="closeNav" aria-label="خروج از منو">
-                        <svg width="20px" height="30px" viewBox="0 0 1024 1024">
-                            <path id="closeNavIcon"
-                                  d="M195.2 195.2a64 64 0 0 1 90.496 0L512 421.504 738.304 195.2a64 64 0 0 1 90.496 90.496L602.496 512 828.8 738.304a64 64 0 0 1-90.496 90.496L512 602.496 285.696 828.8a64 64 0 0 1-90.496-90.496L421.504 512 195.2 285.696a64 64 0 0 1 0-90.496z"/>
-                        </svg>
-                    </button>
-                        </div>
-                        <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            آموزشگاه
-                        </a>
-                                <ul class="dropdown-menu">
-                                    <li class="nav-item">
-                                        <a class="nav-link active" aria-current="page" href="/">خانه</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="/courses/">دوره ها</a>
-                                    </li>
-
-                                </ul>
-
-
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/cart/"> سبد خرید </a>
-                            </li>
-
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            نقشه های راه
-                        </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="/roadmap-1/">نقشه
-                                راه امنیت </a></li>
-                                    <li><a class="dropdown-item" href="/roadmap-3/">نقشه
-                                راه وب</a></li>
-                                    <li><a class="dropdown-item" href="/roadmap-2/">نقشه
-                                راه شبکه</a></li>
-                                    <li><a class="dropdown-item" href="/roadmap-4/">نقشه
-                                راه کودک </a></li>
-                                </ul>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            وبلاگ
-                        </a>
-                                <ul class="dropdown-menu">
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="/blog/"> صفحه اصلی </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="/blog/posts/"> مقاله ها  </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="/blog/podcasts/"> پادکست ها  </a>
-                                    </li>
-                                </ul>
-                            </li>
-
-
-
-
-
-
-
-
-
-
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="/editor/"> کد ادیتور</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/about-us">درباره ما</a>
-                            </li>
-
-                        </ul>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-end ms-auto nav-section -third">
-                        <button class="btn tool" data-bs-toggle="modal" data-bs-target="#searchModal" aria-label="باز کردن جست و جو">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-                        <path class="search-path"
-                              d="M20 21C19.8686 21.0003 19.7385 20.9746 19.6172 20.9243C19.4958 20.874 19.3856 20.8001 19.293 20.707L15.893 17.312C14.4975 18.4075 12.7742 19.002 11 19C9.41775 19 7.87103 18.5308 6.55544 17.6518C5.23985 16.7727 4.21447 15.5233 3.60897 14.0615C3.00347 12.5997 2.84504 10.9911 3.15372 9.43928C3.4624 7.88743 4.22433 6.46197 5.34315 5.34315C6.46197 4.22433 7.88743 3.4624 9.43928 3.15372C10.9911 2.84504 12.5997 3.00347 14.0615 3.60897C15.5233 4.21447 16.7727 5.23985 17.6518 6.55544C18.5308 7.87103 19 9.41775 19 11C19.0036 12.7766 18.409 14.5026 17.312 15.9L20.707 19.3C20.8444 19.4402 20.9376 19.6178 20.9748 19.8105C21.012 20.0033 20.9916 20.2028 20.9162 20.384C20.8408 20.5653 20.7137 20.7204 20.5508 20.8299C20.3879 20.9395 20.1963 20.9986 20 21V21ZM11 5C9.81332 5 8.65328 5.3519 7.66658 6.01119C6.67989 6.67047 5.91085 7.60755 5.45673 8.7039C5.0026 9.80026 4.88378 11.0067 5.11529 12.1705C5.3468 13.3344 5.91825 14.4035 6.75736 15.2426C7.59648 16.0818 8.66558 16.6532 9.82946 16.8847C10.9933 17.1162 12.1997 16.9974 13.2961 16.5433C14.3925 16.0892 15.3295 15.3201 15.9888 14.3334C16.6481 13.3467 17 12.1867 17 11C16.9982 9.40927 16.3654 7.88423 15.2406 6.75941C14.1158 5.63459 12.5907 5.00186 11 5V5Z"/>
-                    </svg>
-                </button>
-
-                        <a href="" class="btn tool me-3 d-none d-lg-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#authModal">
-                    <svg id="Icons" width="30" height="30" x="0px" y="0px" viewBox="0 0 32 32">
-                        <circle class="st0" cx="16" cy="16" r="14"/>
-                        <circle class="st0" cx="16" cy="13" r="5"/>
-                        <path class="st0" d="M5.4,25.1c1.8-4.1,5.8-7,10.6-7c4.8,0,8.9,2.9,10.6,7"/>
-                    </svg>
-                </a>
-
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-    <div class="mobile-menu d-block d-lg-none position-fixed bottom-0 start-0 w-100">
-        <ul class="mobile-menu__list d-flex align-items-center justify-content-between gap-2 list-unstyled mb-0">
-            <li class="mobile-menu__item flex-grow-1">
-                <a class="mobile-menu__link d-flex flex-column align-items-center gap-2 w-100 h-100 py-2 px-3 text-center link-underline link-underline-opacity-0 text-light" href="/">
-                <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                            d="M22 12.2039V13.725C22 17.6258 22 19.5763 20.8284 20.7881C19.6569 22 17.7712 22 14 22H10C6.22876 22 4.34315 22 3.17157 20.7881C2 19.5763 2 17.6258 2 13.725V12.2039C2 9.91549 2 8.77128 2.5192 7.82274C3.0384 6.87421 3.98695 6.28551 5.88403 5.10813L7.88403 3.86687C9.88939 2.62229 10.8921 2 12 2C13.1079 2 14.1106 2.62229 16.116 3.86687L18.116 5.10812C20.0131 6.28551 20.9616 6.87421 21.4808 7.82274"
-                            stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-                    <path d="M15 18H9" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                <span>خانه</span>
-            </a>
-            </li>
-            <li class="mobile-menu__item flex-grow-1">
-                <a class="mobile-menu__link d-flex flex-column align-items-center gap-2 w-100 h-100 py-2 px-3 text-center link-underline link-underline-opacity-0 text-light" href="/courses/">
-                <svg width="25" height="25" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <g clip-path="url(#clip0_33_9)">
-                        <path
-                                d="M14.578 5.92604C14.74 5.00135 14.0284 4.1543 13.0897 4.1543H5.34804C4.40927 4.1543 3.69773 5.00135 3.85975 5.92604"
-                                stroke="white" stroke-width="1.5"></path>
-                        <path
-                                d="M13.1168 4.15431C13.1369 3.9707 13.147 3.87887 13.1471 3.80304C13.1488 3.0776 12.6023 2.46807 11.881 2.39066C11.8056 2.38257 11.7132 2.38257 11.5285 2.38257H6.9094C6.72469 2.38257 6.63232 2.38257 6.55692 2.39066C5.83562 2.46807 5.28919 3.0776 5.29077 3.80304C5.29094 3.87887 5.30099 3.97068 5.3211 4.15431"
-                                stroke="white" stroke-width="1.5"></path>
-                        <path
-                                d="M15.7344 12.8664C15.4865 14.6246 15.3626 15.5037 14.7268 16.0302C14.091 16.5566 13.1531 16.5566 11.2775 16.5566H7.16053C5.28493 16.5566 4.34713 16.5566 3.7113 16.0302C3.07546 15.5037 2.95152 14.6246 2.70363 12.8664L2.40387 10.7403C2.08777 8.49829 1.92973 7.37731 2.60146 6.65173C3.2732 5.92615 4.46906 5.92615 6.86077 5.92615H11.5773C13.969 5.92615 15.1649 5.92615 15.8366 6.65173C16.3673 7.22496 16.3801 8.045 16.2062 9.46963"
-                                stroke="white" stroke-width="1.5" stroke-linecap="round"></path>
-                        <path
-                                d="M11.0484 10.6147C11.4442 10.8601 11.4442 11.4951 11.0484 11.7405L8.659 13.2217C8.27439 13.4601 7.80176 13.1498 7.80176 12.6589V9.6963C7.80176 9.20539 8.27439 8.89505 8.659 9.13346L11.0484 10.6147Z"
-                                stroke="white" stroke-width="1.5"></path>
-                    </g>
-                    <defs>
-                        <clipPath id="clip0_33_9">
-                            <rect width="17.0087" height="17.0087" fill="white"
-                                  transform="translate(0.714844 0.96521)"></rect>
-                        </clipPath>
-                    </defs>
-                </svg>
-                <span>آموزش ها</span>
-            </a>
-            </li>
-            <li class="mobile-menu__item flex-grow-1">
-                <a class="mobile-menu__link d-flex flex-column align-items-center gap-2 w-100 h-100 py-2 px-3 text-center link-underline link-underline-opacity-0 text-light" href="" data-bs-toggle="modal" data-bs-target="#authModal" aria-label="حساب کاربری">
-                <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                            d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z"
-                            stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z" stroke="#fff"
-                          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span>User Account</span>
-            </a>
-            </li>
-        </ul>
-    </div>
-
-
-    <!-- bg pattern -->
-    <div class="bg-pattern"></div>
-    <!-- bg pattern -->
-
-    <!-- Modal search -->
-    <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="signUpModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="authModalLabel">Search</h1>
-                    <button type="button" class="btn-close text-light mx-0" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form>
-
-                        <!-- start number input div -->
-                        <div class="form-outline mb-4">
-                            <label class="form-label" for="searchInput" style="margin-left: 0px;">Search</label>
-                            <input type="search" id="searchInput" class="form-control">
-                        </div>
-                        <!-- end number input div -->
-
-                    </form>
-                    <ul class="list-group list-group-flush rounded-4" id="searchList">
-
-
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/5/difference-between-sql-nosql" class="link-underline link-underline-opacity-0">بررسی کامل تفاوت SQL و NoSQL</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/7/best-Python-compilers" class="link-underline link-underline-opacity-0">معرفی بهترین کامپایلرهای پایتون</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/8/what-is-rest-api" class="link-underline link-underline-opacity-0">REST API چیست؟</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/4/CMD-utility-codes" class="link-underline link-underline-opacity-0">بررسی کدهای کاربردی CMD</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/12/Powershell-commands" class="link-underline link-underline-opacity-0">معرفی بهترین دستورات powershell</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/6/Visual-Studio-code-settings" class="link-underline link-underline-opacity-0">بررسی کامل تنظیمات ویژوال استودیو کد</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/9/Java-frameworks" class="link-underline link-underline-opacity-0">فریم ورک های جاوا</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/10/what-is-Scrum" class="link-underline link-underline-opacity-0">Scrum چیست؟</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/17/what-is-AJAX" class="link-underline link-underline-opacity-0">ایجکس چیست؟ | نحوه کار با فناوری AJAX</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/11/Python-libraries-for-artificial-intelligence" class="link-underline link-underline-opacity-0">کتابخانه های پایتون برای هوش مصنوعی – معرفی ۳۰ کتابخانه</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/14/what-is-splunk" class="link-underline link-underline-opacity-0">اسپلانک چیست؟ | قابلیت ها و کاربردهای اسپلانک</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/15/Laravel-framework" class="link-underline link-underline-opacity-0">فریمورک لاراول چیست؟ | چرا باید از فریمورک لاراول استفاده کنیم؟</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/16/MySQL-or-SQL-Server" class="link-underline link-underline-opacity-0">کدام یک بهتر است؟ MySQL یا SQL Server</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/18/what-is-fetch" class="link-underline link-underline-opacity-0">Fetch چیست؟ | آموزش تابع فچ در جاوا اسکریپت</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/19/what-is-interface" class="link-underline link-underline-opacity-0">اینترفیس در برنامه نویسی شی گرا به چه معناست؟</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/22/what-is-react" class="link-underline link-underline-opacity-0">ری‌اکت چیست؟| همه چیز راجب این کتابخانه جذاب</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/27/What-module-programming" class="link-underline link-underline-opacity-0">ماژول در برنامه نویسی چیست</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/23/what-is-uml" class="link-underline link-underline-opacity-0">UML چیست؟</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/24/programming-vs-coding" class="link-underline link-underline-opacity-0">تفاوت برنامه نویسی و کدنویسی</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/25/WHAT-IS-microsoft-sql-server" class="link-underline link-underline-opacity-0">microsoft sql server چیست؟</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/26/Who-is-developer" class="link-underline link-underline-opacity-0">دولوپر کیست؟</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/13/difference-between-ui-ux" class="link-underline link-underline-opacity-0">تفاوت ui و ux</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/29/What-flexbox" class="link-underline link-underline-opacity-0">فلکس باکس چیست</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/21/While-loop-in-Python" class="link-underline link-underline-opacity-0">حلقه while در پایتون</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/28/What-is-parallax" class="link-underline link-underline-opacity-0">پارالاکس (Parallax) چیست</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/30/what-is-dapper" class="link-underline link-underline-opacity-0">دپر چیست؟</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/20/what-is-Stack" class="link-underline link-underline-opacity-0">استک چیست؟ گام به گام از صفر تا صد + کاربردها</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/blog/31/What-is-AWS" class="link-underline link-underline-opacity-0">Aws چیست؟</a>
-                        </li>
-
-
-
-
-
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/10/CCNPENTERPRISE" class="link-underline link-underline-opacity-0">CCNP ENTERPRISE</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/28/BADUSB" class="link-underline link-underline-opacity-0">BAD USB</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/3/hacker" class="link-underline link-underline-opacity-0">هکر قانونمند</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/34/MBP" class="link-underline link-underline-opacity-0">ماشین پولسازی</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/25/github" class="link-underline link-underline-opacity-0">گیت و گیت هاب</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/29/ONTIME" class="link-underline link-underline-opacity-0">ژنرال ON TIME</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/35/Servercrack" class="link-underline link-underline-opacity-0">کرک سرور</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/8/network+" class="link-underline link-underline-opacity-0">+network</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/4/LINUX" class="link-underline link-underline-opacity-0">لینوکس سیاه</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/9/CCNA" class="link-underline link-underline-opacity-0">CCNA 200-301</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/14/FLASK" class="link-underline link-underline-opacity-0">متخصص فلسک</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/36/didas" class="link-underline link-underline-opacity-0">متخصص حملات دیداس</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/11/CCNPCOLLOBRATION" class="link-underline link-underline-opacity-0">CCNP COLLOBRATION</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/30/Arithmetic" class="link-underline link-underline-opacity-0">حرف حساب</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/17/Ai1" class="link-underline link-underline-opacity-0">هوش مصنوعی برای همه</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/31/Avant-garde" class="link-underline link-underline-opacity-0">آوانگارد</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/37/kali" class="link-underline link-underline-opacity-0">hack with kali</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/12/html&amp;css" class="link-underline link-underline-opacity-0">HTML &amp; CSS</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/23/figma" class="link-underline link-underline-opacity-0">مقدماتی تا پیشرفته فیگما</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/6/Scratch" class="link-underline link-underline-opacity-0">اسکرچ</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/24/postman" class="link-underline link-underline-opacity-0">پستمن</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/38/instagram" class="link-underline link-underline-opacity-0">هک اینستاگرام و واتس اپ</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/16/pythonone" class="link-underline link-underline-opacity-0">پایتون مقدماتی</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/32/seo" class="link-underline link-underline-opacity-0">سئو vip</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/26/reactJS" class="link-underline link-underline-opacity-0">متخصص ری‌اکت</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/18/pythontwo" class="link-underline link-underline-opacity-0">پایتون پیشرفته</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/13/BOOTSTRAP" class="link-underline link-underline-opacity-0">bootstrap 5</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/2/OSINT" class="link-underline link-underline-opacity-0">متخصص اوسینت</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/15/JUNIOR" class="link-underline link-underline-opacity-0">اسکرچ جونیور</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/20/JavaScript" class="link-underline link-underline-opacity-0">متخصص جاوا اسکریپت</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/21/Magic.Js" class="link-underline link-underline-opacity-0">Magic Js</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/1/python" class="link-underline link-underline-opacity-0">متخصص پایتون</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/22/master-hack" class="link-underline link-underline-opacity-0">مستر هــــــــــک</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/33/barandeh" class="link-underline link-underline-opacity-0">برگ برنده</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/7/type" class="link-underline link-underline-opacity-0">تایپ ده انگشتی</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/27/NPM" class="link-underline link-underline-opacity-0">زیر و بم NPM</a>
-                        </li>
-
-
-                        <li class="list-group-item">
-                            <a href="/courses/19/Enteringtheworldofprogramming" class="link-underline link-underline-opacity-0">ورود به دنیای برنامه نویسی</a>
-                        </li>
-
-
-
-                        <li class="list-group-item">
-                            <a href="" class="link-underline link-underline-opacity-0">لینوکس سیاه</a>
-                        </li>
-                        <li class="list-group-item">
-                            <a href="" class="link-underline link-underline-opacity-0">اسکرچ</a>
-                        </li>
-                        <li class="list-group-item">
-                            <a href="" class="link-underline link-underline-opacity-0">شبکه با گرایش امنیت</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Modal search -->
-
-    <!-- Modal auth -->
-    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModal" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="authModalLabel">User Account</h1>
-                    <button type="button" class="btn-close text-light mx-0" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-
-                    <div class="d-flex align-items-center gap-2 my-3">
-                        <a href="{% url 'accounts:signup' %}" class="btn btn-primary w-50">
-                            Signup
-                        </a>
-                        <a href="{% url 'accounts:login' %}" class="btn btn-success w-50">
-                            Login
-                        </a>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Modal auth -->
-
-
-
-
-
-
-
-    <!-- Modal special discount -->
-
-
-
-
-    <div class="modal fade" id="specialDiscountModal" tabindex="-1" aria-labelledby="specialDiscountModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="specialDiscountModalLabel">جشنواره تخفیف داغ کدنا🔥</h1>
-                    <button type="button" class="btn-close text-light mx-0" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <img src="{% static 'mainpage/media/%D8%A8%D9%86%D8%B1_%D8%AC%D8%B4%D9%86%D9%88%D8%A7%D8%B2%D9%87_%D9%BE%D8%A7%DB%8C%DB%8C%D8%B2%DB%8C_3.webp' %}" class="img-fluid rounded-4" alt="">
-                    <div class="mt-4">
-
-                        <a href="https://codena.org/roadmap-1/" class="btn">مشاهده </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Modal special discount -->
-
-
-
-
-
+{% block content %}
 
     <section class="hero-section  d-sm-flex">
         <video autoplay muted loop playsinline id="heroImg">
@@ -2782,370 +2043,4 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-    <div class="footer-light"></div>
-
-    <!-- Footer -->
-    <footer class="text-center text-lg-start text-light mt-5">
-        <!-- Section: Social media -->
-        <section class="social-media-section d-flex align-items-center justify-content-center justify-content-sm-between py-3 px-4">
-            <!-- Left -->
-            <div class="me-5 d-none d-sm-block">
-                <span>کدنا رو اینجا ها میتونی پیدا کنی:</span>
-            </div>
-            <!-- Left -->
-
-            <!-- Right -->
-            <div>
-                <a href="" class="me-4 text-reset link-underline link-underline-opacity-0">
-                <svg version="1.1" id="instagram" width="45" height="45" viewBox="0 0 512 512">
-                    <path class="st0" d="M386.3978,99.0718c-16.0962,0-29.1467,13.0505-29.1467,29.1467c0,16.0976,13.0505,29.1467,29.1467,29.1467
-		c16.0976,0,29.1467-13.0491,29.1467-29.1467C415.5445,112.1223,402.4954,99.0718,386.3978,99.0718z M256.8186,136.4493
-		c-67.5108,0-122.4375,54.9253-122.4375,122.4361s54.9267,122.4361,122.4375,122.4361s122.4347-54.9253,122.4347-122.4361
-		S324.3294,136.4493,256.8186,136.4493z M256.8186,337.3156c-43.2461,0-78.4303-35.1828-78.4303-78.4303
-		c0-43.2461,35.1842-78.4275,78.4303-78.4275c43.2475,0,78.4275,35.1814,78.4275,78.4275
-		C335.2461,302.1329,300.0661,337.3156,256.8186,337.3156z M503.8675,157.1272c0-82.4737-66.8618-149.3327-149.341-149.3327
-		H157.4254c-82.4778,0-149.341,66.859-149.341,149.3327v197.119c0,82.4737,66.8632,149.3327,149.341,149.3327h197.1011
-		c82.4792,0,149.341-66.859,149.341-149.3327V157.1272z M457.0955,354.2463c0,56.6425-45.921,102.5607-102.5691,102.5607H157.4254
-		c-56.6467,0-102.569-45.9182-102.569-102.5607v-197.119c0-56.6425,45.9223-102.5607,102.569-102.5607h197.1011
-		c56.6481,0,102.5691,45.9182,102.5691,102.5607V354.2463z"/>
-                </svg>
-            </a>
-                <a href="" class="text-reset link-underline link-underline-opacity-0">
-                <svg width="45px" height="45px" viewBox="0 0 24 24" id="eitaa">
-                    <path
-                            d="M5.968 23.942a6.624 6.624 0 0 1-2.332-.83c-1.62-.929-2.829-2.593-3.217-4.426-.151-.717-.17-1.623-.15-7.207C.288 5.47.274 5.78.56 4.79c.142-.493.537-1.34.823-1.767C2.438 1.453 3.99.445 5.913.08c.384-.073.94-.08 6.056-.08 6.251 0 6.045-.009 7.066.314a6.807 6.807 0 0 1 4.314 4.184c.33.937.346 1.087.369 3.555l.02 2.23-.391.268c-.558.381-1.29 1.06-2.316 2.15-1.182 1.256-2.376 2.42-2.982 2.907-1.309 1.051-2.508 1.651-3.726 1.864-.634.11-1.682.067-2.302-.095-.553-.144-.517-.168-.726.464a6.355 6.355 0 0 0-.318 1.546l-.031.407-.146-.03c-1.215-.241-2.419-1.285-2.884-2.5a3.583 3.583 0 0 1-.26-1.219l-.016-.34-.309-.284c-.644-.59-1.063-1.312-1.195-2.061-.212-1.193.34-2.542 1.538-3.756 1.264-1.283 3.127-2.29 4.953-2.68.658-.14 1.818-.177 2.403-.075 1.138.198 2.067.773 2.645 1.639.182.271.195.31.177.555a.812.812 0 0 1-.183.493c-.465.651-1.848 1.348-3.336 1.68-2.625.585-4.294-.142-4.033-1.759.026-.163.04-.304.031-.313-.032-.032-.293.104-.575.3-.479.334-.903.984-1.05 1.607-.036.156-.05.406-.034.65.02.331.053.454.192.736.092.186.275.45.408.589l.24.251-.096.122a4.845 4.845 0 0 0-.677 1.217 3.635 3.635 0 0 0-.105 1.815c.103.461.421 1.095.739 1.468.242.285.797.764.886.764.024 0 .044-.048.044-.106.001-.23.184-.973.326-1.327.423-1.058 1.351-1.96 2.82-2.74.245-.13.952-.47 1.572-.757 1.36-.63 2.103-1.015 2.511-1.305 1.176-.833 1.903-2.065 2.14-3.625.086-.57.086-1.634 0-2.207-.368-2.438-2.195-4.096-4.818-4.37-2.925-.307-6.648 1.953-8.942 5.427-1.116 1.69-1.87 3.565-2.187 5.443-.123.728-.169 2.08-.093 2.75.193 1.704.822 3.078 1.903 4.156a6.531 6.531 0 0 0 1.87 1.313c2.368 1.13 4.99 1.155 7.295.071.996-.469 1.974-1.196 3.023-2.25 1.02-1.025 1.71-1.88 3.592-4.458 1.04-1.423 1.864-2.368 2.272-2.605l.15-.086-.019 3.091c-.018 2.993-.022 3.107-.123 3.561-.6 2.678-2.54 4.636-5.195 5.242l-.468.107-5.775.01c-4.734.008-5.85-.002-6.19-.056z"/>
-                </svg>
-            </a>
-            </div>
-            <!-- Right -->
-        </section>
-        <!-- Section: Social media -->
-
-        <!-- Section: Links  -->
-        <section>
-            <div class="text-center text-md-start mt-5 px-4">
-                <!-- Grid row -->
-                <div class="row mt-3">
-
-                    <div class="col-xl-8">
-                        <h4 class="text-light fw-bold fm-morabba">کدنا یعنی طی مسیری با کیفیت</h4>
-                        <p class="text-secondary text-justify lh-lg mt-3 fm-morabba">
-                            وقتی تازه میخواستم شروع به یادگیری علوم و مهارت های مهندسی کامپیوتر کنم یکی از چالش هایی که داشتم انتخاب مرجعی کامل و هدفمند برای یادگیری بود که بتونه طبق یک نقشه راهه همه چیز تمام من رو به تخصص برسونه! خیلی آزمون و خطا کردم و وقتم رو هدر دادم ولی در
-                            دل اون سختی ها، در نهایت به خودم قول دادم که یک روز این مشکل رو برای آیندگان رفع کنم. کدنا که تاسیس شد، تازه متوجه سختی بیشتر و روز افزون این مسیر افتادم اما جا نزدم تا به قولم عمل کنم، خداروشکر امروز کدنا به بلوغ نسبی رسیده
-                            و شاهد این هستیم که افراد متخصص خیلی زیادی به صورت شبانه روز دارن تلاش می‌کنن برای به اوج رسیدن این مجموعه! تمام تلاش ما ارائه خدمات با کیفیت به تو رفیق دوست داشتنیه، حالا تو بهم بگو: از کدنا راضی هستی؟
-                        </p>
-                    </div>
-
-                    <!-- Grid column -->
-                    <div class="col-xl-4 p-0 mx-auto mb-md-0 mb-4 download-app rounded-4 d-flex align-items-center justify-content-center">
-                        <div class="py-2 row align-items-center">
-                            <div class="col-md-12 my-2 d-flex align-items-center justify-content-center">
-                                <img width="48" height="48" src="{% static 'mainpage/assets/img/logo-footer.webp' %}" alt="">
-                                <h5 class="fw-bold fm-morabba mb-0 ms-3">
-                                    دانلود اپلیکیشن کدنا
-                                </h5>
-                            </div>
-                            <div class="col-md-12 ms-auto my-2 text-center pe-0">
-                                <button class="btn">
-                                <svg class="download-app-icon" width="40px" height="40px" viewBox="0 0 24 24">
-                                    <path
-                                            d="M9.887 4.242c-.38 0-.407.003-.616.106a1.518 1.518 0 0 0-.792 1.037c-.05.259-.046 7.361.003 7.593.113.527.52.96 1.037 1.1.746.205 1.511-.225 1.746-.977.06-.192.063-.365.063-3.94 0-3.627-.003-3.743-.066-3.945a1.401 1.401 0 0 0-.782-.881c-.179-.086-.228-.093-.593-.093zm4.241 1.378c-.915-.006-1.623.874-1.392 1.77.077.28.203.493.421.695.225.209.504.351.755.381.637.076 1.226-.229 1.505-.782.457-.907-.173-1.988-1.2-2.06a1.335 1.335 0 0 0-.089-.003zm4.241.01c-.192 0-.383.027-.514.08-.378.149-.693.47-.835.851l-.076.199v3.876c0 4.356-.017 4.071.252 4.648.39.851 1.192 1.477 2.077 1.63.086.013.954.023 1.928.023l1.772-.007.225-.106a1.65 1.65 0 0 0 .706-.69c.09-.188.096-.221.096-.612 0-.388-.007-.427-.093-.603a1.498 1.498 0 0 0-.679-.68l-.252-.125-1.427-.017c-1.567-.016-1.528-.013-1.663-.222-.057-.082-.06-.318-.077-3.62l-.016-3.529-.076-.182a1.516 1.516 0 0 0-.825-.831 1.496 1.496 0 0 0-.523-.083zM5.685 7.033a1.43 1.43 0 0 0-1.449 1.251c-.014.13-.027 1.097-.03 2.154 0 1.869-.003 1.925-.066 2.03-.123.203-.156.206-1.6.206-1.405 0-1.465.007-1.82.186-.214.11-.47.38-.599.64-.096.195-.106.251-.116.562-.013.318-.007.365.083.58.166.414.57.759 1.02.868.123.033.59.04 1.872.033 1.633-.007 1.716-.01 1.958-.08.858-.244 1.494-.768 1.872-1.546.278-.574.278-.557.278-3.287 0-2.22-.003-2.401-.06-2.584a1.44 1.44 0 0 0-1.343-1.013zm8.406 2.826a1.47 1.47 0 0 0-.622.158c-.342.17-.656.58-.746.971-.023.09-.036.924-.036 2.167 0 1.944-.003 2.024-.067 2.126-.125.21-.132.21-1.513.21-.69 0-1.339.012-1.445.032-.762.123-1.318.888-1.186 1.627.05.288.216.61.411.802.179.172.341.268.62.357.168.057.32.06 1.92.053 1.982-.01 1.982-.01 2.568-.304.57-.285.988-.71 1.276-1.292.298-.6.298-.587.298-3.32 0-2.22-.003-2.369-.063-2.557a1.441 1.441 0 0 0-1.415-1.03zm2.843 7.06a1.406 1.406 0 0 0-1.269.807c-.11.226-.113.242-.113.63 0 .384.003.404.11.606.189.36 1.407.563.798.725.162.067.232.077.533.07.322-.01.368-.02.58-.123.653-.32.97-1.06.746-1.729a1.427 1.427 0 0 0-1.385-.986z"/>
-                                </svg>
-                            </button>
-                                <button class="btn">
-                                <svg viewBox="0 0 90 90" width="40" height="40">
-                                    <defs>
-                                        <image width="275" height="77" id="img2"
-                                               href="data:image/png;base64,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"/>
-                                    </defs>
-                                    <style>
-                                        .light-mode #img2 {
-                                            filter: invert(.9);
-                                        }
-                                    </style>
-                                    <use href="#img2" x="-205" y="6"/>
-                                </svg>
-                            </button>
-                                <button class="btn">
-                                <svg class="download-app-icon" width="40px" height="40px" viewBox="0 0 24 24">
-                                    <path
-                                            d="M10.901 23.994c-.45-.03-.839-.066-1.146-.107-1.388-.183-2.871-.598-4.416-1.234-.338-.14-.297-.075-.411-.636a13.931 13.931 0 0 1-.165-4.302c.185-1.46.63-2.83 1.292-3.984.131-.228.506-.816.521-.816.004 0-.029.09-.073.2-.276.685-.402 1.368-.4 2.17.001.843.138 1.515.463 2.272.29.676.622 1.16 1.285 1.872a10.12 10.12 0 0 0 1.9 1.627 8.5 8.5 0 0 0 1.09.635c1.381.69 2.917 1.07 4.68 1.156.266.013.488.028.494.033.02.021-.822.417-1.132.532a9.578 9.578 0 0 1-2.346.536c-.33.035-1.363.065-1.636.046zm4.255-1.434c-1.994-.15-3.807-.748-5.293-1.745a1.181 1.181 0 0 1-.187-.14c.004-.005.099.028.21.073a5.87 5.87 0 0 0 6.97-2.18c.08-.117.243-.336.362-.485 1.241-1.56 1.982-3.407 2.226-5.547.036-.32.081-1.06.091-1.5l.006-.233.128.217c.466.788.827 1.785 1.008 2.784.24 1.32.232 2.64-.022 4.148-.212 1.257-.635 2.682-1.184 3.988-.11.262-.114.267-.208.292-.51.137-1.412.272-2.211.33a21.26 21.26 0 0 1-1.896-.002zM4.312 19.487c-.129-.203-.42-.817-.553-1.167a9.573 9.573 0 0 1-.574-2.525c-.048-.5-.048-1.529 0-2.071.12-1.359.444-2.767.973-4.222.196-.54.453-1.165.488-1.187.082-.05 1.12-.234 1.657-.293 2.75-.301 5.354.203 7.394 1.43.363.22.413.258.262.203a7.888 7.888 0 0 0-.967-.248 5.902 5.902 0 0 0-3.572.497c-.789.377-1.44.893-2.078 1.648l-.524.62c-1.293 1.522-2.103 3.5-2.352 5.745-.039.35-.094 1.471-.079 1.601a.242.242 0 0 1 .003.082.838.838 0 0 1-.078-.113zm13.014-1.996c.214-.498.358-1 .441-1.542.059-.38.059-1.231 0-1.612a5.843 5.843 0 0 0-1.16-2.735c-.222-.288-.82-.896-1.25-1.271a12.94 12.94 0 0 0-1.355-1.007 13.605 13.605 0 0 0-1.69-.857 11.226 11.226 0 0 0-2.537-.67 11.76 11.76 0 0 0-1.564-.117l-.64-.015.21-.125a7.85 7.85 0 0 1 1.532-.693c2.541-.848 5.624-.599 8.96.724.621.246.656.263.67.325.116.544.169.82.217 1.16.258 1.788.173 3.541-.248 5.153a10.033 10.033 0 0 1-1.364 3.056c-.313.466-.335.49-.222.226zM12.122 4.77c-.313-.039-.391-.06-.391-.105 0-.125.055-.53.096-.708.225-.969.87-1.985 1.704-2.683.957-.802 2.34-1.305 3.497-1.271l.261.007-.004.225c-.01.566-.274 1.368-.662 2.014-.726 1.21-1.87 2.08-3.17 2.41-.413.104-.993.153-1.331.11z"/>
-                                </svg>
-                            </button>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Grid column -->
-                </div>
-                <!-- Grid row -->
-            </div>
-        </section>
-        <!-- Section: Links  -->
-
-        <hr>
-
-        <section class="py-3 px-4 row align-items-start mw-100 codna-describe-footer-section">
-
-            <!-- Grid column -->
-            <div class="mx-auto mb-md-0 flex-grow-1 w-unset">
-                <!-- Links -->
-                <div class="d-none d-sm-block">
-                    <h5 class="fw-bold fs-5 mb-4">
-                        آموزشگاه
-                    </h5>
-                    <p>
-                        <a href="/roadmap-1/" class="text-reset">نقشه راه امنیت </a>
-                    </p>
-                    <p>
-                        <a href="/roadmap-3/" class="text-reset">نقشه راه وب</a>
-                    </p>
-                    <p>
-                        <a href="/roadmap-2/" class="text-reset">نقشه راه شبکه </a>
-                    </p>
-                    <p>
-                        <a href="/roadmap-4/" class="text-reset">نقشه راه کودک</a>
-                    </p>
-                </div>
-                <div class="d-block d-sm-none mw-100" style="width: 100vw;">
-                    <div class="accordion mt-3" id="links1">
-                        <div class="accordion-item">
-                            <h5 class="fw-bold fs-5 accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#links1Content" aria-expanded="false" aria-controls="collapseOne">
-
-                                    <span class="ms-2">فروشگاه</span>
-                                </button>
-                            </h5>
-                            <div id="links1Content" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-                                <div class="accordion-body">
-                                    <p>
-                                        <a href="#!" class="text-reset">پوشاک</a>
-                                    </p>
-                                    <p>
-                                        <a href="#!" class="text-reset">قطعات</a>
-                                    </p>
-                                    <p>
-                                        <a href="#!" class="text-reset">اکسسوری</a>
-                                    </p>
-                                    <p>
-                                        <a href="#!" class="text-reset">کتاب ها</a>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Grid column -->
-
-            <!-- Grid column -->
-            <div class="mx-auto flex-grow-1 w-unset">
-                <!-- Links -->
-                <div class="d-none d-sm-block">
-                    <h5 class="fw-bold mb-4 fs-5">
-                        خدمات
-                    </h5>
-                    <p>
-                        <a href="#!" class="text-reset">تیم امنیت</a>
-                    </p>
-                    <p>
-                        <a href="#!" class="text-reset">تیم وب</a>
-                    </p>
-                    <p>
-                        <a href="#!" class="text-reset">تیم شبکه</a>
-                    </p>
-                    <p>
-                        <a href="#!" class="text-reset">تیم محتوا</a>
-                    </p>
-                </div>
-
-            </div>
-            <!-- Grid column -->
-
-            <!-- Grid column -->
-            <div class="mx-auto mb-4 flex-grow-1 w-unset">
-                <!-- Links -->
-                <div class="d-none d-sm-block">
-                    <h5 class="fw-bold fs-5 mb-4">
-                        آموزشگاه
-                    </h5>
-                    <p>
-                        <a href="#!" class="text-reset">کدادیتور</a>
-                    </p>
-                    <p>
-                        <a href="#!" class="text-reset">نقشه راه 1</a>
-                    </p>
-                    <p>
-                        <a href="#!" class="text-reset">نقشه راه 2</a>
-                    </p>
-                    <p>
-                        <a href="#!" class="text-reset">نقشه راه 3</a>
-                    </p>
-                </div>
-                <div class="d-block d-sm-none mw-100" style="width: 100vw;">
-                    <div class="accordion mt-3" id="links3">
-                        <div class="accordion-item">
-                            <h5 class="fw-bold fs-5 accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#links3Content" aria-expanded="false" aria-controls="collapseOne">
-
-                                    <span class="ms-2">آموزشگاه</span>
-                                </button>
-                            </h5>
-                            <div id="links3Content" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-                                <div class="accordion-body">
-                                    <p class="text-start">
-                                        <a href="#!" class="text-reset">کدادیتور</a>
-                                    </p>
-                                    <p class="text-start">
-                                        <a href="#!" class="text-reset">نقشه راه 1</a>
-                                    </p>
-                                    <p class="text-start">
-                                        <a href="#!" class="text-reset">نقشه راه 2</a>
-                                    </p>
-                                    <p class="text-start">
-                                        <a href="#!" class="text-reset">نقشه راه 3</a>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Grid column -->
-
-            <div class="col-md-4 d-flex align-items-center justify-content-center">
-                <div class="p-2 flex-grow-1">
-                    <img class="w-100" width="75" height="75" style="object-fit: contain;cursor:pointer" referrerpolicy='origin' id='rgvjfukzrgvjnbqejzpeoeuk' onclick='window.open("https://logo.samandehi.ir/Verify.aspx?id=363278&p=xlaogvkaxlaouiwkjyoemcsi", "Popup","toolbar=no, scrollbars=no, location=no, statusbar=no, menubar=no, resizable=0, width=450, height=630, top=30")'
-                        alt='logo-samandehi' src='https://logo.samandehi.ir/logo.aspx?id=363278&p=qftiwlbqqftiodrfyndtaqgw'>
-                </div>
-                <div class="p-2 flex-grow-1">
-                    <img class="w-100" width="75" height="75" style="object-fit: contain;" src="{% static 'mainpage/assets/img/zarin_pal.png' %}" alt="">
-                </div>
-                <div class="p-2 flex-grow-1">
-                    <a class="w-100" width="75" height="75" referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=393968&Code=GnUv9FyJ45Ue6kDVf2tTIW8hJ00cK04I'><img
-                         referrerpolicy='origin'
-                         src='https://trustseal.enamad.ir/logo.aspx?id=393968&Code=GnUv9FyJ45Ue6kDVf2tTIW8hJ00cK04I' alt=''
-                         style='cursor:pointer; object-fit: contain;' Code='GnUv9FyJ45Ue6kDVf2tTIW8hJ00cK04I'></a>
-                </div>
-        </section>
-
-        <!-- Copyright -->
-        <div class="text-center p-4">
-            © 1402 کپی رایت:
-            <a class="text-reset fw-bold" href="https://mdbootstrap.com/">کدنا</a>
-        </div>
-        <!-- Copyright -->
-    </footer>
-    <!-- Footer -->
-
-    <div class="dimmer"></div>
-    <div class="position-fixed end-0 p-3" id="backToTopContainer">
-        <button class="btn back-to-top-btn rounded-circle d-flex align-items-center justify-content-center">
-        <svg width="45px" height="45px" viewBox="0 0 16 18">
-            <g>
-                <g transform="translate(-172.000000, -2061.000000)">
-                    <g transform="translate(100.000000, 1960.000000)">
-                        <g transform="translate(68.000000, 98.000000)">
-                            <path
-                                    d="M9.21,11 L11,11 L11,20 C11,20.55 11.45,21 12,21 C12.55,21 13,20.55 13,20 L13,11 L14.79,11 C15.24,11 15.46,10.46 15.14,10.15 L12.35,7.36 C12.15,7.16 11.84,7.16 11.64,7.36 L8.85,10.15 C8.54,10.46 8.76,11 9.21,11 Z M4,4 C4,4.55 4.45,5 5,5 L19,5 C19.55,5 20,4.55 20,4 C20,3.45 19.55,3 19,3 L5,3 C4.45,3 4,3.45 4,4 Z">
-                            </path>
-                        </g>
-                    </g>
-                </g>
-            </g>
-        </svg>
-    </button>
-    </div>
-
-</body>
-
-
-
-
-
-
-
-
-
-
-<script type="text/javascript">
-    ! function() {
-        var i = "vwH8Cb",
-            a = window,
-            d = document;
-
-        function g() {
-            var g = d.createElement("script"),
-                s = "https://www.goftino.com/widget/" + i,
-                l = localStorage.getItem("goftino_" + i);
-            g.async = !0, g.src = l ? s + "?o=" + l : s;
-            d.getElementsByTagName("head")[0].appendChild(g);
-        }
-        "complete" === d.readyState ? g() : a.attachEvent ? a.attachEvent("onload", g) : a.addEventListener("load", g, !1);
-    }();
-</script>
-
-<!-- bootstrap js -->
-<script src="{% static 'mainpage/assets/js/bootstrap.bundle.min.js' %}"></script>
-
-<!-- app script -->
-<script src="{% static 'mainpage/assets/js/apps.js' %}" type="module"></script>
-
-<script>
-    const imgRoadMaps = document.querySelectorAll('.roade-map-img')
-
-    imgRoadMaps.forEach(el => {
-        el.addEventListener("mousemove", (event) => {
-            const height = el.clientHeight
-            const width = el.clientWidth
-
-            const xVal = event.layerX
-            const yVal = event.layerY
-
-            const yRotation = 20 * ((xVal - width / 2) / width)
-
-            const xRotation = -20 * ((yVal - height / 2) / height)
-
-            const string = 'perspective(300px) scale(1.05) rotateX(' + xRotation + 'deg) rotateY(' + yRotation + 'deg)'
-
-            el.style.transform = string
-        })
-
-        el.addEventListener("mouseleave", () => {
-            el.style.transform = "perspective(300px) rotateX(0deg) rotateY(0deg)"
-        })
-    })
-    console.log(imgRoadMaps)
-</script>
-
-
-
-
-
-
-
-
-<!-- swiper js -->
-<script src="{% static 'mainpage/assets/js/swiper-bundle.min.js' %}"></script>
-<script src="{% static 'mainpage/assets/js/slider.js' %}"></script>
-
-
-<script src="{% static 'mainpage/assets/js/video.js' %}"</script>
-<script>
-    createVideoPlayer("#AboutVideo")
-</script>
-<!-- index script -->
-
-
-
-</html>
+{% endblock %}

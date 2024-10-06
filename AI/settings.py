@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions', 
     'django.contrib.messages', 
     'django.contrib.staticfiles', 
+    
     # Packages
     "rest_framework", 
     'widget_tweaks',
@@ -44,12 +45,14 @@ INSTALLED_APPS = [
     "social_django",
     'crispy_forms',
     'crispy_bootstrap5',
+    
     # Apps
     'accounts', 
     'heartpred', 
     "myapi", 
     "cv",
     "mainpage",
+    "products",
 ] 
  
 MIDDLEWARE = [ 
@@ -168,7 +171,7 @@ SITE_ID = 1
 
 
 # LOGIN_URL = "auth/login/google-oauth2"
-LOGOUT_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = 'mainpage:home'
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
 
 

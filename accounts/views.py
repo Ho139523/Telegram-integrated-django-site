@@ -43,7 +43,7 @@ class login(LoginView):
     
 def logout_user(request):
     logout(request)
-    return redirect("heartpred:heartpred")
+    return redirect("mainpage:home")
     
  
         

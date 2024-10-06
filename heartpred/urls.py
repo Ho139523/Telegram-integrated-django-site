@@ -3,7 +3,7 @@ from .views import *
 
 app_name="heartpred"
 urlpatterns = [
-    path('', heartpredformshow, name='heartpred'),
+    path('heartpred/', heartpredformshow, name='heartpred'),
     path("predict/", heartpred, name="prediction"),
 ]
 

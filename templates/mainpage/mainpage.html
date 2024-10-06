@@ -595,106 +595,34 @@
             </div>
             <div class="row mt-3">
 
+				{% for article in articles %}
 
                 <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 my-2">
                     <div class="card">
                         <a href="/blog/31/What-is-AWS">
-                                <img src="{% static 'mainpage/assets/img/lazy-img.webp' %}" data-src="{% static 'mainpage/media/What-is-AWS.jpg' %}"
+                                <img src="{{article.poster.url}}" data-src="{{article.poster.url}}"
                                     class="lazy card-img-top rounded-4" alt="...">
                             </a>
                         <div class="card-body d-flex flex-column">
                             <h2 class="card-title fs-4 fw-bold">
                                 <a class="text-light" href="/blog/31/What-is-AWS">
-                                        Aws چیست؟
+                                        {{ article.title }}
                                     </a>
                             </h2>
                             <p class="card-text text-justify">
-                                در دنیای امروز، کسب‌وکارها برای رقابت و نوآوری نیاز به زیرساخت‌های قدرتمند و انعطاف‌پذیر دارند. Amazon Web Services (AWS) به عنوان یکی از بز
+							{{ article.context|truncatechars:255 }}
                             </p>
                             <a href="" class="link-light">
                                 <div class="blog-card-footer d-flex align-items-center gap-2">
-                                    <img class="rounded-circle blog-card-footer-avatar" src="{% static 'mainpage/media/photo12669880571.jpg' %}" alt="">
-                                    <span>عرفان خجسته</span>
+                                    <img class="rounded-circle blog-card-footer-avatar" src="{{article.author.profilemodel.avatar.url}}" alt="">
+                                    <span>{{ article.author.fname }} {{article.author.lname}}</span>
                                 </div>
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 my-2">
-                    <div class="card">
-                        <a href="/blog/30/what-is-dapper">
-                                <img src="{% static 'mainpage/assets/img/lazy-img.webp' %}" data-src="{% static 'mainpage/media/What-is-Dapper.jpg' %}"
-                                    class="lazy card-img-top rounded-4" alt="...">
-                            </a>
-                        <div class="card-body d-flex flex-column">
-                            <h2 class="card-title fs-4 fw-bold">
-                                <a class="text-light" href="/blog/30/what-is-dapper">
-                                        دپر چیست؟
-                                    </a>
-                            </h2>
-                            <p class="card-text text-justify">
-                                Dapper یک میکرو ORM است که برخلاف ORM‌های کامل، تنها روی انجام عملیات ضروری و ساده‌سازی دسترسی به داده‌ها تمرکز دارد.
-                            </p>
-                            <a href="" class="link-light">
-                                <div class="blog-card-footer d-flex align-items-center gap-2">
-                                    <img class="rounded-circle blog-card-footer-avatar" src="{% static 'mainpage/media/photo12669880571.jpg' %}" alt="">
-                                    <span>عرفان خجسته</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 my-2">
-                    <div class="card">
-                        <a href="/blog/29/What-flexbox">
-                                <img src="{% static 'mainpage/assets/img/lazy-img.webp' %}" data-src="{% static 'mainpage/media/What-is-flexbox2.jpg' %}"
-                                    class="lazy card-img-top rounded-4" alt="...">
-                            </a>
-                        <div class="card-body d-flex flex-column">
-                            <h2 class="card-title fs-4 fw-bold">
-                                <a class="text-light" href="/blog/29/What-flexbox">
-                                        فلکس باکس چیست
-                                    </a>
-                            </h2>
-                            <p class="card-text text-justify">
-                                فلکس‌باکس (Flexbox) یکی از مهم‌ترین ویژگی‌های CSS است که به طراحان و توسعه‌دهندگان وب این امکان را می‌دهد تا به سادگی و به صورت انعطاف‌پذیر،
-                            </p>
-                            <a href="" class="link-light">
-                                <div class="blog-card-footer d-flex align-items-center gap-2">
-                                    <img class="rounded-circle blog-card-footer-avatar" src="{% static 'mainpage/media/photo12669880571.jpg' %}" alt="">
-                                    <span>عرفان خجسته</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 my-2">
-                    <div class="card">
-                        <a href="/blog/28/What-is-parallax">
-                                <img src="{% static 'mainpage/assets/img/lazy-img.webp' %}" data-src="{% static 'mainpage/media/What-is-parallax.jpg' %}"
-                                    class="lazy card-img-top rounded-4" alt="...">
-                            </a>
-                        <div class="card-body d-flex flex-column">
-                            <h2 class="card-title fs-4 fw-bold">
-                                <a class="text-light" href="/blog/28/What-is-parallax">
-                                        پارالاکس (Parallax) چیست
-                                    </a>
-                            </h2>
-                            <p class="card-text text-justify">
-                                آیا تا به حال در مورد Parallax یا اندازه‌گیری فاصله و جهت‌گیری اشیاء با استفاده از تفاوت در زاویه دید شنیده‌اید؟ این روش، که به ویژه در نجوم
-                            </p>
-                            <a href="" class="link-light">
-                                <div class="blog-card-footer d-flex align-items-center gap-2">
-                                    <img class="rounded-circle blog-card-footer-avatar" src="{% static 'mainpage/media/photo12669880571.jpg' %}"alt="">
-                                    <span>عرفان خجسته</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                {% endfor %}
 
 
 

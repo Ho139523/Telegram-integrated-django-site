@@ -91,44 +91,50 @@ class ProfileUpdateForm(forms.ModelForm):
 
 
 class ShippingAddressForm(forms.ModelForm):
-    shipping_country = forms.ChoiceField(choices=countries)
-    shipping_province = forms.ChoiceField(choices=[], required=False)
+    shipping_country = forms.ChoiceField(choices=countries, widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_shipping_country'}))
+    shipping_province = forms.ChoiceField(choices=[], required=False,widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_shipping_province'}))
 
     class Meta:
         model = ShippingAddressModel
         exclude = ['profile']
 
         widgets = {
-            'shipping_line1': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 1"}),
-            'shipping_line2': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Address Line 2"}),
-            'shipping_city': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "City"}),
-            'shipping_zip': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Zip Code"}),
-            'shipping_home_phone': forms.TextInput(attrs={"class": 'form-control', 'placeholder': "Residential Phone Number"}),
+            'shipping_line1': forms.TextInput(attrs={'class': 'textinput form-control', 'placeholder': 'Address Line 1', 'onfocus': 'focused(this)', 'onfocusout': 'defocused(this)', 'id': 'id_shipping_line1',  'name': 'shipping_line1'}),
+            'shipping_line2': forms.TextInput(attrs={'class': 'textinput form-control', 'placeholder': 'Address Line 2', 'onfocus': 'focused(this)', 'onfocusout': 'defocused(this)', 'id': 'id_shipping_line2',  'name': 'shipping_line2'}),
+            'shipping_city': forms.TextInput(attrs={'class': 'textinput form-control', 'placeholder': 'City', 'onfocus': 'focused(this)', 'onfocusout': 'defocused(this)', 'id': 'id_shipping_city',  'name': 'shipping_city'}),
+            'shipping_country': forms.TextInput(attrs={'class': 'textinput form-control', 'placeholder': 'Country', 'onfocus': 'focused(this)', 'onfocusout': 'defocused(this)', 'id': 'id_shipping_country',  'name': 'shipping_country'}),
+            'shipping_province': forms.TextInput(attrs={'class': 'textinput form-control', 'placeholder': 'Province', 'onfocus': 'focused(this)', 'onfocusout': 'defocused(this)', 'id': 'id_shipping_province',  'name': 'shipping_province'}),
+            'shipping_zip': forms.TextInput(attrs={'class': 'textinput form-control', 'placeholder': 'Zip Code', 'onfocus': 'focused(this)', 'onfocusout': 'defocused(this)', 'id': 'id_shipping_zip',  'name': 'shipping_zip'}),
+            'shipping_home_phone': forms.TextInput(attrs={'class': 'textinput form-control', 'placeholder': 'Home Phone Number', 'onfocus': 'focused(this)', 'onfocusout': 'defocused(this)', 'id': 'id_shipping_home_phone',  'name': 'shipping_home_phone'}),
         }
-
+        
+        
+        
     def __init__(self, *args, **kwargs):
-        # Retrieve the country_code from the instance or POST data
-        instance = kwargs.get('instance')
-        country_code = kwargs.pop('country_code', None)
-        
-        
         super().__init__(*args, **kwargs)
         
-        if instance and instance.shipping_country:
-            country_code = instance.shipping_country
-            
+        instance = kwargs.get('instance')
+        country_code = instance.shipping_country if instance else None
+        
+        # Update province choices based on initial country selection
         if country_code:
-            shipping_province = forms.ChoiceField(choices=self.update_province_choices(country_code), required=False)
-        
-        
+            self.update_province_choices(country_code)
 
+        # Crispy Forms helper
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Field('shipping_line1', wrapper_class='form-group'),
+            Field('shipping_line2', wrapper_class='form-group'),
+            Field('shipping_city', wrapper_class='form-group'),
+            Field('shipping_zip', wrapper_class='form-group'),
+            Field('shipping_country', wrapper_class='form-group'),
+            Field('shipping_province', wrapper_class='form-group'),
+        )
+        
     def update_province_choices(self, country_code):
         """Update the province choices based on the selected country."""
         provinces = [(subdivision.code, subdivision.name) for subdivision in pycountry.subdivisions if subdivision.country_code == country_code]
         self.fields['shipping_province'].choices = provinces
-
-        self.helper = FormHelper()
-        self.helper.form_show_labels = False
 
     class Media:
         js = ('https://code.jquery.com/jquery-3.6.0.min.js', 'registration/dashboard/assets/js/province.js')

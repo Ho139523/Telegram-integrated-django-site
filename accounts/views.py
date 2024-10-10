@@ -316,6 +316,7 @@ def get_provinces(request):
     
     if country_code:
         provinces = [(subdivision.code, subdivision.name) for subdivision in pycountry.subdivisions if subdivision.country_code == country_code]
+        # Return both the code and the name in a JSON response
         return JsonResponse(provinces, safe=False)
     
     return JsonResponse({"error": "No country code provided"}, status=400)

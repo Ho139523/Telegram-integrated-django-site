@@ -18,7 +18,7 @@ class ShippingAddressModel(models.Model):
     shipping_home_phone=models.CharField(max_length=8, blank=True, null=True, verbose_name="Residential Phone Number")
     
     def __str__(self):
-        return "Zipcode: " + str(self.shipping_zip) + ", " + str(self.shipping_city) + ", " + str(self.shipping_province)
+        return "Zipcode: " + str(self.shipping_zip) + ", " + str(self.shipping_city) + ", " + str(self.shipping_province) + ", " + str(self.shipping_country)
 
 
 

@@ -109,7 +109,24 @@
 					<p class="text-sm" id="aboutMeText">{{ profile.about_me }}</p>
 					<div class="row input-group input-group-outline my-3 is-filled is-focused">
 						<div class="col-12">
-							{{ update_form.about_me|as_crispy_field }}
+							
+							<div id="aboutmeField" class="mb-3 input-group d-none input-group-outline my-3 is-filled is-focused"> 
+								<!-- Render the label manually -->
+								<label for="{{ update_form.about_me.id_for_label }}" class="form-label"> 
+									I am ...
+								</label>
+
+								<!-- Render the input field manually with custom classes and attributes -->
+								<input type="text" 
+									   name="{{ update_form.about_me.name }}" 
+									   value="{{ update_form.about_me.value|default_if_none:'' }}" 
+									   maxlength="40" 
+									   class="textinput form-control" 
+									    
+									   onfocus="focused(this)" 
+									   onfocusout="defocused(this)" 
+									   placeholder="Describe Yourself">
+							</div>
 						</div>
 					</div>
 
@@ -135,15 +152,42 @@
 							</span>
 							<div class="row">
 								<div class="col-6">
-									<div class="input-group input-group-outline mb-3 d-none" id='fnameField'>
-										<label class="form-label">First Name</label>
-										{{ update_form.fname|as_crispy_field }}
+									
+									<div id="fnameField" class="mb-3 input-group input-group-outline d-none is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ update_form.fname.id_for_label }}" class="form-label"> 
+											{{ update_form.fname.label }}
+										</label>
+
+										<!-- Render the input field manually with custom classes and attributes -->
+										<input type="text" 
+											   name="{{ update_form.fname.name }}" 
+											   value="{{ update_form.fname.value|default_if_none:'' }}" 
+											   maxlength="40" 
+											   class="textinput form-control" 
+											   id="{{ update_form.fname.id_for_label }}" 
+											   onfocus="focused(this)" 
+											   onfocusout="defocused(this)" 
+											   placeholder="First Name">
 									</div>
 								</div>
 								<div class="col-6">
-									<div class="input-group input-group-outline mb-3 d-none" id='lnameField'>
-										<label class="form-label">Last Name</label>
-										{{ update_form.lname|as_crispy_field }}
+									<div id="lnameField" class="mb-3 input-group input-group-outline d-none is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ update_form.lname.id_for_label }}" class="form-label"> 
+											{{ update_form.lname.label }}
+										</label>
+
+										<!-- Render the input field manually with custom classes and attributes -->
+										<input type="text" 
+											   name="{{ update_form.lname.name }}" 
+											   value="{{ update_form.lname.value|default_if_none:'' }}" 
+											   maxlength="40" 
+											   class="textinput form-control" 
+											   id="{{ update_form.lname.id_for_label }}" 
+											   onfocus="focused(this)" 
+											   onfocusout="defocused(this)" 
+											   placeholder="Last Name">
 									</div>
 								</div>
 							</div>
@@ -164,7 +208,23 @@
 									Your  Birthday
 								{% endif %}
 							</span>
-							{{ update_form.birthday|as_crispy_field }}
+							<div id="birthdayField" class="mb-3 input-group d-none input-group-outline my-3 is-filled is-focused"> 
+								<!-- Render the label manually -->
+								<label for="{{ update_form.birthday.id_for_label }}" class="form-label"> 
+									{{ update_form.birthday.label }}
+								</label>
+
+								<!-- Render the input field manually with custom classes and attributes -->
+								<input type="text" 
+									   name="{{ update_form.birthday.name }}" 
+									   value="{{ update_form.birthday.value|default_if_none:'' }}" 
+									   maxlength="40" 
+									   class="textinput form-control" 
+									    
+									   onfocus="focused(this)" 
+									   onfocusout="defocused(this)" 
+									   placeholder="Your Birthday">
+							</div>
 						  </div>
 						</div>
 					  </li>
@@ -182,7 +242,24 @@
 									Your Phone Number
 								{% endif %}
 							</span>
-							{{ update_form.Phone|as_crispy_field }}
+							
+							<div id="phoneField" class="mb-3 input-group d-none input-group-outline my-3 is-filled is-focused"> 
+								<!-- Render the label manually -->
+								<label for="{{ update_form.Phone.id_for_label }}" class="form-label"> 
+									{{ update_form.Phone.label }}
+								</label>
+
+								<!-- Render the input field manually with custom classes and attributes -->
+								<input type="text" 
+									   name="{{ update_form.Phone.name }}" 
+									   value="{{ update_form.Phone.value|default_if_none:'' }}" 
+									   maxlength="40" 
+									   class="textinput form-control" 
+									   
+									   onfocus="focused(this)" 
+									   onfocusout="defocused(this)" 
+									   placeholder="Your Number">
+							</div>
 						  </div>
 						</div>
 					  </li>
@@ -215,37 +292,119 @@
 						<li id="shippingAddressField" class="list-group-item d-none border-0 ps-0 text-sm">
 							<div class="row">
 							
-								<div class="input-group input-group-outline my-3 is-filled is-focused">
-									<label class="form-label">Address Line 1</label>
-									<div class="col-md-12">
-										{{ address_form.shipping_line1|as_crispy_field }}
+								<!-- <div class="input-group input-group-outline my-3 is-filled is-focused"> -->
+									<!-- <label class="form-label">Address Line 1</label> -->
+								<div class="col-md-12">
+									<div id="div_id_shipping_line1" class="mb-3 input-group input-group-outline my-3 is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ address_form.shipping_line1.id_for_label }}" class="form-label"> 
+											{{ address_form.shipping_line1.label }}
+										</label>
+
+										<!-- Render the input field manually with custom classes and attributes -->
+										<input type="text" 
+											   name="{{ address_form.shipping_line1.name }}" 
+											   value="{{ address_form.shipping_line1.value|default_if_none:'' }}" 
+											   maxlength="40" 
+											   class="textinput form-control" 
+											   id="{{ address_form.shipping_line1.id_for_label }}" 
+											   onfocus="focused(this)" 
+											   onfocusout="defocused(this)" 
+											   placeholder="Address Line 1">
 									</div>
 								</div>
-								<div class="input-group input-group-outline my-3 is-filled is-focused">
-									<label class="form-label">Address Line 2</label>
-									<div class="col-md-12">
-										{{ address_form.shipping_line2|as_crispy_field }}
-									</div>
-								</div>
-								<div class="col-md-6">
-									<div class="input-group input-group-outline my-3 is-filled is-focused">
-										<label class="form-label">Country</label>
-										{{ address_form.shipping_country|as_crispy_field }}
-									</div>
-									<div class="input-group input-group-outline my-3 is-filled is-focused">
-										<label class="form-label">Province</label>
-										{{ address_form.shipping_province|as_crispy_field }}
+								<div class="col-md-12">
+									<div id="div_id_shipping_line2" class="mb-3 input-group input-group-outline my-3 is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ address_form.shipping_line2.id_for_label }}" class="form-label"> 
+											{{ address_form.shipping_line2.label }}
+										</label>
+
+										<!-- Render the input field manually with custom classes and attributes -->
+										<input type="text" 
+											   name="{{ address_form.shipping_line2.name }}" 
+											   value="{{ address_form.shipping_line2.value|default_if_none:'' }}" 
+											   maxlength="40" 
+											   class="textinput form-control" 
+											   id="{{ address_form.shipping_line2.id_for_label }}" 
+											   onfocus="focused(this)" 
+											   onfocusout="defocused(this)" 
+											   placeholder="Address Line 2">
 									</div>
 								</div>
 								
 								<div class="col-md-6">
-									<div class="input-group input-group-outline my-3 is-filled is-focused">
-										<label class="form-label">City</label>
-										{{ address_form.shipping_city|as_crispy_field }}
+									
+									<div id="div_id_shipping_country" class="mb-3 input-group input-group-outline my-3 is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ address_form.shipping_country.id_for_label }}" class="form-label"> 
+											Country
+										</label>
+										{{ address_form.shipping_country }}
+										<!-- Render the input field manually with custom classes and attributes -->
+										<!-- <input type="text"  -->
+											   <!-- name="{{ address_form.shipping_country.name }}"  -->
+											   <!-- value="{{ address_form.shipping_country.value|default_if_none:'' }}"  -->
+											   <!-- maxlength="40"  -->
+											   <!-- class="textinput form-control"  -->
+											   <!-- id="{{ address_form.shipping_country.id_for_label }}"  -->
+											   <!-- onfocus="focused(this)"  -->
+											   <!-- onfocusout="defocused(this)"  -->
+											   <!-- placeholder="Country"> -->
 									</div>
-									<div class="input-group input-group-outline my-3 is-filled is-focused ">
-										<label class="form-label">Zip Code</label>
-										{{ address_form.shipping_zip|as_crispy_field }}
+									<div id="div_id_shipping_province" class="mb-3 input-group input-group-outline my-3 is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ address_form.shipping_province.id_for_label }}" class="form-label"> 
+											{{ address_form.shipping_province.label }}
+										</label>
+										{{ address_form.shipping_province }}
+										<!-- Render the input field manually with custom classes and attributes -->
+										<!-- <input type="text"  -->
+											   <!-- name="{{ address_form.shipping_province.name }}"  -->
+											   <!-- value="{{ address_form.shipping_province.value|default_if_none:'' }}"  -->
+											   <!-- maxlength="40"  -->
+											   <!-- class="textinput form-control"  -->
+											   <!-- id="{{ address_form.shipping_province.id_for_label }}"  -->
+											   <!-- onfocus="focused(this)"  -->
+											   <!-- onfocusout="defocused(this)"  -->
+											   <!-- placeholder="Province"> -->
+									</div>
+								</div>
+								
+								<div class="col-md-6">
+									<div id="div_id_shipping_city" class="mb-3 input-group input-group-outline my-3 is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ address_form.shipping_city.id_for_label }}" class="form-label"> 
+											{{ address_form.shipping_city.label }}
+										</label>
+
+										<!-- Render the input field manually with custom classes and attributes -->
+										<input type="text" 
+											   name="{{ address_form.shipping_city.name }}" 
+											   value="{{ address_form.shipping_city.value|default_if_none:'' }}" 
+											   maxlength="40" 
+											   class="textinput form-control" 
+											   id="{{ address_form.shipping_city.id_for_label }}" 
+											   onfocus="focused(this)" 
+											   onfocusout="defocused(this)" 
+											   placeholder="City">
+									</div>
+									<div id="div_id_shipping_zip" class="mb-3 input-group input-group-outline my-3 is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ address_form.shipping_zip.id_for_label }}" class="form-label"> 
+											{{ address_form.shipping_zip.label }}
+										</label>
+
+										<!-- Render the input field manually with custom classes and attributes -->
+										<input type="text" 
+											   name="{{ address_form.shipping_zip.name }}" 
+											   value="{{ address_form.shipping_zip.value|default_if_none:'' }}" 
+											   maxlength="40" 
+											   class="textinput form-control" 
+											   id="{{ address_form.shipping_zip.id_for_label }}" 
+											   onfocus="focused(this)" 
+											   onfocusout="defocused(this)" 
+											   placeholder="Zip Code">
 									</div>
 									
 								</div>
@@ -281,16 +440,43 @@
 							</span>
 							<div class="row" id="socialText">
 								<div class="col-6 d-none" id="tweeterField">
-									<div class="input-group input-group-outline mb-3 is-filled is-focused">
-										<label class="form-label">Tweeter ID</label>
-										{{ update_form.tweeter|as_crispy_field }}
+									<div id="div_id_tweeter" class="mb-3 input-group input-group-outline my-3 is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ update_form.tweeter.id_for_label }}" class="form-label"> 
+											{{ update_form.tweeter.label }}
+										</label>
+
+										<!-- Render the input field manually with custom classes and attributes -->
+										<input type="text" 
+											   name="{{ update_form.tweeter.name }}" 
+											   value="{{ update_form.tweeter.value|default_if_none:'' }}" 
+											   maxlength="40" 
+											   class="textinput form-control" 
+											   id="{{ update_form.tweeter.id_for_label }}" 
+											   onfocus="focused(this)" 
+											   onfocusout="defocused(this)" 
+											   placeholder="tweeter ID">
 									</div>
 								</div>
 								<div class="col-6 d-none" id="instagramField">
-									<div class="input-group input-group-outline mb-3 is-filled is-focused">
-										<label class="form-label">Instagram ID</label>
-										{{ update_form.instagram|as_crispy_field }}
+									<div id="div_id_instagram" class="mb-3 input-group input-group-outline my-3 is-filled is-focused"> 
+										<!-- Render the label manually -->
+										<label for="{{ update_form.shipping_city.id_for_label }}" class="form-label"> 
+											{{ update_form.instagram.label }}
+										</label>
+
+										<!-- Render the input field manually with custom classes and attributes -->
+										<input type="text" 
+											   name="{{ update_form.instagram.name }}" 
+											   value="{{ update_form.instagram.value|default_if_none:'' }}" 
+											   maxlength="40" 
+											   class="textinput form-control" 
+											   id="{{ update_form.instagram.id_for_label }}" 
+											   onfocus="focused(this)" 
+											   onfocusout="defocused(this)" 
+											   placeholder="Instagram ID">
 									</div>
+									
 								</div>
 							</div>
 							</div>

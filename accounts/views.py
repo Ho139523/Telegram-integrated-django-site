@@ -214,6 +214,7 @@ class ChangePassword(LoginRequiredMixin, PasswordChangeView):
         context = super().get_context_data(**kwargs)
         username = self.kwargs.get("username")
         user = self.get_user()
+        context['user']=user
         context["username"] = username
         context["has_password"] = user.has_usable_password()
         context["view"] = "Change Password"

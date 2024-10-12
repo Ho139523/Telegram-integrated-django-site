@@ -92,6 +92,9 @@
 	<!-- custom css -->
 	<link rel="stylesheet" href="{% static 'mainpage/assets/css/custom.css' %}">
 	<link rel="icon" href="{% static 'mainpage/favicon.ico' %}" type="image/x-icon">
+	
+	
+	{% block head %}{% endblock %}
 
 
     <title>
@@ -165,7 +168,7 @@
 								</a>
 								<ul class="dropdown-menu text-end">
 									<li class="nav-item">
-										<a class="nav-link" href="/blog/"> Pressure drop in wells and pipelines </a>
+										<a class="nav-link" href="{% url 'heartpred:heartpred' %}"> Heart Failure Prediction </a>
 									</li>
 									<li class="nav-item">
 										<a class="nav-link" href="/blog/posts/"> Rock Properties  </a>

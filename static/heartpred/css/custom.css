@@ -139,3 +139,57 @@
 .btn-17:hover:after {
   --progress: -102%;
 }
+
+
+.prediction-container {
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: black;
+    margin-top: 20px;
+    animation: fadeIn 2s ease-in-out forwards;
+    opacity: 0;
+  }
+
+  /* Animation to make the result fade in */
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Success animation (if alive) */
+  .prediction-alive {
+    color: #28a745;
+  }
+
+  /* Danger animation (if die) */
+  .prediction-die {
+    color: #dc3545;
+  }
+
+  /* Adding some animated gif or image for extra flair */
+  .prediction-image {
+    width: 100px;
+    height: 100px;
+    margin-top: 20px;
+    animation: bounce 2s infinite;
+  }
+
+  /* Bounce animation for the image */
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-30px);
+    }
+    60% {
+      transform: translateY(-15px);
+    }
+  }

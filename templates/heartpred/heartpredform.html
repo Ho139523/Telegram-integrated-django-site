@@ -10,7 +10,7 @@
 
 {% block content %}
 
-<form actions="{% url 'heartpred:prediction' %}" method='POST'>
+<form action="{% url 'heartpred:prediction' %}" method='POST'>
 	{{form.media}}	
 	{% csrf_token %}
 	<div class='form-div'>
@@ -26,7 +26,12 @@
 
 		</div>
 	</div>
-	<p>This person will {{prediction}}</p>
 </form>
+
+{% if prediction is not None %}
+	<div class="prediction-container {% if prediction == 'stay alive' %}prediction-alive{% else %}prediction-die{% endif %}">
+	  <p>This person will {{ prediction }}!</p>
+	</div>
+{% endif %}
 
 {% endblock %}

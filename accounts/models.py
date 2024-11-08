@@ -50,6 +50,7 @@ class ProfileModel(models.Model):
     about_me=models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)", verbose_name="About Me")
     instagram=models.CharField(max_length=120, blank=True, null=True, verbose_name="Instagram ID")
     tweeter=models.CharField(max_length=120, blank=True, null=True, verbose_name="Tweeter ID")
+    telegram=models.CharField(max_length=120, blank=True, null=True, verbose_name="Telegram ID")
     
     def __str__(self):
         return self.user.username

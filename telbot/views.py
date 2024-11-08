@@ -4,6 +4,7 @@ import telebot
 import random
 from django.http import JsonResponse
 import json
+import requests
 import logging
 from .models import telbotid
 import re
@@ -14,8 +15,21 @@ from .models import telbotid
 from accounts.models import ProfileModel
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
-# Creating the object  
-bot = telebot.TeleBot('7777543551:AAHJYYN3VwfC686y1Ir_aYewX1IzUMOlU68')  # Replace with your actual token  
+#signup
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
+from django.contrib.sites.shortcuts import get_current_site
+from accounts.tokens import generate_token  # Update this with your token import
+from django.utils import timezone  
+from datetime import timedelta 
+
+# Creating the object 
+TOKEN = "7777543551:AAHJYYN3VwfC686y1Ir_aYewX1IzUMOlU68"
+bot = telebot.TeleBot(TOKEN)  # Replace with your actual token  
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +49,48 @@ class TelegramBotWebhookView(View):
 
 # Writing the functions  
 
+
+# Getting website address and webhook
+
+def get_current_webhook(TOKEN=TOKEN):
+    bot_token = TOKEN  # Ensure you have your bot token in Django settings
+    response = requests.get(f'https://api.telegram.org/bot{bot_token}/getWebhookInfo')
+    
+    if response.status_code == 200:
+        webhook_info = response.json()
+        
+        # Check if there's a URL set for the webhook
+        if webhook_info.get('ok') and webhook_info['result'].get('url'):
+            return webhook_info['result']['url']
+        else:
+            return "No webhook URL set."
+    else:
+        return "Failed to retrieve webhook info."
+        
+def get_current_site(TOKEN=TOKEN):
+    bot_token = TOKEN  # Ensure you have your bot token in Django settings
+    response = requests.get(f'https://api.telegram.org/bot{bot_token}/getWebhookInfo')
+    
+    if response.status_code == 200:
+        site_info = response.json()
+        
+        # Check if there's a URL set for the webhook
+        if site_info.get('ok') and site_info['result'].get('url'):
+            return site_info['result']['url'][:-9]
+        else:
+            return "No site URL set."
+    else:
+        return "Failed to retrieve site info."
+        
+current_site = get_current_site()
+current_webhook = get_current_webhook()
+
+print(current_site)
+
+
 # Start and Welcome  
 @bot.message_handler(commands=["start"])  
-def wellcome(message):  
+def wellcome(message, current_site=current_site):  
     
     # Buttons
     
@@ -65,7 +118,7 @@ def wellcome(message):
         
     # Add the user username to the telbotid class if existed in ProfileModel
     if message.from_user.username not in [item['telegram'] for item in ProfileModel.objects.values("telegram")]:
-        bot.send_message(message.chat.id, "🥰😍🥰 البته که داشتن شما در ربات برای ما افتخاره اما پس از بررسی مجدد متوجه شدم شما در سایت ما عضو نیستید ... 🥲🥺\n\n💢 توی سایت می تونی تمام محصولات رو یک جا ببینی و در همون جا در سبد خرید حساب کاربری خودت مورد علاقه هات رو اضافه کنی تا هر موقع خواستی به درگاه پرداخت وصل شی و پس از پرداخت کفش هات رو درب منزل تحویل بگیری.\n\nhttps://intelleum.ir", reply_markup=markup)
+        bot.send_message(message.chat.id, f"🥰😍🥰 البته که داشتن شما در ربات برای ما افتخاره اما پس از بررسی مجدد متوجه شدم شما در سایت ما عضو نیستید ... 🥲🥺\n\n💢 یادت باشه اگه از توی ربات در سایت ثبت نام کنی می تونی تا پنج روز عضویت ویژه داشته باشی و به همه محتواهای پولی سایت دسترسی داشته باشی، توی سایت می تونی تمام محصولات رو یک جا ببینی و در همون جا در سبد خرید حساب کاربری خودت مورد علاقه هات رو اضافه کنی تا هر موقع خواستی به درگاه پرداخت وصل شی و پس از پرداخت کفش هات رو درب منزل تحویل بگیری.\n\n{current_site}", reply_markup=markup)
         
 
 # هندلر برای دکمه "ثبت نام می‌کنم"
@@ -86,7 +139,7 @@ def is_valid_email(email):
         return False, "داداش گلم خدایی این شبیه آدرس ایمیله؟؟؟\n\n یه جایی ازش ایراد داره به نظرم! بگرد پیداش کن درستش کن دوباره برام بنویسش:"
 
 
-# دریافت ایمیل
+# گرفتن آدرس ایمیل
 def pick_email(message):    
     email = message.text
     
@@ -188,18 +241,45 @@ def pick_password(message, email, username):
         
         
 # تایید رمز
-def pick_password2(message, email, username, password):
+def pick_password2(message, email, username, password, current_site=current_site):
     password2 = message.text
     
-    # If password is valid, proceed with registration
     if password2 == password:
+        # Django's user model
+        User = get_user_model()
         
-        bot.send_message(message.chat.id, f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {username} عزیز، خوش آمدی! 🎉\n\nیه سر به سایت بزن و به حسابت ورود کن.\n\nآدرس سایت رو دوباره برات این پایین گذاشتم.👇👇👇\n\nhttps://Intelleum.ir")
+        # Set special_user to five days from now  
+        special_user_date = timezone.now() + timedelta(days=5)
+        
+        
+        # Create user in Django
+        user = User.objects.create(
+            username=username,
+            email=email,
+            password=make_password(password),  # Hash the password
+            special_user=special_user_date,  # Set the date to five days from now  
+            is_active=False  # Keep inactive until email activation
+        )
+
+        # Trigger activation email
+        current_site = current_site # Replace with your actual site domain
+        mail_subject = 'Activation link has been sent to your email id'
+        message_content = render_to_string('registration/acc_active_email.html', {
+            'user': user,
+            'domain': current_site[8:],
+            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+            'token': generate_token.make_token(user),
+        })
+        
+        email = EmailMessage(
+            mail_subject, message_content, to=[email]
+        )
+        email.send()
+
+        bot.send_message(message.chat.id, f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {username} عزیز، خوش آمدی! 🎉\n\nیه سر به سایت بزن و به حسابت ورود کن.\n\nآدرس سایت رو دوباره برات این پایین گذاشتم.👇👇👇\n\n{current_site}")
         bot.send_message(message.chat.id, "دوست داری نمایه خودت رو مثل اطلاعات دقیق تر از خودت تکمیل کنی یا ترجیح می دی تو سایت این کار رو بکنی؟")
-    
-    # If password is not valid, ask for a new one
     else:
-        bot.send_message(message.chat.id,"تایید رمز عبور باید با خود آن یکی باشد. دوباره تایید رمز عبور را وارد کنید:")
+        bot.send_message(message.chat.id, "تایید رمز عبور باید با خود آن یکی باشد. دوباره تایید رمز عبور را وارد کنید:")
         bot.register_next_step_handler(message, pick_password2, email, username, password)
 
         

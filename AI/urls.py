@@ -13,6 +13,7 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('socials/', include('social_django.urls', namespace='social')),
     path('socials/complete/google-oauth2/', custom_complete, name="custom_complete"),
+    path('', include('telbot.urls', namespace='telbot')),
     ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

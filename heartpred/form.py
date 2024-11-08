@@ -8,7 +8,7 @@ class heartpredform(forms.ModelForm):
         widgets={
             
         'created':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
-        'age':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
+        'age': forms.NumberInput(attrs={'class': 'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         'anaemia':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         'creatinine_phosphokinase':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         'diabetes':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top: 5px; margin-bottom: 10px;'}),
@@ -22,6 +22,14 @@ class heartpredform(forms.ModelForm):
         'time':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         'DEATH_EVENT':forms.NumberInput(attrs={'class':'form-control', 'style': 'margin-top:5px; margin-bottom: 10px;'}),
         }
-        
+    
+    
+    def clean_age(self):
+        age = self.cleaned_data.get('age')
+        if age is None:
+            raise forms.ValidationError("Age is required.")
+        return age
+    
+    
     class Media:
         css={'all': ('cv/form/css/formcss.css',)}

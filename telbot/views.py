@@ -260,6 +260,8 @@ def pick_password2(message, email, username, password, current_site=current_site
             special_user=special_user_date,  # Set the date to five days from now  
             is_active=False  # Keep inactive until email activation
         )
+        
+        ProfileModel.objects.create(user=user, fname=message.from_user.first_name, lname=message.from_user.last_name, telegram=username)
 
         # Trigger activation email
         current_site = current_site # Replace with your actual site domain
@@ -278,11 +280,17 @@ def pick_password2(message, email, username, password, current_site=current_site
 
         bot.send_message(message.chat.id, f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {username} عزیز، خوش آمدی! 🎉\n\nیه سر به سایت بزن و به حسابت ورود کن.\n\nآدرس سایت رو دوباره برات این پایین گذاشتم.👇👇👇\n\n{current_site}")
         bot.send_message(message.chat.id, "دوست داری نمایه خودت رو مثل اطلاعات دقیق تر از خودت تکمیل کنی یا ترجیح می دی تو سایت این کار رو بکنی؟")
+        bot.register_next_step_handler(message, )
     else:
         bot.send_message(message.chat.id, "تایید رمز عبور باید با خود آن یکی باشد. دوباره تایید رمز عبور را وارد کنید:")
         bot.register_next_step_handler(message, pick_password2, email, username, password)
 
-        
+
+# هندلری برای دکمه پروفایل
+# @bot.message_handler(func=lambda message: message.text == "نمایه ام رو کامل می کنم")
+# def ask_username(message):
+    # bot.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
+    # bot.register_next_step_handler(message, pick_email)
 
 # Handlers for different content types  
 @bot.message_handler(content_types=["audio"])  

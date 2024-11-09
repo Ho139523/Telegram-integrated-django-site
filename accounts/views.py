@@ -96,11 +96,16 @@ def activate(request, uidb64, token):
         user.is_active = True  
         user.save()
         
-        profile=ProfileModel(user=user)
-        shippingaddress=ShippingAddressModel(profile=profile)
+        # Use get_or_create to avoid duplicate profiles
+        profile, created = ProfileModel.objects.get_or_create(user=user)
+
+        # Create and save a shipping address if it doesn't already exist
+        if not hasattr(profile, 'shippingaddressmodel'):
+            shippingaddress = ShippingAddressModel(profile=profile)
+            shippingaddress.save()
+        
         user.profilemodel.save()
         profile.save()
-        shippingaddress.save()
         messages.add_message(request, messages.SUCCESS, "Your account has been activated successfully.")
         return redirect('accounts:login')
     else:

@@ -18,7 +18,7 @@ DEBUG = True
  
 # ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=[], cast=lambda v: [s.strip() for s in v.split(',')]) 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'https://*.serveo.net', ]
+CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'https://*.serveo.net', 'https://*.loca.lt']
  
  
 LOGIN_REDIRECT_URL='accounts:profile' 

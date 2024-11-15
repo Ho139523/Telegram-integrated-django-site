@@ -122,7 +122,7 @@ def wellcome(message, current_site=current_site):
         # Check if current site URL is from localtunnel
         if "loca.lt" in current_site:
             print(current_site)
-            bot.send_message(message.chat.id, f"💡 توجه! اگر از شما رمز درخواست شد، از این کد استفاده کنید:\n\n🔑 {localtunnel_password})
+            bot.send_message(message.chat.id, f"💡 توجه! اگر از شما رمز درخواست شد، از این کد استفاده کنید:\n\n🔑 {localtunnel_password}")
         
 
 # هندلر برای دکمه "ثبت نام می‌کنم"

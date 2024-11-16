@@ -28,7 +28,7 @@ from django.utils import timezone
 from datetime import timedelta 
 
 # Server side
-#import subprocess
+import subprocess
 
 # Creating the object 
 TOKEN = "7777543551:AAHJYYN3VwfC686y1Ir_aYewX1IzUMOlU68"
@@ -55,23 +55,23 @@ class TelegramBotWebhookView(View):
 
 # localtunnel getting password
 
-#def get_tunnel_password():
-#    try:
-#        result = subprocess.run(
- #           ["curl", "-s", "https://loca.lt/mytunnelpassword"],
-#            stdout=subprocess.PIPE,
-#            stderr=subprocess.PIPE,
-#            text=True
-#        )
-#        if result.returncode == 0:
- #           password = result.stdout.strip()  # حذف فاصله‌ها و خط‌های اضافی
-#            return password
-#        else:
-#            print("Error fetching password:", result.stderr)
-#            return None
-#    except Exception as e:
-#        print(f"An error occurred: {e}")
-#        return None
+def get_tunnel_password():
+    try:
+        result = subprocess.run(
+            ["curl", "-s", "https://loca.lt/mytunnelpassword"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        if result.returncode == 0:
+            password = result.stdout.strip()  # حذف فاصله‌ها و خط‌های اضافی
+            return password
+        else:
+            print("Error fetching password:", result.stderr)
+            return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
 
 # استفاده از تابع
 localtunnel_password = get_tunnel_password()

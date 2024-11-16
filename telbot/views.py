@@ -27,6 +27,9 @@ from accounts.tokens import generate_token  # Update this with your token import
 from django.utils import timezone  
 from datetime import timedelta 
 
+# Server side
+import subprocess
+
 # Creating the object 
 TOKEN = "7777543551:AAHJYYN3VwfC686y1Ir_aYewX1IzUMOlU68"
 bot = telebot.TeleBot(TOKEN)  # Replace with your actual token  
@@ -48,6 +51,30 @@ class TelegramBotWebhookView(View):
 
 
 # Writing the functions  
+
+
+# localtunnel getting password
+
+def get_tunnel_password():
+    try:
+        result = subprocess.run(
+            ["curl", "-s", "https://loca.lt/mytunnelpassword"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        if result.returncode == 0:
+            password = result.stdout.strip()  # حذف فاصله‌ها و خط‌های اضافی
+            return password
+        else:
+            print("Error fetching password:", result.stderr)
+            return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+# استفاده از تابع
+localtunnel_password = get_tunnel_password()
 
 
 # Getting website address and webhook
@@ -118,11 +145,16 @@ def wellcome(message, current_site=current_site):
         
     # Add the user username to the telbotid class if existed in ProfileModel
     if message.from_user.username not in [item['telegram'] for item in ProfileModel.objects.values("telegram")]:
-        bot.send_message(message.chat.id, f"🥰😍🥰 البته که داشتن شما در ربات برای ما افتخاره اما پس از بررسی مجدد متوجه شدم شما در سایت ما عضو نیستید ... 🥲🥺\n\n💢 یادت باشه اگه از توی ربات در سایت ثبت نام کنی می تونی تا پنج روز عضویت ویژه داشته باشی و به همه محتواهای پولی سایت دسترسی داشته باشی، توی سایت می تونی تمام محصولات رو یک جا ببینی و در همون جا در سبد خرید حساب کاربری خودت مورد علاقه هات رو اضافه کنی تا هر موقع خواستی به درگاه پرداخت وصل شی و پس از پرداخت کفش هات رو درب منزل تحویل بگیری.\n\n{current_site}", reply_markup=markup)
-        # Check if current site URL is from localtunnel
-        if "loca.lt" in current_site:
-            print(current_site)
-            bot.send_message(message.chat.id, f"💡 توجه! اگر از شما رمز درخواست شد، از این کد استفاده کنید:\n\n🔑 {localtunnel_password}")
+        bot.send_message(
+            message.chat.id,
+            f"🥰😍🥰 البته که داشتن شما در ربات برای ما افتخاره اما پس از بررسی مجدد متوجه شدم شما در سایت ما عضو نیستید ... 🥲🥺\n\n"
+            f"💢 یادت باشه اگه از توی ربات در سایت ثبت نام کنی می تونی تا پنج روز عضویت ویژه داشته باشی و به همه محتواهای پولی سایت دسترسی داشته باشی، "
+            f"توی سایت می تونی تمام محصولات رو یک جا ببینی و در همون جا در سبد خرید حساب کاربری خودت مورد علاقه هات رو اضافه کنی تا هر موقع خواستی به درگاه پرداخت وصل شی و پس از پرداخت کفش هات رو درب منزل تحویل بگیری.\n\n"
+            f"{current_site}"
+            f"{f'\n\n💡 توجه! اگر از شما رمز درخواست شد، از این کد استفاده کنید:\n\n🔑 {localtunnel_password}' if 'loca.lt' in current_site else ''}",
+            reply_markup=markup
+        )
+
         
 
 # هندلر برای دکمه "ثبت نام می‌کنم"
@@ -282,14 +314,15 @@ def pick_password2(message, email, username, password, current_site=current_site
         )
         email.send()
 
-        bot.send_message(message.chat.id, f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {username} عزیز، خوش آمدی! 🎉\n\nیه سر به سایت بزن و به حسابت ورود کن.\n\nآدرس سایت رو دوباره برات این پایین گذاشتم.👇👇👇\n\n{current_site}")
+        bot.send_message(
+            message.chat.id, 
+            f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {username} عزیز، خوش آمدی! 🎉\n\n"
+            f"یه سر به سایت بزن و به حسابت ورود کن.\n\n"
+            f"آدرس سایت رو دوباره برات این پایین گذاشتم.👇👇👇\n\n"
+            f"{current_site}"
+            f"{f'\n\n💡 توجه! اگر از شما رمز درخواست شد، از این کد استفاده کنید:\n\n🔑 {localtunnel_password}' if 'loca.lt' in current_site else ''}"
+        )
 
-        # Check if current site URL is from localtunnel
-        if "loca.lt" in current_site:
-            bot.send_message(
-                message.chat.id,
-                f"💡 توجه! اگر از شما رمز درخواست شد، از این کد استفاده کنید:\n\n🔑 {localtunnel_password}"
-            )
         
         bot.send_message(message.chat.id, "دوست داری نمایه خودت رو مثل اطلاعات دقیق تر از خودت تکمیل کنی یا ترجیح می دی تو سایت این کار رو بکنی؟")
         bot.register_next_step_handler(message, )

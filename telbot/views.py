@@ -29,6 +29,7 @@ from datetime import timedelta
 
 # Server side
 import subprocess
+from utils.telbot.functions import *
 
 # Creating the object 
 TOKEN = "7777543551:AAHJYYN3VwfC686y1Ir_aYewX1IzUMOlU68"
@@ -55,64 +56,15 @@ class TelegramBotWebhookView(View):
 
 # localtunnel getting password
 
-def get_tunnel_password():
-    try:
-        result = subprocess.run(
-            ["curl", "-s", "https://loca.lt/mytunnelpassword"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        if result.returncode == 0:
-            password = result.stdout.strip()  # حذف فاصله‌ها و خط‌های اضافی
-            return password
-        else:
-            print("Error fetching password:", result.stderr)
-            return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+
 
 # استفاده از تابع
 localtunnel_password = get_tunnel_password()
 
-
-# Getting website address and webhook
-
-def get_current_webhook(TOKEN=TOKEN):
-    bot_token = TOKEN  # Ensure you have your bot token in Django settings
-    response = requests.get(f'https://api.telegram.org/bot{bot_token}/getWebhookInfo')
-    
-    if response.status_code == 200:
-        webhook_info = response.json()
-        
-        # Check if there's a URL set for the webhook
-        if webhook_info.get('ok') and webhook_info['result'].get('url'):
-            return webhook_info['result']['url']
-        else:
-            return "No webhook URL set."
-    else:
-        return "Failed to retrieve webhook info."
-        
-def get_current_site(TOKEN=TOKEN):
-    bot_token = TOKEN  # Ensure you have your bot token in Django settings
-    response = requests.get(f'https://api.telegram.org/bot{bot_token}/getWebhookInfo')
-    
-    if response.status_code == 200:
-        site_info = response.json()
-        
-        # Check if there's a URL set for the webhook
-        if site_info.get('ok') and site_info['result'].get('url'):
-            return site_info['result']['url'][:-9]
-        else:
-            return "No site URL set."
-    else:
-        return "Failed to retrieve site info."
         
 current_site = get_current_site()
 current_webhook = get_current_webhook()
 
-print(current_site)
 
 
 # Start and Welcome  
@@ -140,7 +92,7 @@ def wellcome(message, current_site=current_site):
         bot.send_message(message.chat.id, "🏆 عزیزم ثبت نامت تو ربات کتونی اوریجینال با موفقیت انجام شد.\n\n🔔 از حالا ما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید می تونیم با توجه به علایق تون سلیقه شما رو با هوش مصنوعی پیش بینی کنیم و علاوه بر محصولاتی که در کانال ما می بینید، مورد علاقه های تان را برای شما در ربات ارسال کنیم.\n\n🙏🙏🙏 خوشحالیم که شما رو در جمع خودمون داریم.")
     
     else:
-        bot.send_message(message.chat.id, f'{message.from_user.username}\n عزیز شما قبلا در ربات کتونی اوریجینال ثبت نام کردید.\n\nما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید می‌تونیم با توجه به علایق‌تون سلیقه شما رو با هوش مصنوعی پیش‌بینی کنیم و علاوه بر محصولاتی که در کانال ما می‌بینید، مورد علاقه‌های‌تان را برای شما در ربات ارسال کنیم.\n\n')
+        bot.send_message(message.chat.id, f'{message.from_user.name}\n عزیز شما قبلا در ربات کتونی اوریجینال ثبت نام کردید.\n\nما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید می‌تونیم با توجه به علایق‌تون سلیقه شما رو با هوش مصنوعی پیش‌بینی کنیم و علاوه بر محصولاتی که در کانال ما می‌بینید، مورد علاقه‌های‌تان را برای شما در ربات ارسال کنیم.\n\n')
         
         
     # Add the user username to the telbotid class if existed in ProfileModel
@@ -195,20 +147,7 @@ def pick_email(message):
     
     
 
-def validate_username(username):
-    # Check length
-    if len(username) < 5 or len(username) > 32:
-        return False, "طول نام کاربری باید بین 5 تا 32 حرف باشد."
-    
-    # Check for allowed characters and disallow "."
-    if not re.match(r"^[a-zA-Z0-9_]+$", username):
-        return False, "نام کاربری تنها شامل حروف، عدد و underline باشد."
-    
-    # Check for presence of "."
-    if "." in username:
-        return False, "نام کاربری نمی تواند شامل «.» باشد."
-    
-    return True, "این نام کاربری خوبه"
+
 
 
 # دریافت نام کاربری
@@ -231,30 +170,7 @@ def pick_username(message, email):
         # If the username is invalid, re-prompt the user
         bot.register_next_step_handler(message, pick_username, email)
 
-# بررسی معتبر بودن رمز عبور
-def validate_password(password):
-    # شرط طول رمز عبور حداقل ۸ کاراکتر
-    if len(password) < 8:
-        return False, "رمز عبور باید حداقل ۸ کاراکتر باشد."
 
-    # شرط حروف کوچک
-    if not re.search(r"[a-z]", password):
-        return False, "رمز عبور باید حداقل شامل یک حرف کوچک باشد."
-
-    # شرط حروف بزرگ
-    if not re.search(r"[A-Z]", password):
-        return False, "رمز عبور باید حداقل شامل یک حرف بزرگ باشد."
-
-    # شرط عدد
-    if not re.search(r"[0-9]", password):
-        return False, "رمز عبور باید حداقل شامل یک عدد باشد."
-
-    # شرط علامت‌ها
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-        return False, "رمز عبور باید حداقل شامل یک علامت باشد."
-
-    # اگر همه شرایط برقرار بود
-    return True, "رمز عبورت خوبه."
 
 # تعیین رمز عبور
 def pick_password(message, email, username):
@@ -316,7 +232,7 @@ def pick_password2(message, email, username, password, current_site=current_site
 
         bot.send_message(
             message.chat.id, 
-            f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {username} عزیز، خوش آمدی! 🎉\n\n"
+            f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {message.from_user.name} عزیز، خوش آمدی! 🎉\n\n"
             f"یه سر به سایت بزن و به حسابت ورود کن.\n\n"
             f"آدرس سایت رو دوباره برات این پایین گذاشتم.👇👇👇\n\n"
             f"{current_site}"

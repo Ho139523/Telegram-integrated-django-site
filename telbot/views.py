@@ -227,8 +227,7 @@ def pick_password2(message, email, username, password, current_site=current_site
             mail_subject, message_content, to=[email]
         )
         email.send()
-
-<<<<<<< HEAD
+        
         bot.send_message(
             message.chat.id, 
             f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {message.from_user.name} عزیز، خوش آمدی! 🎉\n\n"
@@ -237,7 +236,6 @@ def pick_password2(message, email, username, password, current_site=current_site
             f"{current_site}"
             f"{f'\n\n💡 توجه! اگر از شما رمز درخواست شد، از این کد استفاده کنید:\n\n🔑 {localtunnel_password}' if 'loca.lt' in current_site else ''}"
         )
-=======
         bot.send_message(message.chat.id, f"حالا دیگه حساب کاربری خودت رو تو وبسایت هم داری ثبت نام با موفقیت انجام شد! {username} عزیز، خوش آمدی! 🎉\n\nیه سر به سایت بزن و به حسابت ورود کن.\n\nآدرس سایت رو دوباره برات این پایین گذاشتم.👇👇👇\n\n{current_site}")
 
         # Check if current site URL is from localtunnel
@@ -246,7 +244,6 @@ def pick_password2(message, email, username, password, current_site=current_site
                 message.chat.id,
                 f"💡 توجه! اگر از شما رمز درخواست شد، از این کد استفاده کنید:\n\n🔑 {localtunnel_password}"
             )
->>>>>>> 074abfee0e5c27b46034e0eac8bf6c796c290fc2
 
         
         bot.send_message(message.chat.id, "دوست داری نمایه خودت رو مثل اطلاعات دقیق تر از خودت تکمیل کنی یا ترجیح می دی تو سایت این کار رو بکنی؟")

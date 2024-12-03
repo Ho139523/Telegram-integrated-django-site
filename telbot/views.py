@@ -26,12 +26,22 @@ from datetime import timedelta
 app = TeleBot(token=TOKEN)
 
 # Server side
+import json
+import telebot.types
+from django.http import JsonResponse
+from django.views import View
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+import logging
+
+logger = logging.getLogger(__name__)
 from django.views.decorators.csrf import csrf_exempt
 import subprocess
 from utils.telbot.functions import *
 localtunnel_password = get_tunnel_password()
 current_site = get_current_site()
 current_webhook = get_current_webhook()
+
 
 
 

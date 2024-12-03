@@ -68,3 +68,21 @@ class ArticleModel(models.Model):
         hour = self.time_takes//60
         min =  self.time_takes-hour
         return [hour, min]
+
+
+
+class ShoeModel(models.Model):
+    title = models.CharField(max_length=100, unique=True, blank=False, null=False)
+    description = models.TextField(max_length=1000, unique=False, blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    size = models.IntegerField()
+    length = models.DecimalField(max_digits=3, decimal_places=1)
+    stock = models.BooleanField(default=True)
+    pic1 = models.ImageField(upload_to='shoes_image')
+    pic2 = models.ImageField(upload_to='shoes_image')
+    pic3 = models.ImageField(upload_to='shoes_image')
+    pic4 = models.ImageField(upload_to='shoes_image')
+    
+    
+    def __str__(self):
+        return self.title + str(self.price)

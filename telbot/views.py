@@ -52,12 +52,11 @@ class TelegramBotWebhookView(View):
             
 
 # start handler
-@app.message_handler(commands=['start'])
+@app.message_handler(commands=['start'], current_site=current_site)
 def start(message):
     tel_id = message.from_user.username
     tel_name = message.from_user.name
-    response = requests.post("http://yourdomain.com/api/check-registration/", json={"tel_id": tel_id})
-    registered 
+    response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
     
     if response.status_code == 201:
         bot.send_message(message.chat.id, f"🏆 {tel_name}عزیز ثبت نامت تو ربات کتونی اوریجینال با موفقیت انجام شد.\n\n🔔 از حالا ما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید می تونیم با توجه به علایق تون سلیقه شما رو با هوش مصنوعی پیش بینی کنیم و علاوه بر محصولاتی که در کانال ما می بینید، مورد علاقه های تان را برای شما در ربات ارسال کنیم.\n\n🙏🙏🙏 خوشحالیم که شما رو در جمع خودمون داریم.")

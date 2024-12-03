@@ -52,7 +52,7 @@ class TelegramBotWebhookView(View):
             
 
 # start handler
-@app.message_handler(commands=['start'], current_site=current_site)
+@app.message_handler(commands=['start'])
 def start(message):
     bot.send_message(message.chat.id, 'hello')
     # tel_id = message.from_user.username

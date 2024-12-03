@@ -10,6 +10,15 @@ from rest_framework import viewsets
 from products.serializer import ShoeSerializer
 from products.models import ShoeModel
 
+# Check Telegram User Registration
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from telbot.models import telbotid
+from accounts.models import ProfileModel
+from accounts.serializer import ProfileModelSerializer
+from telbot.serializer import TelbotidSerializer
+
 class HeartCreateAPIView(ListCreateAPIView):
     queryset = heart.objects.all()
     serializer_class = HeartSerializer
@@ -18,3 +27,25 @@ class HeartCreateAPIView(ListCreateAPIView):
 class ShoeView(viewsets.ModelViewSet):
     queryset = ShoeModel.objects.filter(stock=True)
     serializer_class = ShoeSerializer
+    
+
+
+class CheckTelegramUserRegistrationView(APIView):
+    def post(self, request):
+        tel_id = request.data.get('tel_id')
+        
+        # Check if the user exists in telbotid or ProfileModel
+        telbotid_exists = telbotid.objects.filter(tel_id=tel_id).exists()
+        profile_exists = ProfileModel.objects.filter(telegram=tel_id).exists()
+        
+        if telbotid_exists or profile_exists:
+            return Response({
+                "message": f"{tel_id} عزیز شما قبلا در ربات ثبت‌نام کرده‌اید."
+            }, status=status.HTTP_200_OK)
+        else:
+            # Create a new telbotid instance
+            new_telbotid = telbotid.objects.create(user=None, tel_id=tel_id)
+            new_telbotid.save()
+            return Response({
+                "message": "ثبت‌نام شما با موفقیت انجام شد."
+            }, status=status.HTTP_201_CREATED)

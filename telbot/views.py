@@ -26,6 +26,7 @@ from datetime import timedelta
 app = TeleBot(token=TOKEN)
 
 # Server side
+from django.views.decorators.csrf import csrf_exempt
 import subprocess
 from utils.telbot.functions import *
 localtunnel_password = get_tunnel_password()

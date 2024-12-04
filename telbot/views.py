@@ -51,25 +51,26 @@ current_webhook = get_current_webhook()
 class TelegramBotWebhookView(View):
     def post(self, request, *args, **kwargs):
         try:
-            json_str = request.body.decode('UTF-8')
-            logger.info(f"Received data: {json_str}")  # Log the received data
-            update = telebot.types.Update.de_json(json.loads(json_str))
-            app.process_new_updates([update])
-            return JsonResponse({"status": "success"})
+        	json_str = request.body.decode('UTF-8')
+        	logger.info(f"Received data: {json_str}")  # Log incoming data
+        	update = telebot.types.Update.de_json(json.loads(json_str))
+        	logger.info(f"Decoded update: {update}")
+        	app.process_new_updates([update])
         except Exception as e:
-            logger.error(f"Error processing webhook: {e}")
-            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+        	logger.error(f"Error processing webhook: {e}")
+        	logger.debug(request.body)  # Log raw data for debugging
             
             
 
 # start handler
 @app.message_handler(commands=['start'])
 def start(message):
-    tel_id = message.from_user.username
-    tel_name = message.from_user.name
+    tel_id = tel_id = message.from_user.username if message.from_user.username else message.from_user.id
+    tel_name = message.from_user.first_name
     response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
     
     if response.status_code == 201:
         app.send_message(message.chat.id, f"🏆 {tel_name}عزیز ثبت نامت تو ربات کتونی اوریجینال با موفقیت انجام شد.\n\n🔔 از حالا ما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید می تونیم با توجه به علایق تون سلیقه شما رو با هوش مصنوعی پیش بینی کنیم و علاوه بر محصولاتی که در کانال ما می بینید، مورد علاقه های تان را برای شما در ربات ارسال کنیم.\n\n🙏🙏🙏 خوشحالیم که شما رو در جمع خودمون داریم.")
     else:
         app.send_message(message.chat.id, f'{message.from_user.name}\n عزیز شما قبلا در ربات کتونی اوریجینال ثبت نام کردید.\n\nما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید می‌تونیم با توجه به علایق‌تون سلیقه شما رو با هوش مصنوعی پیش‌بینی کنیم و علاوه بر محصولاتی که در کانال ما می‌بینید، مورد علاقه‌های‌تان را برای شما در ربات ارسال کنیم.\n\n')
+        

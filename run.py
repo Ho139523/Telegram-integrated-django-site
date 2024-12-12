@@ -17,7 +17,7 @@ def delete(TOKEN=TOKEN):
 def setting(sub, TOKEN=TOKEN):
     delete(TOKEN=TOKEN)
     TOKEN = str(TOKEN)
-    WEBHOOK_URL = f"{sub}/webhook/"
+    WEBHOOK_URL = f"{sub}/telbot/webhook/"
     response = requests.get(f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={WEBHOOK_URL}")
     print(response.json())
 

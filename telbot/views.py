@@ -79,16 +79,6 @@ def check_subscription(user, channels=my_channels_with_atsign):
             return False
         
         return True
-        
-
-@app.callback_query_handler(func=lambda call: call.data == 'check_subscription')
-def handle_check_subscription(call):
-    is_member = check_subscription(user=call.from_user.id)
-    if is_member:
-        app.answer_callback_query(call.id, "تشکر! عضویت شما تایید شد.")
-        app.send_message(call.message.chat.id, "🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.")
-    else:
-        app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید.")
 
 
 
@@ -148,3 +138,13 @@ def start(message):
             
     except Exception as e:
         print(f'error is: {e}')
+
+
+@app.callback_query_handler(func=lambda call: call.data == 'check_subscription')
+def handle_check_subscription(call):
+    is_member = check_subscription(user=call.from_user.id)
+    if is_member:
+        app.answer_callback_query(call.id, "تشکر! عضویت شما تایید شد.")
+        app.send_message(call.message.chat.id, "🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.")
+    else:
+        app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید.")

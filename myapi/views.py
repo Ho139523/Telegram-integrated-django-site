@@ -21,6 +21,8 @@ from telbot.serializer import TelbotidSerializer
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
+
+
 class HeartCreateAPIView(ListCreateAPIView):
     queryset = heart.objects.all()
     serializer_class = HeartSerializer

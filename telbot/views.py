@@ -124,7 +124,7 @@ def start(message):
     else:
         app.send_message(
             message.chat.id,
-            f"{tel_name}\n عزیز شما قبلا در ربات کتونی اوریجینال ثبت نام کردید.\n\n"
+            f"{tel_name}\n عزیز شما قبلا در ربات کتونی اhhhhوریجینال ثبت نام کردید.\n\n"
         )
         
     try:

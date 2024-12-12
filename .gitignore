@@ -1,4 +1,4 @@
-myenv/
+0myenv/
 *.md
 .git
 __pycache__/
@@ -6,3 +6,4 @@ __pycache__/
 *.pyo
 venv/
 Pipfile
+Pipfile.lock

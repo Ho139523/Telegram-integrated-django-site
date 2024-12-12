@@ -15,8 +15,5 @@ urlpatterns = [
     
     # Shoe API
     path('', ShoeView.as_view({'get': 'list'})),
-    
-    # Check telegram Registration
-    path('check-registration/', CheckTelegramUserRegistrationView.as_view(), name='check-registration'),
 
 ]

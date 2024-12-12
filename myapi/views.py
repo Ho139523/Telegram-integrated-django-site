@@ -18,6 +18,8 @@ from telbot.models import telbotid
 from accounts.models import ProfileModel
 from accounts.serializer import ProfileModelSerializer
 from telbot.serializer import TelbotidSerializer
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 class HeartCreateAPIView(ListCreateAPIView):
     queryset = heart.objects.all()
@@ -29,7 +31,7 @@ class ShoeView(viewsets.ModelViewSet):
     serializer_class = ShoeSerializer
     
 
-
+@method_decorator(csrf_exempt, name='dispatch')
 class CheckTelegramUserRegistrationView(APIView):
     def post(self, request):
         tel_id = request.data.get('tel_id')

@@ -9,6 +9,11 @@ from utils.variables.TOKEN import TOKEN
 import requests
 
 
+# start: KeyboardButtton for forced subscription
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
+
+
 #signup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
@@ -64,41 +69,82 @@ class TelegramBotWebhookView(View):
             
             
 
+# Check subscription
+def check_subscription(user, channels=my_channels_with_atsign):
+    for channel in channels:
+        is_member = app.get_chat_member(chat_id=channel, user_id=user)
+        
+        if is_member.status in ["kicked", "left"]:
+            
+            return False
+        
+        return True
+        
+
+@app.callback_query_handler(func=lambda call: call.data == 'check_subscription')
+def handle_check_subscription(call):
+    is_member = check_subscription(user=call.from_user.id)
+    if is_member:
+        app.answer_callback_query(call.id, "تشکر! عضویت شما تایید شد.")
+        app.send_message(call.message.chat.id, "🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.")
+    else:
+        app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید.")
+
+
+
+
 # start handler
 @app.message_handler(commands=['start'])
 def start(message):
+    
+    # User Info
     tel_id = message.from_user.username if message.from_user.username else message.from_user.id
     tel_name = message.from_user.first_name
 
     # Make a POST request to the registration API
     response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
     
-    try:
-        # Print the JSON response for debugging
-        print("Response JSON:", response.json())  # Use .json() to access the response as a dictionary
-    except ValueError:
-        # Handle cases where the response is not JSON
-        print("Response Text:", response.text)
+    # Markup keyboards
+    
+    channel_markup= InlineKeyboardMarkup()
+    check_subscription_button = InlineKeyboardButton(
+        text='عضو شدم.', 
+        callback_data='check_subscription'  # Callback data for interaction
+    )
+    channel_subscription_button = InlineKeyboardButton(
+        text='در کانال ما عضو شوید ...', 
+        url=f"https://t.me/{my_channels_without_atsign[0]}"  # Replace with your Telegram channel link
+    )
+    group_subscription_button = InlineKeyboardButton(
+        text="در گروه ما عضو شوید ...", 
+        url=f"https://t.me/{my_channels_without_atsign[1]}"  # Replace with your Telegram group link
+    )
+    channel_markup.add(channel_subscription_button, group_subscription_button)
+    channel_markup.add(check_subscription_button)
 
     # Handle the response based on status code
     if response.status_code == 201:
-        print('hh1')
         app.send_message(
             message.chat.id,
             f"🏆 {tel_name} عزیز ثبت نامت تو ربات کتونی اوریجینال با موفقیت انجام شد.\n\n"
             f"🔔 از حالا ما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید "
             f"می تونیم با توجه به علایق تون سلیقه شما رو با هوش مصنوعی پیش بینی کنیم و علاوه بر محصولاتی "
-            f"که در کانال ما می بینید، مورد علاقه های تان را برای شما در ربات ارسال کنیم.\n\n🙏🙏🙏 خوشحالیم که شما رو در جمع خودمون داریم."
+            f"که در کانال ما می بینید، مورد علاقه های تان را برای شما در ربات ارسال کنیم.\n\n"
         )
     else:
-        print("hh2")
-        try:
-            app.send_message(
-                message.chat.id,
-                f"{message.from_user.first_name}\n عزیز شما قبلا در ربات کتونی اوریجینال ثبت نام کردید.\n\n"
-                f"ما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید "
-                f"می‌تونیم با توجه به علایق‌تون سلیقه شما رو با هوش مصنوعی پیش‌بینی کنیم و علاوه بر محصولاتی "
-                f"که در کانال ما می‌بینید، مورد علاقه‌های‌تان را برای شما در ربات ارسال کنیم.\n\n"
-            )
-        except Exception as e:
-            print(f"Error sending message: {e}")
+        app.send_message(
+            message.chat.id,
+            f"{tel_name}\n عزیز شما قبلا در ربات کتونی اوریجینال ثبت نام کردید.\n\n"
+        )
+        
+    try:
+        is_member = check_subscription(user=message.from_user.id)
+            
+        if is_member==False:
+            app.send_message(message.chat.id, "متاسفانه شما در کانال یا گروه ما عضو نیستید...\n\n برای استفاده از ربات در گروه و کانال زیر عضو شوید.", reply_markup=channel_markup)
+        
+        else:
+            pass
+            
+    except Exception as e:
+        print(f'error is: {e}')

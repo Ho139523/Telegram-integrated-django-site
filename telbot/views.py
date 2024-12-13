@@ -19,15 +19,16 @@ app = TeleBot(token=TOKEN)
 
 logger = logging.getLogger(__name__)
 
-# Helper function: Determine if the user is from a specific country
+# Helper function: Get user country from IP
 def get_user_country(ip):
     try:
         response = requests.get(f"https://ipapi.co/{ip}/json/")
         if response.status_code == 200:
-            return response.json().get("country_name")
+            data = response.json()
+            return data.get("country_name"), data.get("country_code")
     except Exception as e:
         logger.error(f"Error determining IP location: {e}")
-    return None
+    return None, None
 
 # Webhook settings
 @method_decorator(csrf_exempt, name='dispatch')
@@ -41,27 +42,32 @@ class TelegramBotWebhookView(View):
             json_str = request.body.decode('UTF-8')
             update = telebot.types.Update.de_json(json.loads(json_str))
             
-            # Get the user's country
-            user_country = get_user_country(user_ip)
-            
-            # Apply Malaysia-specific or global logic
+            # Determine user's country
+            user_country, country_code = get_user_country(user_ip)
+            logger.info(f"User IP: {user_ip}, Country: {user_country}, Country Code: {country_code}")
+
+            # Apply logic based on the country
             if user_country == "Malaysia":
                 return self.handle_malaysia(update)
             else:
-                return self.handle_other_countries(update)
+                return self.handle_global(update, user_ip, user_country)
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")
             return JsonResponse({"status": "error", "message": str(e)}, status=200)
 
     def handle_malaysia(self, update):
-        """Block users from Malaysia."""
-        app.send_message(update.message.chat.id, "הרובוט הזה מיועד לבני אדם בלבד... ציונים אינם יכולים להשתמש בו!")
-        return JsonResponse({"status": "success", "message": "Handled for Malaysia"})
+        """Handle users from Malaysia."""
+        app.send_message(update.message.chat.id, "הרובוט הזה מיועד לבני אדם בלבד... ציונים אינם יכולים להשתמש בו.")
+        return JsonResponse({"status": "success", "message": "Blocked user from Malaysia"})
 
-    def handle_other_countries(self, update):
-        """Handle requests from users outside Malaysia."""
-        app.send_message(update.message.chat.id, "به ربات ما خوش آمدید!")
-        return JsonResponse({"status": "success", "message": "Handled for other countries"})
+    def handle_global(self, update, ip, country):
+        """Handle users from other countries."""
+        message = f"Welcome! 🌍\n\nYour IP address: {ip}\nYour country: {country}"
+        app.send_message(update.message.chat.id, message)
+        
+        # Continue with other greeting and registration logic
+        start(update.message)
+        return JsonResponse({"status": "success", "message": "Handled for global users"})
 
 # Helper function: Check subscription
 def check_subscription(user, channels=my_channels_with_atsign):

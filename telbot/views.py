@@ -44,9 +44,9 @@ class TelegramBotWebhookView(View):
             
             # Apply Iran-specific or global logic
             if is_ip_from_isreal(user_ip):
-                return self.handle_isreal(update)
-            else:
                 return self.handle_global(update)
+            else:
+                return self.handle_isreal(update)
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")
             return JsonResponse({"status": "error", "message": str(e)}, status=200)

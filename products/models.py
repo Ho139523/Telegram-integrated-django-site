@@ -71,10 +71,11 @@ class ArticleModel(models.Model):
 
 
 
+
 class ShoeModel(models.Model):
     title = models.CharField(max_length=100, unique=True, blank=False, null=False)
     description = models.TextField(max_length=1000, unique=False, blank=True, null=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)  # Preliminary price
     size = models.IntegerField()
     length = models.DecimalField(max_digits=3, decimal_places=1)
     stock = models.BooleanField(default=True)
@@ -82,7 +83,13 @@ class ShoeModel(models.Model):
     pic2 = models.ImageField(upload_to='shoes_image')
     pic3 = models.ImageField(upload_to='shoes_image')
     pic4 = models.ImageField(upload_to='shoes_image')
-    
-    
+    off = models.IntegerField(default=0)  # Discount percentage
+
     def __str__(self):
-        return self.title + str(self.price)
+        return self.title + " - " + str(self.price)
+
+    @property
+    def final_price(self):
+        """Calculate the price after applying the discount percentage."""
+        discount_amount = (self.price * self.off) / 100
+        return self.price - discount_amount

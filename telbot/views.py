@@ -43,7 +43,7 @@ class TelegramBotWebhookView(View):
             update = telebot.types.Update.de_json(json.loads(json_str))
             
             # Apply Iran-specific or global logic
-            if is_ip_from_global(user_ip):
+            if is_ip_from_isreal(user_ip):
                 return self.handle_isreal(update)
             else:
                 return self.handle_global(update)

@@ -127,4 +127,4 @@ def handle_check_subscription(call):
         app.answer_callback_query(call.id, "تشکر! عضویت شما تایید شد.")
         app.send_message(call.message.chat.id, "🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.")
     else:
-        app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید."))
+        app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید.")

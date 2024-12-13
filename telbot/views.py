@@ -1,104 +1,112 @@
-# General imports
+#General imports
 from telebot import TeleBot
+
+
+# Variables imports
+from utils.variables.TOKEN import TOKEN
+
+# start handler imports
+import requests
+
+
+# start: KeyboardButtton for forced subscription
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
+
+
+#signup
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
+from django.contrib.sites.shortcuts import get_current_site
+from accounts.tokens import generate_token  # Update this with your token import
+from django.utils import timezone  
+from datetime import timedelta
+
+
+# Defining the app
+app = TeleBot(token=TOKEN)
+
+# Server side
 import json
 import telebot.types
-from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-import requests
 import logging
 
-# Variables imports
-from utils.variables.TOKEN import TOKEN
-from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
-
-# Initialize the bot
-app = TeleBot(token=TOKEN)
-
 logger = logging.getLogger(__name__)
+from django.views.decorators.csrf import csrf_exempt
+import subprocess
+from utils.telbot.functions import *
+localtunnel_password = get_tunnel_password()
+current_site = get_current_site()
+current_webhook = get_current_webhook()
 
-# Helper function: Get user country from IP
-def get_user_country(ip):
-    try:
-        response = requests.get(f"https://ipapi.co/{ip}/json/")
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("country_name"), data.get("country_code")
-    except Exception as e:
-        logger.error(f"Error determining IP location: {e}")
-    return None, None
+
+
+
 
 # Webhook settings
+logger = logging.getLogger(__name__)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class TelegramBotWebhookView(View):
     def post(self, request, *args, **kwargs):
         try:
-            # Extract user IP address
-            user_ip = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
-
-            # Parse incoming JSON from Telegram
             json_str = request.body.decode('UTF-8')
+            logger.info(f"Received data: {json_str}")  # لاگ درخواست دریافتی
             update = telebot.types.Update.de_json(json.loads(json_str))
-            
-            # Determine user's country
-            user_country, country_code = get_user_country(user_ip)
-            logger.info(f"User IP: {user_ip}, Country: {user_country}, Country Code: {country_code}")
-
-            # Apply logic based on the country
-            if user_country == "Malaysia":
-                return self.handle_malaysia(update)
-            else:
-                return self.handle_global(update, user_ip, user_country)
+            app.process_new_updates([update])  # پردازش پیام توسط ربات
+            return JsonResponse({"status": "success"}, status=200)
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")
-            return JsonResponse({"status": "error", "message": str(e)}, status=200)
+            return JsonResponse({"status": "error", "message": str(e)}, status=200)  # همیشه HTTP 200 برگردانید
+            
+            
 
-    def handle_malaysia(self, update):
-        """Handle users from Malaysia."""
-        app.send_message(update.message.chat.id, "הרובוט הזה מיועד לבני אדם בלבד... ציונים אינם יכולים להשתמש בו.")
-        return JsonResponse({"status": "success", "message": "Blocked user from Malaysia"})
-
-    def handle_global(self, update, ip, country):
-        """Handle users from other countries."""
-        message = f"Welcome! 🌍\n\nYour IP address: {ip}\nYour country: {country}"
-        app.send_message(update.message.chat.id, message)
-        
-        # Continue with other greeting and registration logic
-        start(update.message)
-        return JsonResponse({"status": "success", "message": "Handled for global users"})
-
-# Helper function: Check subscription
+# Check subscription
 def check_subscription(user, channels=my_channels_with_atsign):
     for channel in channels:
         is_member = app.get_chat_member(chat_id=channel, user_id=user)
+        
         if is_member.status in ["kicked", "left"]:
+            
             return False
-    return True
+        
+        return True
 
-# Start command handler
+
+
+
+# start handler
 @app.message_handler(commands=['start'])
 def start(message):
+    
     # User Info
     tel_id = message.from_user.username if message.from_user.username else message.from_user.id
     tel_name = message.from_user.first_name
 
     # Make a POST request to the registration API
     response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
-
+    
     # Markup keyboards
-    channel_markup = InlineKeyboardMarkup()
+    
+    channel_markup= InlineKeyboardMarkup()
     check_subscription_button = InlineKeyboardButton(
-        text='عضو شدم.',
+        text='عضو شدم.', 
         callback_data='check_subscription'  # Callback data for interaction
     )
     channel_subscription_button = InlineKeyboardButton(
-        text='در کانال ما عضو شوید ...',
+        text='در کانال ما عضو شوید ...', 
         url=f"https://t.me/{my_channels_without_atsign[0]}"  # Replace with your Telegram channel link
     )
     group_subscription_button = InlineKeyboardButton(
-        text="در گروه ما عضو شوید ...",
+        text="در گروه ما عضو شوید ...", 
         url=f"https://t.me/{my_channels_without_atsign[1]}"  # Replace with your Telegram group link
     )
     channel_markup.add(channel_subscription_button, group_subscription_button)
@@ -109,24 +117,28 @@ def start(message):
         app.send_message(
             message.chat.id,
             f"🏆 {tel_name} عزیز ثبت نامت تو ربات کتونی اوریجینال با موفقیت انجام شد.\n\n"
+            f"🔔 از حالا ما نام کاربری تلگرام شما رو در دیتابیس خودمون داریم و اگر تمایل داشته باشید "
+            f"می تونیم با توجه به علایق تون سلیقه شما رو با هوش مصنوعی پیش بینی کنیم و علاوه بر محصولاتی "
+            f"که در کانال ما می بینید، مورد علاقه های تان را برای شما در ربات ارسال کنیم.\n\n"
         )
     else:
         app.send_message(
             message.chat.id,
             f"{tel_name}\n عزیز شما قبلا در ربات کتونی اوریجینال ثبت نام کردید.\n\n"
         )
-
-    # Check subscription status
+        
     try:
         is_member = check_subscription(user=message.from_user.id)
-        if not is_member:
-            app.send_message(
-                message.chat.id,
-                "متاسفانه شما در کانال یا گروه ما عضو نیستید...\n\n برای استفاده از ربات در گروه و کانال زیر عضو شوید.",
-                reply_markup=channel_markup
-            )
+            
+        if is_member==False:
+            app.send_message(message.chat.id, "متاسفانه شما در کانال یا گروه ما عضو نیستید...\n\n برای استفاده از ربات در گروه و کانال زیر عضو شوید.", reply_markup=channel_markup)
+        
+        else:
+            pass
+            
     except Exception as e:
-        logger.error(f"Error checking subscription: {e}")
+        print(f'error is: {e}')
+
 
 @app.callback_query_handler(func=lambda call: call.data == 'check_subscription')
 def handle_check_subscription(call):

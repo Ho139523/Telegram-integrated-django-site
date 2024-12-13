@@ -84,6 +84,7 @@ class ShoeModel(models.Model):
     pic3 = models.ImageField(upload_to='shoes_image')
     pic4 = models.ImageField(upload_to='shoes_image')
     off = models.IntegerField(default=0)  # Discount percentage
+    code = model.IntegerField(default=001010101)
 
     def __str__(self):
         return self.title + " - " + str(self.price)

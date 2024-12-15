@@ -185,7 +185,8 @@ def handle_check_subscription(call):
 def show_balance(message):
     user_id = message.from_user.id
     balance = telbotid.objects.get(tel_id=user_id).credit
-    app.send_message(message.chat.id, f"موجودی شما: {balance} تومان")    
+    formatted_balance = "{:,.2f}".format(float(balance))
+    app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان")    
         
         
 # Category handler

@@ -139,7 +139,7 @@ def start(message):
     
     is_member = check_subscription(user=message.from_user.id)
     
-    if is_member==False:
+    if is_member:
         app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
     
     else:

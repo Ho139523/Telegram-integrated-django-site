@@ -135,9 +135,9 @@ def start(message):
         app.send_message(message.chat.id, f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n")
     else:
         app.send_message(message.chat.id, f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.")
-        hello=check_subscription(call.from_user.id)
+        
         try:
-            app.send_message(message.chat.id, f"{hello}")
+            app.send_message(message.chat.id, f"sghl")
         except Exception as e:
             app.send_message(message.chat.id, f"{e}")
         

@@ -124,7 +124,7 @@ def start(message):
     
     # Create keyboard for subscription check
     channel_markup = types.InlineKeyboardMarkup()
-    current_site_markup = types.InlineKeyboardMarkup(row_width=1, resize_keyboard=True)
+    current_site_markup = types.InlineKeyboardMarkup()
     # try:
         # current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site[0:current_site.find('/telbot')]}")
     # except Exception as e:

@@ -136,7 +136,18 @@ def start(message):
     else:
         app.send_message(message.chat.id, f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.")
         
-    app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
+    
+    is_member = check_subscription(user=message.from_user.id)
+    
+    if is_member==False:
+        app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
+    
+    else:
+        # Display the main menu
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add("موجودی من", "خرید با کد کالا", "دسته بندی ها", "منو اصلی")
+        app.send_message(call.message.chat.id, "انتخاب کنید:", reply_markup=markup)
+
 
         
         

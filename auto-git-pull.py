@@ -10,7 +10,9 @@ def git_pull():
             print("Performing git pull...")  
             subprocess.run(["git", "pull", "origin", "master"], check=True)  
             print("Git pull completed.")  
-        except subprocess.CalledProcessError as e:  
+        except subprocess.CalledProcessError as e:
+            subprocess.run(["git", "stash"], check=True)  
+            print("Git stashed.")
             print(f"Error during git pull: {e}")  
         time.sleep(5)  # Sleep for 2 minutes  
 

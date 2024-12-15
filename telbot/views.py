@@ -82,8 +82,10 @@ def check_subscription(user, channels=my_channels_with_atsign):
         
         return True
 
-
-current_site=get_current_site()
+try:
+    current_site=get_current_site()
+except Exception as e:
+    print(e)
 
 
 # Generate random product data

@@ -10,6 +10,10 @@ import requests
 import random
 from django.contrib.sites.shortcuts import get_current_site
 
+# balance handler imports
+from .models import telbotid
+from accounts.models import ProfileModel
+
 
 # start: KeyboardButtton for forced subscription
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -180,7 +184,7 @@ def handle_check_subscription(call):
 @app.message_handler(func=lambda message: message.text == "موجودی من")
 def show_balance(message):
     user_id = message.from_user.id
-    balance = users.get(user_id, {}).get('balance', 0)
+    balance = telbotid.objects.get(tel_id=user_id).credit
     app.send_message(message.chat.id, f"موجودی شما: {balance} تومان")    
         
         

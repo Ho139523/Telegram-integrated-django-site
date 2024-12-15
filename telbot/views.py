@@ -137,7 +137,7 @@ def start(message):
         app.send_message(message.chat.id, f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.")
         
     is_member = check_subscription(user=tel_id)
-    if is_member==True:
+    if True:
     
         app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
 

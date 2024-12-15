@@ -9,5 +9,5 @@ class telbotid(models.Model):
     credit = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True)
     
     def __str__(self):
-        return f"Telbot ID: {self.telegram_id} - Credit: {self.credit}"
+        return f"Telbot ID: {self.tel_id} - Credit: {self.credit}"
     

@@ -146,7 +146,7 @@ def start(message):
         # Display the main menu
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add("موجودی من", "خرید با کد کالا", "دسته بندی ها", "منو اصلی")
-        app.send_message(call.message.chat.id, "انتخاب کنید:", reply_markup=markup)
+        app.send_message(message.chat.id, "انتخاب کنید:", reply_markup=markup)
 
 
         

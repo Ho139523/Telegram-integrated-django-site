@@ -12,7 +12,7 @@ def git_pull():
             print("Git pull completed.")  
         except subprocess.CalledProcessError as e:  
             print(f"Error during git pull: {e}")  
-        time.sleep(120)  # Sleep for 2 minutes  
+        time.sleep(5)  # Sleep for 2 minutes  
 
 # Function to install packages from requirements.txt  
 def install_requirements():  

@@ -136,13 +136,8 @@ def start(message):
     else:
         app.send_message(message.chat.id, f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.")
         
-        try:
-            app.send_message(message.chat.id, f"sghl")
-        except Exception as e:
-            app.send_message(message.chat.id, f"{e}")
-        
+    if check_subscription(message.from_user.id)==False:
     
-    if check_subscription(call.from_user.id)==False:
         app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
 
         

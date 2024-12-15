@@ -139,9 +139,9 @@ def start(message):
 
     # Handle the response based on status code
     if response.status_code == 201:
-        app.send_message(message.chat.id, f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n")
+        app.send_message(message.chat.id, f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n", reply_markup=current_site_markup)
     else:
-        app.send_message(message.chat.id, f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.")
+        app.send_message(message.chat.id, f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.", reply_markup=current_site_markup)
         
     
     is_member = check_subscription(user=message.from_user.id)

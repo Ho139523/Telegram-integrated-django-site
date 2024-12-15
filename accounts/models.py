@@ -51,6 +51,7 @@ class ProfileModel(models.Model):
     instagram=models.CharField(max_length=120, blank=True, null=True, verbose_name="Instagram ID")
     tweeter=models.CharField(max_length=120, blank=True, null=True, verbose_name="Tweeter ID")
     telegram=models.CharField(max_length=120, blank=True, null=True, verbose_name="Telegram ID")
+    credit=models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
     
     def __str__(self):
         return self.user.username

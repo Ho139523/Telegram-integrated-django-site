@@ -121,12 +121,12 @@ def start(message):
     # Make a POST request to the registration API
     response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
     
-    
+    print(current_site)
     # Create keyboard for subscription check
     channel_markup = types.InlineKeyboardMarkup()
     current_site_markup = types.InlineKeyboardMarkup(row_width=1, resize_keyboard=True)
     try:
-        current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
+        current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"salam")
     except Exception as e:
         app.send_message(message.chat.id, 'the error is : {e}')
     check_subscription_button = types.InlineKeyboardButton(text='عضو شدم.', callback_data='check_subscription')

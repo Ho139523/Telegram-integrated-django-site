@@ -1,4 +1,4 @@
-0myenv/
+myenv/
 *.md
 .git
 __pycache__/

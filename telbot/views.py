@@ -184,6 +184,7 @@ def handle_check_subscription(call):
 @app.message_handler(func=lambda message: message.text == "موجودی من")
 def show_balance(message):
     user_id = message.from_user.id
+    app.send_message(message.chat.id, f"User_id is: {user_id}")
     try:
         balance = telbotid.objects.get(tel_id=user_id).credit
         formatted_balance = "{:,.2f}".format(float(balance))

@@ -149,7 +149,9 @@ def show_balance(chat_id):
     # Example: Fetch and send user balance
     user_id = message.from_user.username
     balance = telbotid.objects.get(tel_id=user_id).credit
-    app.send_message(chat_id, f"موجودی شما: {balance} تومان")
+    formatted_balance = "{:,.2f}".format(float(balance))
+    
+    app.send_message(chat_id, f"موجودی شما: {formatted_balance} تومان") 
 
 def ask_for_product_code(chat_id):
     app.send_message(chat_id, "لطفاً کد کالای مورد نظر را وارد کنید:")

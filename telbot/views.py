@@ -80,7 +80,7 @@ def start(message):
                 f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
             )
         
-        send_menu(message.chat.id, main_menu, "main_menu", extra_buttons
+        send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
     
     except Exception as e:
         app.send_message(chat_id, "the error is : {e}")

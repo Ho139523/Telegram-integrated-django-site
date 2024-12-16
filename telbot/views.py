@@ -44,23 +44,28 @@ class TelegramBotWebhookView(View):
 # Helper function to send menu
 def send_menu(chat_id, options, current_menu, extra_buttons=None):
     """Send a menu with options and track user's current menu."""
-    # Set row width to 3 for three buttons in each row
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+    from telebot import types
 
-    # Add options as buttons
-    for option in options:
-        markup.add(option)
+    # Create the keyboard markup
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+
+    # Organize buttons into rows of three
+    rows = [options[i:i + 3] for i in range(0, len(options), 3)]
+    for row in rows:
+        markup.row(*row)
 
     # Add extra buttons like "بازدید سایت" or "منو اصلی"
     if extra_buttons:
-        for button in extra_buttons:
-            markup.add(button)
+        extra_rows = [extra_buttons[i:i + 3] for i in range(0, len(extra_buttons), 3)]
+        for extra_row in extra_rows:
+            markup.row(*extra_row)
 
     # Save the current menu in the user's history
     user_menu_stack[chat_id].append(current_menu)
 
     # Send the menu
     app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+
 
 
 # Start handler

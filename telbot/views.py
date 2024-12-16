@@ -44,7 +44,10 @@ class TelegramBotWebhookView(View):
 # Helper function to send menu
 def send_menu(chat_id, options, current_menu, extra_buttons=None):
     """Send a menu with options and track user's current menu."""
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    # Set row width to 3 for three buttons in each row
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+
+    # Add options as buttons
     for option in options:
         markup.add(option)
 
@@ -58,6 +61,7 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
 
     # Send the menu
     app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+
 
 # Start handler
 @app.message_handler(commands=['start'])
@@ -172,7 +176,7 @@ def send_website_link(chat_id):
 
     # Create an Inline Keyboard with a button linking to the website
     markup = types.InlineKeyboardMarkup()
-    website_button = types.InlineKeyboardButton("بازدید از سایت", url=website_url)
+    website_button = types.InlineKeyboardButton("بازدید از سایت", url=current_site)
     markup.add(website_button)
 
     # Send a message with the inline keyboard

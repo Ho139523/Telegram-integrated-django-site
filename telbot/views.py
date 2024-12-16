@@ -147,7 +147,7 @@ def handle_message(message):
 # Functions for specific actions
 def show_balance(chat_id):
     # Example: Fetch and send user balance
-    user_id = chat_id.from_user.username
+    user_id = "HusseinMohammadi2079"
     balance = telbotid.objects.get(tel_id=user_id).credit
     formatted_balance = "{:,.2f}".format(float(balance))
     

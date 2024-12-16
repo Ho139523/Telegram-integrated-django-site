@@ -15,6 +15,7 @@ from .models import telbotid
 # Variables imports
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
+from utils.telbot.functions import *
 
 # Logging setup
 logger = logging.getLogger(__name__)

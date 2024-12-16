@@ -115,7 +115,10 @@ def handle_message(message):
 
     # Specific actions for each button
     elif text == "موجودی من":
-        show_balance(message)
+        try:
+            show_balance(message)
+        except Exception as e:
+            app.send_message(message.chat.id, f"error is: {e}")
 
     elif text == "خرید با کد کالا":
         ask_for_product_code(chat_id)
@@ -153,7 +156,7 @@ def show_balance(message):
         formatted_balance = "{:,.2f}".format(float(balance))
         
     except Exception as e:
-        app.send_message(message.chat.id, f"error is: {e}")
+        app.send_message(message.chat.id, f"error is: {e}")6
     
     app.send_message(chat_id, f"موجودی شما: {formatted_balance} تومان") 
 

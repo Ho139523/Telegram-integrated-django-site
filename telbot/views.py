@@ -150,14 +150,10 @@ def handle_message(message):
 # Functions for specific actions
 def show_balance(message):
     # Example: Fetch and send user balance
-    try:
-        user_id = message.from_user.username
-        balance = telbotid.objects.get(tel_id=user_id).credit
-        formatted_balance = "{:,.2f}".format(float(balance))
-        
-    except Exception as e:
-        app.send_message(message.chat.id, f"error is: {e}")
-    
+
+    user_id = message.from_user.username
+    balance = telbotid.objects.get(tel_id=user_id).credit
+    formatted_balance = "{:,.2f}".format(float(balance))
     app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
 
 def ask_for_product_code(chat_id):
@@ -171,8 +167,20 @@ def handle_product_code(message):
     app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
 
 def send_website_link(chat_id):
-    website_url = f"https://{current_site}/"
-    app.send_message(chat_id, f"برای بازدید از سایت روی لینک زیر کلیک کنید:\n{website_url}")
+    """Send a button that opens the website in a browser."""
+    website_url = "https://your-website.com"  # Replace with your actual website URL
+
+    # Create an Inline Keyboard with a button linking to the website
+    markup = types.InlineKeyboardMarkup()
+    website_button = types.InlineKeyboardButton("بازدید از سایت", url=website_url)
+    markup.add(website_button)
+
+    # Send a message with the inline keyboard
+    app.send_message(
+        chat_id,
+        "برای بازدید از سایت، دکمه زیر را فشار دهید:",
+        reply_markup=markup
+    )
 
 def show_product_options(chat_id):
     options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها", "بازگشت به منو قبلی"]

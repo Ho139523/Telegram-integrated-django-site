@@ -44,7 +44,7 @@ class TelegramBotWebhookView(View):
 # Helper function to send menu
 def send_menu(chat_id, options, current_menu, extra_buttons=None):
     """Send a menu with options and track user's current menu."""
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, size_width=2)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     for option in options:
         markup.add(option)
 

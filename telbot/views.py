@@ -147,7 +147,8 @@ def handle_message(message):
 # Functions for specific actions
 def show_balance(chat_id):
     # Example: Fetch and send user balance
-    balance = random.randint(100, 1000)  # Simulated balance
+    user_id = message.from_user.username
+    balance = telbotid.objects.get(tel_id=user_id).credit
     app.send_message(chat_id, f"موجودی شما: {balance} تومان")
 
 def ask_for_product_code(chat_id):

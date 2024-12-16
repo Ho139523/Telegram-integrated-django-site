@@ -94,11 +94,30 @@ def handle_message(message):
         extra_buttons = ["بازدید سایت"]
         send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 
+<<<<<<< HEAD
     # Back to previous menu
     elif text == "بازگشت به منو قبلی":
         if len(user_menu_stack[chat_id]) > 1:
             user_menu_stack[chat_id].pop()
             previous_menu = user_menu_stack[chat_id][-1]
+=======
+# Balance handler
+@app.message_handler(func=lambda message: message.text == "موجودی من")
+def show_balance(message):
+    user_id = message.from_user.username
+    balance = telbotid.objects.get(tel_id=user_id).credit
+    formatted_balance = "{:,.2f}".format(float(balance))
+    
+    app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان")    
+        
+        
+# Category handler
+@app.message_handler(func=lambda message: message.text == "دسته بندی ها")
+def show_categories(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add("پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی")
+    app.send_message(message.chat.id, "لطفاً دسته بندی مورد نظر را انتخاب کنید:", reply_markup=markup)
+>>>>>>> be5062c21de843a15bbc52dbe96a3b6b2945fe40
 
             # Handle previous menu
             if previous_menu == "categories":

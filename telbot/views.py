@@ -84,51 +84,55 @@ def start(message):
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
-    chat_id = message.chat.id
-    text = message.text
+    try:
+        chat_id = message.chat.id
+        text = message.text
 
-    # Main menu
-    if text == "منو اصلی":
-        user_menu_stack[chat_id] = []
-        main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها"]
-        extra_buttons = ["بازدید سایت"]
-        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+        # Main menu
+        if text == "منو اصلی":
+            user_menu_stack[chat_id] = []
+            main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها"]
+            extra_buttons = ["بازدید سایت"]
+            send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 
-    # Back to previous menu
-    elif text == "بازگشت به منو قبلی":
-        if len(user_menu_stack[chat_id]) > 1:
-            user_menu_stack[chat_id].pop()
-            previous_menu = user_menu_stack[chat_id][-1]
+        # Back to previous menu
+        elif text == "بازگشت به منو قبلی":
+            if len(user_menu_stack[chat_id]) > 1:
+                user_menu_stack[chat_id].pop()
+                previous_menu = user_menu_stack[chat_id][-1]
 
-            # Handle previous menu
-            if previous_menu == "categories":
-                show_categories(message)
-            elif previous_menu == "subcategory":
-                handle_category(message)
+                # Handle previous menu
+                if previous_menu == "categories":
+                    show_categories(message)
+                elif previous_menu == "subcategory":
+                    handle_category(message)
+            else:
+                app.send_message(chat_id, "شما در منوی اصلی هستید.")
+
+        # Categories
+        elif text == "دسته بندی ها":
+            options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
+            send_menu(chat_id, options, "categories")
+
+        # Subcategories
+        elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
+            subcategories = {
+                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "بازگشت به منو قبلی"],
+                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت", "بازگشت به منو قبلی"],
+                "دیجیتال": ["لپتاب", "گوشی", "بازگشت به منو قبلی"],
+            }
+            send_menu(chat_id, subcategories[text], "subcategory")
+
+        # Products
+        elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
+            options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها", "بازگشت به منو قبلی"]
+            send_menu(chat_id, options, "products")
+
         else:
-            app.send_message(chat_id, "شما در منوی اصلی هستید.")
-
-    # Categories
-    elif text == "دسته بندی ها":
-        options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
-        send_menu(chat_id, options, "categories")
-
-    # Subcategories
-    elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
-        subcategories = {
-            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "بازگشت به منو قبلی"],
-            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت", "بازگشت به منو قبلی"],
-            "دیجیتال": ["لپتاب", "گوشی", "بازگشت به منو قبلی"],
-        }
-        send_menu(chat_id, subcategories[text], "subcategory")
-
-    # Products
-    elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها", "بازگشت به منو قبلی"]
-        send_menu(chat_id, options, "products")
-
-    else:
-        app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+            app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+            
+    except Exception as e:
+        app.send_message(chat_id, "the error is : {e}")
 
 # Categories handler
 def show_categories(message):

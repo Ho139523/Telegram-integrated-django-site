@@ -158,7 +158,7 @@ def show_balance(message):
     except Exception as e:
         app.send_message(message.chat.id, f"error is: {e}")
     
-    app.send_message(chat_id, f"موجودی شما: {formatted_balance} تومان") 
+    app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
 
 def ask_for_product_code(chat_id):
     app.send_message(chat_id, "لطفاً کد کالای مورد نظر را وارد کنید:")

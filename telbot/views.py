@@ -89,7 +89,6 @@ def start(message):
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
-    
     chat_id = message.chat.id
     text = message.text
 
@@ -114,6 +113,16 @@ def handle_message(message):
         else:
             app.send_message(chat_id, "شما در منوی اصلی هستید.")
 
+    # Specific actions for each button
+    elif text == "موجودی من":
+        show_balance(chat_id)
+
+    elif text == "خرید با کد کالا":
+        ask_for_product_code(chat_id)
+
+    elif text == "بازدید سایت":
+        send_website_link(chat_id)
+
     # Categories
     elif text == "دسته بندی ها":
         options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
@@ -130,11 +139,35 @@ def handle_message(message):
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها", "بازگشت به منو قبلی"]
-        send_menu(chat_id, options, "products")
+        show_product_options(chat_id)
 
     else:
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+
+# Functions for specific actions
+def show_balance(chat_id):
+    # Example: Fetch and send user balance
+    balance = random.randint(100, 1000)  # Simulated balance
+    app.send_message(chat_id, f"موجودی شما: {balance} تومان")
+
+def ask_for_product_code(chat_id):
+    app.send_message(chat_id, "لطفاً کد کالای مورد نظر را وارد کنید:")
+
+@app.message_handler(func=lambda message: message.text.isdigit())
+def handle_product_code(message):
+    chat_id = message.chat.id
+    product_code = message.text
+    # Simulate a product lookup or API call
+    app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
+
+def send_website_link(chat_id):
+    website_url = f"https://{current_site}/"
+    app.send_message(chat_id, f"برای بازدید از سایت روی لینک زیر کلیک کنید:\n{website_url}")
+
+def show_product_options(chat_id):
+    options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها", "بازگشت به منو قبلی"]
+    send_menu(chat_id, options, "products")
+
 
 
 # Categories handler

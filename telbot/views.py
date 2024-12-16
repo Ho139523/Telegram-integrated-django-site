@@ -42,7 +42,7 @@ class TelegramBotWebhookView(View):
             return JsonResponse({"status": "error", "message": str(e)}, status=200)
 
 # Helper function to send menu
-def send_menu(chat_id, options, current_menu, extra_buttons=None):
+def send_menu(message, options, current_menu, extra_buttons=None):
     """Send a menu with options and track user's current menu."""
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     for option in options:
@@ -54,10 +54,10 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
             markup.add(button)
 
     # Save the current menu in the user's history
-    user_menu_stack[chat_id].append(current_menu)
+    user_menu_stack[message.chat.id].append(current_menu)
 
     # Send the menu
-    app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+    app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
 
 # Start handler
 @app.message_handler(commands=['start'])
@@ -97,7 +97,7 @@ def handle_message(message):
         user_menu_stack[chat_id] = []
         main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها"]
         extra_buttons = ["بازدید سایت"]
-        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+        send_menu(message, main_menu, "main_menu", extra_buttons)
 
     # Back to previous menu
     elif text == "بازگشت به منو قبلی":
@@ -115,7 +115,7 @@ def handle_message(message):
 
     # Specific actions for each button
     elif text == "موجودی من":
-        show_balance(chat_id)
+        show_balance(message)
 
     elif text == "خرید با کد کالا":
         ask_for_product_code(chat_id)
@@ -126,7 +126,7 @@ def handle_message(message):
     # Categories
     elif text == "دسته بندی ها":
         options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
-        send_menu(chat_id, options, "categories")
+        send_menu(message, options, "categories")
 
     # Subcategories
     elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
@@ -135,7 +135,7 @@ def handle_message(message):
             "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت", "بازگشت به منو قبلی"],
             "دیجیتال": ["لپتاب", "گوشی", "بازگشت به منو قبلی"],
         }
-        send_menu(chat_id, subcategories[text], "subcategory")
+        send_menu(message, subcategories[text], "subcategory")
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
@@ -145,9 +145,9 @@ def handle_message(message):
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 # Functions for specific actions
-def show_balance(chat_id):
+def show_balance(message):
     # Example: Fetch and send user balance
-    user_id = "HusseinMohammadi2079"
+    user_id = message.from_user.username
     balance = telbotid.objects.get(tel_id=user_id).credit
     formatted_balance = "{:,.2f}".format(float(balance))
     
@@ -169,7 +169,7 @@ def send_website_link(chat_id):
 
 def show_product_options(chat_id):
     options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها", "بازگشت به منو قبلی"]
-    send_menu(chat_id, options, "products")
+    send_menu(message, options, "products")
 
 
 

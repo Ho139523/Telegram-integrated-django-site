@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 # App setup
 app = TeleBot(token=TOKEN)
+current_site = get_current_site()
 
 # Tracking user menu history
 user_menu_stack = defaultdict(list)

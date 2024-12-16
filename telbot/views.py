@@ -44,7 +44,7 @@ class TelegramBotWebhookView(View):
 # Helper function to send menu
 def send_menu(chat_id, options, current_menu, extra_buttons=None):
     """Send a menu with options and track user's current menu."""
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, size_width=2)
     for option in options:
         markup.add(option)
 
@@ -62,30 +62,27 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
 # Start handler
 @app.message_handler(commands=['start'])
 def start(message):
-    try:
-        tel_id = message.from_user.username if message.from_user.username else message.from_user.id
-        tel_name = message.from_user.first_name
-        response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
+    tel_id = message.from_user.username if message.from_user.username else message.from_user.id
+    tel_name = message.from_user.first_name
+    response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
 
-        # Define main menu
-        main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها"]
-        extra_buttons = ["بازدید سایت"]
+    # Define main menu
+    main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها"]
+    extra_buttons = ["بازدید سایت"]
 
-        if response.status_code == 201:
-            app.send_message(
-                message.chat.id,
-                f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
-            )
-        else:
-            app.send_message(
-                message.chat.id,
-                f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
-            )
-        
-        send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
+    if response.status_code == 201:
+        app.send_message(
+            message.chat.id,
+            f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
+        )
+    else:
+        app.send_message(
+            message.chat.id,
+            f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
+        )
     
-    except Exception as e:
-        app.send_message(message.chat.id, f"the error is : {e}")
+    send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
+    
 
 # Handle messages
 @app.message_handler(func=lambda message: True)

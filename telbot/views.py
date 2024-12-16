@@ -156,7 +156,7 @@ def show_balance(message):
         formatted_balance = "{:,.2f}".format(float(balance))
         
     except Exception as e:
-        app.send_message(message.chat.id, f"error is: {e}")6
+        app.send_message(message.chat.id, f"error is: {e}")
     
     app.send_message(chat_id, f"موجودی شما: {formatted_balance} تومان") 
 

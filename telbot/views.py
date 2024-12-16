@@ -147,9 +147,13 @@ def handle_message(message):
 # Functions for specific actions
 def show_balance(message):
     # Example: Fetch and send user balance
-    user_id = message.from_user.username
-    balance = telbotid.objects.get(tel_id=user_id).credit
-    formatted_balance = "{:,.2f}".format(float(balance))
+    try:
+        user_id = message.from_user.username
+        balance = telbotid.objects.get(tel_id=user_id).credit
+        formatted_balance = "{:,.2f}".format(float(balance))
+        
+    except Exception as e:
+        app.send_message(message.chat.id, f"error is: {e}")
     
     app.send_message(chat_id, f"موجودی شما: {formatted_balance} تومان") 
 

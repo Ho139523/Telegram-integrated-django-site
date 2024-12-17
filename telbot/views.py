@@ -130,7 +130,7 @@ def subscription_offer(message):
 
 # Function to escape all special characters with a backslash
 def escape_special_characters(text):
-    special_characters = r"([\*\_\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!])"
+    special_characters = r"([\*\_\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!\ض\ص\ث\ق\ف\غ\ع\ه\خ\ح\ج\چ\ش\س\ی\ب\ل\ا\ت\ن\م\ک\گ\ظ\ط\ز\ر\ذ\د\ئ\و])"
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
@@ -334,7 +334,7 @@ def sup_text(message):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
 
-        app.send_message(chat_id=5629898030, text=f"یک پیام برای پشتیبانی از طرف کاربر با کد <code>{message.from_user.id}</code> و نام کاربری @{message.from_user.username} دریافت شد:\n\n متن پیام: \n\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup, parse_mode="HTML")
+        app.send_message(chat_id=5629898030, text=f"یک پیام برای پشتیبانی از طرف کاربر با کد \n<code>{message.from_user.id}</code>\n و نام کاربری \n@{message.from_user.username}\nدریافت شد:\n\n متن پیام: \n\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup, parse_mode="HTML")
 
         app.send_message(chat_id=message.chat.id, text="Your message was sent!")
 

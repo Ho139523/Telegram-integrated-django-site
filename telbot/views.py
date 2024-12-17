@@ -17,6 +17,9 @@ from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
 
+
+###############################################################################################
+
 # Logging setup
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,9 @@ current_site = get_current_site()
 
 # Tracking user menu history
 user_menu_stack = defaultdict(list)
+
+
+################################################################################################
 
 # Webhook settings
 @method_decorator(csrf_exempt, name='dispatch')
@@ -40,6 +46,9 @@ class TelegramBotWebhookView(View):
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")
             return JsonResponse({"status": "error", "message": str(e)}, status=200)
+            
+
+#################################################################################################
 
 # Helper function to send menu
 def send_menu(chat_id, options, current_menu, extra_buttons=None):
@@ -66,6 +75,9 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
     # Send the menu
     app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
 
+
+
+####################################################################################################
 
 
 # Start handler
@@ -95,6 +107,9 @@ def start(message):
         app.send_message(message.chat.id, f"error is: {e}")
     
 
+
+#####################################################################################################
+
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -105,7 +120,7 @@ def handle_message(message):
     if text == "منو اصلی":
         user_menu_stack[chat_id] = []
         main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها"]
-        extra_buttons = ["بازدید سایت"]
+        extra_buttons = ["بازدید سایت", "پیام به پشتیبان"]
         send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 
     # Back to previous menu
@@ -155,6 +170,10 @@ def handle_message(message):
 
     else:
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+
+
+#####################################################################################################
+
 
 # Functions for specific actions
 def show_balance(message):

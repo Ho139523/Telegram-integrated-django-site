@@ -126,7 +126,7 @@ def handle_message(message):
             previous_menu = user_menu_stack[chat_id][-1]
 
             # Debugging information (optional)
-            app.send_message(chat_id, f"Navigating back to: {previous_menu}")
+            app.send_message(chat_id, f"Navigating back to: {user_menu_stack[chat_id]}")
 
             # Handle previous menu logic
             if previous_menu == "categories":

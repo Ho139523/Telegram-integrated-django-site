@@ -141,7 +141,7 @@ def start(message):
         # previous_menu = session["history"].pop()
         # session["current_menu"] = previous_menu
 
-        Handle back navigation
+        # # Handle back navigation
         # if previous_menu == "main_menu":
             # send_menu(chat_id, main_menu, "main_menu", extra_buttons)
         # elif previous_menu.startswith("subcategory"):
@@ -156,7 +156,7 @@ def start(message):
             # options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
             # send_menu(chat_id, options, "products", retun_menue)
     # else:
-        If no history, return to main menu
+        # # If no history, return to main menu
         # session["current_menu"] = "main_menu"
         # send_menu(chat_id, main_menu, "main_menu", extra_buttons)
         # app.send_message(chat_id, "شما در منوی اصلی هستید.")

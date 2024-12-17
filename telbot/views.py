@@ -120,7 +120,7 @@ def handle_message(message):
     if text == "منو اصلی":
         user_menu_stack[chat_id] = []
         main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها"]
-        extra_buttons = ["بازدید سایت"]
+        extra_buttons = ["بازدید سایت", "پیام به پشتیبان"]
         send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 
     # Back to previous menu

@@ -169,7 +169,7 @@ def handle_message(message):
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-        show_product_options(message)
+            show_product_options(message)
 
     else:
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
@@ -232,4 +232,3 @@ def handle_category(message):
         "دیجیتال": ["لپتاب", "گوشی"],
     }
     send_menu(message.chat.id, subcategories[message.text], "subcategory", retun_menue)
-    

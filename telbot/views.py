@@ -135,7 +135,7 @@ def handle_message(message):
 
     # Specific actions for each button
     elif text == "موجودی":
-        options = ["موجودی من", "افزایش موجودی", "منو اصلی"]
+        options = ["موجودی من", "افزایش موجودی"]
         retun_menue = ["منو اصلی"]
         send_menu(chat_id, options, "balance_category", retun_menue)
         
@@ -149,16 +149,18 @@ def handle_message(message):
     # Categories
     elif text == "دسته بندی ها":
         options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
-        send_menu(chat_id, options, "categories")
+        retun_menue = ["منو اصلی"]
+        send_menu(chat_id, options, "categories", retun_menue)
 
     # Subcategories
     elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
         subcategories = {
-            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "بازگشت به منو قبلی"],
-            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت", "بازگشت به منو قبلی"],
-            "دیجیتال": ["لپتاب", "گوشی", "بازگشت به منو قبلی"],
+            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+            "دیجیتال": ["لپتاب", "گوشی"],
         }
-        send_menu(chat_id, subcategories[text], "subcategory")
+        retun_menue = ["منو اصلی", "بازگشت به منو قبلی"]
+        send_menu(chat_id, subcategories[text], "subcategory", retun_menue)
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:

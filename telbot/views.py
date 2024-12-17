@@ -136,7 +136,7 @@ def handle_message(message):
     # Specific actions for each button
     elif text == "موجودی":
         options = ["موجودی من", "افزایش موجودی"]
-        retun_menue = ["🏡"]
+        home_menue = ["🏡"]
         send_menu(chat_id, options, "balance_category", retun_menue)
         
     elif text == "موجودی من":
@@ -152,7 +152,7 @@ def handle_message(message):
     # Categories
     elif text == "دسته بندی ها":
         options = ["پوشاک", "خوراکی", "دیجیتال"]
-        retun_menue = ["🏡"]
+        home_menue = ["🏡"]
         send_menu(chat_id, options, "categories", retun_menue)
 
     # Subcategories
@@ -221,7 +221,7 @@ def show_product_options(chat_id):
 # Categories handler
 def show_categories(message):
     options = ["پوشاک", "خوراکی", "دیجیتال"]
-    retun_menue = ["🏡"]
+    home_menue = ["🏡"]
     send_menu(message.chat.id, options, "categories", retun_menue)
 
 # Handle category

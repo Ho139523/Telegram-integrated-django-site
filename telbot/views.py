@@ -139,6 +139,9 @@ def handle_message(message):
         retun_menue = ["🏡"]
         send_menu(chat_id, options, "balance_category", retun_menue)
         
+    elif text == "موجودی من":
+        show_balance(message)
+        
 
     elif text == "خرید با کد کالا":
         ask_for_product_code(chat_id)

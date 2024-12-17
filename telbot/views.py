@@ -24,6 +24,7 @@ from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_withou
 from utils.telbot.functions import *
 from utils.telbot.variables import main_menu, extra_buttons, retun_menue
 import re
+from bs4 import BeautifulSoup
 
 
 ###############################################################################################
@@ -476,8 +477,9 @@ def handle_subcategories(message):
 def answer(call):
     try:
         pattern = r"Recived a message from \d+"
-        print(call.message.text)
-        user = re.findall(pattern=pattern, string=call.message.text)[0].split()[4]
+        clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
+        print(re.findall(pattern=pattern, string=clean_text))
+        user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
         
         app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply())
 

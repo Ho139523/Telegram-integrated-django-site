@@ -473,7 +473,7 @@ def handle_subcategories(message):
 
 # Handling the callback query when the 'answer' button is clicked
 @app.callback_query_handler(func= lambda call: call.data == "پاسخ")
-def answer(call: app.CallbackQuery):
+def answer(call: CallbackQuery):
     try:
         pattern = r"Recived a message from \d+"
         user = re.findall(pattern=pattern, string=call.message.text)[0].split()[4]

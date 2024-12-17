@@ -70,7 +70,10 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
             markup.row(*extra_row)
 
     # Save the current menu in the user's history
-    user_menu_stack[chat_id].append(current_menu)
+    if current_menu in ["پوشاک", "خوراکی", "دیجیتال"]:
+        pass
+    else:
+        user_menu_stack[chat_id].append(current_menu)
     app.send_message(chat_id, f"Navigating back to: {user_menu_stack[chat_id]}")
 
     # Send the menu

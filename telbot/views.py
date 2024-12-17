@@ -483,7 +483,7 @@ def answer(call):
         app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
     
     except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+        app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
 
 try:
     app.add_custom_filter(custom_filters.StateFilter(app))

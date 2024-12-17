@@ -231,12 +231,7 @@ def handle_message(message):
         chat_id = message.chat.id
         text = message.text
 
-        
-        # Specific actions for each button
-        if text == "موجودی":
-            
-            
-        elif text == "موجودی من":
+        if text == "موجودی من":
             show_balance(message)
             
 

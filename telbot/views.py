@@ -236,6 +236,14 @@ def buy_with_code(message):
     if subscription_offer(message):
         ask_for_product_code(message)
 
+# First layer category
+@app.message_handler(func=lambda message: message.text=="دسته بندی ها")
+def category(message):
+    if subscription_offer(message):
+        options = ["پوشاک", "خوراکی", "دیجیتال"]
+        home_menue = ["🏡"]
+        send_menu(message, options, "categories", home_menue)
+
 
 # Handle messages
 @app.message_handler(func=lambda message: True)

@@ -209,7 +209,10 @@ def home(message):
 # Visit website
 @app.message_handler(func=lambda message: message.text=="بازدید سایت")
 def home(message):
-    send_website_link(message.chat.id)
+    try:
+        send_website_link(message.chat.id)
+    except Exception as e:
+        app.send_message(message.chat.id, f"error is: {e}")
 
 
 # Handle messages

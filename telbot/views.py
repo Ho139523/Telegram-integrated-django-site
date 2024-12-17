@@ -183,7 +183,13 @@ def handle_message(message):
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-        user_menu_stack[chat_id].append(text)  # Save the subcategory name in the stack
+        if text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"]:
+            user_menu_stack[chat_id].append('پوشاک')
+        elif text in ["خشکبار", "خوار و بار", "سوپر مارکت"]:
+            user_menu_stack[chat_id].append('خوراکی')
+        elif text in ["لپتاب", "گوشی"]:
+            user_menu_stack[chat_id].append('دیجیتال')
+          # Save the subcategory name in the stack
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
         send_menu(chat_id, options, "products", retun_menue)
 

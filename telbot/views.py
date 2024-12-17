@@ -54,7 +54,6 @@ class TelegramBotWebhookView(View):
 # Helper function to send menu
 def send_menu(message, options, current_menu, extra_buttons=None):
     """Send a menu with options and update the session."""
-    try:
         if subscription_offer(message):
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
@@ -78,9 +77,6 @@ def send_menu(message, options, current_menu, extra_buttons=None):
             # Send the menu
             app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
             app.send_message(message.chat.id, f"the history is : {session["history"]}")
-        
-    except Exception as e:
-        app.send_message(message.chat.id, f"the error is : {e}")
 
 
 
@@ -268,76 +264,82 @@ def handle_message(message):
 # Functions for specific actions
 def show_balance(message):
     # Example: Fetch and send user balance
-
-    user_id = message.from_user.username
-    balance = telbotid.objects.get(tel_id=user_id).credit
-    formatted_balance = "{:,.2f}".format(float(balance))
-    app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
+    if subscription_offer(message):
+        user_id = message.from_user.username
+        balance = telbotid.objects.get(tel_id=user_id).credit
+        formatted_balance = "{:,.2f}".format(float(balance))
+        app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
 
 def ask_for_product_code(chat_id):
-    app.send_message(chat_id, "لطفاً کد کالای مورد نظر را وارد کنید:")
+    if subscription_offer(message):
+        app.send_message(chat_id, "لطفاً کد کالای مورد نظر را وارد کنید:")
 
 @app.message_handler(func=lambda message: message.text.isdigit())
 def handle_product_code(message):
-    chat_id = message.chat.id
-    product_code = message.text
-    # Simulate a product lookup or API call
-    app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
+    if subscription_offer(message):
+        chat_id = message.chat.id
+        product_code = message.text
+        # Simulate a product lookup or API call
+        app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
 
 def send_website_link(chat_id):
     """Send a button that opens the website in a browser."""
-    
-    # Create an Inline Keyboard with a button linking to the website
-    markup = types.InlineKeyboardMarkup()
-    website_button = types.InlineKeyboardButton("بازدید از سایت", url=current_site)
-    markup.add(website_button)
+    if subscription_offer(message):
+        # Create an Inline Keyboard with a button linking to the website
+        markup = types.InlineKeyboardMarkup()
+        website_button = types.InlineKeyboardButton("بازدید از سایت", url=current_site)
+        markup.add(website_button)
 
-    # Send a message with the inline keyboard
-    app.send_message(
-        chat_id,
-        "برای بازدید از سایت، دکمه زیر را فشار دهید:",
-        reply_markup=markup
-    )
+        # Send a message with the inline keyboard
+        app.send_message(
+            chat_id,
+            "برای بازدید از سایت، دکمه زیر را فشار دهید:",
+            reply_markup=markup
+        )
 
 def show_product_options(message):
-    options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-    send_menu(message, options, "products", retun_menue)
+    if subscription_offer(message):
+        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+        send_menu(message, options, "products", retun_menue)
 
 
 
 # Categories handler
 def show_categories(message):
-    options = ["پوشاک", "خوراکی", "دیجیتال"]
-    home_menue = ["🏡"]
-    send_menu(message, options, "categories", home_menue)
+    if subscription_offer(message):
+        options = ["پوشاک", "خوراکی", "دیجیتال"]
+        home_menue = ["🏡"]
+        send_menu(message, options, "categories", home_menue)
 
 # Handle category
 def handle_category(message):
-    subcategories = {
-        "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-        "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-        "دیجیتال": ["لپتاب", "گوشی"],
-    }
-    send_menu(message, subcategories[message.text], "subcategory", retun_menue)
+    if subscription_offer(message):
+        subcategories = {
+            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+            "دیجیتال": ["لپتاب", "گوشی"],
+        }
+        send_menu(message, subcategories[message.text], "subcategory", retun_menue)
     
     
 # Subcategories Handler
 @app.message_handler(func=lambda message: message.text in ["پوشاک", "خوراکی", "دیجیتال"])
 def handle_subcategories(message):
-    chat_id = message.chat.id
-    parent_category = message.text  # Save the parent category
-    subcategories = {
-        "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-        "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-        "دیجیتال": ["لپتاب", "گوشی"],
-    }
+    if subscription_offer(message):
+        chat_id = message.chat.id
+        parent_category = message.text  # Save the parent category
+        subcategories = {
+            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+            "دیجیتال": ["لپتاب", "گوشی"],
+        }
 
-    # Save session
-    user_sessions[chat_id]["history"].append(user_sessions[chat_id]["current_menu"])
-    user_sessions[chat_id]["current_menu"] = f"subcategory:{parent_category}"
+        # Save session
+        user_sessions[chat_id]["history"].append(user_sessions[chat_id]["current_menu"])
+        user_sessions[chat_id]["current_menu"] = f"subcategory:{parent_category}"
 
-    # Send subcategory menu
-    send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
+        # Send subcategory menu
+        send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
 
 
 # Products Handler
@@ -346,13 +348,14 @@ def handle_subcategories(message):
     "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"
 ])
 def handle_products(message):
-    chat_id = message.chat.id
-    subcategory = message.text  # Save subcategory
-    options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+    if subscription_offer(message):
+        chat_id = message.chat.id
+        subcategory = message.text  # Save subcategory
+        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
 
-    # Save session
-    user_sessions[chat_id]["history"].append(user_sessions[chat_id]["current_menu"])
-    user_sessions[chat_id]["current_menu"] = f"products:{subcategory}"
+        # Save session
+        user_sessions[chat_id]["history"].append(user_sessions[chat_id]["current_menu"])
+        user_sessions[chat_id]["current_menu"] = f"products:{subcategory}"
 
-    # Send products menu
-    send_menu(message, options, "products", retun_menue)
+        # Send products menu
+        send_menu(message, options, "products", retun_menue)

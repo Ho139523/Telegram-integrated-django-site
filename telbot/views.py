@@ -43,7 +43,7 @@ user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
 
 # support class
 chat_ids=[]
-text={}
+texts={}
 class Support(StatesGroup):
     text = State()
     respond = State()

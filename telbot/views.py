@@ -375,8 +375,6 @@ def handle_message(message):
         # if text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
             # options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
             # send_menu(message, options, "products", retun_menue)
-        chat_id = message.chat.id
-        app.reply_to(message, f"Your Chat ID is: {chat_id}")
         app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 

@@ -121,7 +121,8 @@ def start(message):
         tel_id = message.from_user.username if message.from_user.username else message.from_user.id
         tel_name = message.from_user.first_name
         response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
-
+    except Exception as e:
+        app.send_message(message.chat.id, f"the error is : {e}")
 
         if response.status_code == 201:
             app.send_message(
@@ -143,8 +144,7 @@ def start(message):
             
             
         
-    except Exception as e:
-        app.send_message(message.chat.id, f"the error is : {e}")
+    
     
 
 

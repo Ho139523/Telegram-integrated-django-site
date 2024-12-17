@@ -148,7 +148,7 @@ def handle_message(message):
 
     # Categories
     elif text == "دسته بندی ها":
-        options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
+        options = ["پوشاک", "خوراکی", "دیجیتال"]
         retun_menue = ["منو اصلی"]
         send_menu(chat_id, options, "categories", retun_menue)
 

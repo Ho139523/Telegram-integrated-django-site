@@ -433,4 +433,4 @@ def handle_subcategories(message):
         send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
 
 
-bot.add_custom_filter(custom_filters.StateFilter(bot))
+app.add_custom_filter(custom_filters.StateFilter(bot))

@@ -94,7 +94,6 @@ def send_menu(message, options, current_menu, extra_buttons=None):
 
         # Send the menu
         app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
-        app.send_message(message.chat.id, f"the history is : {session["history"]}")
 
 
 
@@ -335,7 +334,7 @@ def sup_text(message):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
 
-        app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup, parse_mode="HTML")
+        app.send_message(chat_id=5629898030, text=f"یک پیام برای پشتیبانی از طرف کاربر با کد  <code>{message.from_user.id}</code>  و نام کاربری  @{message.from_user.username}:\n\متن پیام :\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup, parse_mode="HTML")
 
         app.send_message(chat_id=message.chat.id, text="Your message was sent!")
 

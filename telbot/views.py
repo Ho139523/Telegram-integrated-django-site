@@ -284,9 +284,9 @@ def show_balance(message):
         formatted_balance = "{:,.2f}".format(float(balance))
         app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
 
-def ask_for_product_code(chat_id):
+def ask_for_product_code(message):
     if subscription_offer(message):
-        app.send_message(chat_id, "لطفاً کد کالای مورد نظر را وارد کنید:")
+        app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
 
 @app.message_handler(func=lambda message: message.text.isdigit())
 def handle_product_code(message):

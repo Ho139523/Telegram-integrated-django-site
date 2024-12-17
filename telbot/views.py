@@ -131,7 +131,7 @@ def handle_message(message):
             elif previous_menu == "subcategory":
                 handle_category(message)
             elif previous_menu == "products":
-                show_product_options(message)
+                handle_category(message)
         else:
             app.send_message(chat_id, "شما در منوی اصلی هستید.")
 

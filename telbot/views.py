@@ -104,11 +104,14 @@ def subscription_offer(message):
         channel_markup.add(check_subscription_button)
         current_site_markup.add(current_site_button)
         
-        if check_subscription(user=message.from_user.id)==False:
-            app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
-            return False
-        else:
-            return True
+        try:
+            if check_subscription(user=message.from_user.id)==False:
+                app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
+                return False
+            else:
+                return True
+        except Exception as e:
+            app.send_message(message.chat.id, f"the error is : {e}")
 
 
 ####################################################################################################

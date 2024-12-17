@@ -204,6 +204,12 @@ def handle_check_subscription(call):
 def home(message):
     user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
     send_menu(message, main_menu, "main_menu", extra_buttons)
+    
+
+# Visit website
+@app.message_handler(func=lambda message: message.text=="بازدید سایت")
+def home(message):
+    send_website_link(message.chat.id)
 
 
 # Handle messages
@@ -226,9 +232,6 @@ def handle_message(message):
 
         elif text == "خرید با کد کالا":
             ask_for_product_code(chat_id)
-
-        elif text == "بازدید سایت":
-            send_website_link(chat_id)
 
         # Categories
         elif text == "دسته بندی ها":

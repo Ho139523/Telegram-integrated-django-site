@@ -210,7 +210,7 @@ def handle_message(message):
 
         
         # Specific actions for each button
-        elif text == "موجودی":
+        if text == "موجودی":
             options = ["موجودی من", "افزایش موجودی"]
             home_menue = ["🏡"]
             send_menu(message, options, "balance_category", home_menue)

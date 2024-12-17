@@ -70,11 +70,7 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
             markup.row(*extra_row)
 
     # Save the current menu in the user's history
-    if current_menu in ["پوشاک", "خوراکی", "دیجیتال"]:
-        pass
-    else:
-        user_menu_stack[chat_id].append(current_menu)
-    app.send_message(chat_id, f"Navigating back to: {user_menu_stack[chat_id]}")
+    user_menu_stack[chat_id].append(current_menu)
 
     # Send the menu
     app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
@@ -119,39 +115,25 @@ def handle_message(message):
 
     # Main menu
     if text == "🏡":
-        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
         user_menu_stack[chat_id] = []
         
+        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 
     # Back to previous menu
     elif text == "🔙":
         if len(user_menu_stack[chat_id]) > 1:
-            app.send_message(chat_id, f"Navigating back to: {user_menu_stack[chat_id]}")
             user_menu_stack[chat_id].pop()
             previous_menu = user_menu_stack[chat_id][-1]
 
-            # Debugging information (optional)
-            app.send_message(chat_id, f"Navigating back to: {user_menu_stack[chat_id]}")
-
-            # Handle previous menu logic
+            # Handle previous menu
             if previous_menu == "categories":
                 show_categories(message)
             elif previous_menu == "subcategory":
-                # Return to the saved subcategory menu
-                handle_category_name = previous_menu  # Name of the subcategory
-                subcategories = {
-                    "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-                    "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-                    "دیجیتال": ["لپتاب", "گوشی"],
-                }
-                send_menu(chat_id, subcategories[handle_category_name], "subcategory", retun_menue)
-            
+                handle_category(message)
+            elif previous_menu == "products":
+                show_product_options(message)
         else:
-            user_menu_stack[chat_id] = []  # Reset stack
-            send_menu(chat_id, main_menu, "main_menu", extra_buttons)
             app.send_message(chat_id, "شما در منوی اصلی هستید.")
-
-
 
     # Specific actions for each button
     elif text == "موجودی":
@@ -187,15 +169,8 @@ def handle_message(message):
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-        if text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"]:
-            user_menu_stack[chat_id].append('پوشاک')
-        elif text in ["خشکبار", "خوار و بار", "سوپر مارکت"]:
-            user_menu_stack[chat_id].append('خوراکی')
-        elif text in ["لپتاب", "گوشی"]:
-            user_menu_stack[chat_id].append('دیجیتال')
-          # Save the subcategory name in the stack
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-        send_menu(chat_id, options, user_menu_stack[chat_id][-1], retun_menue)
+        send_menu(chat_id, options, "products", retun_menue)
 
     else:
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")

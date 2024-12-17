@@ -12,6 +12,12 @@ import json
 import logging
 from .models import telbotid
 
+
+# support imports
+from telebot.storage import StateMemoryStorage
+from telebot.handler_backends import State, StatesGroup
+from telebot import custom_filters
+
 # Variables imports
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
@@ -24,12 +30,20 @@ from utils.telbot.variables import main_menu, extra_buttons, retun_menue
 # Logging setup
 logger = logging.getLogger(__name__)
 
+# support memmory
+state_storage = StateMemoryStorage()
+
 # App setup
-app = TeleBot(token=TOKEN)
+app = TeleBot(token=TOKEN, state_storage=state_storage)
 current_site = get_current_site()
 
 # Tracking user menu history
 user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+
+# support class
+class Support(StatesGroup):
+    text = State()
+    respond = State()
 
 
 ################################################################################################
@@ -294,6 +308,32 @@ def handle_ten_products(message):
     	
     	elif message.text=="گران ترین ها":
 
+##################################
+# support handlers
+
+# Handling the 'Support 👨🏻‍💻' button click event
+@bot.message_handler(func= lambda message: message.text == "پیام به پشتیبانی")
+def sup(message):
+    bot.send_message(chat_id=message.chat.id, text="لطفا پیام خود را تایپ کنید:")
+    bot.set_state(user_id=m.from_user.id, state=Support.text, chat_id=message.chat.id)    
+
+
+# Handling the user's first message which is saved in 'Support.text' state
+@bot.message_handler(state=Support.text)
+def sup_text(message):
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=message.from_user.id))
+
+    bot.send_message(chat_id=SUPPORT_ID, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
+
+    bot.send_message(chat_id=message.chat.id, text="Your message was sent!")
+
+    texts[m.from_user.id] = message.text
+
+    bot.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+
+##################################
+
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -301,7 +341,8 @@ def handle_message(message):
         # if text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
             # options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
             # send_menu(message, options, "products", retun_menue)
-
+        chat_id = message.chat.id
+        app.reply_to(message, f"Your Chat ID is: {chat_id}")
         app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 
@@ -391,3 +432,4 @@ def handle_subcategories(message):
         send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
 
 
+bot.add_custom_filter(custom_filters.StateFilter(bot))

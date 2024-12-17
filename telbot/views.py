@@ -2,7 +2,6 @@
 from telebot import TeleBot, types
 from collections import defaultdict
 import requests
-import random
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import JsonResponse
 from django.views import View
@@ -16,8 +15,7 @@ from .models import telbotid
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.variables import main_menu, extra_buttons
-
+from utils.telbot.variables import main_menu
 
 ###############################################################################################
 
@@ -30,7 +28,6 @@ current_site = get_current_site()
 
 # Tracking user menu history
 user_menu_stack = defaultdict(list)
-
 
 ################################################################################################
 
@@ -52,30 +49,34 @@ class TelegramBotWebhookView(View):
 #################################################################################################
 
 # Helper function to send menu
-def send_menu(chat_id, options, current_menu, extra_buttons=None):
-    """Send a menu with options and track user's current menu."""
-    from telebot import types
-
-    # Create the keyboard markup
+def send_menu(chat_id, options, current_menu, extra_buttons=None, is_submenu=False):
+    """
+    Send a menu with options.
+    - Adds dynamic row widths for buttons.
+    - Submenus exclude "منو اصلی" button and have specific row arrangements.
+    """
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-    # Organize buttons into rows of three
-    rows = [options[i:i + 3] for i in range(0, len(options), 3)]
+    # Define row width dynamically
+    row_width = 3 if not is_submenu else 1
+    rows = [options[i:i + row_width] for i in range(0, len(options), row_width)]
+
+    # Add main options with row width
     for row in rows:
         markup.row(*row)
 
-    # Add extra buttons like "بازدید سایت" or "منو اصلی"
-    if extra_buttons:
-        extra_rows = [extra_buttons[i:i + 3] for i in range(0, len(extra_buttons), 3)]
-        for extra_row in extra_rows:
-            markup.row(*extra_row)
+    # Add back and main menu buttons at the bottom
+    if current_menu == "main_menu":
+        markup.row("بازگشت به منو قبلی", "منو اصلی")
+    else:
+        # Only "بازگشت به منو قبلی" for submenus
+        markup.row("بازگشت به منو قبلی")
 
-    # Save the current menu in the user's history
+    # Save current menu to user's history
     user_menu_stack[chat_id].append(current_menu)
 
     # Send the menu
     app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
-
 
 
 ####################################################################################################
@@ -88,7 +89,6 @@ def start(message):
     tel_name = message.from_user.first_name
     response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
 
-
     if response.status_code == 201:
         app.send_message(
             message.chat.id,
@@ -100,10 +100,9 @@ def start(message):
             f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
         )
     try:
-        send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
+        send_menu(message.chat.id, main_menu, "main_menu")
     except Exception as e:
         app.send_message(message.chat.id, f"error is: {e}")
-    
 
 
 #####################################################################################################
@@ -116,9 +115,8 @@ def handle_message(message):
 
     # Main menu
     if text == "منو اصلی":
-        user_menu_stack[chat_id] = []
-        
-        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+        user_menu_stack[chat_id] = []  # Reset menu history
+        send_menu(chat_id, main_menu, "main_menu")
 
     # Back to previous menu
     elif text == "بازگشت به منو قبلی":
@@ -136,9 +134,8 @@ def handle_message(message):
 
     # Specific actions for each button
     elif text == "موجودی":
-        options = ["موجودی من", "افزایش موجودی", "منو اصلی"]
-        send_menu(chat_id, options, "balance_category")
-        
+        options = ["موجودی من", "افزایش موجودی"]
+        send_menu(chat_id, options, "balance_category", is_submenu=True)
 
     elif text == "خرید با کد کالا":
         ask_for_product_code(chat_id)
@@ -148,17 +145,17 @@ def handle_message(message):
 
     # Categories
     elif text == "دسته بندی ها":
-        options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
-        send_menu(chat_id, options, "categories")
+        options = ["پوشاک", "خوراکی", "دیجیتال"]
+        send_menu(chat_id, options, "categories", is_submenu=True)
 
     # Subcategories
     elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
         subcategories = {
-            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "بازگشت به منو قبلی"],
-            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت", "بازگشت به منو قبلی"],
-            "دیجیتال": ["لپتاب", "گوشی", "بازگشت به منو قبلی"],
+            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+            "دیجیتال": ["لپتاب", "گوشی"],
         }
-        send_menu(chat_id, subcategories[text], "subcategory")
+        send_menu(chat_id, subcategories[text], "subcategory", is_submenu=True)
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
@@ -170,58 +167,45 @@ def handle_message(message):
 
 #####################################################################################################
 
-
 # Functions for specific actions
-def show_balance(message):
-    # Example: Fetch and send user balance
-
-    user_id = message.from_user.username
-    balance = telbotid.objects.get(tel_id=user_id).credit
-    formatted_balance = "{:,.2f}".format(float(balance))
-    app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
-
 def ask_for_product_code(chat_id):
     app.send_message(chat_id, "لطفاً کد کالای مورد نظر را وارد کنید:")
+
 
 @app.message_handler(func=lambda message: message.text.isdigit())
 def handle_product_code(message):
     chat_id = message.chat.id
     product_code = message.text
-    # Simulate a product lookup or API call
     app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
+
 
 def send_website_link(chat_id):
     """Send a button that opens the website in a browser."""
-    website_url = "https://your-website.com"  # Replace with your actual website URL
-
-    # Create an Inline Keyboard with a button linking to the website
     markup = types.InlineKeyboardMarkup()
-    website_button = types.InlineKeyboardButton("بازدید از سایت", url=current_site)
+    website_button = types.InlineKeyboardButton("بازدید از سایت", url=str(current_site))
     markup.add(website_button)
 
-    # Send a message with the inline keyboard
     app.send_message(
         chat_id,
         "برای بازدید از سایت، دکمه زیر را فشار دهید:",
         reply_markup=markup
     )
 
+
 def show_product_options(chat_id):
-    options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها", "بازگشت به منو قبلی"]
-    send_menu(chat_id, options, "products")
+    options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+    send_menu(chat_id, options, "products", is_submenu=True)
 
 
-
-# Categories handler
 def show_categories(message):
-    options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
-    send_menu(message.chat.id, options, "categories")
+    options = ["پوشاک", "خوراکی", "دیجیتال"]
+    send_menu(message.chat.id, options, "categories", is_submenu=True)
 
-# Handle category
+
 def handle_category(message):
     subcategories = {
-        "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "بازگشت به منو قبلی"],
-        "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت", "بازگشت به منو قبلی"],
-        "دیجیتال": ["لپتاب", "گوشی", "بازگشت به منو قبلی"],
+        "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+        "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+        "دیجیتال": ["لپتاب", "گوشی"],
     }
-    send_menu(message.chat.id, subcategories[message.text], "subcategory")
+    send_menu(message.chat.id, subcategories[message.text], "subcategory", is_submenu=True)

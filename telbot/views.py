@@ -250,11 +250,11 @@ def category_1(message):
 def category_2(message):
     if subscription_offer(message):
         layer_2 = {
-                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-                "دیجیتال": ["لپتاب", "گوشی"],
-            }
-            send_menu(message, layer_2[text], "category_2", retun_menue)
+            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+            "دیجیتال": ["لپتاب", "گوشی"],
+        }
+        send_menu(message, layer_2[text], "category_2", retun_menue)
 
 # Handle messages
 @app.message_handler(func=lambda message: True)

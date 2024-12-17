@@ -255,7 +255,7 @@ def category_2(message):
                 "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
                 "دیجیتال": ["لپتاب", "گوشی"],
             }
-            send_menu(message, layer_2[text], "category_2", retun_menue)
+            send_menu(message, layer_2[message.text], "category_2", retun_menue)
     except Exception as e:
         app.send_message(chat_id, f"error is : {e}")
 

@@ -114,13 +114,13 @@ def handle_message(message):
     text = message.text
 
     # Main menu
-    if text == "منو اصلی":
+    if text == "🏡":
         user_menu_stack[chat_id] = []
         
         send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 
     # Back to previous menu
-    elif text == "بازگشت به منو قبلی":
+    elif text == "🔙":
         if len(user_menu_stack[chat_id]) > 1:
             user_menu_stack[chat_id].pop()
             previous_menu = user_menu_stack[chat_id][-1]

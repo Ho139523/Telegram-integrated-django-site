@@ -333,7 +333,7 @@ def sup_text(message):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=message.from_user.id))
 
-    app.send_message(chat_id=866890056, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
+    app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
 
     app.send_message(chat_id=message.chat.id, text="Your message was sent!")
 
@@ -375,8 +375,6 @@ def handle_message(message):
         # if text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
             # options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
             # send_menu(message, options, "products", retun_menue)
-        chat_id = message.chat.id
-        app.reply_to(message, f"Your Chat ID is: {chat_id}")
         app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 

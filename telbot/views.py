@@ -130,7 +130,7 @@ def subscription_offer(message):
 
 # Function to escape all special characters with a backslash
 def escape_special_characters(text):
-    special_characters = r"([\*\_\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!\ض\ص\ث\ق\ف\غ\ع\ه\خ\ح\ج\چ\ش\س\ی\ب\ل\ا\ت\ن\م\ک\گ\ظ\ط\ز\ر\ذ\د\ئ\و])"
+    special_characters = r"([\*\_\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!\n])"
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################

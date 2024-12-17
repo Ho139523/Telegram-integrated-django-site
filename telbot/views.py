@@ -472,7 +472,7 @@ def handle_subcategories(message):
 ##############################################################################################
 
 # Handling the callback query when the 'answer' button is clicked
-@app.callback_query_handler(func= lambda call: call.data == "answer")
+@app.callback_query_handler(func= lambda call: call.data == "پاسخ")
 def answer(call):
     try:
         pattern = r"Recived a message from \d+"

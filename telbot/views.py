@@ -78,6 +78,13 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
     app.send_message(chat_id, f"the history is : {session["history"]}")
 
 
+# Check subscription
+def check_subscription(user, channels=my_channels_with_atsign):
+    for channel in channels:
+        is_member = app.get_chat_member(chat_id=channel, user_id=user)
+        if is_member.status in ["kicked", "left"]:
+            return False
+        return True
 
 
 ####################################################################################################

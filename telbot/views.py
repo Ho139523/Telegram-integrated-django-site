@@ -474,12 +474,15 @@ def handle_subcategories(message):
 # Handling the callback query when the 'answer' button is clicked
 @app.callback_query_handler(func= lambda call: call.data == "answer")
 def answer(call):
-    pattern = r"Recived a message from \d+"
-    user = re.findall(pattern=pattern, string=call.message.text)[0].split()[4]
+    try:
+        pattern = r"Recived a message from \d+"
+        user = re.findall(pattern=pattern, string=call.message.text)[0].split()[4]
+        
+        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=ForceReply())
+
+        app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
     
-    app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=ForceReply())
-
-    app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
-
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
 app.add_custom_filter(custom_filters.StateFilter(app))

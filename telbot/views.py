@@ -192,7 +192,7 @@ def handle_message(message):
             user_menu_stack[chat_id].append('دیجیتال')
           # Save the subcategory name in the stack
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-        send_menu(chat_id, options, "products", retun_menue)
+        send_menu(chat_id, options, user_menu_stack[chat_id][-1], retun_menue)
 
     else:
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")

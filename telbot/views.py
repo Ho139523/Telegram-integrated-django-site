@@ -208,14 +208,7 @@ def handle_message(message):
         chat_id = message.chat.id
         text = message.text
 
-        # Main menu
-        if text == "🏡":
-            
-
-        # Back to previous menu
-       
-
-
+        
         # Specific actions for each button
         elif text == "موجودی":
             options = ["موجودی من", "افزایش موجودی"]

@@ -92,26 +92,27 @@ def check_subscription(user, channels=my_channels_with_atsign):
 
 # subscription offer
 def subscription_offer(message):
-    # Create keyboard for subscription check
-        channel_markup = types.InlineKeyboardMarkup()
-        current_site_markup = types.InlineKeyboardMarkup(row_width=1)
-        current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
-        check_subscription_button = types.InlineKeyboardButton(text='عضو شدم.', callback_data='check_subscription')
-        channel_subscription_button = types.InlineKeyboardButton(text='در کانال ما عضو شوید...', url=f"https://t.me/{my_channels_without_atsign[0]}")
-        group_subscription_button = types.InlineKeyboardButton(text="در گروه ما عضو شوید...", url=f"https://t.me/{my_channels_without_atsign[1]}")
-        
-        channel_markup.add(channel_subscription_button, group_subscription_button)
-        channel_markup.add(check_subscription_button)
-        current_site_markup.add(current_site_button)
-        
-        try:
-            if check_subscription(user=message.from_user.id)==False:
-                app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
-                return False
-            else:
-                return True
-        except Exception as e:
-            app.send_message(message.chat.id, f"the error is : {e}")
+    channel_markup = types.InlineKeyboardMarkup()
+    current_site_markup = types.InlineKeyboardMarkup(row_width=1)
+    current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
+    check_subscription_button = types.InlineKeyboardButton(text='عضو شدم.', callback_data='check_subscription')
+    channel_subscription_button = types.InlineKeyboardButton(text='در کانال ما عضو شوید...', url=f"https://t.me/{my_channels_without_atsign[0]}")
+    group_subscription_button = types.InlineKeyboardButton(text="در گروه ما عضو شوید...", url=f"https://t.me/{my_channels_without_atsign[1]}")
+    
+    channel_markup.add(channel_subscription_button, group_subscription_button)
+    channel_markup.add(check_subscription_button)
+    current_site_markup.add(current_site_button)
+
+    try:
+        if not check_subscription(user=message.from_user.id):
+            app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
+            return False
+        else:
+            return True
+    except Exception as e:
+        app.send_message(message.chat.id, f"An error occurred: {e}")
+        return False
+
 
 
 ####################################################################################################

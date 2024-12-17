@@ -29,7 +29,7 @@ app = TeleBot(token=TOKEN)
 current_site = get_current_site()
 
 # Tracking user menu history
-user_menu_stack = defaultdict(list)
+user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
 
 
 ################################################################################################
@@ -53,9 +53,7 @@ class TelegramBotWebhookView(View):
 
 # Helper function to send menu
 def send_menu(chat_id, options, current_menu, extra_buttons=None):
-    """Send a menu with options and track user's current menu."""
-
-    # Create the keyboard markup
+    """Send a menu with options and update the session."""
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
     # Organize buttons into rows of three
@@ -63,17 +61,21 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
     for row in rows:
         markup.row(*row)
 
-    # Add extra buttons like "بازدید سایت" or "منو اصلی"
+    # Add extra buttons
     if extra_buttons:
         extra_rows = [extra_buttons[i:i + 2] for i in range(0, len(extra_buttons), 2)]
         for extra_row in extra_rows:
             markup.row(*extra_row)
 
-    # Save the current menu in the user's history
-    user_menu_stack[chat_id].append(current_menu)
+    # Update session: push current menu into history
+    session = user_sessions[chat_id]
+    if session["current_menu"] != current_menu:
+        session["history"].append(session["current_menu"])
+    session["current_menu"] = current_menu
 
     # Send the menu
     app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+
 
 
 
@@ -102,6 +104,10 @@ def start(message):
         send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
     except Exception as e:
         app.send_message(message.chat.id, f"error is: {e}")
+        
+    # Reset session
+    user_sessions[chat_id] = {"history": [], "current_menu": None}
+    send_menu(chat_id, main_menu, "main_menu", extra_buttons)
     
 
 
@@ -121,19 +127,27 @@ def handle_message(message):
 
     # Back to previous menu
     elif text == "🔙":
-        if len(user_menu_stack[chat_id]) > 1:
-            user_menu_stack[chat_id].pop()
-            previous_menu = user_menu_stack[chat_id][-1]
+        session = user_sessions[chat_id]
 
-            # Handle previous menu
-            if previous_menu == "categories":
+        if session["history"]:
+            previous_menu = session["history"].pop()
+            session["current_menu"] = previous_menu
+
+            # Navigate to the previous menu
+            if previous_menu == "main_menu":
+                send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+            elif previous_menu == "categories":
                 show_categories(message)
             elif previous_menu == "subcategory":
                 handle_category(message)
             elif previous_menu == "products":
                 show_product_options(message)
         else:
+            # No previous menu, return to main menu
+            session["current_menu"] = "main_menu"
+            send_menu(chat_id, main_menu, "main_menu", extra_buttons)
             app.send_message(chat_id, "شما در منوی اصلی هستید.")
+
 
     # Specific actions for each button
     elif text == "موجودی":

@@ -136,11 +136,11 @@ def start(message):
         
 
         
-        if subscription_offer(message):
-            # Display the main menu
-            # Reset session
-            user_sessions[message.chat.id] = {"history": [], "current_menu": None}
-            send_menu(message, main_menu, "main_menu", extra_buttons)
+    if subscription_offer(message):
+        # Display the main menu
+        # Reset session
+        user_sessions[message.chat.id] = {"history": [], "current_menu": None}
+        send_menu(message, main_menu, "main_menu", extra_buttons)
             
             
     
@@ -208,7 +208,7 @@ def home(message):
 
 # Visit website
 @app.message_handler(func=lambda message: message.text=="بازدید سایت")
-def home(message):
+def visit_website(message):
     try:
         send_website_link(message.chat.id)
     except Exception as e:

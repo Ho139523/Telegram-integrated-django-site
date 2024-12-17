@@ -75,6 +75,7 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
 
     # Send the menu
     app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+    app.send_message(chat_id, f"the history is : {session["history"]}")
 
 
 

@@ -313,25 +313,25 @@ def handle_ten_products(message):
 # support handlers
 
 # Handling the 'Support 👨🏻‍💻' button click event
-@bot.message_handler(func= lambda message: message.text == "پیام به پشتیبانی")
+@app.message_handler(func= lambda message: message.text == "پیام به پشتیبانی")
 def sup(message):
-    bot.send_message(chat_id=message.chat.id, text="لطفا پیام خود را تایپ کنید:")
-    bot.set_state(user_id=m.from_user.id, state=Support.text, chat_id=message.chat.id)    
+    app.send_message(chat_id=message.chat.id, text="لطفا پیام خود را تایپ کنید:")
+    app.set_state(user_id=m.from_user.id, state=Support.text, chat_id=message.chat.id)    
 
 
 # Handling the user's first message which is saved in 'Support.text' state
-@bot.message_handler(state=Support.text)
+@app.message_handler(state=Support.text)
 def sup_text(message):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=message.from_user.id))
 
-    bot.send_message(chat_id=SUPPORT_ID, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
+    app.send_message(chat_id=SUPPORT_ID, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
 
-    bot.send_message(chat_id=message.chat.id, text="Your message was sent!")
+    app.send_message(chat_id=message.chat.id, text="Your message was sent!")
 
     texts[m.from_user.id] = message.text
 
-    bot.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+    app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
 
 ##################################
 

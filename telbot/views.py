@@ -210,9 +210,9 @@ def send_website_link(chat_id):
         reply_markup=markup
     )
 
-def show_product_options(chat_id):
+def show_product_options(message):
     options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-    send_menu(chat_id, options, "products", retun_menue)
+    send_menu(message.chat.id, options, "products", retun_menue)
 
 
 

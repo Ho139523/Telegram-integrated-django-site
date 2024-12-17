@@ -259,6 +259,27 @@ def category_2(message):
     except Exception as e:
         app.send_message(chat_id, f"error is : {e}")
 
+
+# Products Handler
+@app.message_handler(func=lambda message: message.text in [
+    "ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", 
+    "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"
+])
+def handle_products(message):
+    if subscription_offer(message):
+        chat_id = message.chat.id
+        subcategory = message.text  # Save subcategory
+        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+
+        # Save session
+        user_sessions[chat_id]["history"].append(user_sessions[chat_id]["current_menu"])
+        user_sessions[chat_id]["current_menu"] = f"products:{subcategory}"
+
+        # Send products menu
+        send_menu(message, options, "products", retun_menue)
+
+
+
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -356,20 +377,3 @@ def handle_subcategories(message):
         send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
 
 
-# Products Handler
-@app.message_handler(func=lambda message: message.text in [
-    "ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", 
-    "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"
-])
-def handle_products(message):
-    if subscription_offer(message):
-        chat_id = message.chat.id
-        subcategory = message.text  # Save subcategory
-        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-
-        # Save session
-        user_sessions[chat_id]["history"].append(user_sessions[chat_id]["current_menu"])
-        user_sessions[chat_id]["current_menu"] = f"products:{subcategory}"
-
-        # Send products menu
-        send_menu(message, options, "products", retun_menue)

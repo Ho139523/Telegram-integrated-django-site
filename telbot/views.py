@@ -204,64 +204,69 @@ def handle_check_subscription(call):
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
-    chat_id = message.chat.id
-    text = message.text
+    if subscription_offer(message):
+        chat_id = message.chat.id
+        text = message.text
 
-    # Main menu
-    if text == "🏡":
-        user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
-        
-        send_menu(message, main_menu, "main_menu", extra_buttons)
+        # Main menu
+        if text == "🏡":
+            
 
-    # Back to previous menu
-   
-
-
-    # Specific actions for each button
-    elif text == "موجودی":
-        options = ["موجودی من", "افزایش موجودی"]
-        home_menue = ["🏡"]
-        send_menu(message, options, "balance_category", home_menue)
-        
-    elif text == "موجودی من":
-        show_balance(message)
-        
-
-    elif text == "خرید با کد کالا":
-        ask_for_product_code(chat_id)
-
-    elif text == "بازدید سایت":
-        send_website_link(chat_id)
-
-    # Categories
-    elif text == "دسته بندی ها":
-        options = ["پوشاک", "خوراکی", "دیجیتال"]
-        home_menue = ["🏡"]
-        send_menu(message, options, "categories", home_menue)
-
-    # Subcategories
-    elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
-        subcategories = {
-            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-            "دیجیتال": ["لپتاب", "گوشی"],
-        }
-        send_menu(message, subcategories[text], "subcategory", retun_menue)
+        # Back to previous menu
+       
 
 
-    # Products
-    elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-        send_menu(message, options, "products", retun_menue)
+        # Specific actions for each button
+        elif text == "موجودی":
+            options = ["موجودی من", "افزایش موجودی"]
+            home_menue = ["🏡"]
+            send_menu(message, options, "balance_category", home_menue)
+            
+        elif text == "موجودی من":
+            show_balance(message)
+            
 
-    else:
-        app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+        elif text == "خرید با کد کالا":
+            ask_for_product_code(chat_id)
+
+        elif text == "بازدید سایت":
+            send_website_link(chat_id)
+
+        # Categories
+        elif text == "دسته بندی ها":
+            options = ["پوشاک", "خوراکی", "دیجیتال"]
+            home_menue = ["🏡"]
+            send_menu(message, options, "categories", home_menue)
+
+        # Subcategories
+        elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
+            subcategories = {
+                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+                "دیجیتال": ["لپتاب", "گوشی"],
+            }
+            send_menu(message, subcategories[text], "subcategory", retun_menue)
+
+
+        # Products
+        elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
+            options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+            send_menu(message, options, "products", retun_menue)
+
+        else:
+            app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 
 #####################################################################################################
-
-
 # Functions for specific actions
+
+# Home
+@app.message_handler(func=lambda message: message.text=="🏡")
+def home(message):
+    user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+    send_menu(message, main_menu, "main_menu", extra_buttons)
+
+# show balance
 def show_balance(message):
     # Example: Fetch and send user balance
     if subscription_offer(message):

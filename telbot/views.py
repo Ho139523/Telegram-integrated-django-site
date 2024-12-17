@@ -160,7 +160,7 @@ def handle_message(message):
         subcategories = {
             "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
             "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-            "دیجیتال": ["لپتاب", "گوشی"]
+            "دیجیتال": ["لپتاب", "گوشی"],
         }
         send_menu(chat_id, subcategories[text], "subcategory", retun_menue)
 

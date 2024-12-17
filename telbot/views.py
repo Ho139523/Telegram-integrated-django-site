@@ -121,20 +121,25 @@ def handle_message(message):
 
     # Back to previous menu
     elif text == "🔙":
-        if len(user_menu_stack[chat_id]) >= 1:
-            # Handle previous menu
+        if len(user_menu_stack[chat_id]) > 1:
+            user_menu_stack[chat_id].pop()
+            previous_menu = user_menu_stack[chat_id][-1]
+
+            # Debugging information (optional)
+            app.send_message(chat_id, f"Navigating back to: {previous_menu}")
+
+            # Handle previous menu logic
             if previous_menu == "categories":
                 show_categories(message)
             elif previous_menu == "subcategory":
                 handle_category(message)
-
-            app.send_message(chat_id, f"the len is: {len(user_menu_stack[chat_id])} and the stack is : {user_menu_stack[chat_id]}")
-            user_menu_stack[chat_id].pop()
-            previous_menu = user_menu_stack[chat_id][-1]
-            app.send_message(chat_id, f"the len is: {len(user_menu_stack[chat_id])} and the stack is : {user_menu_stack[chat_id]}")
-
+            elif previous_menu == "products":
+                show_product_options(message)
         else:
+            user_menu_stack[chat_id] = []  # Reset stack
+            send_menu(chat_id, main_menu, "main_menu", extra_buttons)
             app.send_message(chat_id, "شما در منوی اصلی هستید.")
+
 
     # Specific actions for each button
     elif text == "موجودی":

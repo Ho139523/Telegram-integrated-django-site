@@ -167,7 +167,10 @@ def handle_message(message):
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-        show_product_options(chat_id)
+        try:
+            show_product_options(chat_id)
+        except Exception as e:
+            app.send_message(message.chat.id, f"error is: {e}")
 
     else:
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")

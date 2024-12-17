@@ -23,6 +23,7 @@ from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
 from utils.telbot.variables import main_menu, extra_buttons, retun_menue
+import re
 
 
 ###############################################################################################
@@ -41,6 +42,8 @@ current_site = get_current_site()
 user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
 
 # support class
+chat_ids=[]
+text={}
 class Support(StatesGroup):
     text = State()
     respond = State()
@@ -124,6 +127,11 @@ def subscription_offer(message):
     else:
         return True
 
+
+# Function to escape all special characters with a backslash
+def escape_special_characters(text):
+    special_characters = r"([\*\_\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!])"
+    return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
 
@@ -325,13 +333,38 @@ def sup_text(message):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=message.from_user.id))
 
-    app.send_message(chat_id=SUPPORT_ID, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
+    app.send_message(chat_id=866890056, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
 
     app.send_message(chat_id=message.chat.id, text="Your message was sent!")
 
     texts[m.from_user.id] = message.text
 
     app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+    
+    
+# Handling the support agent's reply message which is saved in 'Support.respond' state
+@app.message_handler(state=Support.respond, func= lambda message: message.reply_to_message.text.startswith("Send your answer to"))
+def answer_text(message):
+    pattern = r"Send your answer to \d+"
+    user = int(re.findall(pattern=pattern, string=message.reply_to_message.text)[0].split()[4])
+
+    try:
+        try:
+            user_message = texts[user]
+            app.send_message(chat_id=user, text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>")
+            app.send_message(chat_id=message.chat.id, text="Your answer was sent!")
+
+            del texts[user]
+            app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+        
+        except:
+            app.send_message(chat_id=user, text=f"Support answer:\n<b>{escape_special_characters(message.text)}</b>")
+            app.send_message(chat_id=message.chat.id, text="Your answer was sent!")
+
+            app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+        
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>")
 
 ##################################
 
@@ -431,6 +464,22 @@ def handle_subcategories(message):
 
         # Send subcategory menu
         send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
+
+
+
+
+
+##############################################################################################
+
+# Handling the callback query when the 'answer' button is clicked
+@app.callback_query_handler(func= lambda call: call.data == "answer")
+def answer(call: CallbackQuery):
+    pattern = r"Recived a message from \d+"
+    user = re.findall(pattern=pattern, string=call.message.text)[0].split()[4]
+    
+    app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=ForceReply())
+
+    app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
 
 
 app.add_custom_filter(custom_filters.StateFilter(app))

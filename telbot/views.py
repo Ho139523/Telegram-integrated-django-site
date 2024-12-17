@@ -52,7 +52,7 @@ class TelegramBotWebhookView(View):
 #################################################################################################
 
 # Helper function to send menu
-def send_menu(chat_id, options, current_menu, extra_buttons=None):
+def send_menu(message, options, current_menu, extra_buttons=None):
     """Send a menu with options and update the session."""
     
     if check_subscription(user=message.from_user.id)==False:
@@ -73,14 +73,14 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
                 markup.row(*extra_row)
 
         # Update session: push current menu into history
-        session = user_sessions[chat_id]
+        session = user_sessions[message.chat.id]
         if session["current_menu"] != current_menu:
             session["history"].append(session["current_menu"])
         session["current_menu"] = current_menu
 
         # Send the menu
-        app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
-        app.send_message(chat_id, f"the history is : {session["history"]}")
+        app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+        app.send_message(message.chat.id, f"the history is : {session["history"]}")
 
 
 # Check subscription
@@ -177,7 +177,7 @@ def handle_check_subscription(call):
 
         # # Handle back navigation
         # if previous_menu == "main_menu":
-            # send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+            # send_menu(message, main_menu, "main_menu", extra_buttons)
         # elif previous_menu.startswith("subcategory"):
             # parent_category = previous_menu.split(":")[1]
             # subcategories = {
@@ -185,14 +185,14 @@ def handle_check_subscription(call):
                 # "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
                 # "دیجیتال": ["لپتاب", "گوشی"],
             # }
-            # send_menu(chat_id, subcategories[parent_category], f"subcategory:{parent_category}", retun_menue)
+            # send_menu(message, subcategories[parent_category], f"subcategory:{parent_category}", retun_menue)
         # elif previous_menu.startswith("products"):
             # options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-            # send_menu(chat_id, options, "products", retun_menue)
+            # send_menu(message, options, "products", retun_menue)
     # else:
         # # If no history, return to main menu
         # session["current_menu"] = "main_menu"
-        # send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+        # send_menu(message, main_menu, "main_menu", extra_buttons)
         # app.send_message(chat_id, "شما در منوی اصلی هستید.")
 
 
@@ -207,7 +207,7 @@ def handle_message(message):
     if text == "🏡":
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
         
-        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+        send_menu(message, main_menu, "main_menu", extra_buttons)
 
     # Back to previous menu
    
@@ -217,7 +217,7 @@ def handle_message(message):
     elif text == "موجودی":
         options = ["موجودی من", "افزایش موجودی"]
         home_menue = ["🏡"]
-        send_menu(chat_id, options, "balance_category", home_menue)
+        send_menu(message, options, "balance_category", home_menue)
         
     elif text == "موجودی من":
         show_balance(message)
@@ -233,7 +233,7 @@ def handle_message(message):
     elif text == "دسته بندی ها":
         options = ["پوشاک", "خوراکی", "دیجیتال"]
         home_menue = ["🏡"]
-        send_menu(chat_id, options, "categories", home_menue)
+        send_menu(message, options, "categories", home_menue)
 
     # Subcategories
     elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
@@ -242,13 +242,13 @@ def handle_message(message):
             "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
             "دیجیتال": ["لپتاب", "گوشی"],
         }
-        send_menu(chat_id, subcategories[text], "subcategory", retun_menue)
+        send_menu(message, subcategories[text], "subcategory", retun_menue)
 
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-        send_menu(chat_id, options, "products", retun_menue)
+        send_menu(message, options, "products", retun_menue)
 
     else:
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
@@ -293,7 +293,7 @@ def send_website_link(chat_id):
 
 def show_product_options(message):
     options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-    send_menu(message.chat.id, options, "products", retun_menue)
+    send_menu(message, options, "products", retun_menue)
 
 
 
@@ -301,7 +301,7 @@ def show_product_options(message):
 def show_categories(message):
     options = ["پوشاک", "خوراکی", "دیجیتال"]
     home_menue = ["🏡"]
-    send_menu(message.chat.id, options, "categories", home_menue)
+    send_menu(message, options, "categories", home_menue)
 
 # Handle category
 def handle_category(message):
@@ -310,7 +310,7 @@ def handle_category(message):
         "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
         "دیجیتال": ["لپتاب", "گوشی"],
     }
-    send_menu(message.chat.id, subcategories[message.text], "subcategory", retun_menue)
+    send_menu(message, subcategories[message.text], "subcategory", retun_menue)
     
     
 # Subcategories Handler
@@ -329,7 +329,7 @@ def handle_subcategories(message):
     user_sessions[chat_id]["current_menu"] = f"subcategory:{parent_category}"
 
     # Send subcategory menu
-    send_menu(chat_id, subcategories[parent_category], "subcategory", retun_menue)
+    send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
 
 
 # Products Handler
@@ -347,4 +347,4 @@ def handle_products(message):
     user_sessions[chat_id]["current_menu"] = f"products:{subcategory}"
 
     # Send products menu
-    send_menu(chat_id, options, "products", retun_menue)
+    send_menu(message, options, "products", retun_menue)

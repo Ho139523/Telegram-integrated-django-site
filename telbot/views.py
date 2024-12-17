@@ -369,6 +369,7 @@ def answer_text(message):
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>", parse_mode="HTML")
 
+    send_menu(message, main_menu, "main_menu", extra_buttons)
 ##################################
 
 # Handle messages

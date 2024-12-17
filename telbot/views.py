@@ -199,6 +199,13 @@ def handle_check_subscription(call):
 
 
 
+# Home
+@app.message_handler(func=lambda message: message.text=="🏡")
+def home(message):
+    user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+    send_menu(message, main_menu, "main_menu", extra_buttons)
+
+
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -251,11 +258,7 @@ def handle_message(message):
 #####################################################################################################
 # Functions for specific actions
 
-# Home
-@app.message_handler(func=lambda message: message.text=="🏡")
-def home(message):
-    user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
-    send_menu(message, main_menu, "main_menu", extra_buttons)
+
 
 # show balance
 def show_balance(message):

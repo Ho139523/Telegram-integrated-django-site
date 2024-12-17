@@ -16,7 +16,7 @@ from .models import telbotid
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.variables import main_menu, extra_buttons
+from utils.telbot.variables import main_menu, extra_buttons, retun_menue
 
 
 ###############################################################################################
@@ -136,7 +136,7 @@ def handle_message(message):
     # Specific actions for each button
     elif text == "موجودی":
         options = ["موجودی من", "افزایش موجودی"]
-        retun_menue = ["منو اصلی"]
+        retun_menue = ["🏡"]
         send_menu(chat_id, options, "balance_category", retun_menue)
         
 
@@ -149,7 +149,7 @@ def handle_message(message):
     # Categories
     elif text == "دسته بندی ها":
         options = ["پوشاک", "خوراکی", "دیجیتال"]
-        retun_menue = ["منو اصلی"]
+        retun_menue = ["🏡"]
         send_menu(chat_id, options, "categories", retun_menue)
 
     # Subcategories
@@ -159,7 +159,6 @@ def handle_message(message):
             "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
             "دیجیتال": ["لپتاب", "گوشی"],
         }
-        retun_menue = ["منو اصلی", "بازگشت به منو قبلی"]
         send_menu(chat_id, subcategories[text], "subcategory", retun_menue)
 
     # Products
@@ -210,7 +209,6 @@ def send_website_link(chat_id):
 
 def show_product_options(chat_id):
     options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-    retun_menue = ["منو اصلی", "بازگشت به منو قبلی"]
     send_menu(chat_id, options, "products", retun_menue)
 
 
@@ -218,7 +216,7 @@ def show_product_options(chat_id):
 # Categories handler
 def show_categories(message):
     options = ["پوشاک", "خوراکی", "دیجیتال"]
-    retun_menue = ["منو اصلی"]
+    retun_menue = ["🏡"]
     send_menu(message.chat.id, options, "categories", retun_menue)
 
 # Handle category
@@ -228,5 +226,4 @@ def handle_category(message):
         "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
         "دیجیتال": ["لپتاب", "گوشی"],
     }
-    retun_menue = ["منو اصلی", "بازگشت به منو قبلی"]
     send_menu(message.chat.id, subcategories[message.text], "subcategory", retun_menue)

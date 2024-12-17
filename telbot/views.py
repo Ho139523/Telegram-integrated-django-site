@@ -280,6 +280,20 @@ def handle_products(message):
 
 
 
+
+# 10 products
+@app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
+def handle_ten_products(message):
+    if subscription_offer(message):
+    	if message.text=="پر تخفیف ها":
+    		
+    		
+    	elif message.text=="پر فروش ها":
+    	
+    	elif message.text=="ارزان ترین ها":
+    	
+    	elif message.text=="گران ترین ها":
+
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):

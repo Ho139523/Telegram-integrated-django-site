@@ -92,6 +92,7 @@ def check_subscription(user, channels=my_channels_with_atsign):
 
 # subscription offer
 def subscription_offer(message):
+    # Create keyboard for subscription check
     channel_markup = types.InlineKeyboardMarkup()
     current_site_markup = types.InlineKeyboardMarkup(row_width=1)
     current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
@@ -102,17 +103,12 @@ def subscription_offer(message):
     channel_markup.add(channel_subscription_button, group_subscription_button)
     channel_markup.add(check_subscription_button)
     current_site_markup.add(current_site_button)
-
-    try:
-        if not check_subscription(user=message.from_user.id):
-            app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
-            return False
-        else:
-            return True
-    except Exception as e:
-        app.send_message(message.chat.id, f"An error occurred: {e}")
+    
+    if check_subscription(user=message.from_user.id)==False:
+        app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
         return False
-
+    else:
+        return True
 
 
 ####################################################################################################
@@ -138,7 +134,7 @@ def start(message):
             f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
         )
         
-    try:
+
         
         if subscription_offer(message):
             # Display the main menu

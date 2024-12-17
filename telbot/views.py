@@ -168,7 +168,7 @@ def handle_message(message):
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
         try:
-            show_product_options(message.chat.id)
+            show_product_options(message)
         except Exception as e:
             app.send_message(message.chat.id, f"error is: {e}")
 

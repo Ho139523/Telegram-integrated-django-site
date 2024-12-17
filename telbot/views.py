@@ -330,17 +330,19 @@ def sup(message):
 # Handling the user's first message which is saved in 'Support.text' state
 @app.message_handler(state=Support.text)
 def sup_text(message):
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=message.from_user.id))
+    try:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=message.from_user.id))
 
-    app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
+        app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
 
-    app.send_message(chat_id=message.chat.id, text="Your message was sent!")
+        app.send_message(chat_id=message.chat.id, text="Your message was sent!")
 
-    texts[m.from_user.id] = message.text
+        texts[m.from_user.id] = message.text
 
-    app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
-    
+        app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
     
 # Handling the support agent's reply message which is saved in 'Support.respond' state
 @app.message_handler(state=Support.respond, func= lambda message: message.reply_to_message.text.startswith("Send your answer to"))

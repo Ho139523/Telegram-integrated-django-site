@@ -137,7 +137,7 @@ def handle_message(message):
     elif text == "موجودی":
         options = ["موجودی من", "افزایش موجودی"]
         home_menue = ["🏡"]
-        send_menu(chat_id, options, "balance_category", retun_menue)
+        send_menu(chat_id, options, "balance_category", home_menue)
         
     elif text == "موجودی من":
         show_balance(message)
@@ -153,7 +153,7 @@ def handle_message(message):
     elif text == "دسته بندی ها":
         options = ["پوشاک", "خوراکی", "دیجیتال"]
         home_menue = ["🏡"]
-        send_menu(chat_id, options, "categories", retun_menue)
+        send_menu(chat_id, options, "categories", home_menue)
 
     # Subcategories
     elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
@@ -220,7 +220,7 @@ def show_product_options(chat_id):
 def show_categories(message):
     options = ["پوشاک", "خوراکی", "دیجیتال"]
     home_menue = ["🏡"]
-    send_menu(message.chat.id, options, "categories", retun_menue)
+    send_menu(message.chat.id, options, "categories", home_menue)
 
 # Handle category
 def handle_category(message):

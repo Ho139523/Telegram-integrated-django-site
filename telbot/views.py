@@ -122,8 +122,10 @@ def handle_message(message):
     # Back to previous menu
     elif text == "🔙":
         if len(user_menu_stack[chat_id]) > 1:
+            app.send_message(chat_id, f"the len is: {len(user_menu_stack[chat_id])} and the stack is : {user_menu_stack[chat_id]}")
             user_menu_stack[chat_id].pop()
             previous_menu = user_menu_stack[chat_id][-1]
+            
 
             # Handle previous menu
             if previous_menu == "categories":

@@ -136,7 +136,7 @@ def handle_message(message):
 
     # Specific actions for each button
     elif text == "موجودی":
-        options = ["موجودی من", "افزایش موجودی"]
+        options = ["موجودی من", "افزایش موجودی", "منو اصلی"]
         send_menu(chat_id, options, "balance_category")
         
 

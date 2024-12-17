@@ -222,6 +222,13 @@ def balance_menue(message):
         options = ["موجودی من", "افزایش موجودی"]
         home_menue = ["🏡"]
         send_menu(message, options, "balance_category", home_menue)
+        
+        
+# show balance
+@app.message_handler(func=lambda message: message.text=="موجودی من")
+def my_balance(message):
+    if subscription_offer(message):
+        show_balance(message)
 
 
 # Handle messages
@@ -231,11 +238,9 @@ def handle_message(message):
         chat_id = message.chat.id
         text = message.text
 
-        if text == "موجودی من":
-            show_balance(message)
             
 
-        elif text == "خرید با کد کالا":
+        if text == "خرید با کد کالا":
             ask_for_product_code(chat_id)
 
         # Categories

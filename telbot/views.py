@@ -115,13 +115,13 @@ def handle_message(message):
 
     # Main menu
     if text == "🏡":
+        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
         user_menu_stack[chat_id] = []
         
-        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 
     # Back to previous menu
     elif text == "🔙":
-        if len(user_menu_stack[chat_id]) > 1:
+        if len(user_menu_stack[chat_id]) >= 1:
             app.send_message(chat_id, f"the len is: {len(user_menu_stack[chat_id])} and the stack is : {user_menu_stack[chat_id]}")
             user_menu_stack[chat_id].pop()
             previous_menu = user_menu_stack[chat_id][-1]

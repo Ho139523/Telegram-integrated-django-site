@@ -136,15 +136,8 @@ def handle_message(message):
             # Handle previous menu logic
             if previous_menu == "categories":
                 show_categories(message)
-            elif previous_menu in ["پوشاک", "خوراکی", "دیجیتال"]:
-                # Return to the saved subcategory menu
-                handle_category_name = previous_menu  # Name of the subcategory
-                subcategories = {
-                    "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-                    "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-                    "دیجیتال": ["لپتاب", "گوشی"],
-                }
-                send_menu(chat_id, subcategories[handle_category_name], "subcategory", retun_menue)
+            elif previous_menu == "subcategory":
+                handle_category(message)
             
         else:
             user_menu_stack[chat_id] = []  # Reset stack

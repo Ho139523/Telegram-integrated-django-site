@@ -157,7 +157,7 @@ def handle_message(message):
         subcategories = {
             "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
             "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-            "دیجیتال": ["لپتاب", "گوشی"],
+            "دیجیتال": ["لپتاب", "گوشی"]
         }
         send_menu(chat_id, subcategories[text], "subcategory", retun_menue)
 
@@ -193,8 +193,7 @@ def handle_product_code(message):
 
 def send_website_link(chat_id):
     """Send a button that opens the website in a browser."""
-    website_url = "https://your-website.com"  # Replace with your actual website URL
-
+    
     # Create an Inline Keyboard with a button linking to the website
     markup = types.InlineKeyboardMarkup()
     website_button = types.InlineKeyboardButton("بازدید از سایت", url=current_site)

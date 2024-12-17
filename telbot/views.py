@@ -488,7 +488,6 @@ def answer(call):
     except Exception as e:
         app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
 
-try:
-    app.add_custom_filter(custom_filters.StateFilter(app))
-except Exception as e:
-    app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+app.add_custom_filter(custom_filters.StateFilter(app))
+
+# Done!

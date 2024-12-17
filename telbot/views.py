@@ -113,6 +113,38 @@ def start(message):
 
 #####################################################################################################
 
+# Back to Previous Menu
+@app.message_handler(func=lambda message: message.text == "🔙")
+def handle_back(message):
+    chat_id = message.chat.id
+    session = user_sessions[chat_id]
+
+    if session["history"]:
+        previous_menu = session["history"].pop()
+        session["current_menu"] = previous_menu
+
+        # Handle back navigation
+        if previous_menu == "main_menu":
+            send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+        elif previous_menu.startswith("subcategory"):
+            parent_category = previous_menu.split(":")[1]
+            subcategories = {
+                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+                "دیجیتال": ["لپتاب", "گوشی"],
+            }
+            send_menu(chat_id, subcategories[parent_category], f"subcategory:{parent_category}", retun_menue)
+        elif previous_menu.startswith("products"):
+            options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+            send_menu(chat_id, options, "products", retun_menue)
+    else:
+        # If no history, return to main menu
+        session["current_menu"] = "main_menu"
+        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+        app.send_message(chat_id, "شما در منوی اصلی هستید.")
+
+
+
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -264,34 +296,3 @@ def handle_products(message):
 
     # Send products menu
     send_menu(chat_id, options, "products", retun_menue)
-
-
-# Back to Previous Menu
-@app.message_handler(func=lambda message: message.text == "🔙")
-def handle_back(message):
-    chat_id = message.chat.id
-    session = user_sessions[chat_id]
-
-    if session["history"]:
-        previous_menu = session["history"].pop()
-        session["current_menu"] = previous_menu
-
-        # Handle back navigation
-        if previous_menu == "main_menu":
-            send_menu(chat_id, main_menu, "main_menu", extra_buttons)
-        elif previous_menu.startswith("subcategory"):
-            parent_category = previous_menu.split(":")[1]
-            subcategories = {
-                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-                "دیجیتال": ["لپتاب", "گوشی"],
-            }
-            send_menu(chat_id, subcategories[parent_category], f"subcategory:{parent_category}", retun_menue)
-        elif previous_menu.startswith("products"):
-            options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-            send_menu(chat_id, options, "products", retun_menue)
-    else:
-        # If no history, return to main menu
-        session["current_menu"] = "main_menu"
-        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
-        app.send_message(chat_id, "شما در منوی اصلی هستید.")

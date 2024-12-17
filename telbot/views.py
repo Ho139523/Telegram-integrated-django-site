@@ -332,7 +332,7 @@ def sup(message):
 def sup_text(message):
     try:
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=message.from_user.id))
+        markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
 
         app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
 

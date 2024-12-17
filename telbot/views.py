@@ -157,12 +157,15 @@ def handle_message(message):
 
     # Subcategories
     elif text in ["پوشاک", "خوراکی", "دیجیتال"]:
-        subcategories = {
-            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-            "دیجیتال": ["لپتاب", "گوشی"],
-        }
-        send_menu(chat_id, subcategories[text], "subcategory", retun_menue)
+        try:
+            subcategories = {
+                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+                "دیجیتال": ["لپتاب", "گوشی"],
+            }
+            send_menu(chat_id, subcategories[text], "subcategory", retun_menue)
+        except Exception as e:
+            app.send_message(message.chat.id, f"error is: {e}")
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:

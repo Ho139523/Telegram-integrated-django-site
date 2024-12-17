@@ -54,28 +54,33 @@ class TelegramBotWebhookView(View):
 # Helper function to send menu
 def send_menu(chat_id, options, current_menu, extra_buttons=None):
     """Send a menu with options and update the session."""
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    
+    if check_subscription(user=message.from_user.id)==False:
+        app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
+        
+    else:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-    # Organize buttons into rows of three
-    rows = [options[i:i + 3] for i in range(0, len(options), 3)]
-    for row in rows:
-        markup.row(*row)
+        # Organize buttons into rows of three
+        rows = [options[i:i + 3] for i in range(0, len(options), 3)]
+        for row in rows:
+            markup.row(*row)
 
-    # Add extra buttons
-    if extra_buttons:
-        extra_rows = [extra_buttons[i:i + 2] for i in range(0, len(extra_buttons), 2)]
-        for extra_row in extra_rows:
-            markup.row(*extra_row)
+        # Add extra buttons
+        if extra_buttons:
+            extra_rows = [extra_buttons[i:i + 2] for i in range(0, len(extra_buttons), 2)]
+            for extra_row in extra_rows:
+                markup.row(*extra_row)
 
-    # Update session: push current menu into history
-    session = user_sessions[chat_id]
-    if session["current_menu"] != current_menu:
-        session["history"].append(session["current_menu"])
-    session["current_menu"] = current_menu
+        # Update session: push current menu into history
+        session = user_sessions[chat_id]
+        if session["current_menu"] != current_menu:
+            session["history"].append(session["current_menu"])
+        session["current_menu"] = current_menu
 
-    # Send the menu
-    app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
-    app.send_message(chat_id, f"the history is : {session["history"]}")
+        # Send the menu
+        app.send_message(chat_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+        app.send_message(chat_id, f"the history is : {session["history"]}")
 
 
 # Check subscription

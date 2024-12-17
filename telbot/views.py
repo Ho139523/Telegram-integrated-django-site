@@ -287,7 +287,7 @@ def handle_product_code(message):
         # Simulate a product lookup or API call
         app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
 
-def send_website_link(chat_id):
+def send_website_link(message):
     """Send a button that opens the website in a browser."""
     if subscription_offer(message):
         # Create an Inline Keyboard with a button linking to the website
@@ -297,7 +297,7 @@ def send_website_link(chat_id):
 
         # Send a message with the inline keyboard
         app.send_message(
-            chat_id,
+            message.chat.id,
             "برای بازدید از سایت، دکمه زیر را فشار دهید:",
             reply_markup=markup
         )

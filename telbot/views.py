@@ -121,7 +121,7 @@ def handle_message(message):
 
     # Main menu
     if text == "🏡":
-        user_menu_stack[chat_id] = []
+        user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
         
         send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 

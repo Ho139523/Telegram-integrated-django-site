@@ -85,6 +85,8 @@ def send_menu(message, options, current_menu, extra_buttons=None):
     except Exception as e:
         app.send_message(message.chat.id, f"the error is : {e}")
 
+
+
 # Check subscription
 def check_subscription(user, channels=my_channels_with_atsign):
     for channel in channels:
@@ -92,6 +94,28 @@ def check_subscription(user, channels=my_channels_with_atsign):
         if is_member.status in ["kicked", "left"]:
             return False
         return True
+
+
+
+# subscription offer
+def subscription_offer(message):
+    # Create keyboard for subscription check
+        channel_markup = types.InlineKeyboardMarkup()
+        current_site_markup = types.InlineKeyboardMarkup(row_width=1)
+        current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
+        check_subscription_button = types.InlineKeyboardButton(text='عضو شدم.', callback_data='check_subscription')
+        channel_subscription_button = types.InlineKeyboardButton(text='در کانال ما عضو شوید...', url=f"https://t.me/{my_channels_without_atsign[0]}")
+        group_subscription_button = types.InlineKeyboardButton(text="در گروه ما عضو شوید...", url=f"https://t.me/{my_channels_without_atsign[1]}")
+        
+        channel_markup.add(channel_subscription_button, group_subscription_button)
+        channel_markup.add(check_subscription_button)
+        current_site_markup.add(current_site_button)
+        
+        if check_subscription(user=message.from_user.id)==False:
+            app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
+            return False
+        else:
+            return True
 
 
 ####################################################################################################
@@ -104,18 +128,6 @@ def start(message):
         tel_id = message.from_user.username if message.from_user.username else message.from_user.id
         tel_name = message.from_user.first_name
         response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
-        
-        # Create keyboard for subscription check
-        channel_markup = types.InlineKeyboardMarkup()
-        current_site_markup = types.InlineKeyboardMarkup(row_width=1)
-        current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
-        check_subscription_button = types.InlineKeyboardButton(text='عضو شدم.', callback_data='check_subscription')
-        channel_subscription_button = types.InlineKeyboardButton(text='در کانال ما عضو شوید...', url=f"https://t.me/{my_channels_without_atsign[0]}")
-        group_subscription_button = types.InlineKeyboardButton(text="در گروه ما عضو شوید...", url=f"https://t.me/{my_channels_without_atsign[1]}")
-        
-        channel_markup.add(channel_subscription_button, group_subscription_button)
-        channel_markup.add(check_subscription_button)
-        current_site_markup.add(current_site_button)
 
 
         if response.status_code == 201:
@@ -130,10 +142,7 @@ def start(message):
             )
          
         
-        if check_subscription(user=message.from_user.id)==False:
-            app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
-        
-        else:
+        if subscription_offer(message):
             # Display the main menu
             # Reset session
             user_sessions[message.chat.id] = {"history": [], "current_menu": None}

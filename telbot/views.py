@@ -478,7 +478,7 @@ def answer(call):
     try:
         pattern = r"Recived a message from \d+"
         # clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
-        user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
+        user = re.findall(pattern=pattern, string=call.message.text)[0].split()[4]
         
         app.send_message(chat_id=call.message.chat.id, text=f"پاسختان را به کاربر با کد <code>{user}</code> ارسال کنید:", reply_markup=types.ForceReply(), parse_mode="HTML")
 

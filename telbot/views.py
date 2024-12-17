@@ -209,21 +209,24 @@ def send_website_link(chat_id):
     )
 
 def show_product_options(chat_id):
-    options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها", "بازگشت به منو قبلی"]
-    send_menu(chat_id, options, "products")
+    options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+    retun_menue = ["منو اصلی", "بازگشت به منو قبلی"]
+    send_menu(chat_id, options, "products", retun_menue)
 
 
 
 # Categories handler
 def show_categories(message):
-    options = ["پوشاک", "خوراکی", "دیجیتال", "بازگشت به منو قبلی"]
-    send_menu(message.chat.id, options, "categories")
+    options = ["پوشاک", "خوراکی", "دیجیتال"]
+    retun_menue = ["منو اصلی"]
+    send_menu(message.chat.id, options, "categories", retun_menue)
 
 # Handle category
 def handle_category(message):
     subcategories = {
-        "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "بازگشت به منو قبلی"],
-        "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت", "بازگشت به منو قبلی"],
-        "دیجیتال": ["لپتاب", "گوشی", "بازگشت به منو قبلی"],
+        "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+        "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+        "دیجیتال": ["لپتاب", "گوشی"],
     }
-    send_menu(message.chat.id, subcategories[message.text], "subcategory")
+    retun_menue = ["منو اصلی", "بازگشت به منو قبلی"]
+    send_menu(message.chat.id, subcategories[message.text], "subcategory", retun_menue)

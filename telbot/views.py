@@ -202,17 +202,26 @@ def handle_check_subscription(call):
 # Home
 @app.message_handler(func=lambda message: message.text=="🏡")
 def home(message):
-    user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
-    send_menu(message, main_menu, "main_menu", extra_buttons)
+    if subscription_offer(message):
+        user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+        send_menu(message, main_menu, "main_menu", extra_buttons)
     
 
 # Visit website
 @app.message_handler(func=lambda message: message.text=="بازدید سایت")
 def visit_website(message):
-    try:
+    if subscription_offer(message):
         send_website_link(message)
-    except Exception as e:
         app.send_message(message.chat.id, f"error is: {e}")
+        
+        
+# balance
+@app.message_handler(func=lambda message: message.text=="موجودی")
+def balance_menue(message):
+    if subscription_offer(message):
+        options = ["موجودی من", "افزایش موجودی"]
+        home_menue = ["🏡"]
+        send_menu(message, options, "balance_category", home_menue)
 
 
 # Handle messages
@@ -225,9 +234,7 @@ def handle_message(message):
         
         # Specific actions for each button
         if text == "موجودی":
-            options = ["موجودی من", "افزایش موجودی"]
-            home_menue = ["🏡"]
-            send_menu(message, options, "balance_category", home_menue)
+            
             
         elif text == "موجودی من":
             show_balance(message)

@@ -130,6 +130,8 @@ def handle_message(message):
                 show_categories(message)
             elif previous_menu == "subcategory":
                 handle_category(message)
+            elif previous_menu == "products":
+                show_product_options(message)
         else:
             app.send_message(chat_id, "شما در منوی اصلی هستید.")
 
@@ -167,10 +169,7 @@ def handle_message(message):
 
     # Products
     elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-        try:
-            show_product_options(message)
-        except Exception as e:
-            app.send_message(message.chat.id, f"error is: {e}")
+        show_product_options(message)
 
     else:
         app.send_message(chat_id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
@@ -233,3 +232,4 @@ def handle_category(message):
         "دیجیتال": ["لپتاب", "گوشی"],
     }
     send_menu(message.chat.id, subcategories[message.text], "subcategory", retun_menue)
+    

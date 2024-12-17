@@ -321,7 +321,7 @@ def handle_ten_products(message):
 # support handlers
 
 # Handling the 'Support 👨🏻‍💻' button click event
-@app.message_handler(func= lambda message: message.text == "پیام به پشتیبانی")
+@app.message_handler(func= lambda message: message.text == "پیام به پشتیبان")
 def sup(message):
     app.send_message(chat_id=message.chat.id, text="لطفا پیام خود را تایپ کنید:")
     app.set_state(user_id=m.from_user.id, state=Support.text, chat_id=message.chat.id)    

@@ -473,7 +473,7 @@ def handle_subcategories(message):
 
 # Handling the callback query when the 'answer' button is clicked
 @app.callback_query_handler(func= lambda call: call.data == "پاسخ")
-def answer(call: CallbackQuery):
+def answer(call):
     try:
         pattern = r"Recived a message from \d+"
         user = re.findall(pattern=pattern, string=call.message.text)[0].split()[4]
@@ -488,4 +488,4 @@ def answer(call: CallbackQuery):
 try:
     app.add_custom_filter(custom_filters.StateFilter(app))
 except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+    app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")

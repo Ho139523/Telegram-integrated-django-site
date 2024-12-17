@@ -238,12 +238,23 @@ def buy_with_code(message):
 
 # First layer category
 @app.message_handler(func=lambda message: message.text=="دسته بندی ها")
-def category(message):
+def category_1(message):
     if subscription_offer(message):
-        options = ["پوشاک", "خوراکی", "دیجیتال"]
+        layer_1 = ["پوشاک", "خوراکی", "دیجیتال"]
         home_menue = ["🏡"]
-        send_menu(message, options, "categories", home_menue)
-
+        send_menu(message, layer_1, "category_1", home_menue)
+        
+        
+# Second layer category
+@app.message_handler(func=lambda message: message.text in ["پوشاک", "خوراکی", "دیجیتال"])
+def category_2(message):
+    if subscription_offer(message):
+        layer_2 = {
+                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
+                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
+                "دیجیتال": ["لپتاب", "گوشی"],
+            }
+            send_menu(message, layer_2[text], "category_2", retun_menue)
 
 # Handle messages
 @app.message_handler(func=lambda message: True)
@@ -254,17 +265,7 @@ def handle_message(message):
 
             
 
-        if text in ["پوشاک", "خوراکی", "دیجیتال"]:
-            subcategories = {
-                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-                "دیجیتال": ["لپتاب", "گوشی"],
-            }
-            send_menu(message, subcategories[text], "subcategory", retun_menue)
-
-
-        # Products
-        elif text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
+        if text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
             options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
             send_menu(message, options, "products", retun_menue)
 

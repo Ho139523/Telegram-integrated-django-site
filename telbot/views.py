@@ -335,7 +335,7 @@ def sup_text(message):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
 
-        app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup)
+        app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup, parse_mode="HTML")
 
         app.send_message(chat_id=message.chat.id, text="Your message was sent!")
 
@@ -355,20 +355,20 @@ def answer_text(message):
 
         try:
             user_message = texts[user]
-            app.send_message(chat_id=user, text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>")
+            app.send_message(chat_id=user, text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>", parse_mode="HTML")
             app.send_message(chat_id=message.chat.id, text="Your answer was sent!")
 
             del texts[user]
             app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
         
         except:
-            app.send_message(chat_id=user, text=f"Support answer:\n<b>{escape_special_characters(message.text)}</b>")
+            app.send_message(chat_id=user, text=f"Support answer:\n<b>{escape_special_characters(message.text)}</b>", parse_mode="HTML")
             app.send_message(chat_id=message.chat.id, text="Your answer was sent!")
 
             app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
         
     except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>")
+        app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>", parse_mode="HTML")
 
 ##################################
 
@@ -481,7 +481,7 @@ def answer(call):
         clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
         user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
         
-        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply())
+        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
 
         app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
     

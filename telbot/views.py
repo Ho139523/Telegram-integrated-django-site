@@ -225,7 +225,7 @@ def handle_check_subscription(call):
 @app.message_handler(func=lambda message: message.text=="🏡")
 def home(message):
     if subscription_offer(message):
-        user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+        user_sessions[message.chat.id] = defaultdict(lambda: {"history": [], "current_menu": None})
         send_menu(message, main_menu, "main_menu", extra_buttons)
     
 

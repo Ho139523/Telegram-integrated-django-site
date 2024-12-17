@@ -476,7 +476,7 @@ def handle_subcategories(message):
 def answer(call):
     try:
         pattern = r"Recived a message from \d+"
-        print(re.findall(pattern=pattern, string=call.message.text))
+        print(call.message.text)
         user = re.findall(pattern=pattern, string=call.message.text)[0].split()[4]
         
         app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply())

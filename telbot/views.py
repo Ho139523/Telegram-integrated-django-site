@@ -86,46 +86,49 @@ def send_menu(chat_id, options, current_menu, extra_buttons=None):
 # Start handler
 @app.message_handler(commands=['start'])
 def start(message):
-    tel_id = message.from_user.username if message.from_user.username else message.from_user.id
-    tel_name = message.from_user.first_name
-    response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
-    
-    # Create keyboard for subscription check
-    channel_markup = types.InlineKeyboardMarkup()
-    current_site_markup = types.InlineKeyboardMarkup(row_width=1, resize_keyboard=True)
-    current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
-    check_subscription_button = types.InlineKeyboardButton(text='عضو شدم.', callback_data='check_subscription')
-    channel_subscription_button = types.InlineKeyboardButton(text='در کانال ما عضو شوید...', url=f"https://t.me/{my_channels_without_atsign[0]}")
-    group_subscription_button = types.InlineKeyboardButton(text="در گروه ما عضو شوید...", url=f"https://t.me/{my_channels_without_atsign[1]}")
-    
-    channel_markup.add(channel_subscription_button, group_subscription_button)
-    channel_markup.add(check_subscription_button)
-    current_site_markup.add(current_site_button)
+    try:
+        tel_id = message.from_user.username if message.from_user.username else message.from_user.id
+        tel_name = message.from_user.first_name
+        response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
+        
+        # Create keyboard for subscription check
+        channel_markup = types.InlineKeyboardMarkup()
+        current_site_markup = types.InlineKeyboardMarkup(row_width=1, resize_keyboard=True)
+        current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
+        check_subscription_button = types.InlineKeyboardButton(text='عضو شدم.', callback_data='check_subscription')
+        channel_subscription_button = types.InlineKeyboardButton(text='در کانال ما عضو شوید...', url=f"https://t.me/{my_channels_without_atsign[0]}")
+        group_subscription_button = types.InlineKeyboardButton(text="در گروه ما عضو شوید...", url=f"https://t.me/{my_channels_without_atsign[1]}")
+        
+        channel_markup.add(channel_subscription_button, group_subscription_button)
+        channel_markup.add(check_subscription_button)
+        current_site_markup.add(current_site_button)
 
 
-    if response.status_code == 201:
-        app.send_message(
-            message.chat.id,
-            f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
-        )
-    else:
-        app.send_message(
-            message.chat.id,
-            f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
-        )
-     
-    
-    if check_subscription(user=message.from_user.id)==False:
-        app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
-    
-    else:
-        # Display the main menu
-        send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
+        if response.status_code == 201:
+            app.send_message(
+                message.chat.id,
+                f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
+            )
+        else:
+            app.send_message(
+                message.chat.id,
+                f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
+            )
+         
         
+        if check_subscription(user=message.from_user.id)==False:
+            app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
         
-    # Reset session
-    user_sessions[chat_id] = {"history": [], "current_menu": None}
-    send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+        else:
+            # Display the main menu
+            send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
+            
+            
+        # Reset session
+        user_sessions[chat_id] = {"history": [], "current_menu": None}
+        send_menu(chat_id, main_menu, "main_menu", extra_buttons)
+    except Exception as e:
+        app.send_message(message.chat.id, f"the error is : {e}")
     
 
 

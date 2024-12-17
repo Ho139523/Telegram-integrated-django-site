@@ -338,7 +338,7 @@ def sup_text(message):
 
         app.send_message(chat_id=message.chat.id, text="Your message was sent!")
 
-        texts[m.from_user.id] = message.text
+        texts[message.from_user.id] = message.text
 
         app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
     except Exception as e:

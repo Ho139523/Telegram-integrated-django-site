@@ -16,6 +16,7 @@ from .models import telbotid
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
+from utils.telbot.variables import main_menu, extra_buttons
 
 
 ###############################################################################################
@@ -87,9 +88,6 @@ def start(message):
     tel_name = message.from_user.first_name
     response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
 
-    # Define main menu
-    main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها"]
-    extra_buttons = ["بازدید سایت"]
 
     if response.status_code == 201:
         app.send_message(
@@ -119,8 +117,7 @@ def handle_message(message):
     # Main menu
     if text == "منو اصلی":
         user_menu_stack[chat_id] = []
-        main_menu = ["موجودی من", "خرید با کد کالا", "دسته بندی ها", "پیام به پشتیبان"]
-        extra_buttons = ["بازدید سایت"]
+        
         send_menu(chat_id, main_menu, "main_menu", extra_buttons)
 
     # Back to previous menu

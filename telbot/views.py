@@ -130,7 +130,7 @@ def subscription_offer(message):
 
 # Function to escape all special characters with a backslash
 def escape_special_characters(text):
-    special_characters = r"([\*\_\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!\n])"
+    special_characters = r"([\*\_\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!])"
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
@@ -354,7 +354,7 @@ def answer_text(message):
 
         try:
             user_message = texts[user]
-            app.send_message(chat_id=user, text=f"پیام شما:\n\n<i>{escape_special_characters(user_message)}</i>\n\nپیام پشتیبان:\n\n<b>{escape_special_characters(message.text)}</b>", parse_mode="HTML")
+            app.send_message(chat_id=user, text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>", parse_mode="HTML")
             app.send_message(chat_id=message.chat.id, text="Your answer was sent!")
 
             del texts[user]
@@ -478,10 +478,9 @@ def answer(call):
     try:
         pattern = r"Recived a message from \d+"
         clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
-        print(clean_text)
         user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
         
-        app.send_message(chat_id=call.message.chat.id, text=f"پاسختان را به کاربر با کد <code>{user}</code> ارسال کنید:", reply_markup=types.ForceReply(), parse_mode="HTML")
+        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
 
         app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
     

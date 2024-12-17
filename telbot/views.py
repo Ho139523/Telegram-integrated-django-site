@@ -229,6 +229,12 @@ def balance_menue(message):
 def my_balance(message):
     if subscription_offer(message):
         show_balance(message)
+        
+# Buy products with code
+@app.message_handler(func=lambda message: message.text=="خرید با کد کالا")
+def buy_with_code(message):
+    if subscription_offer(message):
+        ask_for_product_code(message)
 
 
 # Handle messages
@@ -240,11 +246,7 @@ def handle_message(message):
 
             
 
-        if text == "خرید با کد کالا":
-            ask_for_product_code(chat_id)
-
-        # Categories
-        elif text == "دسته بندی ها":
+        if text == "دسته بندی ها":
             options = ["پوشاک", "خوراکی", "دیجیتال"]
             home_menue = ["🏡"]
             send_menu(message, options, "categories", home_menue)

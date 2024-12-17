@@ -141,6 +141,25 @@ def start(message):
 
 #####################################################################################################
 
+
+@app.callback_query_handler(func=lambda call: call.data == 'check_subscription')
+def handle_check_subscription(call):
+    user_id = call.from_user.id
+    is_member = check_subscription(user_id)
+    
+    if is_member:
+        app.answer_callback_query(call.id, "تشکر! عضویت شما تایید شد.")
+        app.edit_message_text("🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.",
+                              chat_id=call.message.chat.id, message_id=call.message.message_id)
+        
+        # Display the main menu
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add("موجودی من", "خرید با کد کالا", "دسته بندی ها", "منو اصلی")
+        app.send_message(call.message.chat.id, "انتخاب کنید:", reply_markup=markup)
+    else:
+        app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید.")
+
+
 # Back to Previous Menu
 # @app.message_handler(func=lambda message: message.text == "🔙")
 # def handle_back(message):

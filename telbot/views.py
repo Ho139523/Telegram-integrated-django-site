@@ -55,10 +55,7 @@ class TelegramBotWebhookView(View):
 def send_menu(message, options, current_menu, extra_buttons=None):
     """Send a menu with options and update the session."""
     try:
-        if check_subscription(user=message.from_user.id)==False:
-            app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
-            
-        else:
+        if subscription_offer(message):
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
             # Organize buttons into rows of three

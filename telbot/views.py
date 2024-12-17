@@ -324,7 +324,7 @@ def handle_ten_products(message):
 @app.message_handler(func= lambda message: message.text == "پیام به پشتیبان")
 def sup(message):
     app.send_message(chat_id=message.chat.id, text="لطفا پیام خود را تایپ کنید:")
-    app.set_state(user_id=m.from_user.id, state=Support.text, chat_id=message.chat.id)    
+    app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id)    
 
 
 # Handling the user's first message which is saved in 'Support.text' state
@@ -347,10 +347,10 @@ def sup_text(message):
 # Handling the support agent's reply message which is saved in 'Support.respond' state
 @app.message_handler(state=Support.respond, func= lambda message: message.reply_to_message.text.startswith("Send your answer to"))
 def answer_text(message):
-    pattern = r"Send your answer to \d+"
-    user = int(re.findall(pattern=pattern, string=message.reply_to_message.text)[0].split()[4])
-
     try:
+        pattern = r"Send your answer to \d+"
+        user = int(re.findall(pattern=pattern, string=message.reply_to_message.text)[0].split()[4])
+
         try:
             user_message = texts[user]
             app.send_message(chat_id=user, text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>")
@@ -485,4 +485,7 @@ def answer(call):
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
-app.add_custom_filter(custom_filters.StateFilter(app))
+try:
+    app.add_custom_filter(custom_filters.StateFilter(app))
+except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")

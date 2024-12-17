@@ -128,12 +128,12 @@ def start(message):
         
         else:
             # Display the main menu
+            # Reset session
+            user_sessions[message.chat.id] = {"history": [], "current_menu": None}
             send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
             
             
-        # Reset session
-        user_sessions[message.chat.id] = {"history": [], "current_menu": None}
-        send_menu(message.chat.id, main_menu, "main_menu", extra_buttons)
+        
     except Exception as e:
         app.send_message(message.chat.id, f"the error is : {e}")
     

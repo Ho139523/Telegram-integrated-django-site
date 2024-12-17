@@ -135,11 +135,10 @@ def handle_message(message):
             app.send_message(chat_id, "شما در منوی اصلی هستید.")
 
     # Specific actions for each button
-    elif text == "موجودی من":
-        try:
-            show_balance(message)
-        except Exception as e:
-            app.send_message(message.chat.id, f"error is: {e}")
+    elif text == "موجودی":
+        options = ["موجودی من", "افزایش موجودی"]
+        send_menu(chat_id, options, "balance_category")
+        
 
     elif text == "خرید با کد کالا":
         ask_for_product_code(chat_id)

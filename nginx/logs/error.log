@@ -1,0 +1,47 @@
+2024/12/19 13:44:06 [notice] 4216#4220: using the "select" event method
+2024/12/19 13:44:06 [notice] 4216#4220: using the "select" event method
+2024/12/19 13:44:06 [notice] 4216#4220: nginx/1.24.0
+2024/12/19 13:44:06 [notice] 4216#4220: nginx/1.24.0
+2024/12/19 13:44:06 [info] 4216#4220: OS: 260200 build:9200, "", suite:190, type:3
+2024/12/19 13:44:06 [notice] 4216#4220: start worker processes
+2024/12/19 13:44:06 [notice] 4216#4220: start worker processes
+2024/12/19 13:44:06 [notice] 4216#4220: start worker process 4260
+2024/12/19 13:44:06 [notice] 4216#4220: start worker process 4260
+2024/12/19 13:44:06 [notice] 4260#4264: nginx/1.24.0
+2024/12/19 13:44:06 [notice] 4260#4264: nginx/1.24.0
+2024/12/19 13:44:06 [info] 4260#4264: OS: 260200 build:9200, "", suite:190, type:3
+2024/12/19 13:44:06 [notice] 4260#4264: create thread 4296
+2024/12/19 13:44:06 [notice] 4260#4264: create thread 4296
+2024/12/19 13:44:06 [notice] 4260#4264: create thread 4300
+2024/12/19 13:44:06 [notice] 4260#4264: create thread 4300
+2024/12/19 13:44:06 [notice] 4260#4264: create thread 4304
+2024/12/19 13:44:06 [notice] 4260#4264: create thread 4304
+2024/12/19 13:44:31 [notice] 4532#4536: signal process started
+2024/12/19 13:44:31 [notice] 4216#4220: reconfiguring
+2024/12/19 13:44:31 [notice] 4216#4220: reconfiguring
+2024/12/19 13:44:31 [notice] 4216#4220: using the "select" event method
+2024/12/19 13:44:31 [notice] 4216#4220: using the "select" event method
+2024/12/19 13:44:31 [notice] 4216#4220: start worker processes
+2024/12/19 13:44:31 [notice] 4216#4220: start worker processes
+2024/12/19 13:44:31 [notice] 4216#4220: start worker process 4544
+2024/12/19 13:44:31 [notice] 4216#4220: start worker process 4544
+2024/12/19 13:44:31 [notice] 4544#4548: nginx/1.24.0
+2024/12/19 13:44:31 [notice] 4544#4548: nginx/1.24.0
+2024/12/19 13:44:31 [info] 4544#4548: OS: 260200 build:9200, "", suite:190, type:3
+2024/12/19 13:44:31 [notice] 4544#4548: create thread 4572
+2024/12/19 13:44:31 [notice] 4544#4548: create thread 4572
+2024/12/19 13:44:31 [notice] 4544#4548: create thread 4576
+2024/12/19 13:44:31 [notice] 4544#4548: create thread 4576
+2024/12/19 13:44:31 [notice] 4544#4548: create thread 4580
+2024/12/19 13:44:31 [notice] 4544#4548: create thread 4580
+2024/12/19 13:44:31 [notice] 4260#4264: gracefully shutting down
+2024/12/19 13:44:31 [notice] 4260#4264: gracefully shutting down
+2024/12/19 13:44:31 [notice] 4260#4300: exiting
+2024/12/19 13:44:31 [notice] 4260#4300: exiting
+2024/12/19 13:44:40 [error] 4260#4296: *1 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 91.108.5.85, server: intelleum.ir, request: "POST /telbot/webhook/ HTTP/1.1", upstream: "http://127.0.0.1:8000/telbot/webhook/", host: "intelleum.ir"
+2024/12/19 13:44:40 [error] 4260#4296: *1 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 91.108.5.85, server: intelleum.ir, request: "POST /telbot/webhook/ HTTP/1.1", upstream: "http://127.0.0.1:8000/telbot/webhook/", host: "intelleum.ir"
+2024/12/19 13:44:40 [error] 4260#4296: *1 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 91.108.5.85, server: intelleum.ir, request: "POST /telbot/webhook/ HTTP/1.1", upstream: "http://127.0.0.1:8000/telbot/webhook/", host: "intelleum.ir"
+2024/12/19 13:44:40 [notice] 4260#4296: exiting
+2024/12/19 13:44:40 [notice] 4260#4296: exiting
+2024/12/19 13:44:40 [notice] 4260#4264: exit
+2024/12/19 13:44:40 [notice] 4260#4264: exit

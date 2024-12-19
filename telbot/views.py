@@ -37,7 +37,7 @@ state_storage = StateMemoryStorage()
 
 # App setup
 app = TeleBot(token=TOKEN, state_storage=state_storage)
-current_site = get_current_site()
+current_site = 'https://intelleum.ir'
 
 # Tracking user menu history
 user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})

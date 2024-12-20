@@ -54,7 +54,7 @@ class Support(StatesGroup):
     
     
 # model variables
-main_menu = category_titles = Category.objects.filter(parent__isnull=True).values_list('title', flat=True)
+main_menu = Category.objects.filter(parent__isnull=True).values_list('title', flat=True)
 
 
 ################################################################################################

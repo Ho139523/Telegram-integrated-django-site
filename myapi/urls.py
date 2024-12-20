@@ -1,7 +1,7 @@
 from django.urls import path, include
 
 # Heart API
-from .views import HeartCreateAPIView, ShoeView, CheckTelegramUserRegistrationView
+from .views import HeartCreateAPIView, CheckTelegramUserRegistrationViewShoeView, ShoeView
 
 # Shoe API
 # from rest_framework import routers
@@ -14,6 +14,6 @@ urlpatterns = [
     path("heartrecords/", HeartCreateAPIView.as_view()),
     
     # Shoe API
-    path('', ShoeView.as_view({'get': 'list'})),
+    #path('', ShoeView.as_view({'get': 'list'})),
 
 ]

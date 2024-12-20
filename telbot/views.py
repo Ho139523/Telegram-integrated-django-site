@@ -281,9 +281,9 @@ def category_1(message):
 def category_2(message):
     try:
         if subscription_offer(message):
-            if message.lower() in [i.lower() for i in list(Category.objects.filter(parent__isnull=True).values_list('title', flat=True))]:
-                layer_2 = list(Category.objects.filter(parent__title__iexact=message.lower()).values_list('title', flat=True))
-            send_menu(message, layer_2, "category_2", retun_menue)
+            if message.text.lower() in [i.lower() for i in list(Category.objects.filter(parent__isnull=True).values_list('title', flat=True))]:
+                layer_2 = list(Category.objects.filter(parent__title__iexact=message.text.lower()).values_list('title', flat=True))
+                send_menu(message, layer_2, "category_2", retun_menue)
     except Exception as e:
         app.send_message(chat_id, f"error is : {e}")
 

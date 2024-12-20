@@ -54,7 +54,6 @@ class Support(StatesGroup):
     
     
 # model variables
-main_menu = Category.objects.filter(parent__isnull=True).values_list('title', flat=True)
 
 
 ################################################################################################
@@ -269,7 +268,7 @@ def buy_with_code(message):
 @app.message_handler(func=lambda message: message.text=="دسته بندی ها")
 def category_1(message):
     if subscription_offer(message):
-        layer_1 = ["پوشاک", "خوراکی", "دیجیتال"]
+        layer_1 = Category.objects.filter(parent__isnull=True).values_list('title', flat=True)
         home_menue = ["🏡"]
         send_menu(message, layer_1, "category_1", home_menue)
         

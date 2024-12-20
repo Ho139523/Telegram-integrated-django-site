@@ -54,7 +54,7 @@ class Support(StatesGroup):
     
     
 # model variables
-main_menu = Cats = Category.objects.filter(parent__isnull=True)
+main_menu = Category.objects.filter(parent__isnull=True)
 
 
 ################################################################################################

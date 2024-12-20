@@ -145,30 +145,33 @@ def escape_special_characters(text):
 # Start handler
 @app.message_handler(commands=['start'])
 def start(message):
-    
-    tel_id = message.from_user.username if message.from_user.username else message.from_user.id
-    tel_name = message.from_user.first_name
-    response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
+    try:
+    	tel_id = message.from_user.username if message.from_user.username else message.from_user.id
+    	tel_name = message.from_user.first_name
+    	response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
 
 
-    if response.status_code == 201:
-        app.send_message(
-            message.chat.id,
-            f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
-        )
-    else:
-        app.send_message(
-            message.chat.id,
-            f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
-        )
+    	if response.status_code == 201:
+        	app.send_message(
+            	message.chat.id,
+            	f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
+        	)
+    	else:
+        	app.send_message(
+            	message.chat.id,
+            	f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
+        	)
         
 
         
-    if subscription_offer(message):
+    	if subscription_offer(message):
         # Display the main menu
         # Reset session
-        user_sessions[message.chat.id] = {"history": [], "current_menu": None}
-        send_menu(message, main_menu, "main_menu", extra_buttons)
+        	user_sessions[message.chat.id] = {"history": [], "current_menu": None}
+        	send_menu(message, main_menu, "main_menu", extra_buttons)
+        
+        except Exception as e:
+        	app.send_message(message.chat.id, f"the error is: {e}")
             
             
     

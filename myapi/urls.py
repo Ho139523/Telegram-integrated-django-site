@@ -1,7 +1,7 @@
 from django.urls import path, include
 
 # Heart API
-from .views import HeartCreateAPIView, CheckTelegramUserRegistrationViewShoeView, ShoeView
+from .views import HeartCreateAPIView, CheckTelegramUserRegistrationView#, ShoeView
 
 # Shoe API
 # from rest_framework import routers

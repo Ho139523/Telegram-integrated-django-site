@@ -119,16 +119,16 @@ class Category(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=100, verbose_name='Product Name')
-    slug = models.SlugField(unique=True, verbose_name='Slug')  # برای URL
-    brand = models.CharField(max_length=50, blank=True, null=True, verbose_name='Brand')  # برند اختیاری
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Price')  # قیمت
-    stock = models.PositiveIntegerField(default=0, verbose_name='Stock')  # تعداد موجودی
-    is_available = models.BooleanField(default=True, verbose_name='Is Available')  # موجود یا ناموجود
+    slug = models.SlugField(unique=True, verbose_name='Slug')
+    brand = models.CharField(max_length=50, blank=True, null=True, verbose_name='Brand')
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Price')
+    stock = models.PositiveIntegerField(default=0, verbose_name='Stock')
+    is_available = models.BooleanField(default=True, verbose_name='Is Available')
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True, related_name='products', verbose_name='Category'
-    )  # دسته‌بندی
-    description = models.TextField(blank=True, null=True, verbose_name='Description')  # توضیحات
-    images = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Image 1')
+    )
+    description = models.TextField(blank=True, null=True, verbose_name='Description')
+    main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')  # تغییر نام از images
     additional_images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
 
     def __str__(self):
@@ -141,7 +141,7 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     image = models.ImageField(upload_to='product_images/', verbose_name='Product Image')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images', verbose_name='Product')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='image_set', verbose_name='Product')  # تغییر related_name
 
     def __str__(self):
         return f"Image: {self.id}"

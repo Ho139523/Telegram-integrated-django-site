@@ -278,10 +278,10 @@ def category_1(message):
         
 # Second layer category
 try:
-    @app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in list(Category.objects.filter(parent__isnull=True).values_list('title', flat=True))])
+    @app.message_handler(func=lambda message: message.text in [i.lower() for i in list(Category.objects.filter(parent__isnull=True).values_list('title', flat=True))])
     def category_2(message):
         if subscription_offer(message):
-            layer_2 = list(Category.objects.filter(parent__title__iexact=message.text.lower()).values_list('title', flat=True))
+            layer_2 = list(Category.objects.filter(parent__title__iexact=message.text).values_list('title', flat=True))
             send_menu(message, layer_2, "category_2", retun_menue)
 except Exception as e:
     print(f"{e}")

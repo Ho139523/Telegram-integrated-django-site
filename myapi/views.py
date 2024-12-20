@@ -7,8 +7,8 @@ from .serializer import HeartSerializer
 
 # Shoe API
 from rest_framework import viewsets
-from products.serializer import ShoeSerializer
-from products.models import ShoeModel
+#from products.serializer import ShoeSerializer
+#from products.models import ShoeModel
 
 # Check Telegram User Registration
 from rest_framework.views import APIView
@@ -28,9 +28,9 @@ class HeartCreateAPIView(ListCreateAPIView):
     serializer_class = HeartSerializer
 
 
-class ShoeView(viewsets.ModelViewSet):
-    queryset = ShoeModel.objects.filter(stock=True)
-    serializer_class = ShoeSerializer
+#class ShoeView(viewsets.ModelViewSet):
+#    queryset = ShoeModel.objects.filter(stock=True)
+#    serializer_class = ShoeSerializer
     
 
 @method_decorator(csrf_exempt, name='dispatch')

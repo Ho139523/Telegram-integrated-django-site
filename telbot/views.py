@@ -277,16 +277,13 @@ def category_1(message):
         
         
 # Second layer category
-@app.message_handler(func=lambda message: message.text in ["پوشاک", "خوراکی", "دیجیتال"])
+@app.message_handler(func=lambda message: message.text in Category.objects.filter(parent__isnull=True).values_list('title', flat=True))
 def category_2(message):
     try:
         if subscription_offer(message):
-            layer_2 = {
-                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-                "دیجیتال": ["لپتاب", "گوشی"],
-            }
-            send_menu(message, layer_2[message.text], "category_2", retun_menue)
+            if message.lower() in [i.lower() for i in list(Category.objects.filter(parent__isnull=True).values_list('title', flat=True))]:
+                layer_2 = list(Category.objects.filter(parent__title__iexact=message.lower()).values_list('title', flat=True))
+            send_menu(message, layer_2, "category_2", retun_menue)
     except Exception as e:
         app.send_message(chat_id, f"error is : {e}")
 

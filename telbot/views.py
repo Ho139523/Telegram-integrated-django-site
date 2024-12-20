@@ -26,6 +26,9 @@ from utils.telbot.variables import main_menu, extra_buttons, retun_menue
 import re
 from bs4 import BeautifulSoup
 
+# import models
+from products.models import Category
+
 
 ###############################################################################################
 
@@ -48,6 +51,10 @@ texts={}
 class Support(StatesGroup):
     text = State()
     respond = State()
+    
+    
+# model variables
+main_menue = Cats = Category.objects.filter(parent__isnull=True)
 
 
 ################################################################################################

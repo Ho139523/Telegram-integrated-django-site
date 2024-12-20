@@ -72,25 +72,102 @@ class ArticleModel(models.Model):
 
 
 
-class ShoeModel(models.Model):
-    title = models.CharField(max_length=100, unique=True, blank=False, null=False)
-    description = models.TextField(max_length=1000, unique=False, blank=True, null=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # Preliminary price
-    size = models.IntegerField()
-    length = models.DecimalField(max_digits=3, decimal_places=1)
-    stock = models.BooleanField(default=True)
-    pic1 = models.ImageField(upload_to='shoes_image')
-    pic2 = models.ImageField(upload_to='shoes_image')
-    pic3 = models.ImageField(upload_to='shoes_image')
-    pic4 = models.ImageField(upload_to='shoes_image')
-    off = models.IntegerField(default=0)  # Discount percentage
-    code = models.CharField(max_length=9, default="001010101")
+#class ShoeModel(models.Model):
+#    title = models.CharField(max_length=100, unique=True, blank=False, null=False)
+#    description = models.TextField(max_length=1000, unique=False, blank=True, null=True)
+#    price = models.DecimalField(max_digits=10, decimal_places=2)  # Preliminary price
+#    size = models.IntegerField()
+#    length = models.DecimalField(max_digits=3, decimal_places=1)
+#    stock = models.BooleanField(default=True)
+#    pic1 = models.ImageField(upload_to='shoes_image')
+#    pic2 = models.ImageField(upload_to='shoes_image')
+#    pic3 = models.ImageField(upload_to='shoes_image')
+#    pic4 = models.ImageField(upload_to='shoes_image')
+#
+#
+
+#    def __str__(self):
+#
+
+#    @property
+#    def final_price(self):
+#        """Calculate the price after applying the discount percentage."""
+#        discount_amount = (self.price * self.off) / 100
+#
+
+
+class Category(models.Model):
+    title = models.CharField(max_length=50, unique=True, verbose_name='Category Title')
+    slug = models.SlugField(unique=True, verbose_name='Slug')  # برای URL
+    status = models.BooleanField(default=True, verbose_name='Publish Status')  # انتشار یا عدم انتشار
+    parent = models.ForeignKey(
+        'self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcategories',
+        verbose_name='Parent Category'
+    )  # زیر دسته‌ها
+    position = models.IntegerField(verbose_name='Position')  # ترتیب نمایش
+    stores = models.ManyToManyField('Store', blank=True, related_name='categories', verbose_name='Stores')
 
     def __str__(self):
-        return self.title + " - " + str(self.price)
+        return self.title
 
-    @property
-    def final_price(self):
-        """Calculate the price after applying the discount percentage."""
-        discount_amount = (self.price * self.off) / 100
-        return self.price - discount_amount
+    class Meta:
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
+        ordering = ["position"]
+        
+
+
+class Product(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Product Name')
+    slug = models.SlugField(unique=True, verbose_name='Slug')  # برای URL
+    brand = models.CharField(max_length=50, blank=True, null=True, verbose_name='Brand')  # برند اختیاری
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Price')  # قیمت
+    stock = models.PositiveIntegerField(default=0, verbose_name='Stock')  # تعداد موجودی
+    is_available = models.BooleanField(default=True, verbose_name='Is Available')  # موجود یا ناموجود
+    category = models.ForeignKey(
+        Category, on_delete=models.SET_NULL, null=True, related_name='products', verbose_name='Category'
+    )  # دسته‌بندی
+    description = models.TextField(blank=True, null=True, verbose_name='Description')  # توضیحات
+    images = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Image 1')
+    additional_images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Product"
+        verbose_name_plural = "Products"
+
+
+class ProductImage(models.Model):
+    image = models.ImageField(upload_to='product_images/', verbose_name='Product Image')
+
+    def __str__(self):
+        return f"Image: {self.id}"
+        
+        
+        
+class ProductAttribute(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='attributes')
+    key = models.CharField(max_length=50, verbose_name='Attribute Key')  # مثل "Weight" یا "Size"
+    value = models.CharField(max_length=100, verbose_name='Attribute Value')  # مثل "1kg" یا "42"
+
+    def __str__(self):
+        return f"{self.key}: {self.value}"
+        
+        
+        
+class Store(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='store', verbose_name='Store Owner')
+    name = models.CharField(max_length=100, verbose_name='Store Name')
+    address = models.CharField(max_length=255, verbose_name='Address')
+    city = models.CharField(max_length=50, verbose_name='City')
+    province = models.CharField(max_length=50, verbose_name='Province')
+    products = models.ManyToManyField(Product, blank=True, related_name='stores', verbose_name='Products')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Store"
+        verbose_name_plural = "Stores"

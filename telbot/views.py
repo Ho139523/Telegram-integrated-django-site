@@ -166,8 +166,6 @@ def start(message):
         # Reset session
         	user_sessions[message.chat.id] = {"history": [], "current_menu": None}
         	send_menu(message, main_menu, "main_menu", extra_buttons)
-        else:
-            app.send_message(message.chat.id, f"the error is:hhhhhhhhh")
         
         #
     except Exception as e:

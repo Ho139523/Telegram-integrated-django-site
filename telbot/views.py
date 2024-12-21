@@ -269,24 +269,24 @@ def buy_with_code(message):
     if subscription_offer(message):
         ask_for_product_code(message)
 
-# First layer category
-@app.message_handler(func=lambda message: message.text=="دسته بندی ها")
-def category_1(message):
-    if subscription_offer(message):
-        layer_1 = Category.objects.filter(parent__isnull=True).values_list('title', flat=True)
-        home_menue = ["🏡"]
-        send_menu(message, layer_1, "category_1", home_menue)
+# # First layer category
+# @app.message_handler(func=lambda message: message.text=="دسته بندی ها")
+# def category_1(message):
+    # if subscription_offer(message):
+        # layer_1 = Category.objects.filter(parent__isnull=True).values_list('title', flat=True)
+        # home_menue = ["🏡"]
+        # send_menu(message, layer_1, "category_1", home_menue)
         
         
-# Second layer category
-@app.message_handler(func=lambda message: Category.objects.filter(parent__isnull=True, title__iexact=message.text).exists())
-def category_2(message):
-    try:
-        if subscription_offer(message):
-            layer_2 = list(Category.objects.filter(parent__title__iexact=message.text).values_list('title', flat=True))
-            send_menu(message, layer_2, message.text, retun_menue)
-    except Exception as e:
-    	print(f"{e}")
+# # Second layer category
+# @app.message_handler(func=lambda message: Category.objects.filter(parent__isnull=True, title__iexact=message.text).exists())
+# def category_2(message):
+    # try:
+        # if subscription_offer(message):
+            # layer_2 = list(Category.objects.filter(parent__title__iexact=message.text).values_list('title', flat=True))
+            # send_menu(message, layer_2, message.text, retun_menue)
+    # except Exception as e:
+    	# print(f"{e}")
 
 
 

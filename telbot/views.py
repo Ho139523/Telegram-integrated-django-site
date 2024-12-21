@@ -296,6 +296,10 @@ def subcategory(message):
             
             # Send the child titles to the menu
             if children == []:
+                # Update session: push current menu into history
+                session = user_sessions[message.chat.id]
+                
+                session["current_menu"] = message.text
                 fake_message = message  # Clone the current message
                 fake_message.text = "hi"
                 handle_products(fake_message)

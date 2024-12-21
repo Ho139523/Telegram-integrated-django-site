@@ -255,7 +255,7 @@ def balance_menue(message):
         options = ["موجودی من", "افزایش موجودی"]
         home_menue = ["🏡"]
         markup = send_menu(message, options, "balance_category", home_menue)
-        app.send_message(message.chat.id, "یک گزینه را انتخاب کنید:", reply_markup=markup)
+        app.send_message(message.chat.id, "می خوای موجودی بگیری یا موجودیت رو افزایش بدی؟", reply_markup=markup)
         
         
 # show balance

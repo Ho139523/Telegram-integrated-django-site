@@ -254,7 +254,7 @@ def balance_menue(message):
     if subscription_offer(message):
         options = ["موجودی من", "افزایش موجودی"]
         home_menue = ["🏡"]
-        markup = send_menu(message, options, "balance_category", home_menue
+        markup = send_menu(message, options, "balance_category", home_menue)
         app.send_message(message.chat.id, "", reply_markup=markup)
         
         

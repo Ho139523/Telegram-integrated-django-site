@@ -304,7 +304,7 @@ def subcategory(message):
             
             # Send the child titles to the menu
             markup = send_menu(message, children, message.text, retun_menue)
-            app.send_message(message.chat.id, "", reply_markup=markup)
+            app.send_message(message.chat.id, "کالایی که دنبالشی جزو کدام زیردسته است؟", reply_markup=markup)
             
     except Exception as e:
         print(f'Error: {e}')

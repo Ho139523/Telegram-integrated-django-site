@@ -290,7 +290,7 @@ def subcategory(message):
             current_category = Category.objects.get(title__iexact=message.text, status=True)
             
             # Get children categories as a list of dicts
-            children = child.to_dict() for child in current_category.get_next_layer_categories()
+            children = [child.to_dict() for child in current_category.get_next_layer_categories()]
             print(children)
             
             # Send full path of the category

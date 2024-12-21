@@ -124,6 +124,8 @@ class Category(models.Model):
             category = category.parent
         return parents
         
+    def get_full_path(self):
+    	return " > ".join([parent.title for parent in reversed(self.get_parents())] + [self.title])
 
 
 class Product(models.Model):

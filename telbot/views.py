@@ -200,6 +200,7 @@ def handle_back(message):
     if subscription_offer(message):
         try:
             session = user_sessions[message.chat.id]
+            app.send_message(message.chat.id, f"{session['current_menu']}")
             previous_category = Category.objects.get(title__iexact=session["current_menu"], status=True).get_parents()[1].title
             app.send_message(message.chat.id, previous_category)
         except Exception as e:

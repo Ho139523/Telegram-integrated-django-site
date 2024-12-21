@@ -230,7 +230,10 @@ def handle_back(message):
 @app.message_handler(func=lambda message: message.text=="🏡")
 def home(message):
     if subscription_offer(message):
-        send_menu(message, main_menu, "main_menu", extra_buttons)
+    	try:
+            send_menu(message, main_menu, "main_menu", extra_buttons)
+        except Exception as e:
+            app.send_message(message.chat.id, f'Error: {e}')
     
 
 # Visit website

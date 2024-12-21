@@ -210,8 +210,9 @@ def handle_back(message):
                     title__iexact=session["current_menu"], status=True
                 ).get_parents()[0].title
             
-            except Exception == "list index out of range":
-                previous_category_title = "دسته بندی ها"
+            except IndexError as e:
+                if "list index out of range" in str(e):
+                    previous_category_title = "دسته بندی ها"
                 
             app.send_message(message.chat.id, f"the error is: {previous_category_title}")
 

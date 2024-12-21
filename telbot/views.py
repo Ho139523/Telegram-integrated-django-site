@@ -101,7 +101,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
 
             # Send the menu
             app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
-    except Exceptionas e:
+    except Exception as e:
         app.send_message(message.chat.id, f"{e}")
 
 

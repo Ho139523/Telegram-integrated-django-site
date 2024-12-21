@@ -202,7 +202,7 @@ def handle_back(message):
             session = user_sessions[message.chat.id]
             app.send_message(message.chat.id, f"{session['current_menu']}")
             previous_category = Category.objects.get(title__iexact=session["current_menu"], status=True).get_parents()[1].title
-            app.subcategory(previous_category)
+            subcategory(previous_category)
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")
 

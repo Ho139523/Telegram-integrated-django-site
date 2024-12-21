@@ -15,6 +15,6 @@ urlpatterns = [
     
     # Shoe API
     #path('', ShoeView.as_view({'get': 'list'})),
-    path('check-registration/', CheckTelegramUserRegistrationView.as_view())
+    # path('check-registration/', CheckTelegramUserRegistrationView.as_view())
 
 ]

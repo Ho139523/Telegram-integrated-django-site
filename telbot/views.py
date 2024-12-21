@@ -209,19 +209,26 @@ def handle_back(message):
                 previous_category_title = Category.objects.get(
                     title__iexact=session["current_menu"], status=True
                 ).get_parents()[0].title
+                
+                # Manually trigger the handler by simulating a message
+                fake_message = message  # Clone the current message
+                fake_message.text = previous_category_title  # Change the text to previous category
+                
+                # Call the subcategory handler directly
+                subcategory(fake_message)
             
             except IndexError as e:
                 if "list index out of range" in str(e):
                     previous_category_title = "دسته بندی ها"
-                
-            app.send_message(message.chat.id, f"the error is: {previous_category_title}")
+                    
+                    fake_message = message  # Clone the current message
+                    fake_message.text = previous_category_title  # Change the text to previous category
+                    
+                    # Call the subcategory handler directly
+                    category(fake_message)
+             
 
-            # Manually trigger the handler by simulating a message
-            fake_message = message  # Clone the current message
-            fake_message.text = previous_category_title  # Change the text to previous category
-
-            # Call the subcategory handler directly
-            subcategory(fake_message)
+            
 
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")

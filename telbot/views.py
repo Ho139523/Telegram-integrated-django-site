@@ -300,6 +300,7 @@ def subcategory(message):
                 session = user_sessions[message.chat.id]
                 
                 session["current_menu"] = message.text
+                app.send_message(message.chat.id, f"{current_category.get_full_path()}")
                 fake_message = message  # Clone the current message
                 fake_message.text = "hi"
                 handle_products(fake_message)

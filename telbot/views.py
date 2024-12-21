@@ -282,7 +282,7 @@ def category(message):
     	# print(f"{e}")
 
 # second layer category
-@app.message_handler(func=lambda message: message.text in Category.objects.filter(title__iexact=message.text, status=True))
+@app.message_handler(func=lambda message: message.text in Category.objects.filter(status=True))
 def subcategory(message):
     if subscription_offer(message):
         chidren = Category.objects.filter(title__iexact=message.text, status=True).get_next_layer_categories().values_list('title', flat=True)

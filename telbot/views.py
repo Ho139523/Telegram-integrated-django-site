@@ -274,7 +274,7 @@ def category(message):
     if subscription_offer(message):
         cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
         home_menue = ["🏡"]
-        send_menu(message, layer_1, "category_1", home_menue)
+        send_menu(message, cats, message.text, home_menue)
         
         
 # # Second layer category

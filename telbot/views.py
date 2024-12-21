@@ -325,7 +325,7 @@ def handle_products(message):
 
         # Save session
         
-        user_sessions[chat_id]["current_menu"] = f"products:{subcategory}"
+        
 
         # Send products menu
         markup = send_menu(message, options, "products", retun_menue)

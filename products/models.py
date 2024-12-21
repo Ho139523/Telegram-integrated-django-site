@@ -98,13 +98,13 @@ class ArticleModel(models.Model):
 
 class Category(models.Model):
     title = models.CharField(max_length=50, unique=True, verbose_name='Category Title')
-    slug = models.SlugField(unique=True, verbose_name='Slug')  # برای URL
-    status = models.BooleanField(default=True, verbose_name='Publish Status')  # انتشار یا عدم انتشار
+    slug = models.SlugField(unique=True, verbose_name='Slug')
+    status = models.BooleanField(default=True, verbose_name='Publish Status')
     parent = models.ForeignKey(
         'self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcategories',
         verbose_name='Parent Category'
-    )  # زیر دسته‌ها
-    position = models.IntegerField(verbose_name='Position')  # ترتیب نمایش
+    )
+    position = models.IntegerField(verbose_name='Position')
     stores = models.ManyToManyField('Store', blank=True, related_name='categories', verbose_name='Stores')
 
     def __str__(self):
@@ -114,6 +114,15 @@ class Category(models.Model):
         verbose_name = "Category"
         verbose_name_plural = "Categories"
         ordering = ["position"]
+
+    # Recursive method to get full hierarchy of parents
+    def get_parents(self):
+        parents = []
+        category = self
+        while category.parent:
+            parents.append(category.parent)
+            category = category.parent
+        return parents
         
 
 

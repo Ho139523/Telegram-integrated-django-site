@@ -293,7 +293,7 @@ def subcategory(message):
             children = [child.to_dict() for child in current_category.get_next_layer_categories()]
             
             # Send full path of the category
-            app.send_message(message.chat.id, f"{current_category.get_full_path()}")
+            app.send_message(message.chat.id, f"{str(current_category.get_full_path())}")
             
             # Send the children categories to the menu
             send_menu(message, children, message.text, retun_menue)

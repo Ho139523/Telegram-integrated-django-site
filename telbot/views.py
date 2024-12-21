@@ -43,7 +43,7 @@ app = TeleBot(token=TOKEN, state_storage=state_storage)
 current_site = 'https://intelleum.ir'
 
 # Tracking user menu history
-user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+user_sessions = defaultdict(lambda: {"current_menu": None})
 
 # support class
 chat_ids=[]
@@ -198,37 +198,9 @@ def handle_check_subscription(call):
 # Back to Previous Menu
 @app.message_handler(func=lambda message: message.text == "🔙")
 def handle_back(message):
-    chat_id = message.chat.id
-    session = user_sessions[chat_id]
-
-    if session["history"]:
-        previous_menu = session["history"].pop()
-        session["current_menu"] = previous_menu
-
-        # Handle back navigation
-        if previous_menu == "main_menu":
-            markup = send_menu(message, main_menu, "main_menu", extra_buttons)
-            app.send_message(message.chat.id, "", reply_markup=markup)
-        elif previous_menu.startswith("subcategory"):
-            parent_category = previous_menu.split(":")[1]
-            subcategories = {
-                "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-                "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-                "دیجیتال": ["لپتاب", "گوشی"],
-            }
-            markup = send_menu(message, subcategories[parent_category], f"subcategory:{parent_category}", retun_menue)
-            app.send_message(message.chat.id, "", reply_markup=markup)
-        elif previous_menu.startswith("products"):
-            options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-            markup = send_menu(message, options, "products", retun_menue)
-            app.send_message(message.chat.id, "", reply_markup=markup)
-    else:
-        # If no history, return to main menu
-        session["current_menu"] = "main_menu"
-        markup = send_menu(message, main_menu, "main_menu", extra_buttons)
-        app.send_message(message.chat.id, "", reply_markup=markup)
-        app.send_message(chat_id, "شما در منوی اصلی هستید.")
-
+    if subscription_offer(message):
+        previous_category = Category.objects.get(title__iexact=user_session["current_menu"], status=True).get_parents()[1].title
+        app.send_message(message.chat.id, previous_category)
 
 
 # Home
@@ -279,15 +251,6 @@ def category(message):
         app.send_message(message.chat.id, "کالایی که دنبالشی جزو کدام دسته است", reply_markup=markup)
         
         
-# # Second layer category
-# @app.message_handler(func=lambda message: Category.objects.filter(parent__isnull=True, title__iexact=message.text).exists())
-# def category_2(message):
-    # try:
-        # if subscription_offer(message):
-            # layer_2 = list(Category.objects.filter(parent__title__iexact=message.text).values_list('title', flat=True))
-            # send_menu(message, layer_2, message.text, retun_menue)
-    # except Exception as e:
-    	# print(f"{e}")
 
 # second layer category
 @app.message_handler(func=lambda message: message.text in Category.objects.filter(title__iexact=message.text, status=True).values_list('title', flat=True))

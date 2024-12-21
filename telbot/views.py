@@ -339,12 +339,13 @@ def handle_products(message):
 def handle_ten_products(message):
     if subscription_offer(message):
         try:
-            hhh=user_sessions[message.chat.id]['current_menu']
-            app.send_message(message.chat.id, f"{hhh}")
+            
             products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
 
             if not products.exists():
-                app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
+                hhh=user_sessions[message.chat.id]['current_menu']
+                app.send_message(message.chat.id, f"heloooo{hhh}")
+                #app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
                 return
 
             for product in products:

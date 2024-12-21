@@ -288,7 +288,7 @@ try:
         if subscription_offer(message):
             chidren = Category.objects.filter(title__iexact=message.text, status=True).get_next_layer_categories().values_list('title', flat=True)
             app.send_message(message.chat.id, Category.objects.filter(title__iexact=message.text, status=True).get_full_path())
-            send_menu(message, chidren, message.text, retun_menue
+            send_menu(message, chidren, message.text, retun_menue)
 except Exception as e:
     print(f'{e}')
 

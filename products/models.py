@@ -117,7 +117,7 @@ class Category(models.Model):
         verbose_name_plural = "Categories"
         ordering = ["position"]
 
-    # Recursive method to retrieve all parent categories
+    # Recursive method to get full hierarchy of parents
     def get_parents(self):
         parents = []
         category = self
@@ -125,12 +125,10 @@ class Category(models.Model):
             parents.append(category.parent)
             category = category.parent
         return parents
-    
-    # Returns the full hierarchical path (e.g., Parent > Child > Subchild)
+
     def get_full_path(self):
         return " > ".join([parent.title for parent in reversed(self.get_parents())] + [self.title])
 
-    # Retrieves all subcategories recursively
     def get_all_subcategories(self):
         subcategories = set()
         categories_to_check = [self]
@@ -142,23 +140,22 @@ class Category(models.Model):
             categories_to_check.extend(children)
         
         return subcategories
-
-    # Retrieves direct subcategories of the current category
+    
     def get_next_layer_categories(self):
         return self.subcategories.filter(status=True)
 
-    # Disables all child categories when the parent status is set to False
-    def disable_subcategories(self):
-        if not self.status:
-            for sub in self.get_all_subcategories():
-                sub.status = False
-                sub.save()
+    # New to_dict method
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "slug": self.slug,
+            "status": self.status,
+            "parent": self.parent.title if self.parent else None,
+            "position": self.position,
+            "stores": [store.name for store in self.stores.all()]  # Assuming Store model has a name field
+        }
 
-    # Save override to disable subcategories when a category is disabled
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if not self.status:
-            self.disable_subcategories()
 
 
 

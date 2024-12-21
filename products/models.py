@@ -127,17 +127,24 @@ class Category(models.Model):
     def get_full_path(self):
     	return " > ".join([parent.title for parent in reversed(self.get_parents())] + [self.title])
 
-	def get_all_subcategories(self):
-		subcategories = set()
-		categories_to_check = [self]
-		
-		while categories_to_check:
-		current = categories_to_check.pop()
-		children = current.subcategories.all()
-		subcategories.update(children)
-		categories_to_check.extend(children)
-		
-		return subcategories
+
+    def get_all_subcategories(self):
+        subcategories = set()
+        categories_to_check = [self]
+
+        while categories_to_check:
+            current = categories_to_check.pop()
+            children = current.subcategories.all()
+            subcategories.update(children)
+            categories_to_check.extend(children)
+        
+        return subcategories
+        
+    def get_next_layer_categories(category):
+        # Retrieve all subcategories for the current category
+        subcategories = Category.objects.filter(parent=category, status=True)
+        return subcategories
+
 
 class Product(models.Model):
     name = models.CharField(max_length=100, verbose_name='Product Name')

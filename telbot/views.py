@@ -100,7 +100,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
         	session["current_menu"] = current_menu
 
         # Send the menu
-        	app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+        	# app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
     except Exception as e:
     	app.send_message(message.chat.id, f"the error is: {e}")
 
@@ -269,13 +269,12 @@ def buy_with_code(message):
     if subscription_offer(message):
         ask_for_product_code(message)
 
-# # First layer category
-# @app.message_handler(func=lambda message: message.text=="دسته بندی ها")
-# def category_1(message):
-    # if subscription_offer(message):
-        # layer_1 = Category.objects.filter(parent__isnull=True).values_list('title', flat=True)
-        # home_menue = ["🏡"]
-        # send_menu(message, layer_1, "category_1", home_menue)
+@app.message_handler(func=lambda message: message.text=="دسته بندی ها")
+def category(message):
+    if subscription_offer(message):
+        cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
+        home_menue = ["🏡"]
+        send_menu(message, layer_1, "category_1", home_menue)
         
         
 # # Second layer category
@@ -288,7 +287,13 @@ def buy_with_code(message):
     # except Exception as e:
     	# print(f"{e}")
 
-
+# second layer category
+@app.message_handler(func=lambda message: message.text in Category.objects.filter(title__iexact=message.text, status=True))
+def subcategory(message):
+    if subscription_offer(message):
+        chidren = Category.objects.filter(title__iexact=message.text, status=True).get_next_layer_categories().values_list('title', flat=True)
+        app.send_message(message.chat.id, Category.objects.filter(title__iexact=message.text, status=True).get_full_path())
+        send_menu(message, chidren, message.text, retun_menue)
 
 # Products Handler
 @app.message_handler(func=lambda message: message.text in [

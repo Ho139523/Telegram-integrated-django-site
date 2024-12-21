@@ -94,8 +94,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
 
         # Update session: push current menu into history
         session = user_sessions[message.chat.id]
-        if session["current_menu"] != current_menu:
-            session["history"].append(session["current_menu"])
+        
         session["current_menu"] = current_menu
 
         # Send the menu

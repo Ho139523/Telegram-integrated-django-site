@@ -314,9 +314,9 @@ def subcategory(message):
 
 # Products Handler
 #@app.message_handler(func=lambda message: message.text in [
-    "ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", 
-    "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"
-])
+#    "ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", 
+#    "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"
+#])
 def handle_products(message):
     if subscription_offer(message):
         chat_id = message.chat.id

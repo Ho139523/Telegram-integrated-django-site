@@ -85,7 +85,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
         # Organize buttons into rows of three
         	rows = [options[i:i + 3] for i in range(0, len(options), 3)]
         	for row in rows:
-            	markup.row(*row)
+                markup.row(*row)
 
         # Add extra buttons
         	if extra_buttons:

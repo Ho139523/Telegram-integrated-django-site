@@ -324,7 +324,7 @@ def handle_products(message):
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
 
         # Save session
-        user_sessions[chat_id]["history"].append(user_sessions[chat_id]["current_menu"])
+        
         user_sessions[chat_id]["current_menu"] = f"products:{subcategory}"
 
         # Send products menu

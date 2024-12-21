@@ -286,21 +286,20 @@ def category(message):
 def subcategory(message):
     try:
         if subscription_offer(message):
-            # Get the current category
             current_category = Category.objects.get(title__iexact=message.text, status=True)
             
-            # Get children categories as a list of dicts
-            children = [child.to_dict() for child in current_category.get_next_layer_categories()['title']]
-            print(children)
+            # Get the titles of the child categories
+            children = [child.title for child in current_category.get_next_layer_categories()]
             
             # Send full path of the category
-            app.send_message(message.chat.id, f"{str(current_category.get_full_path())}")
+            app.send_message(message.chat.id, f"{current_category.get_full_path()}")
             
-            # Send the children categories to the menu
+            # Send the child titles to the menu
             send_menu(message, children, message.text, retun_menue)
             
     except Exception as e:
         print(f'Error: {e}')
+
 
 
 

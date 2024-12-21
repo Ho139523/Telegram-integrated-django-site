@@ -91,7 +91,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
         	if extra_buttons:
         		extra_rows = [extra_buttons[i:i + 2] for i in range(0, len(extra_buttons), 2)]
         		for extra_row in extra_rows:
-        		markup.row(*extra_row)
+        			markup.row(*extra_row)
 
         # Update session: push current menu into history
         	session = user_sessions[message.chat.id]

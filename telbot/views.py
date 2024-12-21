@@ -276,7 +276,7 @@ def category(message):
         cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
         home_menue = ["🏡"]
         markup = send_menu(message, cats, message.text, home_menue)
-        app.send_message(message.chat.id, "", reply_markup=markup)
+        app.send_message(message.chat.id, "کالایی که دنبالشی جزو کدام دسته است", reply_markup=markup)
         
         
 # # Second layer category

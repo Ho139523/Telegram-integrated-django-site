@@ -342,7 +342,7 @@ def handle_ten_products(message):
     	try:
     	    products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
     	    for product in products:
-    	        phtos = [tryes.InputMediaPhoto(product.main_image.url, caption="hello")] + [types.InputMediaPhoto(i.url) for i in product.additional_images]
+    	        phtos = [types.InputMediaPhoto(product.main_image.url, caption="hello")] + [types.InputMediaPhoto(i.url) for i in product.additional_images]
     	        app.send_media_group(message.chat.id, media=photos)
     	        
     	except Exception as e:

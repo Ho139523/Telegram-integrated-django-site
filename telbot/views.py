@@ -338,14 +338,26 @@ def handle_products(message):
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
     if subscription_offer(message):
-    	# if message.text=="پر تخفیف ها":
-    	try:
-    	    products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
-    	    for product in products:
-    	        phtos = [types.InputMediaPhoto(product.main_image.url, caption="hello")] + [types.InputMediaPhoto(i.url) for i in product.additional_images]
-    	        app.send_media_group(message.chat.id, media=photos)
-    	        
-    	except Exception as e:
+        try:
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
+
+            if not products.exists():
+                app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
+                return
+
+            for product in products:
+                photos = [
+                    types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption="hello")
+                ] + [
+                    types.InputMediaPhoto(open(i.path, 'rb')) for i in product.additional_images
+                ]
+
+                if len(photos) > 10:
+                    photos = photos[:10]  # محدود به 10 عکس
+
+                app.send_media_group(message.chat.id, media=photos)
+
+        except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")
     	# elif message.text=="پر فروش ها":
     	

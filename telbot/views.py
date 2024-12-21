@@ -341,7 +341,7 @@ def handle_ten_products(message):
     	# if message.text=="پر تخفیف ها":
     	products = Products.objects.filter(category__title=user_session[message.chat.id]["current_menu"])
     	for product in products:
-    	    phtos = [product.main_image.url, caption="hello"] + [i.url for i in product.additional_images]
+    	    phtos = [tryes.InputMediaPhoto(product.main_image.url, caption="hello")] + [types.InputMediaPhoto(i.url) for i in product.additional_images]
     	    app.send_media_group(message.chat.id, media=photos)
     	# elif message.text=="پر فروش ها":
     	

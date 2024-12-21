@@ -28,6 +28,7 @@ from bs4 import BeautifulSoup
 
 # import models
 from products.models import Category
+from telebot.types import Message
 
 
 ###############################################################################################
@@ -194,6 +195,7 @@ def handle_check_subscription(call):
         app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید.")
 
 
+
 # Back to Previous Menu
 @app.message_handler(func=lambda message: message.text == "🔙")
 def handle_back(message):
@@ -201,9 +203,23 @@ def handle_back(message):
         try:
             session = user_sessions[message.chat.id]
             
-            previous_category = Category.objects.get(title__iexact=session["current_menu"], status=True).get_parents()[0].title
-            app.send_message(message.chat.id, f"{previous_category}")
-            subcategory(previous_category)
+            # Get the previous category's title
+            previous_category_title = Category.objects.get(
+                title__iexact=session["current_menu"], status=True
+            ).get_parents()[0].title
+
+            # Simulate a message object for subcategory handler
+            fake_message = Message(
+                message_id=message.message_id,
+                from_user=message.from_user,
+                chat=message.chat,
+                date=message.date,
+                text=previous_category_title
+            )
+
+            # Trigger subcategory handler with simulated message
+            subcategory(fake_message)
+            
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")
 

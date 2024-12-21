@@ -96,6 +96,8 @@ class ArticleModel(models.Model):
 #
 
 
+from django.db import models
+
 class Category(models.Model):
     title = models.CharField(max_length=50, unique=True, verbose_name='Category Title')
     slug = models.SlugField(unique=True, verbose_name='Slug')
@@ -115,7 +117,7 @@ class Category(models.Model):
         verbose_name_plural = "Categories"
         ordering = ["position"]
 
-    # Recursive method to get full hierarchy of parents
+    # Recursive method to retrieve all parent categories
     def get_parents(self):
         parents = []
         category = self
@@ -123,11 +125,12 @@ class Category(models.Model):
             parents.append(category.parent)
             category = category.parent
         return parents
-        
+    
+    # Returns the full hierarchical path (e.g., Parent > Child > Subchild)
     def get_full_path(self):
-    	return " > ".join([parent.title for parent in reversed(self.get_parents())] + [self.title])
+        return " > ".join([parent.title for parent in reversed(self.get_parents())] + [self.title])
 
-
+    # Retrieves all subcategories recursively
     def get_all_subcategories(self):
         subcategories = set()
         categories_to_check = [self]
@@ -139,11 +142,24 @@ class Category(models.Model):
             categories_to_check.extend(children)
         
         return subcategories
-        
-def get_next_layer_categories(category):
-    # Retrieve all subcategories for the current category
-    subcategories = Category.objects.filter(parent=category, status=True)
-    return subcategories
+
+    # Retrieves direct subcategories of the current category
+    def get_next_layer_categories(self):
+        return self.subcategories.filter(status=True)
+
+    # Disables all child categories when the parent status is set to False
+    def disable_subcategories(self):
+        if not self.status:
+            for sub in self.get_all_subcategories():
+                sub.status = False
+                sub.save()
+
+    # Save override to disable subcategories when a category is disabled
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if not self.status:
+            self.disable_subcategories()
+
 
 
 class Product(models.Model):

@@ -160,8 +160,10 @@ def start(message):
         
         if subscription_offer(message):
             # Display the main menu
-            
-            send_menu(message, main_menu, "main_menue", extra_buttons)
+            try:
+                send_menu(message, main_menu, "main_menu", extra_buttons)
+            except Exception as e:
+        app.send_message(message.chat.id, f"the error is: {e}")
         else:
             app.send_message(message.chat.id, f"the error is: ")
         

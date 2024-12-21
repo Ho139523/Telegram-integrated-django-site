@@ -93,11 +93,6 @@ def send_menu(message, options, current_menu, extra_buttons=None):
         		for extra_row in extra_rows:
         			markup.row(*extra_row)
 
-        # Update session: push current menu into history
-        	session = user_sessions[message.chat.id]
-        	if session["current_menu"] != current_menu:
-        		session["history"].append(session["current_menu"])
-        	session["current_menu"] = current_menu
 
         # Send the menu
         	# app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
@@ -171,6 +166,8 @@ def start(message):
         # Reset session
         	user_sessions[message.chat.id] = {"history": [], "current_menu": None}
         	send_menu(message, main_menu, "main_menu", extra_buttons)
+        else:
+            app.send_message(message.chat.id, f"the error is:hhhhhhhhh")
         
     except Exception as e:
         app.send_message(message.chat.id, f"the error is: {e}")

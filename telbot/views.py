@@ -286,7 +286,8 @@ def category(message):
 def subcategory(message):
     try:
         if subscription_offer(message):
-            chidren = Category.objects.filter(title__iexact=message.text, status=True).get_next_layer_categories(Category.objects.get(title=message.text)).values_list('title', flat=True)
+            current_category = Category.objects.get(title__iexact=message.text, status=True)
+            chidren = get_next_layer_categories(Category.objects.get(title__iexact=message.text, status=True))
             app.send_message(message.chat.id, Category.objects.filter(title__iexact=message.text, status=True).get_full_path())
             send_menu(message, chidren, message.text, retun_menue)
     except Exception as e:

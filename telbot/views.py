@@ -145,7 +145,7 @@ def start(message):
     try:
     	tel_id = message.from_user.username if message.from_user.username else message.from_user.id
     	tel_name = message.from_user.first_name
-    	response = requests.post(f"{current_site}/api/check-registration/", json={"tel_id": tel_id})
+    	response = requests.post(f"{current_site}/telbot/api/check-registration/", json={"tel_id": tel_id})
 
 
     	if response.status_code == 201:

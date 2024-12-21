@@ -163,7 +163,7 @@ def start(message):
             try:
                 send_menu(message, main_menu, "main_menu", extra_buttons)
             except Exception as e:
-        app.send_message(message.chat.id, f"the error is: {e}")
+                app.send_message(message.chat.id, f"the error is: {e}")
         else:
             app.send_message(message.chat.id, f"the error is: ")
         

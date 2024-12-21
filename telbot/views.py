@@ -99,7 +99,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
         session["current_menu"] = current_menu
 
         # Send the menu
-        app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+        return markup
 
 
 # Check subscription
@@ -163,7 +163,8 @@ def start(message):
         if subscription_offer(message):
             # Display the main menu
             
-            send_menu(message, main_menu, "main_menu", extra_buttons)
+            markup = send_menu(message, main_menu, "main_menu", extra_buttons)
+            app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
         
     except Exception as e:
         app.send_message(message.chat.id, f"the error is: {e}")

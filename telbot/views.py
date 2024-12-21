@@ -207,7 +207,9 @@ def handle_back(message):
             # Get the previous category's title
             previous_category_title = Category.objects.get(
                 title__iexact=session["current_menu"], status=True
-            ).get_parents()[0].title
+            ).get_parents()
+            app.send_message(message.chat.id, f"the error is: {previous_category_title}")
+            previous_category_title=previous_category_title[0].title
 
             # Manually trigger the handler by simulating a message
             fake_message = message  # Clone the current message

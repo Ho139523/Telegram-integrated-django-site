@@ -339,10 +339,14 @@ def handle_products(message):
 def handle_ten_products(message):
     if subscription_offer(message):
     	# if message.text=="پر تخفیف ها":
-    	products = Products.objects.filter(category__title=user_session[message.chat.id]["current_menu"])
-    	for product in products:
-    	    phtos = [tryes.InputMediaPhoto(product.main_image.url, caption="hello")] + [types.InputMediaPhoto(i.url) for i in product.additional_images]
-    	    app.send_media_group(message.chat.id, media=photos)
+    	try:
+    	    products = Products.objects.filter(category__title=user_session[message.chat.id]["current_menu"])
+    	    for product in products:
+    	        phtos = [tryes.InputMediaPhoto(product.main_image.url, caption="hello")] + [types.InputMediaPhoto(i.url) for i in product.additional_images]
+    	        app.send_media_group(message.chat.id, media=photos)
+    	        
+        except Exception as e:
+        app.send_message(message.chat.id, f"the error is: {e}")
     	# elif message.text=="پر فروش ها":
     	
     	# elif message.text=="ارزان ترین ها":

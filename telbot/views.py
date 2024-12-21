@@ -298,8 +298,13 @@ def subcategory(message):
             
             
             # Send the child titles to the menu
-            markup = send_menu(message, children, message.text, retun_menue)
-            app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
+            if children == []:
+                fake_message = message  # Clone the current message
+                fake_message.text = ""
+                handle_products(fake_message)
+            else:
+                markup = send_menu(message, children, message.text, retun_menue)
+                app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
             
     except Exception as e:
         print(f'Error: {e}')
@@ -308,7 +313,7 @@ def subcategory(message):
 
 
 # Products Handler
-@app.message_handler(func=lambda message: message.text in [
+#@app.message_handler(func=lambda message: message.text in [
     "ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", 
     "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"
 ])

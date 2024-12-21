@@ -27,7 +27,7 @@ import re
 from bs4 import BeautifulSoup
 
 # import models
-from products.models import Category
+from products.models import Category, Product
 from telebot.types import Message
 
 
@@ -339,14 +339,16 @@ def handle_products(message):
 def handle_ten_products(message):
     if subscription_offer(message):
     	# if message.text=="پر تخفیف ها":
-    		
-    		
+    	products = Products.objects.filter(category__title=user_session[message.chat.id]["current_menu"])
+    	for product in products:
+    	    phtos = [product.main_image.url, caption="hello"] + [i.url for i in product.additional_images]
+    	    app.send_media_group(message.chat.id, media=photos)
     	# elif message.text=="پر فروش ها":
     	
     	# elif message.text=="ارزان ترین ها":
     	
     	# elif message.text=="گران ترین ها":
-        pass
+        
 
 ##################################
 # support handlers

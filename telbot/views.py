@@ -282,15 +282,15 @@ def category(message):
     	# print(f"{e}")
 
 # second layer category
-try:
-    @app.message_handler(func=lambda message: message.text in Category.objects.filter(status=True))
-    def subcategory(message):
+@app.message_handler(func=lambda message: message.text in Category.objects.filter(status=True))
+def subcategory(message):
+    try:
         if subscription_offer(message):
             chidren = Category.objects.filter(title__iexact=message.text, status=True).get_next_layer_categories().values_list('title', flat=True)
             app.send_message(message.chat.id, Category.objects.filter(title__iexact=message.text, status=True).get_full_path())
             send_menu(message, chidren, message.text, retun_menue)
-except Exception as e:
-    print(f'{e}')
+    except Exception as e:
+        print(f'{e}')
 
 # Products Handler
 @app.message_handler(func=lambda message: message.text in [

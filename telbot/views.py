@@ -303,7 +303,7 @@ def subcategory(message):
                 # Update session: push current menu into history
                 session = user_sessions[message.chat.id]
                 
-                session["current_menu"] = current_menu
+                session["current_menu"] = message.text
                 markup = send_menu(message, children, message.text, retun_menue)
                 app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
             

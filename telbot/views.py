@@ -340,7 +340,7 @@ def handle_ten_products(message):
     if subscription_offer(message):
     	# if message.text=="پر تخفیف ها":
     	try:
-    	    products = Product.objects.filter(category__title=user_session[message.chat.id]["current_menu"])
+    	    products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
     	    for product in products:
     	        phtos = [tryes.InputMediaPhoto(product.main_image.url, caption="hello")] + [types.InputMediaPhoto(i.url) for i in product.additional_images]
     	        app.send_media_group(message.chat.id, media=photos)

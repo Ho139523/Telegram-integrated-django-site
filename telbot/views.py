@@ -198,6 +198,7 @@ def handle_check_subscription(call):
 
 # Back to Previous Menu
 @app.message_handler(func=lambda message: message.text == "🔙")
+@app.message_handler(func=lambda message: message.text == "🔙")
 def handle_back(message):
     if subscription_offer(message):
         try:
@@ -208,20 +209,16 @@ def handle_back(message):
                 title__iexact=session["current_menu"], status=True
             ).get_parents()[0].title
 
-            # Simulate a message object for subcategory handler
-            fake_message = Message(
-                message_id=message.message_id,
-                from_user=message.from_user,
-                chat=message.chat,
-                date=message.date,
-                text=previous_category_title
-            )
+            # Manually trigger the handler by simulating a message
+            fake_message = message  # Clone the current message
+            fake_message.text = previous_category_title  # Change the text to previous category
 
-            # Trigger subcategory handler with simulated message
+            # Call the subcategory handler directly
             subcategory(fake_message)
-            
+
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")
+
 
 
 # Home

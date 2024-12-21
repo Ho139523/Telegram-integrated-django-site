@@ -300,7 +300,7 @@ def subcategory(message):
             # Send the child titles to the menu
             if children == []:
                 fake_message = message  # Clone the current message
-                fake_message.text = ""
+                fake_message.text = "hi"
                 handle_products(fake_message)
             else:
                 markup = send_menu(message, children, message.text, retun_menue)

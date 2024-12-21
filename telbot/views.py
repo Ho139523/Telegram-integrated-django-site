@@ -232,8 +232,8 @@ def home(message):
     if subscription_offer(message):
     	try:
             send_menu(message, main_menu, "main_menu", extra_buttons)
-        except Exception as e:
-            app.send_message(message.chat.id, f'Error: {e}')
+		except Exception as e:
+			app.send_message(message.chat.id, f'Error: {e}')
     
 
 # Visit website

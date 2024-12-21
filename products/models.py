@@ -140,10 +140,10 @@ class Category(models.Model):
         
         return subcategories
         
-    def get_next_layer_categories(category):
-        # Retrieve all subcategories for the current category
-        subcategories = Category.objects.filter(parent=category, status=True)
-        return subcategories
+def get_next_layer_categories(category):
+    # Retrieve all subcategories for the current category
+    subcategories = Category.objects.filter(parent=category, status=True)
+    return subcategories
 
 
 class Product(models.Model):

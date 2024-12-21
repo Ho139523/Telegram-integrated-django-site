@@ -4,12 +4,16 @@ import threading
 import subprocess  
 
 # Function to perform git pull  
-def git_pull():  
+def git_pull_push():  
     while True:  
         try:  
             print("Performing git pull...")  
             subprocess.run(["git", "pull", "origin", "master"], check=True)  
             print("Git pull completed.")  
+            print('trying to push the changes...')
+            subprocess.run(["git", "add", "."], check=True)  
+            subprocess.run(["git", "commit", "-m", '"update"'], check=True)  
+            subprocess.run(["git", "push", "origin", "master"], check=True)  
         except subprocess.CalledProcessError as e:
             subprocess.run(["git", "stash"], check=True)  
             print("Git stashed.")
@@ -28,7 +32,7 @@ def install_requirements():
         time.sleep(3600)  # Sleep for 1 hour  
 
 # Create threads for git pull and install requirements  
-pull_thread = threading.Thread(target=git_pull)  
+pull_thread = threading.Thread(target=git_pull_push)  
 install_thread = threading.Thread(target=install_requirements)  
 
 # Start threads  

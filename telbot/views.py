@@ -96,13 +96,13 @@ def send_menu(message, options, current_menu, extra_buttons=None):
         # Update session: push current menu into history
         	session = user_sessions[message.chat.id]
         	if session["current_menu"] != current_menu:
-            	session["history"].append(session["current_menu"])
+        		session["history"].append(session["current_menu"])
         	session["current_menu"] = current_menu
 
         # Send the menu
         	app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
     except Exception as e:
-        app.send_message(message.chat.id, f"the error is: {e}")
+    	app.send_message(message.chat.id, f"the error is: {e}")
 
 
 # Check subscription

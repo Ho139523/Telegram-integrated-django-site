@@ -207,7 +207,8 @@ def handle_back(message):
 
         # Handle back navigation
         if previous_menu == "main_menu":
-            send_menu(message, main_menu, "main_menu", extra_buttons)
+            markup = send_menu(message, main_menu, "main_menu", extra_buttons)
+            app.send_message(message.chat.id, "", reply_markup=markup)
         elif previous_menu.startswith("subcategory"):
             parent_category = previous_menu.split(":")[1]
             subcategories = {
@@ -215,14 +216,17 @@ def handle_back(message):
                 "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
                 "دیجیتال": ["لپتاب", "گوشی"],
             }
-            send_menu(message, subcategories[parent_category], f"subcategory:{parent_category}", retun_menue)
+            markup = send_menu(message, subcategories[parent_category], f"subcategory:{parent_category}", retun_menue)
+            app.send_message(message.chat.id, "", reply_markup=markup)
         elif previous_menu.startswith("products"):
             options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-            send_menu(message, options, "products", retun_menue)
+            markup = send_menu(message, options, "products", retun_menue)
+            app.send_message(message.chat.id, "", reply_markup=markup)
     else:
         # If no history, return to main menu
         session["current_menu"] = "main_menu"
-        send_menu(message, main_menu, "main_menu", extra_buttons)
+        markup = send_menu(message, main_menu, "main_menu", extra_buttons)
+        app.send_message(message.chat.id, "", reply_markup=markup)
         app.send_message(chat_id, "شما در منوی اصلی هستید.")
 
 
@@ -232,7 +236,8 @@ def handle_back(message):
 def home(message):
     if subscription_offer(message):
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
-        send_menu(message, main_menu, "main_menu", extra_buttons)
+        markup = send_menu(message, main_menu, "main_menu", extra_buttons)
+        app.send_message(message.chat.id, "", reply_markup=markup)
     
 
 # Visit website
@@ -249,7 +254,8 @@ def balance_menue(message):
     if subscription_offer(message):
         options = ["موجودی من", "افزایش موجودی"]
         home_menue = ["🏡"]
-        send_menu(message, options, "balance_category", home_menue)
+        markup = send_menu(message, options, "balance_category", home_menue
+        app.send_message(message.chat.id, "", reply_markup=markup)
         
         
 # show balance
@@ -269,7 +275,8 @@ def category(message):
     if subscription_offer(message):
         cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
         home_menue = ["🏡"]
-        send_menu(message, cats, message.text, home_menue)
+        markup = send_menu(message, cats, message.text, home_menue)
+        app.send_message(message.chat.id, "", reply_markup=markup)
         
         
 # # Second layer category
@@ -296,7 +303,8 @@ def subcategory(message):
             app.send_message(message.chat.id, f"{current_category.get_full_path()}")
             
             # Send the child titles to the menu
-            send_menu(message, children, message.text, retun_menue)
+            markup = send_menu(message, children, message.text, retun_menue)
+            app.send_message(message.chat.id, "", reply_markup=markup)
             
     except Exception as e:
         print(f'Error: {e}')
@@ -320,7 +328,8 @@ def handle_products(message):
         user_sessions[chat_id]["current_menu"] = f"products:{subcategory}"
 
         # Send products menu
-        send_menu(message, options, "products", retun_menue)
+        markup = send_menu(message, options, "products", retun_menue)
+        app.send_message(message.chat.id, "", reply_markup=markup)
 
 
 
@@ -391,7 +400,8 @@ def answer_text(message):
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>", parse_mode="HTML")
 
-    send_menu(message, main_menu, "main_menu", extra_buttons)
+    markup = send_menu(message, main_menu, "main_menu", extra_buttons)
+    app.send_message(message.chat.id, "", reply_markup=markup)
 ##################################
 
 # Handle messages
@@ -448,7 +458,8 @@ def send_website_link(message):
 def show_product_options(message):
     if subscription_offer(message):
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-        send_menu(message, options, "products", retun_menue)
+        markup = send_menu(message, options, "products", retun_menue)
+        app.send_message(message.chat.id, "", reply_markup=markup)
 
 
 
@@ -457,7 +468,8 @@ def show_categories(message):
     if subscription_offer(message):
         options = ["پوشاک", "خوراکی", "دیجیتال"]
         home_menue = ["🏡"]
-        send_menu(message, options, "categories", home_menue)
+        markup = send_menu(message, options, "categories", home_menue)
+        app.send_message(message.chat.id, "", reply_markup=markup)
 
 # Handle category
 def handle_category(message):
@@ -467,7 +479,8 @@ def handle_category(message):
             "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
             "دیجیتال": ["لپتاب", "گوشی"],
         }
-        send_menu(message, subcategories[message.text], "subcategory", retun_menue)
+        markup = send_menu(message, subcategories[message.text], "subcategory", retun_menue)
+        app.send_message(message.chat.id, "", reply_markup=markup)
     
     
 # Subcategories Handler
@@ -487,7 +500,8 @@ def handle_subcategories(message):
         user_sessions[chat_id]["current_menu"] = f"subcategory:{parent_category}"
 
         # Send subcategory menu
-        send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
+        markup = send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
+        app.send_message(message.chat.id, "", reply_markup=markup)
 
 
 

@@ -285,8 +285,8 @@ def category_2(message):
         if subscription_offer(message):
             layer_2 = list(Category.objects.filter(parent__title__iexact=message.text).values_list('title', flat=True))
             send_menu(message, layer_2, "category_2", retun_menue)
-        except Exception as e:
-            print(f"{e}")
+    except Exception as e:
+    	print(f"{e}")
 
 
 

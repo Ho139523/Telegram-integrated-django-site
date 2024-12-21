@@ -199,7 +199,7 @@ def handle_check_subscription(call):
 def handle_back(message):
     if subscription_offer(message):
         try:
-            previous_category = Category.objects.get(title__iexact=user_session["current_menu"], status=True).get_parents()[1].title
+            previous_category = Category.objects.get(title__iexact=session["current_menu"], status=True).get_parents()[1].title
             app.send_message(message.chat.id, previous_category)
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")

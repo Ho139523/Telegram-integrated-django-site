@@ -27,7 +27,7 @@ import re
 from bs4 import BeautifulSoup
 
 # import models
-from products.models import Category, get_next_layer_categories
+from products.models import Category
 
 
 ###############################################################################################

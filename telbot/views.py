@@ -329,7 +329,7 @@ def handle_products(message):
 
         # Send products menu
         markup = send_menu(message, options, "products", retun_menue)
-        app.send_message(message.chat.id, "", reply_markup=markup)
+        app.send_message(message.chat.id, "دنبال تخفیفی؟", reply_markup=markup)
 
 
 
@@ -401,7 +401,7 @@ def answer_text(message):
         app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>", parse_mode="HTML")
 
     markup = send_menu(message, main_menu, "main_menu", extra_buttons)
-    app.send_message(message.chat.id, "", reply_markup=markup)
+    app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 ##################################
 
 # Handle messages
@@ -459,49 +459,13 @@ def show_product_options(message):
     if subscription_offer(message):
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
         markup = send_menu(message, options, "products", retun_menue)
-        app.send_message(message.chat.id, "", reply_markup=markup)
+        app.send_message(message.chat.id, "دنبال تخفیفی؟", reply_markup=markup)
 
 
 
-# Categories handler
-def show_categories(message):
-    if subscription_offer(message):
-        options = ["پوشاک", "خوراکی", "دیجیتال"]
-        home_menue = ["🏡"]
-        markup = send_menu(message, options, "categories", home_menue)
-        app.send_message(message.chat.id, "", reply_markup=markup)
 
-# Handle category
-def handle_category(message):
-    if subscription_offer(message):
-        subcategories = {
-            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-            "دیجیتال": ["لپتاب", "گوشی"],
-        }
-        markup = send_menu(message, subcategories[message.text], "subcategory", retun_menue)
-        app.send_message(message.chat.id, "", reply_markup=markup)
     
-    
-# Subcategories Handler
-@app.message_handler(func=lambda message: message.text in ["پوشاک", "خوراکی", "دیجیتال"])
-def handle_subcategories(message):
-    if subscription_offer(message):
-        chat_id = message.chat.id
-        parent_category = message.text  # Save the parent category
-        subcategories = {
-            "پوشاک": ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه"],
-            "خوراکی": ["خشکبار", "خوار و بار", "سوپر مارکت"],
-            "دیجیتال": ["لپتاب", "گوشی"],
-        }
 
-        # Save session
-        user_sessions[chat_id]["history"].append(user_sessions[chat_id]["current_menu"])
-        user_sessions[chat_id]["current_menu"] = f"subcategory:{parent_category}"
-
-        # Send subcategory menu
-        markup = send_menu(message, subcategories[parent_category], "subcategory", retun_menue)
-        app.send_message(message.chat.id, "", reply_markup=markup)
 
 
 

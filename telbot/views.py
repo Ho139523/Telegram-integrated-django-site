@@ -93,10 +93,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
             for extra_row in extra_rows:
                 markup.row(*extra_row)
 
-        # Update session: push current menu into history
-        session = user_sessions[message.chat.id]
         
-        session["current_menu"] = current_menu
 
         # Send the menu
         return markup
@@ -303,6 +300,10 @@ def subcategory(message):
                 fake_message.text = "hi"
                 handle_products(fake_message)
             else:
+                # Update session: push current menu into history
+                session = user_sessions[message.chat.id]
+                
+                session["current_menu"] = current_menu
                 markup = send_menu(message, children, message.text, retun_menue)
                 app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
             

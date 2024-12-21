@@ -99,7 +99,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
         session["current_menu"] = current_menu
 
         # Send the menu
-        app.send_message(message.chat.id, "", reply_markup=markup)
+        app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
 
 
 # Check subscription

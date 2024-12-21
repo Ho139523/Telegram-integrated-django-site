@@ -237,7 +237,7 @@ def home(message):
     if subscription_offer(message):
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
         markup = send_menu(message, main_menu, "main_menu", extra_buttons)
-        app.send_message(message.chat.id, "", reply_markup=markup)
+        app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
     
 
 # Visit website

@@ -369,7 +369,7 @@ def handle_ten_products(message):
                 buy_button = types.InlineKeyboardButton(text="خرید")#, callback_data=f"buy_{product['code']}")
                 markup.add(buy_button)
                 app.send_media_group(message.chat.id, media=photos)
-                app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇6", markup=markup)
+                app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup
 
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")

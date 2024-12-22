@@ -350,17 +350,16 @@ def handle_ten_products(message):
 
         if not products.exists():
             hhh=user_sessions[message.chat.id]['current_menu']
-            app.send_message(message.chat.id, f"heloooo{hhh}")
-            #app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
+            app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
             return
         try:
             for product in products:
                 formatted_price = "{:,.0f}".format(float(product.price))
-                caption = f"⭕️ {product.name}کد کالا: {product.code}\n\n{product.description}\n\n🔘فروش با ضمانت ارویجینال💯\n📫ارسال به تمام نقاط کشور\n💵 قیمت: {formatted_price} تومان"
+                caption = f"⭕️ {product.name}\nکد کالا: {product.code}\n\n{product.description}\n\n🔘فروش با ضمانت ارویجینال💯\n📫ارسال به تمام نقاط کشور\n💵 قیمت: {formatted_price} تومان"
                 photos = [
                     types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption)
                 ] + [
-                    types.InputMediaPhoto(open(i.path, 'rb')) for i in product.additional_images.all()
+                    types.InputMediaPhoto(open(i.path, 'rb')) for i in product.image_set.all()
                 ]
                 app.send_message(message.chat.id, f"{print([i.path for i in product.additional_images.all()])}")
 

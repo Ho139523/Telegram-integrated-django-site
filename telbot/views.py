@@ -330,7 +330,8 @@ def handle_products(message):
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
 
         # Save session
-        markup = send_menu(message, options, "products", retun_menue)
+        home_menue = ["🏡"]
+        markup = send_menu(message, options, "products", home_menue)
         session = user_sessions[message.chat.id]
         current_category = Category.objects.get(title__iexact=session["current_menu"], status=True)
         app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)

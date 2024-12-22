@@ -366,7 +366,7 @@ def handle_ten_products(message):
                     photos = photos[:10]  # محدود به 10 عکس
                 
                 markup = types.InlineKeyboardMarkup()
-                buy_button = types.InlineKeyboardButton(text="خرید")#, callback_data=f"buy_{product['code']}")
+                buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/product_code")#, callback_data=f"buy_{product['code']}")
                 markup.add(buy_button)
                 app.send_media_group(message.chat.id, media=photos)
                 app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)

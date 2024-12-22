@@ -357,7 +357,7 @@ def handle_ten_products(message):
                 photos = [
                     types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption="hello")
                 ] + [
-                    types.InputMediaPhoto(open(i.path, 'rb')) for i in product.additional_images
+                    types.InputMediaPhoto(open(i.path, 'rb')) for i in product.additional_images.all()
                 ]
 
                 if len(photos) > 10:

@@ -300,7 +300,7 @@ def subcategory(message):
                 session = user_sessions[message.chat.id]
                 
                 session["current_menu"] = message.text
-                app.send_message(message.chat.id, f"{current_category.get_full_path()}")
+                
                 fake_message = message  # Clone the current message
                 fake_message.text = "hi"
                 handle_products(fake_message)
@@ -330,13 +330,13 @@ def handle_products(message):
         options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
 
         # Save session
-        
-        
-
-        # Send products menu
         markup = send_menu(message, options, "products", retun_menue)
-        app.send_message(message.chat.id, "دنبال تخفیفی؟", reply_markup=markup)
+        session = user_sessions[message.chat.id]
+        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True)
+        app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
+        
 
+        
 
 
 

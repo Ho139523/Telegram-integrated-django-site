@@ -362,7 +362,7 @@ def handle_ten_products(message):
                 ] + [
                     types.InputMediaPhoto(open(i.path, 'rb')) for i in product.additional_images.all()
                 ]
-                app.send_message(message.chat.id, f"{print([i.path for i in additional_images])}")
+                app.send_message(message.chat.id, f"{print([i.path for i in product.additional_images])}")
 
                 if len(photos) > 10:
                     photos = photos[:10]  # محدود به 10 عکس

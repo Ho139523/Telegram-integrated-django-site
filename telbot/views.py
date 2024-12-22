@@ -354,7 +354,7 @@ def handle_ten_products(message):
             return
         try:
             for product in products:
-                caption = "⭕️ {product.name} \n\n{product.description}\n\n🔘فروش با ضمانت ارویجینال💯\n📫ارسال به تمام نقاط کشور\n💵 قیمت: {product.price} تومان"
+                caption = f"⭕️ {product.name} \n\n{product.description}\n\n🔘فروش با ضمانت ارویجینال💯\n📫ارسال به تمام نقاط کشور\n💵 قیمت: {product.price} تومان"
                 photos = [
                     types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption)
                 ] + [

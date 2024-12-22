@@ -344,16 +344,15 @@ def handle_products(message):
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
     if subscription_offer(message):
-        try:
             
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
+        products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
 
-            if not products.exists():
-                hhh=user_sessions[message.chat.id]['current_menu']
-                app.send_message(message.chat.id, f"heloooo{hhh}")
-                #app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
-                return
-
+        if not products.exists():
+            hhh=user_sessions[message.chat.id]['current_menu']
+            app.send_message(message.chat.id, f"heloooo{hhh}")
+            #app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
+            return
+        try:
             for product in products:
                 photos = [
                     types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption="hello")

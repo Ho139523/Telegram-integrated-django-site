@@ -364,8 +364,11 @@ def handle_ten_products(message):
 
                 if len(photos) > 10:
                     photos = photos[:10]  # محدود به 10 عکس
-
-                app.send_media_group(message.chat.id, media=photos)
+                
+                markup = types.InlineKeyboardMarkup()
+                buy_button = types.InlineKeyboardButton(text="خرید")#, callback_data=f"buy_{product['code']}")
+                markup.add(buy_button)
+                app.send_media_group(message.chat.id, media=photos, markup=markup)
 
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")

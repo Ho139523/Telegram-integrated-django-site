@@ -345,7 +345,7 @@ def handle_ten_products(message):
         if message.text == "پرتخفیف ها":
             products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("discount")[:10]
 
-        elif message.text=="پر فروش ها":
+        elif message.text=="پر فروش ترین ها":
             app.send_message(message.chat.id, f"با عرض پوزش هنوز این قابلیت فعال نشده است.")
             
         elif message.text=="ارزان ترین ها":

@@ -342,7 +342,7 @@ def handle_products(message):
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
     if subscription_offer(message):
-        if message.text == "پرتخفیف ها"
+        if message.text == "پرتخفیف ها":
             products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
 
             if not products.exists():

@@ -464,6 +464,11 @@ def answer_text(message):
     markup = send_menu(message, main_menu, "main_menu", extra_buttons)
     app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+
 
 # Handling the callback query when the 'answer' button is clicked
 @app.callback_query_handler(func= lambda call: call.data == "پاسخ")
@@ -486,11 +491,6 @@ def answer(call):
 
 #####################################################################################################
 # Functions for specific actions
-
-@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
-def fallback_handler(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 
 # show balance

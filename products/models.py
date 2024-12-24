@@ -159,26 +159,38 @@ class Category(models.Model):
 
 
 
+from django.db import models
+
 class Product(models.Model):
     name = models.CharField(max_length=100, verbose_name='Product Name')
     slug = models.SlugField(unique=True, verbose_name='Slug')
     brand = models.CharField(max_length=50, blank=True, null=True, verbose_name='Brand')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Price')
+    discount = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name='Discount (%)')
     stock = models.PositiveIntegerField(default=0, verbose_name='Stock')
     is_available = models.BooleanField(default=True, verbose_name='Is Available')
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, related_name='products', verbose_name='Category'
+        'Category', on_delete=models.SET_NULL, null=True, related_name='products', verbose_name='Category'
     )
     description = models.TextField(blank=True, null=True, verbose_name='Description')
-    main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')  # تغییر نام از images
+    main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')
     additional_images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
     code = models.CharField(max_length=10, null=True, blank=False)
+
     def __str__(self):
         return self.name
+
+    @property
+    def final_price(self):
+        if self.discount > 0:
+            discount_amount = (self.price * self.discount) / 100
+            return self.price - discount_amount
+        return self.price
 
     class Meta:
         verbose_name = "Product"
         verbose_name_plural = "Products"
+
 
 
 class ProductImage(models.Model):

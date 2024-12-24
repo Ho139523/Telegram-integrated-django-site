@@ -271,6 +271,8 @@ def buy_with_code(message):
     if subscription_offer(message):
         ask_for_product_code(message)
 
+
+# First Layer category
 @app.message_handler(func=lambda message: message.text=="دسته بندی ها")
 def category(message):
     if subscription_offer(message):
@@ -318,11 +320,6 @@ def subcategory(message):
 
 
 
-# Products Handler
-#@app.message_handler(func=lambda message: message.text in [
-#    "ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", 
-#    "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"
-#])
 def handle_products(message):
     if subscription_offer(message):
         chat_id = message.chat.id
@@ -345,41 +342,43 @@ def handle_products(message):
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
     if subscription_offer(message):
+        if message.text == "پرتخفیف ها"
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
+
+            if not products.exists():
+                hhh=user_sessions[message.chat.id]['current_menu']
+                app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
+                return
+            try:
+                for product in products:
+                    formatted_price = "{:,.0f}".format(float(product.price))
+                    caption = f"⭕️ {product.name}\nکد کالا: {product.code}\n\n{product.description}\n\n🔘فروش با ضمانت ارویجینال💯\n📫ارسال به تمام نقاط کشور\n💵 قیمت: {formatted_price} تومان"
+                    photos = [
+                        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption)
+                    ] + [
+                        types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
+                    ]
+                    #app.send_message(message.chat.id, f"{print([i.image.path for i in product.additional_images.all()])}")
+
+                    if len(photos) > 10:
+                        photos = photos[:10]  # محدود به 10 عکس
+                    
+                    markup = types.InlineKeyboardMarkup()
+                    buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/product_code")#, callback_data=f"buy_{product['code']}")
+                    markup.add(buy_button)
+                    app.send_media_group(message.chat.id, media=photos)
+                    app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)
+
+            except Exception as e:
+                app.send_message(message.chat.id, f"the error is: {e}")
+    	elif message.text=="پر فروش ها":
+            pass
             
-        products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
-
-        if not products.exists():
-            hhh=user_sessions[message.chat.id]['current_menu']
-            app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
-            return
-        try:
-            for product in products:
-                formatted_price = "{:,.0f}".format(float(product.price))
-                caption = f"⭕️ {product.name}\nکد کالا: {product.code}\n\n{product.description}\n\n🔘فروش با ضمانت ارویجینال💯\n📫ارسال به تمام نقاط کشور\n💵 قیمت: {formatted_price} تومان"
-                photos = [
-                    types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption)
-                ] + [
-                    types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
-                ]
-                #app.send_message(message.chat.id, f"{print([i.image.path for i in product.additional_images.all()])}")
-
-                if len(photos) > 10:
-                    photos = photos[:10]  # محدود به 10 عکس
-                
-                markup = types.InlineKeyboardMarkup()
-                buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/product_code")#, callback_data=f"buy_{product['code']}")
-                markup.add(buy_button)
-                app.send_media_group(message.chat.id, media=photos)
-                app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)
-
-        except Exception as e:
-            app.send_message(message.chat.id, f"the error is: {e}")
-    	# elif message.text=="پر فروش ها":
-    	
-    	# elif message.text=="ارزان ترین ها":
-    	
-    	# elif message.text=="گران ترین ها":
-        
+    	elif message.text=="ارزان ترین ها":
+            pass
+            
+    	elif message.text=="گران ترین ها":
+            pass
 
 ##################################
 # support handlers
@@ -497,13 +496,6 @@ def show_product_options(message):
 
 
 
-    
-
-
-
-
-
-
 ##############################################################################################
 
 # Handling the callback query when the 'answer' button is clicked
@@ -522,5 +514,3 @@ def answer(call):
         app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
 
 app.add_custom_filter(custom_filters.StateFilter(app))
-
-# Done!

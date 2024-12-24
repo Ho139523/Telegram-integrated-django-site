@@ -432,14 +432,6 @@ def sup_text(message):
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
     
 
-# Handle messages in any other state
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
-        if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
-            app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
-
 
 # Handling the support agent's reply message which is saved in 'Support.respond' state
 @app.message_handler(state=Support.respond, func= lambda message: message.reply_to_message.text.startswith("Send your answer to"))
@@ -470,7 +462,13 @@ def answer_text(message):
     app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 ##################################
 
-
+# Handle messages in any other state
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
+        if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
+            app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 #####################################################################################################
 # Functions for specific actions

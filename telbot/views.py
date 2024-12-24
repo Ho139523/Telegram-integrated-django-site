@@ -479,13 +479,6 @@ def show_balance(message):
         formatted_balance = "{:,.2f}".format(float(balance))
         app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
 
-# Handle messages in any other state
-@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
-
-
 def ask_for_product_code(message):
     if subscription_offer(message):
         app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
@@ -512,6 +505,12 @@ def send_website_link(message):
 
 
 ##############################################################################################
+
+
+@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
+def fallback_handler(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 
 

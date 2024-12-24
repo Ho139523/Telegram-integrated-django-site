@@ -53,6 +53,7 @@ texts={}
 class Support(StatesGroup):
     text = State()
     respond = State()
+    code = State()
     
     
 # model variables
@@ -195,7 +196,6 @@ def handle_check_subscription(call):
 
 
 # Back to Previous Menu
-@app.message_handler(func=lambda message: message.text == "🔙")
 @app.message_handler(func=lambda message: message.text == "🔙")
 def handle_back(message):
     if subscription_offer(message):
@@ -467,6 +467,7 @@ def show_balance(message):
 def ask_for_product_code(message):
     if subscription_offer(message):
         app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
+        app.set_state(user_id=message.from_user.id, state=Support.code, chat_id=message.chat.id)  
 
 
 
@@ -490,20 +491,17 @@ def send_website_link(message):
 
 ##############################################################################################
 
-
-# Handle messages
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
         
-@app.message_handler(func=lambda message: re.match(r'^[A-Z]{4}\d{6}$', message.text))
+@app.message_handler(state=Support.code)
 def handle_product_code(message):
     if subscription_offer(message):
         chat_id = message.chat.id
         product_code = message.text
         # Simulate a product lookup or API call
-        app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
+        if re.match(r'^[A-Z]{4}\d{6}$', message.text):
+            app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
+        else:
+            app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
 
 # Handling the callback query when the 'answer' button is clicked
 @app.callback_query_handler(func= lambda call: call.data == "پاسخ")
@@ -519,5 +517,11 @@ def answer(call):
     
     except Exception as e:
         app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+
+# Handle messages
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
 
 app.add_custom_filter(custom_filters.StateFilter(app))

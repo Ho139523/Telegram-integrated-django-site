@@ -169,7 +169,10 @@ def start(message):
         app.send_message(message.chat.id, f"the error is: {e}")
 
 
-
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 #####################################################################################################
 
 
@@ -405,7 +408,7 @@ def handle_product_code(message):
 
 
 
-
+#####################################################################################
 # support handlers
 
 # Handling the 'Support 👨🏻‍💻' button click event
@@ -522,7 +525,3 @@ def send_website_link(message):
 
 app.add_custom_filter(custom_filters.StateFilter(app))
 
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")

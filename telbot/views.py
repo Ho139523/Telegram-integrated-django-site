@@ -335,8 +335,6 @@ def handle_products(message):
         app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
         
 
-        
-
 
 
 # 10 products
@@ -368,9 +366,9 @@ def handle_ten_products(message):
                         f"⭕️ {product.name}\n"
                         f"کد کالا: {product.code}\n\n"
                         f"{product.description}\n\n"
-                        f"🔘فروش با ضمانت ارویجینال💯\n"
-                        f"📫ارسال به تمام نقاط کشور\n"
-                        f"🏃{product.discount} % تخفیف\n"
+                        f"🔘 فروش با ضمانت ارویجینال💯\n"
+                        f"📫 ارسال به تمام نقاط کشور\n"
+                        f"🏃 {product.discount} % تخفیف\n"
                         f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
                     )
                     photos = [
@@ -477,7 +475,7 @@ def ask_for_product_code(message):
     if subscription_offer(message):
         app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
 
-@app.message_handler(func=lambda message: message.text.isdigit())
+@app.message_handler(func=lambda message: re.match(r'^[A-Z]{4}\d{6}$', message.text))
 def handle_product_code(message):
     if subscription_offer(message):
         chat_id = message.chat.id
@@ -500,11 +498,11 @@ def send_website_link(message):
             reply_markup=markup
         )
 
-def show_product_options(message):
-    if subscription_offer(message):
-        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-        markup = send_menu(message, options, "products", retun_menue)
-        app.send_message(message.chat.id, "دنبال تخفیفی؟", reply_markup=markup)
+# def show_product_options(message):
+    # if subscription_offer(message):
+        # options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+        # markup = send_menu(message, options, "products", retun_menue)
+        # app.send_message(message.chat.id, "دنبال تخفیفی؟", reply_markup=markup)
 
 
 

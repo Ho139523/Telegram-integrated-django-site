@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
 from .models import telbotid
+from django.utils.html import format_html
 
 
 # support imports
@@ -362,7 +363,15 @@ def handle_ten_products(message):
             try:
                 for product in products:
                     formatted_price = "{:,.0f}".format(float(product.price))
-                    caption = f"⭕️ {product.name}\nکد کالا: {product.code}\n\n{product.description}\n\n🔘فروش با ضمانت ارویجینال💯\n📫ارسال به تمام نقاط کشور\n💵 قیمت: {formatted_price} تومان"
+                    caption = format_html(
+                        f"⭕️ {product.name}\n"
+                        f"کد کالا: {product.code}\n\n"
+                        f"{product.description}\n\n"
+                        f"🔘فروش با ضمانت ارویجینال💯\n"
+                        f"📫ارسال به تمام نقاط کشور\n"
+                        f"{product.discount} % تخفیف\n"
+                        f"💵 قیمت: <s>{formatted_price}</s> تومان ➡️ {formatted_final_price} تومان"
+                    )
                     photos = [
                         types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption)
                     ] + [

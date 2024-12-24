@@ -374,7 +374,7 @@ def handle_ten_products(message):
                         f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
                     )
                     photos = [
-                        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption)
+                        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
                     ] + [
                         types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
                     ]
@@ -386,7 +386,7 @@ def handle_ten_products(message):
                     markup = types.InlineKeyboardMarkup()
                     buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/product_code")#, callback_data=f"buy_{product['code']}")
                     markup.add(buy_button)
-                    app.send_media_group(message.chat.id, media=photos, parse_mode='HTML')
+                    app.send_media_group(message.chat.id, media=photos)
                     app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)
 
             except Exception as e:

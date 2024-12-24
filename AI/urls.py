@@ -14,6 +14,7 @@ urlpatterns = [
     path('socials/', include('social_django.urls', namespace='social')),
     path('socials/complete/google-oauth2/', custom_complete, name="custom_complete"),
     path('telbot/', include('telbot.urls', namespace='telbot')),  # Prefix `telbot` instead of empty ''
+    path('', include('payment.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

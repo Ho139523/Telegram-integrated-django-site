@@ -139,14 +139,6 @@ def escape_special_characters(text):
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
-# Handle messages in any other state
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
-        # if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
-
 
 # Start handler
 @app.message_handler(commands=['start'])
@@ -495,6 +487,10 @@ def answer(call):
 #####################################################################################################
 # Functions for specific actions
 
+@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
+def fallback_handler(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 
 # show balance
@@ -532,10 +528,6 @@ def send_website_link(message):
 
 
 ##############################################################################################
-
-        
-
-
 
 
 

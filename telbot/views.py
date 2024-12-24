@@ -403,6 +403,16 @@ def handle_product_code(message):
             app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
         app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
 
+
+# Handle messages in any other state
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
+        if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
+            app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+
+
 # support handlers
 
 # Handling the 'Support 👨🏻‍💻' button click event
@@ -413,16 +423,7 @@ def sup(message):
 
 
 
-# Handle messages in any other state
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
-        if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
-            app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
-            
-            
-            
+
 # Handling the user's first message which is saved in 'Support.text' state
 @app.message_handler(state=Support.text)
 def sup_text(message):

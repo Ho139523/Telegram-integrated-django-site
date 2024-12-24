@@ -401,8 +401,7 @@ def handle_product_code(message):
             app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
         else:
             app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
-    else:
-        app.send_message(message.chat.id, "شما باید یک اشتراک فعال داشته باشید.")
+        app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
 
 # support handlers
 

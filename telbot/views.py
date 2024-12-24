@@ -170,10 +170,6 @@ def start(message):
         app.send_message(message.chat.id, f"the error is: {e}")
 
 
-@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
-def fallback_handler(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 #####################################################################################################
 
@@ -465,6 +461,22 @@ def answer_text(message):
     markup = send_menu(message, main_menu, "main_menu", extra_buttons)
     app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 
+
+# Handling the callback query when the 'answer' button is clicked
+@app.callback_query_handler(func= lambda call: call.data == "پاسخ")
+def answer(call):
+    try:
+        pattern = r"Recived a message from \d+"
+        clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
+        user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
+        
+        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
+
+        app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
+    
+    except Exception as e:
+        app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+
 ##################################
 
 
@@ -510,22 +522,17 @@ def send_website_link(message):
 
 ##############################################################################################
 
-
-
-# Handling the callback query when the 'answer' button is clicked
-@app.callback_query_handler(func= lambda call: call.data == "پاسخ")
-def answer(call):
-    try:
-        pattern = r"Recived a message from \d+"
-        clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
-        user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
         
-        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
+# Handle messages in any other state
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
+        if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
+            app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
-        app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
-    
-    except Exception as e:
-        app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+
+
 
 
 

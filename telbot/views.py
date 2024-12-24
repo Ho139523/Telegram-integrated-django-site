@@ -370,7 +370,7 @@ def handle_ten_products(message):
                         f"{product.description}\n\n"
                         f"🔘فروش با ضمانت ارویجینال💯\n"
                         f"📫ارسال به تمام نقاط کشور\n"
-                        f"{product.discount} % تخفیف\n"
+                        f"🏃{product.discount} % تخفیف\n"
                         f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
                     )
                     photos = [

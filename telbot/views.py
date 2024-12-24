@@ -184,11 +184,7 @@ def handle_product_code(message):
     else:
         app.send_message(message.chat.id, "شما باید یک اشتراک فعال داشته باشید.")
 
-# Handle messages
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
+
 
 
 
@@ -531,6 +527,10 @@ def answer(call):
 
 
 
-
+# Handle messages
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
 
 app.add_custom_filter(custom_filters.StateFilter(app))

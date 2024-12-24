@@ -497,9 +497,6 @@ def send_website_link(message):
 ##############################################################################################
 
 
-
-
-
 # Handle messages
 @app.message_handler(func=lambda message: True)
 def handle_message(message):

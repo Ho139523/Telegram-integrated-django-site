@@ -1,7 +1,7 @@
 import requests
 import json
 from django.shortcuts import redirect
-from django.config import settings
+from django.conf import settings
 
 
 

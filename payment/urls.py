@@ -5,8 +5,8 @@ from .views import *
 app_name = 'payment'
 urlpatterns = [
     # payment request
-    path('payment/', views.payment_request, name='payment_request'),
+    path('request', send_request, name='request'),
     
     # payment verify
-    path('verify/', views.payment_verify, name='payment_verify'),
+    path('verify', verify, name='verify'),
 ]

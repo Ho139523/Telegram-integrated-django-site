@@ -1,31 +1,32 @@
-from django.shortcuts import render, redirect
-from django.conf import settings
-from zarinpal import Zarinpal
+from .zarinpal import ZarinPal
+from django.http import HttpResponse
 
-zarinpal = Zarinpal(merchant_id=settings.ZARINPAL['MERCHANT_ID'], sandbox=settings.ZARINPAL['SANDBOX'])
 
-def payment_request(request):
-    amount = 10000  # مبلغ به تومان
-    description = "خرید محصول"  
-    email = "user@example.com"
-    mobile = "09123456789"
-    
-    callback_url = settings.ZARINPAL['CALLBACK_URL']
-    result = zarinpal.request(amount, description, callback_url, email, mobile)
-    
-    if result['status'] == 100:
-        return redirect(result['url'])
+pay = ZarinPal(merchant='xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', call_back_url="http://localhost:8000/verify/")
+
+
+def send_request(request):
+    # email and mobile is optimal
+    response = pay.send_request(amount='1000', description='توضیحات مربوط به پرداخت', email="Example@test.com",
+                               mobile='09123456789')
+    if response.get('error_code') is None:
+        # redirect object
+        return response
     else:
-        return render(request, 'payment/payment_failed.html', {'error': result['status']})
+        return HttpResponse(f'Error code: {response.get("error_code")}, Error Message: {response.get("message")}')
 
 
-def payment_verify(request):
-    authority = request.GET.get('Authority')
-    amount = 10000  # همان مبلغ درخواست پرداخت
+def verify(request):
+    response = pay.verify(request=request, amount='1000')
 
-    result = zarinpal.verify(amount, authority)
-    
-    if result['status'] == 100:
-        return render(request, 'payment/payment_success.html', {'ref_id': result['ref_id']})
+    if response.get("transaction"):
+        if response.get("pay"):
+            return HttpResponse('تراکنش با موفقت انجام شد')
+        else:
+            return HttpResponse('این تراکنش با موفقیت انجام شده است و الان دوباره verify شده است')
     else:
-        return render(request, 'payment/payment_failed.html', {'error': result['status']})
+        if response.get("status") == "ok":
+            return HttpResponse(f'Error code: {response.get("error_code")}, Error Message: {response.get("message")}')
+        elif response.get("status") == "cancel":
+            return HttpResponse(f'تراکنش ناموفق بوده است یا توسط کاربر لغو شده است'
+                                f'Error Message: {response.get("message")}')

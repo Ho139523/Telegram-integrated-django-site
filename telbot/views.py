@@ -343,9 +343,18 @@ def handle_products(message):
 def handle_ten_products(message):
     if subscription_offer(message):
         if message.text == "پرتخفیف ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"])
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-discount")[:10]
 
-            if not products.exists():
+        elif message.text=="پر فروش ها":
+            app.send_message(message.chat.id, f"با عرض پوزش هنوز این قابلیت فعال نشده است.")
+            
+        elif message.text=="ارزان ترین ها":
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-price")[:10]
+            
+        elif message.text=="گران ترین ها":
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("price")[:10]
+        
+        if not products.exists():
                 hhh=user_sessions[message.chat.id]['current_menu']
                 app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
                 return
@@ -371,14 +380,7 @@ def handle_ten_products(message):
 
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
-        elif message.text=="پر فروش ها":
-            pass
-            
-        elif message.text=="ارزان ترین ها":
-            pass
-            
-        elif message.text=="گران ترین ها":
-            pass
+
 
 ##################################
 # support handlers

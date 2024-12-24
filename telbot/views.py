@@ -479,7 +479,13 @@ def answer(call):
 
 ##################################
 
-
+# Handle messages in any other state
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
+        if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
+            app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 #####################################################################################################
 # Functions for specific actions
@@ -523,13 +529,7 @@ def send_website_link(message):
 ##############################################################################################
 
         
-# Handle messages in any other state
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
-        if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
-            app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+
 
 
 

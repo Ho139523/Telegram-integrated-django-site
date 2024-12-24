@@ -343,7 +343,7 @@ def handle_products(message):
 def handle_ten_products(message):
     if subscription_offer(message):
         if message.text == "پرتخفیف ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-discount")[:10]
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("discount")[:10]
 
         elif message.text=="پر فروش ها":
             app.send_message(message.chat.id, f"با عرض پوزش هنوز این قابلیت فعال نشده است.")

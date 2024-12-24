@@ -139,6 +139,13 @@ def escape_special_characters(text):
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
+# Handle messages in any other state
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
+        # if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 
 # Start handler
@@ -391,14 +398,6 @@ def handle_ten_products(message):
 
 ##################################
 
-# Handle messages in any other state
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        # ارسال پیام برای دستورات نامعتبر فقط زمانی که در حالت 'Support.code' نیستیم
-        # if message.chat.id not in chat_ids:  # در صورت تغییرات خاص به وضعیت‌های دیگر
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
-
 
 @app.message_handler(state=Support.code)
 def handle_product_code(message):
@@ -410,6 +409,9 @@ def handle_product_code(message):
         else:
             app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
         app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+
+
+
 
 
 # support handlers

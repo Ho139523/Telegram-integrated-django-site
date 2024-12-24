@@ -169,14 +169,6 @@ def start(message):
     except Exception as e:
         app.send_message(message.chat.id, f"the error is: {e}")
 
-
-# Handle messages
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
-
-
             
 @app.message_handler(state=Support.code)
 def handle_product_code(message):
@@ -189,6 +181,13 @@ def handle_product_code(message):
             app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
     else:
         app.send_message(message.chat.id, "شما باید یک اشتراک فعال داشته باشید.")
+
+
+# Handle messages
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
 
 
 #####################################################################################################

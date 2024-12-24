@@ -343,17 +343,17 @@ def handle_products(message):
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
     if subscription_offer(message):
-        if message.text == "پرتخفیف ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-discount")[:10]
+        if message.text == "پر تخفیف ها":
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("discount")[:10]
 
-        elif message.text=="پر فروش ها":
+        elif message.text=="پر فروش ترین ها":
             app.send_message(message.chat.id, f"با عرض پوزش هنوز این قابلیت فعال نشده است.")
             
         elif message.text=="ارزان ترین ها":
             products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-price")[:10]
             
         elif message.text=="گران ترین ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("yprice")[:10]
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("price")[:10]
         
         if not products.exists():
                 hhh=user_sessions[message.chat.id]['current_menu']

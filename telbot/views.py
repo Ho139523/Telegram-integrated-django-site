@@ -520,9 +520,10 @@ def send_website_link(message):
         )
 
 
-
-
-##############################################################################################
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 
 

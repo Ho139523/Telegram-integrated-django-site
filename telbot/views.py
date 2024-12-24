@@ -352,7 +352,7 @@ def handle_ten_products(message):
             products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-price")[:10]
             
         elif message.text=="گران ترین ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("yprice")[:10]
+            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("price")[:10]
         
         if not products.exists():
                 hhh=user_sessions[message.chat.id]['current_menu']

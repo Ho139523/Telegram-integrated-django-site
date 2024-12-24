@@ -363,6 +363,7 @@ def handle_ten_products(message):
             try:
                 for product in products:
                     formatted_price = "{:,.0f}".format(float(product.price))
+                    formatted_final_price = "{:,.0f}".format(float(product.final_price))
                     caption = format_html(
                         f"⭕️ {product.name}\n"
                         f"کد کالا: {product.code}\n\n"

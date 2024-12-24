@@ -50,6 +50,7 @@ user_sessions = defaultdict(lambda: {"current_menu": None})
 # support class
 chat_ids=[]
 texts={}
+codes={}
 class Support(StatesGroup):
     text = State()
     respond = State()

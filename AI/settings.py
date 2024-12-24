@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     "cv",
     "mainpage",
     "products",
-    "telbot"
+    "telbot",
+    "payment",
 ] 
  
 MIDDLEWARE = [ 
@@ -210,3 +211,10 @@ SECURE_HSTS_PRELOAD = True
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+
+
+ZARINPAL = {
+    'MERCHANT_ID': '8ee0238e-4fd3-4ee6-9076-aaa25591ef58',  # مرچنت کد شما
+    'CALLBACK_URL': 'https://intelleum.ir/verify/',  # آدرس بازگشت
+    'SANDBOX': True,  # برای محیط تست (False برای محیط واقعی)
+}

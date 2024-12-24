@@ -392,15 +392,6 @@ def handle_ten_products(message):
 ##################################
 
 
-
-
-# Handle messages
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
-
-
 @app.message_handler(state=Support.code)
 def handle_product_code(message):
     if subscription_offer(message):
@@ -470,6 +461,11 @@ def answer_text(message):
 
 
 
+# Handle messages
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
 
 
 

@@ -468,13 +468,7 @@ def ask_for_product_code(message):
     if subscription_offer(message):
         app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
 
-@app.message_handler(func=lambda message: re.match(r'^[A-Z]{4}\d{6}$', message.text))
-def handle_product_code(message):
-    if subscription_offer(message):
-        chat_id = message.chat.id
-        product_code = message.text
-        # Simulate a product lookup or API call
-        app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
+
 
 def send_website_link(message):
     """Send a button that opens the website in a browser."""
@@ -501,10 +495,15 @@ def send_website_link(message):
 @app.message_handler(func=lambda message: True)
 def handle_message(message):
     if subscription_offer(message):
-        # if text in ["ورزشی", "کت و شلوار", "زمستانه", "کفش و کتونی", "تابستانه", "خشکبار", "خوار و بار", "سوپر مارکت", "لپتاب", "گوشی"]:
-            # options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
-            # send_menu(message, options, "products", retun_menue)
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید")
+        
+@app.message_handler(func=lambda message: re.match(r'^[A-Z]{4}\d{6}$', message.text))
+def handle_product_code(message):
+    if subscription_offer(message):
+        chat_id = message.chat.id
+        product_code = message.text
+        # Simulate a product lookup or API call
+        app.send_message(chat_id, f"کالای با کد {product_code} ثبت شد.")
 
 # Handling the callback query when the 'answer' button is clicked
 @app.callback_query_handler(func= lambda call: call.data == "پاسخ")

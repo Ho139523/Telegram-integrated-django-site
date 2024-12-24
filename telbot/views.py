@@ -371,13 +371,13 @@ def handle_ten_products(message):
 
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
-    	elif message.text=="پر فروش ها":
+        elif message.text=="پر فروش ها":
             pass
             
-    	elif message.text=="ارزان ترین ها":
+        elif message.text=="ارزان ترین ها":
             pass
             
-    	elif message.text=="گران ترین ها":
+        elif message.text=="گران ترین ها":
             pass
 
 ##################################

@@ -175,7 +175,7 @@ class Product(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name='Description')
     main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')
     additional_images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
-    code = models.CharField(max_length=10, null=True, blank=False)
+    code = models.CharField(max_length=10, unique=True, null=True, blank=False)
 
     def __str__(self):
         return self.name

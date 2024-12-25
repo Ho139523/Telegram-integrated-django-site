@@ -34,7 +34,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('name', 'slug', 'category__title')  # جستجو براساس نام، اسلاگ و دسته‌بندی
     prepopulated_fields = {'slug': ('name',)}  # تولید خودکار slug از نام
     ordering = ['-price', 'name']  # ترتیب پیش‌فرض
-    inlines = [ProductAttributeInline, ProductImageInline]  # ویژگی‌ها و تصاویر در صفحه محصول
+    inlines = [ProductAttributeInline]  # ویژگی‌ها و تصاویر در صفحه محصول
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('category')  # بهینه‌سازی Query برای دسته‌بندی
@@ -57,9 +57,9 @@ class ProductAttributeAdmin(admin.ModelAdmin):
 
 
 ### **5. مدیریت تصاویر محصول (در صورت نیاز جداگانه)**
-# @admin.register(ProductImage)
-# class ProductImageAdmin(admin.ModelAdmin):
-    # list_display = ('id', 'image')  # نمایش شناسه و تصویر
+@admin.register(ProductImage)
+class ProductImageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'image')  # نمایش شناسه و تصویر
 
 admin.site.register(TutorialModel)
 admin.site.register(CategoryModel)

@@ -45,7 +45,7 @@ class CheckTelegramUserRegistrationView(APIView):
         profile_exists = ProfileModel.objects.filter(telegram=tel_id).values_list('telegram')
         
 
-        if tel_id in telbotid_exists | tel_id in profile_exists:
+        if tel_id in telbotid_exists or tel_id in profile_exists:
             return Response({
                 "message": f"{tel_id} عزیز شما قبلا در ربات ثبت‌نام کرده‌اید."
             }, status=status.HTTP_200_OK)

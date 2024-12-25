@@ -454,6 +454,10 @@ def sup_text(message):
 @app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
 def handle_message(message):
     if subscription_offer(message):
+        active_conversation = ConversationModel.objects.filter(user_id=message.from_user.id, is_active=True).exists()
+        if active_conversation:
+            # اگر مکالمه فعال بود، پیام را بدون بررسی دستور ارسال می‌کنیم
+            return
         app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 

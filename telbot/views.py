@@ -31,6 +31,8 @@ from bs4 import BeautifulSoup
 from products.models import Category, Product, ProductAttribute
 from telebot.types import Message
 
+# copy telegram text link
+from django.shortcuts import render
 
 ###############################################################################################
 
@@ -76,6 +78,12 @@ class TelegramBotWebhookView(View):
             logger.error(f"Error processing webhook: {e}")
             return JsonResponse({"status": "error", "message": str(e)}, status=200)
             
+            
+            
+# copy telegram text link
+def copy_text(request, slug):
+    context={"code": slug}
+    return render(request, "telbot/copy.html", context=context)
 
 #################################################################################################
 

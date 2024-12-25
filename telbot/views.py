@@ -582,14 +582,12 @@ def check_website_subscription(call):
 
 # email validation
 def is_valid_email(email):  
-    # Regular expression for validating an Email  
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'  
-    
-    # Use re.match to check if the email matches the pattern  
     if re.match(email_pattern, email):  
         return True, 'حالا یه نام کاربری برای خودت انتخاب کن:'
     else:  
         return False, "یه جایی این آدرس ایمیلی که نوشتی ایراد داره به نظرم! بگرد پیداش کن درستش کن دوباره برام بنویسش:"
+        
         
 
 
@@ -600,13 +598,13 @@ def pick_email(message):
         
         is_valid, validation_message = is_valid_email(email)  # Assign directly to validation_message
         
-        if email in [item['email'] for item in User.objects.values("email")] + [item['telegram'] for item in ProfileModel.objects.values("telegram")]:
+        if email in [item['email'] for item in User.objects.values("email")]:
             app.send_message(message.chat.id, "قبل تر از شما کسی با این ایمیل حساب کاربری افتتاح کرده است! می خوای با یه ایمیل دیگه ات امتحان کن:")
             app.register_next_step_handler(message, pick_email)  # Prompt again for email
         else:
             if is_valid:
                 username = message.from_user.username
-                if username in [item['username'] for item in User.objects.values("username")]:
+                if username in [item['username'] for item in User.objects.values("username")] + [item['telegram'] for item in ProfileModel.objects.values("telegram")]:
                     app.send_message(message.chat.id, validation_message)  # This now uses validation_message correctly
                     app.register_next_step_handler(message, pick_username, email)  # Proceed to username prompt
                 else:

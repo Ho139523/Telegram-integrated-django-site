@@ -341,7 +341,7 @@ def handle_ten_products(message):
     if subscription_offer(message):
         try:
             if message.text == "پر تخفیف ها":
-                if Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0):
+                if Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0).exists():
                     products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("discount")[:10]
                 else:
                     products = []
@@ -355,12 +355,14 @@ def handle_ten_products(message):
             elif message.text=="گران ترین ها":
                 products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("price")[:10]
             
-            if not products.exists():
-                app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
-                return
-            elif products==[]:
+            if products==[]:
                 app.send_message(message.chat.id, "متاسفانه این محصول شامل تخفیف نشده است")
                 return
+            
+            elif not products.exists():
+                app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
+                return
+            
             else:
                 try:
                     for product in products:

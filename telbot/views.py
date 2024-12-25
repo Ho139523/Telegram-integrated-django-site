@@ -292,7 +292,7 @@ def category(message):
 def subcategory(message):
     try:
         if subscription_offer(message):
-            current_category = Category.objects.get(title__iexact=message.text, status=True)
+            current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
             
             # Get the titles of the child categories
             children = [child.title for child in current_category.get_next_layer_categories()]
@@ -305,7 +305,7 @@ def subcategory(message):
                 # Update session: push current menu into history
                 session = user_sessions[message.chat.id]
                 
-                session["current_menu"] = message.text
+                session["current_menu"] = message.text.title()
                 
                 fake_message = message  # Clone the current message
                 fake_message.text = "hi"
@@ -314,7 +314,7 @@ def subcategory(message):
                 # Update session: push current menu into history
                 session = user_sessions[message.chat.id]
                 
-                session["current_menu"] = message.text
+                session["current_menu"] = message.text.title()
                 markup = send_menu(message, children, message.text, retun_menue)
                 app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
             

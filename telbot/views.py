@@ -35,6 +35,21 @@ from telebot.types import Message
 # copy telegram text link
 from django.shortcuts import render
 
+
+#signup
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
+from django.contrib.sites.shortcuts import get_current_site
+from accounts.tokens import generate_token  # Update this with your token import
+from django.utils import timezone  
+from datetime import timedelta
+from accounts.models import ProfileModel, ShippingAddressModel
+
+
 ###############################################################################################
 
 # Logging setup
@@ -492,11 +507,6 @@ def answer_text(message):
 
 
 
-
-
-
-
-
 @app.callback_query_handler(func= lambda call: call.data == "پایان مکالمه")
 def terminate_chat(call):
     if subscription_offer(call.message):
@@ -544,8 +554,152 @@ def send_website_link(message):
 
 
 @app.callback_query_handler(func=lambda call: call.data == 'check_website_subscription')
-def check_website_subscription(message):
-    if subscription_offer(message):
-        pass
+def check_website_subscription(call):
+    if subscription_offer(call.message):
+        if not ProfileModel.objects.filter(telegram=call.from_user.username).exists():
+            # signup process
+            
+            app.send_message(call.message.chat.id, "برای خرید و ارسال کالا باید اطلاعات بیشتری (مثل آدرس) از شما داشته باشیم.\n\nابتدا باید حساب کاربری خود را بسازید:")
+            home_menue = ["🏡"]
+            
+            send_menu(call.message, extra_buttons, "create_account", home_menue)
+        else:
+            # Buy Process
+            pass
+            
+
+# هندلر برای دکمه "ثبت نام می‌کنم"
+@bot.message_handler(func=lambda message: message.text == "🔐     ایجاد حساب کاربری    🛡️")
+def ask_username(message):
+    app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
+    app.register_next_step_handler(message, pick_email)
+
+
+# email validation
+def is_valid_email(email):  
+    # Regular expression for validating an Email  
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'  
+    
+    # Use re.match to check if the email matches the pattern  
+    if re.match(email_pattern, email):  
+        return True, 'حالا یه نام کاربری برای خودت انتخاب کن:'
+    else:  
+        return False, "یه جایی این آدرس ایمیلی که نوشتی ایراد داره به نظرم! بگرد پیداش کن درستش کن دوباره برام بنویسش:"
+        
+
+
+# گرفتن آدرس ایمیل
+def pick_email(message):    
+    email = message.text
+    
+    is_valid, validation_message = is_valid_email(email)  # Assign directly to validation_message
+    
+    if email in [item['email'] for item in User.objects.values("email")]:
+        app.send_message(message.chat.id, "قبل تر از شما کسی با این ایمیل حساب کاربری افتتاح کرده است! می خوای با یه ایمیل دیگه ات امتحان کن:")
+        app.register_next_step_handler(message, pick_email)  # Prompt again for email
+    else:
+        if is_valid:
+            username = message.from_user.username
+            if username in [item['username'] for item in User.objects.values("username")]:
+                app.send_message(message.chat.id, validation_message)  # This now uses validation_message correctly
+                bot.register_next_step_handler(message, pick_username, email)  # Proceed to username prompt
+            else:
+                bot.send_message(message.chat.id, "نام کاربری شما همان ID تلگرام شماست!\n\n حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یک علامت‌ برای خودت انتخاب کن:")
+                bot.register_next_step_handler(message, pick_password, email, username)
+        else:
+            bot.send_message(message.chat.id, validation_message)  # Re-prompt for a valid email
+            bot.register_next_step_handler(message, pick_email)  # Prompt again for email
+            
+
+# دریافت نام کاربری
+def pick_username(message, email):
+    username = message.text
+    is_valid, validation_message = validate_username(username)  # Validation message is now separate from `message`
+    
+    # Send validation message
+    bot.send_message(message.chat.id, validation_message)
+    
+    if is_valid:
+        # Check if username already exists
+        if username in [item['username'] for item in User.objects.values("username")]:
+            bot.send_message(message.chat.id, "متاسفانه نام کاربری که انتخاب کردی از قبل انتخاب شده لطفا یکی دیگه رو امتحان کن:")
+            bot.register_next_step_handler(message, pick_username, email)
+        else:
+            bot.send_message(message.chat.id, "عالیه! حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یکی از علامت‌ها برای خودت انتخاب کن:")
+            bot.register_next_step_handler(message, pick_password, email, username)
+    else:
+        # If the username is invalid, re-prompt the user
+        bot.register_next_step_handler(message, pick_username, email)
+        
+        
+# تعیین رمز عبور
+def pick_password(message, email, username):
+    password = message.text
+    is_valid, validation_message = validate_password(password)
+    
+    # Send validation message
+    bot.send_message(message.chat.id, validation_message)
+    
+    # If password is valid, proceed with registration
+    if is_valid:
+        
+        bot.send_message(message.chat.id, "دمت گرم! حالا یه بار دیگه رمزت رو برام بزن تا تاییدش کنم و این بشه رمز عبورت:")
+        bot.register_next_step_handler(message, pick_password2, email, username, password)
+        
+    
+    # If password is not valid, ask for a new one
+    else:
+        bot.register_next_step_handler(message, pick_password, email, username)
+        
+        
+
+# تایید رمز
+def pick_password2(message, email, username, password, current_site=current_site):
+    password2 = message.text
+    
+    if password2 == password:
+        # Django's user model
+        User = get_user_model()
+        
+        # Set special_user to five days from now  
+        special_user_date = timezone.now() + timedelta(days=5)
+        
+        
+        # Create user in Django
+        user = User.objects.create(
+            username=username,
+            email=email,
+            password=make_password(password),  # Hash the password
+            special_user=special_user_date,  # Set the date to five days from now  
+            is_active=False  # Keep inactive until email activation
+        )
+        
+        ProfileModel.objects.create(user=user, fname=message.from_user.first_name, lname=message.from_user.last_name, telegram=username)
+
+        # Trigger activation email
+        current_site = current_site # Replace with your actual site domain
+        mail_subject = 'Activation link has been sent to your email id'
+        message_content = render_to_string('registration/acc_active_email.html', {
+            'user': user,
+            'domain': current_site[8:],
+            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+            'token': generate_token.make_token(user),
+        })
+        
+        email = EmailMessage(
+            mail_subject, message_content, to=[email]
+        )
+        email.send()
+        
+        bot.send_message(
+            message.chat.id, 
+            f"{message.from_user.first_name} عزیز افتتاح حساب شما تکمیل شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید."
+        )
+        
+        bot.send_message(message.chat.id, "حالا بریم سراغ آدرس... ")
+        # bot.register_next_step_handler(message, )
+    else:
+        bot.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد. لطفا دباره آن را دقیقا مثل قبل وارد کنید:")
+        bot.register_next_step_handler(message, pick_password2, email, username, password)
 
 app.add_custom_filter(custom_filters.StateFilter(app))

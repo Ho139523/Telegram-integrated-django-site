@@ -12,7 +12,7 @@ class telbotid(models.Model):
         return f"Telbot ID: {self.tel_id} - Credit: {self.credit}"
         
         
-class Conversation(models.Model):
+class ConversationModel(models.Model):
     user_id = models.BigIntegerField()
     username = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=True)
@@ -22,8 +22,8 @@ class Conversation(models.Model):
         return f"Conversation with {self.user_id}"
 
 
-class Message(models.Model):
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
+class MessageModel(models.Model):
+    conversation = models.ForeignKey(ConversationModel, on_delete=models.CASCADE, related_name="messages")
     sender_id = models.BigIntegerField()
     text = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)

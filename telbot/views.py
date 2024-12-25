@@ -29,7 +29,8 @@ from bs4 import BeautifulSoup
 
 # import models
 from products.models import Category, Product, ProductAttribute
-from telebot.types import Message, Conversation
+from telbot.models import ConversationModel, MessageModel
+from telebot.types import Message
 
 # copy telegram text link
 from django.shortcuts import render
@@ -403,7 +404,7 @@ def handle_product_code(message):
 @app.message_handler(func=lambda message: message.text == "💬 پیام به پشتیبان")
 def start_conversation(message):
     # بررسی اینکه مکالمه‌ای فعال وجود دارد یا نه
-    conversation, created = Conversation.objects.get_or_create(
+    conversation, created = ConversationModel.objects.get_or_create(
         user_id=message.from_user.id,
         is_active=True,
         defaults={'username': message.from_user.username}
@@ -431,7 +432,7 @@ def sup_text(message):
             
             
             # ذخیره پیام در دیتابیس
-            Message.objects.create(
+            MessageModel.objects.create(
                 conversation=conversation,
                 sender_id=message.from_user.id,
                 text=message.text,
@@ -461,7 +462,7 @@ def handle_message(message):
 def answer(call):
     try:
         _, user_id = call.data.split("_")
-        conversation = Conversation.objects.filter(user_id=int(user_id), is_active=True).first()
+        conversation = ConversationModel.objects.filter(user_id=int(user_id), is_active=True).first()
         
         if conversation:
             app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user_id}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
@@ -489,7 +490,7 @@ def save_support_message(message):
         reply_text = message.reply_to_message.text
         user_id = int(reply_text.split()[4])
         
-        conversation = Conversation.objects.filter(user_id=user_id, is_active=True).first()
+        conversation = ConversationModel.objects.filter(user_id=user_id, is_active=True).first()
         if conversation:
             # ارسال پاسخ به کاربر
             app.send_message(
@@ -498,7 +499,7 @@ def save_support_message(message):
             )
             
             # ذخیره پیام پشتیبان
-            Message.objects.create(
+            MessageModel.objects.create(
                 conversation=conversation,
                 sender_id=message.from_user.id,
                 text=message.text
@@ -552,7 +553,7 @@ def answer_text(message):
 @app.callback_query_handler(func=lambda call: call.data == "پایان مکالمه")
 def end_conversation(call):
     try:
-        conversation = Conversation.objects.filter(user_id=call.from_user.id, is_active=True).first()
+        conversation = ConversationModel.objects.filter(user_id=call.from_user.id, is_active=True).first()
         if conversation:
             conversation.is_active = False
             conversation.save()

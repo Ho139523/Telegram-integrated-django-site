@@ -628,7 +628,7 @@ def pick_username(message, email):
     
     if is_valid:
         # Check if username already exists
-        if username in [item['username'] for item in User.objects.values("username")]:
+        if username in [item['username'] for item in User.objects.values("username")] + [item['telegram'] for item in ProfileModel.objects.values("telegram")]:
             app.send_message(message.chat.id, "متاسفانه نام کاربری که انتخاب کردی از قبل انتخاب شده لطفا یکی دیگه رو امتحان کن:")
             app.register_next_step_handler(message, pick_username, email)
         else:
@@ -641,22 +641,26 @@ def pick_username(message, email):
         
 # تعیین رمز عبور
 def pick_password(message, email, username):
-    password = message.text
-    is_valid, validation_message = validate_password(password)
-    
-    # Send validation message
-    app.send_message(message.chat.id, validation_message)
-    
-    # If password is valid, proceed with registration
-    if is_valid:
+    try:
+        password = message.text
+        is_valid, validation_message = validate_password(password)
         
-        app.send_message(message.chat.id, "دمت گرم! حالا یه بار دیگه رمزت رو برام بزن تا تاییدش کنم و این بشه رمز عبورت:")
-        app.register_next_step_handler(message, pick_password2, email, username, password)
+        # Send validation message
+        app.send_message(message.chat.id, validation_message)
         
-    
-    # If password is not valid, ask for a new one
-    else:
-        app.register_next_step_handler(message, pick_password, email, username)
+        # If password is valid, proceed with registration
+        if is_valid:
+            
+            app.send_message(message.chat.id, "دمت گرم! حالا یه بار دیگه رمزت رو برام بزن تا تاییدش کنم و این بشه رمز عبورت:")
+            app.register_next_step_handler(message, pick_password2, email, username, password)
+            
+        
+        # If password is not valid, ask for a new one
+        else:
+            app.register_next_step_handler(message, pick_password, email, username)
+        
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
         
         
 

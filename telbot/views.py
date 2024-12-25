@@ -510,15 +510,16 @@ def show_balance(message):
         formatted_balance = "{:,.2f}".format(float(balance))
         app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
 
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+
 def ask_for_product_code(message):
     if subscription_offer(message):
         app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
         app.set_state(user_id=message.from_user.id, state=Support.code, chat_id=message.chat.id)  
 
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 def send_website_link(message):
     """Send a button that opens the website in a browser."""

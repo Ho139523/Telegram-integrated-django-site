@@ -122,7 +122,7 @@ def send_product_message(app, message, product, current_site, token):
     attributes = product.attributes.filter(product=product)
     attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
     
-    product_code_link = f'https://api.telegram.org/bot{token}/sendMessage?chat_id={message.chat.id}&text=`{product.code}`&parse_mode=MarkDown"'
+    product_code_link = f'`{product.code}`'
     
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"
@@ -137,7 +137,7 @@ def send_product_message(app, message, product, current_site, token):
     
     # Prepare photos
     photos = [
-        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
+        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='MarkdownV2')
     ] + [
         types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
     ]

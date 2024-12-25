@@ -40,9 +40,9 @@ class CheckTelegramUserRegistrationView(APIView):
         print(tel_id)
         
         # Check if the user exists in telbotid or ProfileModel
-        telbotid_exists = telbotid.objects.get(tel_id=tel_id)
+        telbotid_exists = telbotid.objects.filter(tel_id=tel_id)
         print(telbotid_exists)
-        profile_exists = ProfileModel.objects.get(telegram=tel_id)
+        profile_exists = ProfileModel.objects.filter(telegram=tel_id)
         print(profile_exists)
 
         if tel_id in telbotid_exists or tel_id in profile_exists:

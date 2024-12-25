@@ -105,7 +105,7 @@ def validate_username(username):
     
     
     
-def send_product_message(app, message, product, current_site):
+def send_product_message(app, message, product, current_site, token):
     formatted_price = "{:,.0f}".format(float(product.price))
     formatted_final_price = "{:,.0f}".format(float(product.final_price))
     
@@ -122,7 +122,7 @@ def send_product_message(app, message, product, current_site):
     attributes = product.attributes.filter(product=product)
     attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
     
-    product_code_link = f'<a href="{current_site}/telbot/copy-telegram-text-link/{product.code}">{product.code}</a>'
+    product_code_link = f'<a href="https://api.telegram.org/bot{token}/sendMessage?chat_id={message.chat.id}&text=`{product.code}`&parse_mode=MarkDown">{product.code}</a>'
     
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"

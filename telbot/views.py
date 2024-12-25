@@ -377,10 +377,10 @@ def handle_product_code(message):
         chat_id = message.chat.id
         product_code = message.text
         if re.match(r'^[A-Z]{4}\d{6}$', message.text):
-            try:
-                if Product.objects.get(code=message.text):
-                    product=Product.objects.get(code=message.text)
-                    send_product_message(app, message, product, current_site)
+            
+            if Product.objects.get(code=message.text):
+                product=Product.objects.get(code=message.text)
+                send_product_message(app, message, product, current_site)
         else:
             app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
         app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)

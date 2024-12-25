@@ -505,9 +505,6 @@ def terminate_chat(call):
             app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
         except Exception as e:
             app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
-
-
-
 ##################################
 
 #####################################################################################################

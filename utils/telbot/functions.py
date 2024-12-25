@@ -145,7 +145,7 @@ def send_product_message(app, message, product, current_site):
     
     # Create inline keyboard markup
     markup = types.InlineKeyboardMarkup()
-    buy_button = types.InlineKeyboardButton(text="خرید", callback_data='check_website_subscription')
+    buy_button = types.InlineKeyboardButton(text="💰 خرید", callback_data='check_website_subscription')
     add_to_basket_button = types.InlineKeyboardButton(text="🛒", url=f"{current_site}/bbuy/product/{product.code}")
     markup.add(add_to_basket_button, buy_button)
     

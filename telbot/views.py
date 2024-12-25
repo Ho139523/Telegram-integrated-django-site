@@ -414,7 +414,7 @@ def handle_product_code(message):
         product_code = message.text
         if re.match(r'^[A-Z]{4}\d{6}$', message.text):
             try:
-                if Product.objects.get(code=Support.message.text):
+                if Product.objects.get(code=message.text):
                     product=Product.objects.get(code=Support.message.text)
                     formatted_price = "{:,.0f}".format(float(product.price))
                     formatted_final_price = "{:,.0f}".format(float(product.final_price))

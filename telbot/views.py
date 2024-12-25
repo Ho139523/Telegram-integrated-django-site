@@ -403,8 +403,7 @@ def handle_product_code(message):
 @app.message_handler(func= lambda message: message.text == "💬 پیام به پشتیبان")
 def sup(message):
     app.send_message(chat_id=message.chat.id, text="شروع مکالمه با پشتیبان...\n\nلطفا پیام های خود را ارسال کنید و پس از پایان دکمه پایان مکالمه را فشار دهید:")
-    app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id)
-    )  
+    app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id) 
 
 
 # Handling the user's first message which is saved in 'Support.text' state

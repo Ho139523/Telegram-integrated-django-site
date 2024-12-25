@@ -82,8 +82,22 @@ class TelegramBotWebhookView(View):
             
 # copy telegram text link
 def copy_text(request, slug):
-    context={"code": slug}
-    return render(request, "telbot/copy.html", context=context)
+    html = f"""
+    <html>
+    <head>
+        <title>Copy to Clipboard</title>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {{
+                navigator.clipboard.writeText('{code}');
+                alert('کد کالا {code} کپی شد!');
+                window.close();
+            }});
+        </script>
+    </head>
+    <body></body>
+    </html>
+    """
+    return HttpResponse(html)
 
 #################################################################################################
 

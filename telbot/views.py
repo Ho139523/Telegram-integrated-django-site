@@ -363,7 +363,7 @@ def handle_ten_products(message):
                 for product in products:
                     formatted_price = "{:,.0f}".format(float(product.price))
                     formatted_final_price = "{:,.0f}".format(float(product.final_price))
-                    if product.discount > 1:
+                    if product.discount > 0:
                         price_text = f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
                     else:
                         price_text = f"💵 قیمت: {formatted_price} تومان"

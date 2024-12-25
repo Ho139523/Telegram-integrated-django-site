@@ -137,7 +137,7 @@ def send_product_message(app, message, product, current_site, token):
     
     # Prepare photos
     photos = [
-        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='MarkdownV2')
+        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
     ] + [
         types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
     ]

@@ -22,9 +22,9 @@ class ProductAttributeInline(admin.TabularInline):
     extra = 1  # تعداد خطوط خالی برای افزودن ویژگی جدید
 
 
-# class ProductImageInline(admin.TabularInline):
-    # model = ProductImage
-    # extra = 1  # تعداد خطوط خالی برای افزودن تصویر جدید
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 1  # تعداد خطوط خالی برای افزودن تصویر جدید
 
 
 @admin.register(Product)

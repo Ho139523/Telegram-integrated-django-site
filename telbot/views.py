@@ -372,7 +372,7 @@ def handle_ten_products(message):
         
         for product in products:
             try:
-                send_product_message(app, message, product, current_site)
+                send_product_message(app, message, product, current_site, token=TOKEN)
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
 
@@ -388,7 +388,7 @@ def handle_product_code(message):
             
             if Product.objects.get(code=message.text):
                 product=Product.objects.get(code=message.text)
-                send_product_message(app, message, product, current_site)
+                send_product_message(app, message, product, current_site, token=TOKEN)
         else:
             app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
         app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)

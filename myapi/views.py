@@ -40,16 +40,17 @@ class CheckTelegramUserRegistrationView(APIView):
         print(tel_id)
         
         # Check if the user exists in telbotid or ProfileModel
-        telbotid_exists = telbotid.objects.filter(tel_id=tel_id).values_list('tel_id')
+        telbotid_exists = list(telbotid.objects.filter(tel_id=tel_id).values_list('tel_id', flat=True))
         
-        profile_exists = ProfileModel.objects.filter(telegram=tel_id).values_list('telegram')
+        profile_exists = list(ProfileModel.objects.filter(telegram=tel_id).values_list('telegram', flat=True))
         
         if tel_id in profile_exists:
+            new_telbotid = telbotid.objects.create(user=None, tel_id=tel_id)
+            new_telbotid.save()
             return Response({
                 "message": f"{tel_id} عزیز شما قبلا در ربات ثبت‌نام کرده‌اید."
             }, status=status.HTTP_200_OK)
-            new_telbotid = telbotid.objects.create(user=None, tel_id=tel_id)
-            new_telbotid.save()
+            
         elif tel_id in telbotid_exists:
             return Response({
                 "message": f"{tel_id} عزیز شما قبلا در ربات ثبت‌نام کرده‌اید."

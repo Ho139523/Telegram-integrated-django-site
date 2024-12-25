@@ -515,7 +515,10 @@ def ask_for_product_code(message):
         app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
         app.set_state(user_id=message.from_user.id, state=Support.code, chat_id=message.chat.id)  
 
-
+@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 def send_website_link(message):
     """Send a button that opens the website in a browser."""
@@ -534,8 +537,3 @@ def send_website_link(message):
 
 
 app.add_custom_filter(custom_filters.StateFilter(app))
-
-@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")

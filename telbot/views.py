@@ -339,66 +339,69 @@ def handle_products(message):
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
     if subscription_offer(message):
-        if message.text == "پر تخفیف ها":
-            if Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0).exists():
-                products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("discount")[:10]
+        try:
+            if message.text == "پر تخفیف ها":
+                if Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0).exists():
+                    products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("discount")[:10]
+                else:
+                    products = []
+
+            elif message.text=="پر فروش ترین ها":
+                app.send_message(message.chat.id, f"با عرض پوزش هنوز این قابلیت فعال نشده است.")
+                
+            elif message.text=="ارزان ترین ها":
+                products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-price")[:10]
+                
+            elif message.text=="گران ترین ها":
+                products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("price")[:10]
+            
+            if not products.exists():
+                app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
+                return
+            elif products==[]:
+                app.send_message(message.chat.id, "متاسفانه این محصول شامل تخفیف نشده است")
+                return
             else:
-                products = []
-
-        elif message.text=="پر فروش ترین ها":
-            app.send_message(message.chat.id, f"با عرض پوزش هنوز این قابلیت فعال نشده است.")
-            
-        elif message.text=="ارزان ترین ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-price")[:10]
-            
-        elif message.text=="گران ترین ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("price")[:10]
-        
-        if not products.exists():
-            app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
-            return
-        elif products==[]:
-            app.send_message(message.chat.id, "متاسفانه این محصول شامل تخفیف نشده است")
-            return
-        else:
-            try:
-                for product in products:
-                    formatted_price = "{:,.0f}".format(float(product.price))
-                    formatted_final_price = "{:,.0f}".format(float(product.final_price))
-                    if product.discount > 0:
-                        price_text = (
-                            f"🏃 {product.discount} % تخفیف\n"
-                            f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
+                try:
+                    for product in products:
+                        formatted_price = "{:,.0f}".format(float(product.price))
+                        formatted_final_price = "{:,.0f}".format(float(product.final_price))
+                        if product.discount > 0:
+                            price_text = (
+                                f"🏃 {product.discount} % تخفیف\n"
+                                f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
+                            )
+                        else:
+                            price_text = f"💵 قیمت: {formatted_price} تومان"
+                            
+                        caption = (
+                            f"⭕️ {product.name}\n"
+                            f"کد کالا: {product.code}\n\n"
+                            f"{product.description}\n\n"
+                            f"🔘 فروش با ضمانت ارویجینال💯\n"
+                            f"📫 ارسال به تمام نقاط کشور\n"
+                            f"{price_text}"
                         )
-                    else:
-                        price_text = f"💵 قیمت: {formatted_price} تومان"
+                        photos = [
+                            types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
+                        ] + [
+                            types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
+                        ]
+                        #app.send_message(message.chat.id, f"{print([i.image.path for i in product.additional_images.all()])}")
+
+                        if len(photos) > 10:
+                            photos = photos[:10]  # محدود به 10 عکس
                         
-                    caption = (
-                        f"⭕️ {product.name}\n"
-                        f"کد کالا: {product.code}\n\n"
-                        f"{product.description}\n\n"
-                        f"🔘 فروش با ضمانت ارویجینال💯\n"
-                        f"📫 ارسال به تمام نقاط کشور\n"
-                        f"{price_text}"
-                    )
-                    photos = [
-                        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
-                    ] + [
-                        types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
-                    ]
-                    #app.send_message(message.chat.id, f"{print([i.image.path for i in product.additional_images.all()])}")
+                        markup = types.InlineKeyboardMarkup()
+                        buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/product_code")#, callback_data=f"buy_{product['code']}")
+                        markup.add(buy_button)
+                        app.send_media_group(message.chat.id, media=photos)
+                        app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)
 
-                    if len(photos) > 10:
-                        photos = photos[:10]  # محدود به 10 عکس
-                    
-                    markup = types.InlineKeyboardMarkup()
-                    buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/product_code")#, callback_data=f"buy_{product['code']}")
-                    markup.add(buy_button)
-                    app.send_media_group(message.chat.id, media=photos)
-                    app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)
-
-            except Exception as e:
-                app.send_message(message.chat.id, f"the error is: {e}")
+                except Exception as e:
+                    app.send_message(message.chat.id, f"the error is: {e}")
+        except Exception as e:
+                    app.send_message(message.chat.id, f"the error is: {e}")
 
 
 ##################################

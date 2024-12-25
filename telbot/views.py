@@ -495,21 +495,36 @@ def answer_text(message):
             user_message = texts[user]["text"]
 
             # Debug: Print the stored message_id
-            print(f"Replying to message_id: {user_message_id}")
+            print(f"Attempting to reply to message_id: {user_message_id}")
+            print(f"Message content: {user_message}")
 
-            # Use app.get_message to check if the message is still available
+            # Fetch chat history and check if the message is still available
             try:
-                app.get_message(chat_id=user, message_id=user_message_id)
+                chat_history = app.get_chat_history(user)
+                # Check if the message_id exists in chat history
+                message_found = False
+                for msg in chat_history:
+                    if msg.message_id == user_message_id:
+                        message_found = True
+                        break
+
+                if not message_found:
+                    app.send_message(
+                        chat_id=message.chat.id,
+                        text=f"Message with ID {user_message_id} not found in chat history.",
+                        parse_mode="HTML"
+                    )
+                    return
+
             except Exception as e:
-                # If the message is not found, inform the user
                 app.send_message(
                     chat_id=message.chat.id,
-                    text=f"Message to reply not found. The error is: {e}",
+                    text=f"Error while checking chat history: {e}",
                     parse_mode="HTML"
                 )
                 return
 
-            # Send reply to user with original message and support response
+            # If message found, send the response
             app.send_message(
                 chat_id=user,
                 text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>",
@@ -517,7 +532,6 @@ def answer_text(message):
                 reply_to_message_id=user_message_id
             )
 
-            # Confirmation message to support agent
             app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!")
 
             # Clean up the state and message data
@@ -532,6 +546,7 @@ def answer_text(message):
             text=f"Something went wrong...\n\nException:\n<code>{e}</code>",
             parse_mode="HTML"
         )
+
 
 
 

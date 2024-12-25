@@ -400,10 +400,11 @@ def handle_product_code(message):
 #####################################################################################
 # support handlers
 
-# Handling the 'Support 👨🏻‍💻' button click event
+
+
+# --- هندلر شروع مکالمه ---
 @app.message_handler(func=lambda message: message.text == "💬 پیام به پشتیبان")
 def start_conversation(message):
-    # بررسی اینکه مکالمه‌ای فعال وجود دارد یا نه
     conversation, created = ConversationModel.objects.get_or_create(
         user_id=message.from_user.id,
         is_active=True,
@@ -413,56 +414,52 @@ def start_conversation(message):
     app.send_message(
         chat_id=message.chat.id,
         text="مکالمه جدید شروع شد. لطفاً پیام خود را ارسال کنید."
-    )  
+    )
 
 
-
+# --- دریافت پیام کاربر و ارسال به پشتیبان ---
 @app.message_handler(func=lambda message: True)
 def handle_support_message(message):
     conversation = ConversationModel.objects.filter(
-        user_id=message.from_user.id, 
+        user_id=message.from_user.id,
         is_active=True
     ).first()
 
     if conversation:
         sup_markup = types.InlineKeyboardMarkup()
         sup_markup.add(types.InlineKeyboardButton(
-            text="پاسخ", 
+            text="پاسخ",
             callback_data=f"پاسخ_{message.from_user.id}"
         ))
 
-        # ارسال پیام به پشتیبان
         msg = app.send_message(
-            chat_id=5629898030,
+            chat_id=5629898030,  # پشتیبان
             text=f"پیام از <code>{message.from_user.id}</code> - @{message.from_user.username}:\n\n{message.text}",
             parse_mode="HTML",
             reply_markup=sup_markup
         )
 
-        # ذخیره پیام در دیتابیس
         MessageModel.objects.create(
             conversation=conversation,
             sender_id=message.from_user.id,
             text=message.text,
             message_id=msg.message_id
         )
-        
+
         app.send_message(
-            message.chat.id, 
+            message.chat.id,
             "پیام شما ارسال شد. منتظر پاسخ باشید 🙏"
         )
     else:
         app.send_message(message.chat.id, "مکالمه فعالی وجود ندارد.")
 
 
-
-
+# --- دریافت پاسخ پشتیبان (callback) و ذخیره برای ارسال به کاربر ---
 @app.callback_query_handler(func=lambda call: call.data.startswith("پاسخ_"))
 def answer(call):
     try:
         _, user_id = call.data.split("_")
-        
-        # ذخیره user_id در دیتابیس یا state موقت
+
         conversation = ConversationModel.objects.filter(
             user_id=user_id,
             is_active=True
@@ -475,76 +472,98 @@ def answer(call):
                 parse_mode="HTML",
                 reply_markup=types.ForceReply()
             )
-            
-            # ذخیره user_id در مکالمه برای پاسخ‌دهی
             conversation.username = user_id
             conversation.save()
 
         else:
             app.send_message(call.message.chat.id, "کاربر یافت نشد.")
-    
+
     except Exception as e:
         app.send_message(call.message.chat.id, f"خطا: {e}")
 
 
-
+# --- ارسال پاسخ پشتیبان به کاربر ---
 @app.message_handler(func=lambda message: message.reply_to_message and "پاسخ خود را برای کاربر" in message.reply_to_message.text)
 def save_support_message(message):
     try:
         pattern = r"پاسخ خود را برای کاربر (\d+)"
         match = re.search(pattern, message.reply_to_message.text)
         user_id = int(match.group(1)) if match else None
-        
+
         if user_id:
-            # ارسال پاسخ به کاربر اصلی
             app.send_message(
                 chat_id=user_id,
                 text=f"پشتیبان پاسخ داد:\n\n{message.text}"
             )
-            
-            # ذخیره پاسخ در دیتابیس
+
             conversation = ConversationModel.objects.filter(
                 user_id=user_id,
                 is_active=True
             ).first()
-            
+
             if conversation:
                 MessageModel.objects.create(
                     conversation=conversation,
                     sender_id=message.from_user.id,
                     text=message.text
                 )
-            
+
             app.send_message(
                 chat_id=message.chat.id,
                 text="پاسخ شما ارسال شد."
             )
         else:
             app.send_message(message.chat.id, "کاربر مقصد یافت نشد.")
-    
+
     except Exception as e:
         app.send_message(message.chat.id, f"خطا: {e}")
 
 
-
-
-
-
-
-
-
+# --- پایان مکالمه ---
 @app.callback_query_handler(func=lambda call: call.data == "پایان مکالمه")
 def end_conversation(call):
     try:
-        conversation = ConversationModel.objects.filter(user_id=call.from_user.id, is_active=True).first()
+        conversation = ConversationModel.objects.filter(
+            user_id=call.from_user.id,
+            is_active=True
+        ).first()
+
         if conversation:
             conversation.is_active = False
             conversation.save()
-            app.send_message(chat_id=call.message.chat.id, text="مکالمه پایان یافت.")
+            app.send_message(
+                chat_id=call.message.chat.id,
+                text="مکالمه پایان یافت."
+            )
         else:
-            app.send_message(chat_id=call.message.chat.id, text="مکالمه‌ای فعال یافت نشد.")
+            app.send_message(
+                chat_id=call.message.chat.id,
+                text="مکالمه‌ای فعال یافت نشد."
+            )
+
     except Exception as e:
-        app.send_message(chat_id=call.message.chat.id, text=f"خطا: {e}")
+        app.send_message(call.message.chat.id, f"خطا: {e}")
+
+
+# --- مدیریت پیام‌های نامعتبر ---
+@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
+def handle_message(message):
+    active_conversation = ConversationModel.objects.filter(
+        user_id=message.from_user.id,
+        is_active=True
+    ).exists()
+
+    if active_conversation:
+        return
+
+    app.send_message(
+        message.chat.id,
+        "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید."
+    )
+
+
+
+
 ##################################
 
 #####################################################################################################

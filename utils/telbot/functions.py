@@ -2,6 +2,13 @@ from utils.variables.TOKEN import TOKEN
 import requests
 import subprocess
 
+
+# send_product_message function
+from telebot import types
+
+
+
+
 def get_tunnel_password():
     try:
         result = subprocess.run(
@@ -95,3 +102,46 @@ def validate_username(username):
         return False, "نام کاربری نمی تواند شامل «.» باشد."
     
     return True, "این نام کاربری خوبه"
+    
+    
+    
+def send_product_message(app, message, product, current_site):
+    formatted_price = "{:,.0f}".format(float(product.price))
+    formatted_final_price = "{:,.0f}".format(float(product.final_price))
+    
+    if product.discount > 0:
+        price_text = (
+            f"🏃 {product.discount} % تخفیف\n"
+            f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
+        )
+    else:
+        price_text = f"💵 قیمت: {formatted_price} تومان"
+    
+    caption = (
+        f"⭕️ {product.name}\n"
+        f"کد کالا: {product.code}\n\n"
+        f"{product.description}\n\n"
+        f"🔘 فروش با ضمانت ارویجینال💯\n"
+        f"📫 ارسال به تمام نقاط کشور\n"
+        f"{price_text}"
+    )
+    
+    # Prepare photos
+    photos = [
+        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
+    ] + [
+        types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
+    ]
+    
+    if len(photos) > 10:
+        photos = photos[:10]  # Limit to 10 photos
+    
+    # Create inline keyboard markup
+    markup = types.InlineKeyboardMarkup()
+    buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/{product.code}")
+    add_to_basket_button = types.InlineKeyboardButton(text="افزودن به سبد خرید", url=f"{current_site}/bbuy/product/{product.code}")
+    markup.add(add_to_basket_button, buy_button)
+    
+    # Send product photos and message
+    app.send_media_group(message.chat.id, media=photos)
+    app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)

@@ -120,14 +120,14 @@ def send_product_message(app, message, product, current_site):
     # for att in product.
     
     attributes = product.attributes.filter(product=product)
-    attribute_text = "✅ \n ".join([f"{attr.key}: {attr.value}" for attr in attributes])
+    attribute_text = "\n ✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
 
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"
         f"🔖 برند کالا: {product.brand}\n"
         f"کد کالا: {product.code}\n\n"
         f"{product.description}\n\n"
-        f"{attribute_text}\n\n"
+        f"✅ {attribute_text}\n\n"
         f"🔘 فروش با ضمانت ارویجینال💯\n"
         f"📫 ارسال به تمام نقاط کشور\n"
         f"{price_text}\n"

@@ -28,7 +28,7 @@ import re
 from bs4 import BeautifulSoup
 
 # import models
-from products.models import Category, Product
+from products.models import Category, Product, ProductAttribute
 from telebot.types import Message
 
 

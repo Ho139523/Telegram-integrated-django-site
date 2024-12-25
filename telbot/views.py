@@ -538,11 +538,10 @@ def answer(call):
             state=Support.respond,
             chat_id=call.message.chat.id
         )
-        app.update_data(
-            user_id=call.from_user.id,
-            data={'user_id': user_id},
-            chat_id=call.message.chat.id
-        )
+        data = app.get_data(user_id=call.from_user.id, chat_id=call.message.chat.id)
+        data['user_id'] = user_id
+        app.set_data(user_id=call.from_user.id, chat_id=call.message.chat.id, data=data)
+
     
     except Exception as e:
         app.send_message(chat_id=call.message.chat.id, text=f"خطا: {e}")

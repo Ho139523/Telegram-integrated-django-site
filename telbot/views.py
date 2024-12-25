@@ -485,7 +485,7 @@ def answer_text(message):
         clean_text = BeautifulSoup(message.reply_to_message.text, "html.parser").get_text()
         user = int(re.findall(pattern=pattern, string=clean_text)[0].split()[4])
 
-        # Retrieve the original message_id
+        # Check if the message_id exists in the texts dictionary
         if user in texts:
             user_message_id = texts[user]["message_id"]
             user_message = texts[user]["text"]
@@ -505,13 +505,14 @@ def answer_text(message):
             app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
         else:
             app.send_message(chat_id=message.chat.id, text="پیام اصلی پیدا نشد. لطفاً دوباره تلاش کنید.")
-
+    
     except Exception as e:
         app.send_message(
             chat_id=message.chat.id,
-            text=f"Something goes wrong...\n\nException:\n<code>{e}</code>",
+            text=f"Something went wrong...\n\nException:\n<code>{e}</code>",
             parse_mode="HTML"
         )
+
 
 
 

@@ -400,18 +400,10 @@ def handle_product_code(message):
 # support handlers
 
 # Handling the 'Support 👨🏻‍💻' button click event
-@app.message_handler(func=lambda message: message.text == "💬 پیام به پشتیبان")
-def start_conversation(message):
-    # بررسی اینکه مکالمه‌ای فعال وجود دارد یا نه
-    conversation, created = Conversation.objects.get_or_create(
-        user_id=message.from_user.id,
-        is_active=True,
-        defaults={'username': message.from_user.username}
-    )
-
-    app.send_message(
-        chat_id=message.chat.id,
-        text="مکالمه جدید شروع شد. لطفاً پیام خود را ارسال کنید."
+@app.message_handler(func= lambda message: message.text == "💬 پیام به پشتیبان")
+def sup(message):
+    app.send_message(chat_id=message.chat.id, text="شروع مکالمه با پشتیبان...\n\nلطفا پیام های خود را ارسال کنید و پس از پایان دکمه پایان مکالمه را فشار دهید:")
+    app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id)
     )  
 
 

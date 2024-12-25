@@ -600,7 +600,7 @@ def pick_email(message):
         
         is_valid, validation_message = is_valid_email(email)  # Assign directly to validation_message
         
-        if email in [item['email'] for item in User.objects.values("email")]:
+        if email in [item['email'] for item in User.objects.values("email")] + [item['telegram'] for item in ProfileModel.objects.values("telegram")]:
             app.send_message(message.chat.id, "قبل تر از شما کسی با این ایمیل حساب کاربری افتتاح کرده است! می خوای با یه ایمیل دیگه ات امتحان کن:")
             app.register_next_step_handler(message, pick_email)  # Prompt again for email
         else:
@@ -628,7 +628,7 @@ def pick_username(message, email):
     
     if is_valid:
         # Check if username already exists
-        if username in [item['username'] for item in User.objects.values("username")] + [item['telegram'] for item in ProfileModel.objects.values("telegram")]:
+        if username in [item['username'] for item in User.objects.values("username")]:
             app.send_message(message.chat.id, "متاسفانه نام کاربری که انتخاب کردی از قبل انتخاب شده لطفا یکی دیگه رو امتحان کن:")
             app.register_next_step_handler(message, pick_username, email)
         else:

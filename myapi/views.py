@@ -48,6 +48,9 @@ class CheckTelegramUserRegistrationView(APIView):
             return Response({
                 "message": f"{tel_id} عزیز شما قبلا در ربات ثبت‌نام کرده‌اید."
             }, status=status.HTTP_200_OK)
+            if tel_id not in telbotid_exists:
+                new_telbotid = telbotid.objects.create(user=None, tel_id=tel_id)
+                new_telbotid.save()
         else:
             # Create a new telbotid instance
             new_telbotid = telbotid.objects.create(user=None, tel_id=tel_id)

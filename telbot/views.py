@@ -80,24 +80,7 @@ class TelegramBotWebhookView(View):
             
             
             
-# copy telegram text link
-def copy_text(request, slug):
-    html = f"""
-    <html>
-    <head>
-        <title>Copy to Clipboard</title>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {{
-                navigator.clipboard.writeText('{code}');
-                alert('کد کالا {code} کپی شد!');
-                window.close();
-            }});
-        </script>
-    </head>
-    <body></body>
-    </html>
-    """
-    return HttpResponse(html)
+
 
 #################################################################################################
 
@@ -532,5 +515,10 @@ def send_website_link(message):
             reply_markup=markup
         )
 
+
+@app.callback_query_handler(func=lambda call: call.data == 'check_website_subscription')
+def check_website_subscription(message):
+    if subscription_offer(message):
+        
 
 app.add_custom_filter(custom_filters.StateFilter(app))

@@ -105,7 +105,7 @@ def validate_username(username):
     
     
     
-def send_product_message(app, message, product, current_site, token):
+def send_product_message(app, message, product, current_site):
     formatted_price = "{:,.0f}".format(float(product.price))
     formatted_final_price = "{:,.0f}".format(float(product.final_price))
     
@@ -122,12 +122,10 @@ def send_product_message(app, message, product, current_site, token):
     attributes = product.attributes.filter(product=product)
     attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
     
-    product_code_link = f'<a href="{current_site}/telbot/copy-telegram-text-link/<slug:{product.code}>/">{product.code}</a>'
-    
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"
         f"🔖 برند کالا: {product.brand}\n"
-        f"کد کالا: {product_code_link}\n\n"
+        f"کد کالا: {product.code}\n\n"
         f"{product.description}\n\n"
         f"✅ {attribute_text}\n\n"
         f"🔘 فروش با ضمانت ارویجینال💯\n"
@@ -147,10 +145,13 @@ def send_product_message(app, message, product, current_site, token):
     
     # Create inline keyboard markup
     markup = types.InlineKeyboardMarkup()
-    buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/{product.code}")
+    buy_button = types.InlineKeyboardButton(text="خرید", callback_data='check_website_subscription')
     add_to_basket_button = types.InlineKeyboardButton(text="🛒", url=f"{current_site}/bbuy/product/{product.code}")
     markup.add(add_to_basket_button, buy_button)
     
     # Send product photos and message
     app.send_media_group(message.chat.id, media=photos)
     app.send_message(message.chat.id, "برای خرید یا افزودن کالا به سبد خرید کلیک کیند 👇👇👇", reply_markup=markup)
+
+
+

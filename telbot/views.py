@@ -401,13 +401,18 @@ def handle_product_code(message):
 
 # Handling the 'Support 👨🏻‍💻' button click event
 @app.message_handler(func=lambda message: message.text == "💬 پیام به پشتیبان")
-def sup(message):
-    if subscription_offer(message):
-        app.send_message(
-            chat_id=message.chat.id,
-            text="شروع مکالمه با پشتیبان...\n\nلطفا پیام های خود را ارسال کنید و پس از پایان دکمه پایان مکالمه را فشار دهید:"
-        )
-        app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id)   
+def start_conversation(message):
+    # بررسی اینکه مکالمه‌ای فعال وجود دارد یا نه
+    conversation, created = Conversation.objects.get_or_create(
+        user_id=message.from_user.id,
+        is_active=True,
+        defaults={'username': message.from_user.username}
+    )
+
+    app.send_message(
+        chat_id=message.chat.id,
+        text="مکالمه جدید شروع شد. لطفاً پیام خود را ارسال کنید."
+    )  
 
 
 # Handling the user's first message which is saved in 'Support.text' state
@@ -416,39 +421,21 @@ def sup_text(message):
     try:
         sup_markup = types.InlineKeyboardMarkup()
         client_markup = types.InlineKeyboardMarkup()
+        
+        sup_markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
+        client_markup.add(types.InlineKeyboardButton(text="پایان مکالمه", callback_data="پایان مکالمه"))       
 
-        # Save user message and message_id
-        texts[message.from_user.id] = {
-            "text": message.text,
-            "message_id": message.message_id
-        }
+        app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=sup_markup, parse_mode="HTML")
 
-        # Print debug info to check message_id
-        print(f"Stored message_id for user {message.from_user.id}: {message.message_id}")
+        app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!\n\n لطفا منتظر پاسخ پشتیبان بمانید 🙏🙏🙏", reply_markup=client_markup)
 
-        # Add button with callback including message_id
-        sup_markup.add(types.InlineKeyboardButton(
-            text="پاسخ",
-            callback_data=f"پاسخ_{message.from_user.id}_{message.message_id}"
-        ))
-        client_markup.add(types.InlineKeyboardButton(text="پایان مکالمه", callback_data="پایان مکالمه"))
+        texts[message.from_user.id] = message.text
 
-        # Send message to support with the user's message_id
-        app.send_message(
-            chat_id=5629898030,
-            text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>",
-            reply_markup=sup_markup,
-            parse_mode="HTML"
-        )
-
-        app.send_message(
-            chat_id=message.chat.id,
-            text="پیام شما ارسال شد!\n\n لطفا منتظر پاسخ پشتیبان بمانید 🙏🙏🙏",
-            reply_markup=client_markup
-        )
-
+        
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+
+
 
 
 
@@ -460,92 +447,54 @@ def handle_message(message):
 
 
 # Handling the callback query when the 'answer' button is clicked
-@app.callback_query_handler(func=lambda call: call.data.startswith("پاسخ_"))
+@app.callback_query_handler(func= lambda call: call.data == "پاسخ")
+
+
 def answer(call):
     try:
-        _, user_id, message_id = call.data.split("_")
-        user_id = int(user_id)
-        message_id = int(message_id)
+        pattern = r"Recived a message from \d+"
+        clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
+        user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
+        
+        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
 
-        app.send_message(
-            chat_id=call.message.chat.id,
-            text=f"Send your answer to <code>{user_id}</code>:",
-            reply_to_message_id=message_id,
-            parse_mode="HTML",
-            reply_markup=types.ForceReply()
-        )
         app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
-
+    
     except Exception as e:
         app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
 
 
+
+
+
+
 # Handling the support agent's reply message which is saved in 'Support.respond' state
-@app.message_handler(state=Support.respond)
+@app.message_handler(state=Support.respond, func= lambda message: message.reply_to_message.text.startswith("Send your answer to"))
 def answer_text(message):
     try:
-        # Extract user_id from the reply message
         pattern = r"Send your answer to \d+"
         clean_text = BeautifulSoup(message.reply_to_message.text, "html.parser").get_text()
         user = int(re.findall(pattern=pattern, string=clean_text)[0].split()[4])
 
-        # Check if the message_id exists in the texts dictionary
-        if user in texts:
-            user_message_id = texts[user]["message_id"]
-            user_message = texts[user]["text"]
-
-            # Debug: Print the stored message_id
-            print(f"Attempting to reply to message_id: {user_message_id}")
-            print(f"Message content: {user_message}")
-
-            # Fetch chat history and check if the message is still available
-            try:
-                chat_history = app.get_chat_history(user)
-                # Check if the message_id exists in chat history
-                message_found = False
-                for msg in chat_history:
-                    if msg.message_id == user_message_id:
-                        message_found = True
-                        break
-
-                if not message_found:
-                    app.send_message(
-                        chat_id=message.chat.id,
-                        text=f"Message with ID {user_message_id} not found in chat history.",
-                        parse_mode="HTML"
-                    )
-                    return
-
-            except Exception as e:
-                app.send_message(
-                    chat_id=message.chat.id,
-                    text=f"Error while checking chat history: {e}",
-                    parse_mode="HTML"
-                )
-                return
-
-            # If message found, send the response
-            app.send_message(
-                chat_id=user,
-                text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>",
-                parse_mode="HTML",
-                reply_to_message_id=user_message_id
-            )
-
+        try:
+            user_message = texts[user]
+            app.send_message(chat_id=user, text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>", parse_mode="HTML")
             app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!")
 
-            # Clean up the state and message data
             del texts[user]
             app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
-        else:
-            app.send_message(chat_id=message.chat.id, text="پیام اصلی پیدا نشد. لطفاً دوباره تلاش کنید.")
-    
+        
+        except:
+            app.send_message(chat_id=user, text=f"Support answer:\n<b>{escape_special_characters(message.text)}</b>", parse_mode="HTML")
+            app.send_message(chat_id=message.chat.id, text="پاسخ شما ارسال شد!")
+
+            app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+        
     except Exception as e:
-        app.send_message(
-            chat_id=message.chat.id,
-            text=f"Something went wrong...\n\nException:\n<code>{e}</code>",
-            parse_mode="HTML"
-        )
+        app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>", parse_mode="HTML")
+
+    markup = send_menu(message, main_menu, "main_menu", extra_buttons)
+    app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 
 
 
@@ -554,14 +503,15 @@ def answer_text(message):
 
 
 
-# Handling the callback to terminate the chat
-@app.callback_query_handler(func=lambda call: call.data == "پایان مکالمه")
+
+@app.callback_query_handler(func= lambda call: call.data == "پایان مکالمه")
 def terminate_chat(call):
-    try:
-        app.delete_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
-        app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
-    except Exception as e:
-        app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+    if subscription_offer(call.message):
+        try:
+            app.delete_state(user_id=call.message.from_user.id, chat_id=call.message.chat.id)
+            app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
+        except Exception as e:
+            app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
 ##################################
 
 #####################################################################################################

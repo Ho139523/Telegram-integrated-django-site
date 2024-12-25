@@ -519,34 +519,37 @@ def answer(call):
 
 
 
-@app.message_handler(func=lambda message: message.reply_to_message)
+@app.message_handler(func=lambda message: message.reply_to_message and "پاسخ خود را به" in message.reply_to_message.text)
 def save_support_message(message):
     try:
-        # استخراج user_id از پیام reply شده
-        reply_text = message.reply_to_message.text
-        user_id = int(reply_text.split()[4])
+        # استخراج user_id از متن پیام reply شده
+        pattern = r"پاسخ خود را به (\d+)"
+        match = re.search(pattern, message.reply_to_message.text)
+        user_id = int(match.group(1)) if match else None
         
-        conversation = ConversationModel.objects.filter(user_id=user_id, is_active=True).first()
-        if conversation:
-            # ارسال پاسخ به کاربر
+        if user_id:
+            # ارسال پاسخ به کاربر اصلی
             app.send_message(
                 chat_id=user_id,
                 text=f"پشتیبان پاسخ داد:\n\n{message.text}"
             )
             
-            # ذخیره پیام پشتیبان
-            MessageModel.objects.create(
-                conversation=conversation,
-                sender_id=message.from_user.id,
-                text=message.text
-            )
+            # ذخیره پیام پشتیبان در دیتابیس
+            conversation = ConversationModel.objects.filter(user_id=user_id, is_active=True).first()
+            if conversation:
+                MessageModel.objects.create(
+                    conversation=conversation,
+                    sender_id=message.from_user.id,
+                    text=message.text
+                )
             
-            app.send_message(chat_id=message.chat.id, text="پاسخ ارسال شد.")
+            app.send_message(chat_id=message.chat.id, text="پاسخ به کاربر ارسال شد.")
         else:
-            app.send_message(chat_id=message.chat.id, text="مکالمه فعالی وجود ندارد.")
+            app.send_message(chat_id=message.chat.id, text="کاربر مقصد یافت نشد.")
     
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
+
 
 
 

@@ -29,7 +29,7 @@ from bs4 import BeautifulSoup
 
 # import models
 from products.models import Category, Product, ProductAttribute
-from telebot.types import Message
+from telebot.types import Message, Conversation
 
 # copy telegram text link
 from django.shortcuts import render

@@ -436,7 +436,7 @@ def answer_text(message):
         try:
             user_message = texts[user]
             app.send_message(chat_id=user, text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>", parse_mode="HTML")
-            app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!\nلطفا منتظر پاسخ پشتیبان بمانید. 🙏🙏🙏")
+            app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!")
 
             del texts[user]
             app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)

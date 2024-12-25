@@ -122,7 +122,7 @@ def send_product_message(app, message, product, current_site, token):
     attributes = product.attributes.filter(product=product)
     attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
     
-    product_code_link = f'`{product.code}`'
+    product_code_link = f'{product.code}'
     
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"

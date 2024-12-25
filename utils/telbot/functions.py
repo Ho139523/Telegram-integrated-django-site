@@ -116,9 +116,12 @@ def send_product_message(app, message, product, current_site):
         )
     else:
         price_text = f"💵 قیمت: {formatted_price} تومان"
+        
+    # for att in product.
     
     caption = (
-        f"⭕️ {product.name}\n"
+        f"⭕️ نام کالا: {product.name}\n"
+        f"🔖 برند کالا: {product.brand}\n"
         f"کد کالا: {product.code}\n\n"
         f"{product.description}\n\n"
         f"🔘 فروش با ضمانت ارویجینال💯\n"

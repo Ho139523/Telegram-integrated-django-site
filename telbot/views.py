@@ -402,7 +402,7 @@ def handle_product_code(message):
 # Handling the 'Support 👨🏻‍💻' button click event
 @app.message_handler(func= lambda message: message.text == "💬 پیام به پشتیبان")
 def sup(message):
-    app.send_message(chat_id=message.chat.id, text="لطفا پیام خود را تایپ کنید:")
+    app.send_message(chat_id=message.chat.id, text="شروع مکالمه با پشتیبان...\n\nلطفا پیام های خود را ارسال کنید و پس از پایان دکمه پایان مکالمه را فشار دهید:")
     app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id)    
 
 
@@ -412,16 +412,19 @@ def sup(message):
 @app.message_handler(state=Support.text)
 def sup_text(message):
     try:
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
+        sup_markup = types.InlineKeyboardMarkup()
+        client_markup = types.InlineKeyboardMarkup()
+        
+        sup_markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
+        client_markup.add(types.InlineKeyboardButton(text="پایان مکالمه", callback_data="پایان مکالمه"))       
 
-        app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=markup, parse_mode="HTML")
+        app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=sup_markup, parse_mode="HTML")
 
-        app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!\nلطفا منتظر پاسخ پشتیبان بمانید. 🙏🙏🙏")
+        app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!", reply_markup=client_markup)
 
         texts[message.from_user.id] = message.text
 
-        app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+        
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
@@ -478,6 +481,12 @@ def answer(call):
     except Exception as e:
         app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
 
+
+
+@app.callback_query_handler(func= lambda call: call.data == "پایان مکالمه")
+def terminate_chat(message):
+    if subscription_offer(message):
+        app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
 ##################################
 
 #####################################################################################################

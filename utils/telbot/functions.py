@@ -142,9 +142,9 @@ def send_product_message(app, message, product, current_site):
     # Create inline keyboard markup
     markup = types.InlineKeyboardMarkup()
     buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/{product.code}")
-    add_to_basket_button = types.InlineKeyboardButton(text="افزودن به سبد خرید 🛒", url=f"{current_site}/bbuy/product/{product.code}")
+    add_to_basket_button = types.InlineKeyboardButton(text="🛒", url=f"{current_site}/bbuy/product/{product.code}")
     markup.add(add_to_basket_button, buy_button)
     
     # Send product photos and message
     app.send_media_group(message.chat.id, media=photos)
-    app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)
+    app.send_message(message.chat.id, "برای خرید یا افزودن کالا به سبد خرید کلیک کیند 👇👇👇", reply_markup=markup)

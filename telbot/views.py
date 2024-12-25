@@ -581,7 +581,8 @@ def check_website_subscription(call):
 
 
 # email validation
-def is_valid_email(email):  
+def is_valid_email(email):
+    import re
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'  
     if re.match(email_pattern, email):  
         return True, 'حالا یه نام کاربری برای خودت انتخاب کن:'

@@ -487,7 +487,7 @@ def answer(call):
 def terminate_chat(call):
     if subscription_offer(call.message):
         try:
-            app.delete_state(user_id=call.message.from_user.id, chat_id=call.message.chat.id)
+            app.delete_state(user_id=call..from_user.id, chat_id=call.chat.id)
             app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
         except Exception as e:
             app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")

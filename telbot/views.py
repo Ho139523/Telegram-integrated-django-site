@@ -365,7 +365,7 @@ def handle_ten_products(message):
                     else:
                         price_text = f"💵 قیمت: {formatted_price} تومان"
                         
-                    message = (
+                    caption = (
                         f"⭕️ {product.name}\n"
                         f"کد کالا: {product.code}\n\n"
                         f"{product.description}\n\n"

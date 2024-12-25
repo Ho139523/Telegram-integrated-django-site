@@ -502,24 +502,19 @@ def handle_message(message):
 @app.callback_query_handler(func=lambda call: call.data.startswith("پاسخ_"))
 def answer(call):
     try:
-        _, user_id = call.data.split("_")
-        conversation = ConversationModel.objects.filter(user_id=int(user_id), is_active=True).first()
+        _, user_id = call.data.split("_")  # استخراج user_id از callback_data
         
-        if conversation:
-            app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user_id}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
-            
-        else:
-            app.send_message(chat_id=call.message.chat.id, text="مکالمه فعالی یافت نشد.")
-        pattern = r"Recived a message from \d+"
-        clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
-        user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
-        
-        
-
-        # app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
+        app.send_message(
+            chat_id=call.message.chat.id,
+            text=f"پاسخ خود را به <code>{user_id}</code> ارسال کنید:",
+            parse_mode="HTML",
+            reply_markup=types.ForceReply()
+        )
     
     except Exception as e:
-        app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+        app.send_message(chat_id=call.message.chat.id, text=f"خطا: {e}")
+        
+        
 
 
 

@@ -120,13 +120,13 @@ def send_product_message(app, message, product, current_site):
     # for att in product.
     
     caption = (
-        f"⭕️ نام کالا: {product.name}\n"
+        f"\n⭕️ نام کالا: {product.name}\n"
         f"🔖 برند کالا: {product.brand}\n"
         f"کد کالا: {product.code}\n\n"
         f"{product.description}\n\n"
         f"🔘 فروش با ضمانت ارویجینال💯\n"
         f"📫 ارسال به تمام نقاط کشور\n"
-        f"{price_text}"
+        f"{price_text}\n"
     )
     
     # Prepare photos
@@ -142,7 +142,7 @@ def send_product_message(app, message, product, current_site):
     # Create inline keyboard markup
     markup = types.InlineKeyboardMarkup()
     buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/{product.code}")
-    add_to_basket_button = types.InlineKeyboardButton(text="افزودن به سبد خرید", url=f"{current_site}/bbuy/product/{product.code}")
+    add_to_basket_button = types.InlineKeyboardButton(text="افزودن به سبد خرید 🛒", url=f"{current_site}/bbuy/product/{product.code}")
     markup.add(add_to_basket_button, buy_button)
     
     # Send product photos and message

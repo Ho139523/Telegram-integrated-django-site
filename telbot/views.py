@@ -497,6 +497,17 @@ def answer_text(message):
             # Debug: Print the stored message_id
             print(f"Replying to message_id: {user_message_id}")
 
+            # Use app.get_message to check if the message is still available
+            try:
+                app.get_message(chat_id=user, message_id=user_message_id)
+            except Exception as e:
+                app.send_message(
+                    chat_id=message.chat.id,
+                    text=f"Message to reply not found. The error is: {e}",
+                    parse_mode="HTML"
+                )
+                return
+
             # Reply to the user's specific message
             app.send_message(
                 chat_id=user,
@@ -519,6 +530,7 @@ def answer_text(message):
             text=f"Something went wrong...\n\nException:\n<code>{e}</code>",
             parse_mode="HTML"
         )
+
 
 
 

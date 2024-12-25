@@ -49,7 +49,7 @@ class CheckTelegramUserRegistrationView(APIView):
                 "message": f"{tel_id} عزیز شما قبلا در ربات ثبت‌نام کرده‌اید."
             }, status=status.HTTP_200_OK)
             new_telbotid = telbotid.objects.create(user=None, tel_id=tel_id)
-                new_telbotid.save()
+            new_telbotid.save()
         elif tel_id in telbotid_exists:
             return Response({
                 "message": f"{tel_id} عزیز شما قبلا در ربات ثبت‌نام کرده‌اید."

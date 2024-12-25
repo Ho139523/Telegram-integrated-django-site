@@ -48,6 +48,7 @@ from accounts.tokens import generate_token  # Update this with your token import
 from django.utils import timezone  
 from datetime import timedelta
 from accounts.models import ProfileModel, ShippingAddressModel
+from accounts.models import User
 
 
 ###############################################################################################

@@ -447,6 +447,43 @@ def sup_text(message):
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
 
+@app.message_handler(func=lambda message: True)
+def handle_support_message(message):
+    # بررسی مکالمه فعال
+    conversation = ConversationModel.objects.filter(user_id=message.from_user.id, is_active=True).first()
+    
+    if conversation:
+        sup_markup = types.InlineKeyboardMarkup()
+        client_markup = types.InlineKeyboardMarkup()
+        
+        sup_markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=f"پاسخ_{message.from_user.id}"))
+        client_markup.add(types.InlineKeyboardButton(text="پایان مکالمه", callback_data="پایان مکالمه"))
+        
+        # ارسال پیام کاربر به پشتیبان
+        msg = app.send_message(
+            chat_id=5629898030,
+            text=f"پیام جدید از <code>{message.from_user.id}</code> با نام کاربری @{message.from_user.username}:\n\n<b>{escape_special_characters(message.text)}</b>",
+            parse_mode="HTML",
+            reply_markup=sup_markup
+        )
+        
+        # ارسال تاییدیه به کاربر
+        app.send_message(
+            chat_id=message.chat.id,
+            text="پیام شما ارسال شد! لطفاً منتظر پاسخ باشید 🙏",
+            reply_markup=client_markup
+        )
+        
+        # ذخیره پیام در دیتابیس
+        MessageModel.objects.create(
+            conversation=conversation,
+            sender_id=message.from_user.id,
+            text=message.text,
+            message_id=msg.message_id
+        )
+        
+    else:
+        app.send_message(message.chat.id, "مکالمه فعالی وجود ندارد. لطفاً از منو گزینه مکالمه با پشتیبان را انتخاب کنید.")
 
 
 

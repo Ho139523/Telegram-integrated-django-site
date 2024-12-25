@@ -122,7 +122,7 @@ def send_product_message(app, message, product, current_site, token):
     attributes = product.attributes.filter(product=product)
     attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
     
-    product_code_link = f'`{product.code}`&parse_mode=MarkDown"'
+    product_code_link = f'<a href="{current_site}/telbot/copy-telegram-text-link/<slug:{product.code}>/">{product.code}</a>'
     
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"

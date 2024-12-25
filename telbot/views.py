@@ -490,6 +490,17 @@ def answer_text(message):
             user_message_id = texts[user]["message_id"]
             user_message = texts[user]["text"]
 
+            # Use app.get_message to verify if the message is still available
+            try:
+                app.get_message(chat_id=user, message_id=user_message_id)
+            except Exception as e:
+                app.send_message(
+                    chat_id=message.chat.id,
+                    text=f"Message to reply not found, the error is: {e}",
+                    parse_mode="HTML"
+                )
+                return
+
             # Reply to the user's specific message
             app.send_message(
                 chat_id=user,

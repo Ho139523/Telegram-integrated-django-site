@@ -416,84 +416,29 @@ def start_conversation(message):
     )  
 
 
-# Handling the user's first message which is saved in 'Support.text' state
-@app.message_handler(state=Support.text)
-def sup_text(message):
-    try:
+
+@app.message_handler(func=lambda message: True)
+def handle_support_message(message):
+    conversation = ConversationModel.objects.filter(
+        user_id=message.from_user.id, 
+        is_active=True
+    ).first()
+
+    if conversation:
         sup_markup = types.InlineKeyboardMarkup()
-        client_markup = types.InlineKeyboardMarkup()
-        
         sup_markup.add(types.InlineKeyboardButton(
             text="پاسخ", 
             callback_data=f"پاسخ_{message.from_user.id}"
         ))
-        client_markup.add(types.InlineKeyboardButton(
-            text="پایان مکالمه", 
-            callback_data="پایان مکالمه"
-        ))
-        
-        conversation = ConversationModel.objects.filter(
-            user_id=message.from_user.id, 
-            is_active=True
-        ).first()
-        
-        if conversation:
-            # ارسال پیام به پشتیبان
-            app.send_message(
-                chat_id=5629898030,  # chat_id پشتیبان
-                text=f"پیام جدید از <code>{message.from_user.id}</code> با نام کاربری @{message.from_user.username}:\n\n<b>{escape_special_characters(message.text)}</b>",
-                reply_markup=sup_markup,
-                parse_mode="HTML"
-            )
-            
-            # ارسال تأییدیه به کاربر
-            app.send_message(
-                chat_id=message.chat.id,
-                text="پیام شما ارسال شد! لطفاً منتظر پاسخ پشتیبان باشید 🙏",
-                reply_markup=client_markup
-            )
-            
-            # ذخیره پیام در دیتابیس
-            MessageModel.objects.create(
-                conversation=conversation,
-                sender_id=message.from_user.id,
-                text=message.text
-            )
-        else:
-            app.send_message(chat_id=message.chat.id, text="مکالمه فعالی وجود ندارد.")
-    
-    except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
-
-
-@app.message_handler(func=lambda message: True)
-def handle_support_message(message):
-    # بررسی مکالمه فعال
-    conversation = ConversationModel.objects.filter(user_id=message.from_user.id, is_active=True).first()
-    
-    if conversation:
-        sup_markup = types.InlineKeyboardMarkup()
-        client_markup = types.InlineKeyboardMarkup()
-        
-        sup_markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data=f"پاسخ_{message.from_user.id}"))
-        client_markup.add(types.InlineKeyboardButton(text="پایان مکالمه", callback_data="پایان مکالمه"))
-        
-        # ارسال پیام کاربر به پشتیبان
+        # ارسال پیام به پشتیبان
         msg = app.send_message(
             chat_id=5629898030,
-            text=f"پیام جدید از <code>{message.from_user.id}</code> با نام کاربری @{message.from_user.username}:\n\n<b>{escape_special_characters(message.text)}</b>",
+            text=f"پیام از <code>{message.from_user.id}</code> - @{message.from_user.username}:\n\n{message.text}",
             parse_mode="HTML",
             reply_markup=sup_markup
         )
-        
-        # ارسال تاییدیه به کاربر
-        app.send_message(
-            chat_id=message.chat.id,
-            text="پیام شما ارسال شد! لطفاً منتظر پاسخ باشید 🙏",
-            reply_markup=client_markup
-        )
-        
+
         # ذخیره پیام در دیتابیس
         MessageModel.objects.create(
             conversation=conversation,
@@ -502,58 +447,51 @@ def handle_support_message(message):
             message_id=msg.message_id
         )
         
+        app.send_message(
+            message.chat.id, 
+            "پیام شما ارسال شد. منتظر پاسخ باشید 🙏"
+        )
     else:
-        app.send_message(message.chat.id, "مکالمه فعالی وجود ندارد. لطفاً از منو گزینه مکالمه با پشتیبان را انتخاب کنید.")
+        app.send_message(message.chat.id, "مکالمه فعالی وجود ندارد.")
 
 
 
-# hadling any unralted message
-@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
-def handle_message(message):
-    if subscription_offer(message):
-        active_conversation = ConversationModel.objects.filter(user_id=message.from_user.id, is_active=True).exists()
-        if active_conversation:
-            # اگر مکالمه فعال بود، پیام را بدون بررسی دستور ارسال می‌کنیم
-            return
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
-
-# Handling the callback query when the 'answer' button is clicked
 @app.callback_query_handler(func=lambda call: call.data.startswith("پاسخ_"))
 def answer(call):
     try:
         _, user_id = call.data.split("_")
         
-        # ذخیره user_id در دیتابیس یا state برای استفاده در پیام بعدی
-        app.send_message(
-            chat_id=call.message.chat.id,
-            text=f"پاسخ خود را به کاربر <code>{user_id}</code> ارسال کنید:",
-            parse_mode="HTML",
-            reply_markup=types.ForceReply()
-        )
-        
-        # ذخیره user_id به صورت موقت
-        app.set_state(
-            user_id=call.from_user.id,
-            state=Support.respond,
-            chat_id=call.message.chat.id
-        )
-        data = app.get_data(user_id=call.from_user.id, chat_id=call.message.chat.id)
-        data['user_id'] = user_id
-        app.set_data(user_id=call.from_user.id, chat_id=call.message.chat.id, data=data)
+        # ذخیره user_id در دیتابیس یا state موقت
+        conversation = ConversationModel.objects.filter(
+            user_id=user_id,
+            is_active=True
+        ).first()
 
+        if conversation:
+            app.send_message(
+                chat_id=call.message.chat.id,
+                text=f"پاسخ خود را برای کاربر <code>{user_id}</code> ارسال کنید:",
+                parse_mode="HTML",
+                reply_markup=types.ForceReply()
+            )
+            
+            # ذخیره user_id در مکالمه برای پاسخ‌دهی
+            conversation.username = user_id
+            conversation.save()
+
+        else:
+            app.send_message(call.message.chat.id, "کاربر یافت نشد.")
     
     except Exception as e:
-        app.send_message(chat_id=call.message.chat.id, text=f"خطا: {e}")
+        app.send_message(call.message.chat.id, f"خطا: {e}")
 
 
 
-
-@app.message_handler(func=lambda message: message.reply_to_message and "پاسخ خود را به" in message.reply_to_message.text)
+@app.message_handler(func=lambda message: message.reply_to_message and "پاسخ خود را برای کاربر" in message.reply_to_message.text)
 def save_support_message(message):
     try:
-        # استخراج user_id از متن پیام reply شده
-        pattern = r"پاسخ خود را به (\d+)"
+        pattern = r"پاسخ خود را برای کاربر (\d+)"
         match = re.search(pattern, message.reply_to_message.text)
         user_id = int(match.group(1)) if match else None
         
@@ -564,44 +502,7 @@ def save_support_message(message):
                 text=f"پشتیبان پاسخ داد:\n\n{message.text}"
             )
             
-            # ذخیره پیام پشتیبان در دیتابیس
-            conversation = ConversationModel.objects.filter(user_id=user_id, is_active=True).first()
-            if conversation:
-                MessageModel.objects.create(
-                    conversation=conversation,
-                    sender_id=message.from_user.id,
-                    text=message.text
-                )
-            
-            app.send_message(chat_id=message.chat.id, text="پاسخ به کاربر ارسال شد.")
-        else:
-            app.send_message(chat_id=message.chat.id, text="کاربر مقصد یافت نشد.")
-    
-    except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
-
-
-
-
-# Handling the support agent's reply message which is saved in 'Support.respond' state
-@app.message_handler(state=Support.respond, func=lambda message: message.reply_to_message)
-def answer_text(message):
-    try:
-        data = app.get_data(
-            user_id=message.from_user.id,
-            chat_id=message.chat.id
-        )
-        user_id = data.get('user_id')
-        
-        if user_id:
-            # ارسال پیام به کاربر اصلی
-            app.send_message(
-                chat_id=user_id,
-                text=f"پشتیبان پاسخ داد:\n\n<b>{escape_special_characters(message.text)}</b>",
-                parse_mode="HTML"
-            )
-            
-            # ذخیره پیام پشتیبان در دیتابیس
+            # ذخیره پاسخ در دیتابیس
             conversation = ConversationModel.objects.filter(
                 user_id=user_id,
                 is_active=True
@@ -614,19 +515,18 @@ def answer_text(message):
                     text=message.text
                 )
             
-            # ارسال تأییدیه به پشتیبان
-            app.send_message(chat_id=message.chat.id, text="پاسخ شما ارسال شد!")
-            
-            # حذف state پشتیبان
-            app.delete_state(
-                user_id=message.from_user.id,
-                chat_id=message.chat.id
+            app.send_message(
+                chat_id=message.chat.id,
+                text="پاسخ شما ارسال شد."
             )
         else:
-            app.send_message(chat_id=message.chat.id, text="کاربر مقصد یافت نشد.")
+            app.send_message(message.chat.id, "کاربر مقصد یافت نشد.")
     
     except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
+        app.send_message(message.chat.id, f"خطا: {e}")
+
+
+
 
 
 

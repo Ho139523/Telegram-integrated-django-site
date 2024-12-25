@@ -400,10 +400,19 @@ def handle_product_code(message):
 # support handlers
 
 # Handling the 'Support 👨🏻‍💻' button click event
-@app.message_handler(func= lambda message: message.text == "💬 پیام به پشتیبان")
-def sup(message):
-    app.send_message(chat_id=message.chat.id, text="شروع مکالمه با پشتیبان...\n\nلطفا پیام های خود را ارسال کنید و پس از پایان دکمه پایان مکالمه را فشار دهید:")
-    app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id) 
+@app.message_handler(func=lambda message: message.text == "💬 پیام به پشتیبان")
+def start_conversation(message):
+    # بررسی اینکه مکالمه‌ای فعال وجود دارد یا نه
+    conversation, created = Conversation.objects.get_or_create(
+        user_id=message.from_user.id,
+        is_active=True,
+        defaults={'username': message.from_user.username}
+    )
+
+    app.send_message(
+        chat_id=message.chat.id,
+        text="مکالمه جدید شروع شد. لطفاً پیام خود را ارسال کنید."
+    )  
 
 
 # Handling the user's first message which is saved in 'Support.text' state
@@ -415,12 +424,22 @@ def sup_text(message):
         
         sup_markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
         client_markup.add(types.InlineKeyboardButton(text="پایان مکالمه", callback_data="پایان مکالمه"))       
-
-        app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=sup_markup, parse_mode="HTML")
-
-        app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!\n\n لطفا منتظر پاسخ پشتیبان بمانید 🙏🙏🙏", reply_markup=client_markup)
-
-        texts[message.from_user.id] = message.text
+        
+        if conversation:
+            app.send_message(chat_id=5629898030, text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>", reply_markup=sup_markup, parse_mode="HTML")
+            app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!\n\n لطفا منتظر پاسخ پشتیبان بمانید 🙏🙏🙏", reply_markup=client_markup)
+            
+            
+            # ذخیره پیام در دیتابیس
+            Message.objects.create(
+                conversation=conversation,
+                sender_id=message.from_user.id,
+                text=message.text,
+                message_id=msg.message_id
+            )
+        
+        else:
+            app.send_message(chat_id=message.chat.id, text="مکالمه فعالی وجود ندارد.")
 
         
     except Exception as e:
@@ -438,24 +457,59 @@ def handle_message(message):
 
 
 # Handling the callback query when the 'answer' button is clicked
-@app.callback_query_handler(func= lambda call: call.data == "پاسخ")
-
-
+@app.callback_query_handler(func=lambda call: call.data.startswith("پاسخ_"))
 def answer(call):
     try:
+        _, user_id = call.data.split("_")
+        conversation = Conversation.objects.filter(user_id=int(user_id), is_active=True).first()
+        
+        if conversation:
+            app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user_id}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
+            
+        else:
+            app.send_message(chat_id=call.message.chat.id, text="مکالمه فعالی یافت نشد.")
         pattern = r"Recived a message from \d+"
         clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
         user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
         
-        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:", reply_markup=types.ForceReply(), parse_mode="HTML")
+        
 
-        app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
+        # app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
     
     except Exception as e:
         app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
 
 
 
+
+@app.message_handler(func=lambda message: message.reply_to_message)
+def save_support_message(message):
+    try:
+        # استخراج user_id از پیام reply شده
+        reply_text = message.reply_to_message.text
+        user_id = int(reply_text.split()[4])
+        
+        conversation = Conversation.objects.filter(user_id=user_id, is_active=True).first()
+        if conversation:
+            # ارسال پاسخ به کاربر
+            app.send_message(
+                chat_id=user_id,
+                text=f"پشتیبان پاسخ داد:\n\n{message.text}"
+            )
+            
+            # ذخیره پیام پشتیبان
+            Message.objects.create(
+                conversation=conversation,
+                sender_id=message.from_user.id,
+                text=message.text
+            )
+            
+            app.send_message(chat_id=message.chat.id, text="پاسخ ارسال شد.")
+        else:
+            app.send_message(chat_id=message.chat.id, text="مکالمه فعالی وجود ندارد.")
+    
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
 
 
@@ -495,14 +549,18 @@ def answer_text(message):
 
 
 
-@app.callback_query_handler(func= lambda call: call.data == "پایان مکالمه")
-def terminate_chat(call):
-    if subscription_offer(call.message):
-        try:
-            app.delete_state(user_id=call.message.from_user.id, chat_id=call.message.chat.id)
-            app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
-        except Exception as e:
-            app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+@app.callback_query_handler(func=lambda call: call.data == "پایان مکالمه")
+def end_conversation(call):
+    try:
+        conversation = Conversation.objects.filter(user_id=call.from_user.id, is_active=True).first()
+        if conversation:
+            conversation.is_active = False
+            conversation.save()
+            app.send_message(chat_id=call.message.chat.id, text="مکالمه پایان یافت.")
+        else:
+            app.send_message(chat_id=call.message.chat.id, text="مکالمه‌ای فعال یافت نشد.")
+    except Exception as e:
+        app.send_message(chat_id=call.message.chat.id, text=f"خطا: {e}")
 ##################################
 
 #####################################################################################################

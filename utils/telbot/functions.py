@@ -129,7 +129,7 @@ def send_product_message(app, message, product, current_site):
         f"{product.description}\n\n"
         f"✅ {attribute_text}\n\n"
         f"🔘 فروش با ضمانت ارویجینال💯\n"
-        f"📫 ارسال به تمام نقاط کشور\n"
+        f"📫 ارسال به تمام نقاط کشور\n\n"
         f"{price_text}\n"
     )
     

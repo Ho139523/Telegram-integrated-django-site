@@ -483,21 +483,11 @@ def answer(call):
 
 
 
-@app.callback_query_handler(func=lambda call: call.data == "پایان مکالمه")
+@app.callback_query_handler(func= lambda call: call.data == "پایان مکالمه")
 def terminate_chat(call):
-    try:
-        current_state = app.get_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
-        app.send_message(call.message.chat.id, f"Current state before: {current_state}")
-        
+    if subscription_offer(call.message):
         app.delete_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
-        
-        new_state = app.get_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
-        app.send_message(call.message.chat.id, f"State after deletion: {new_state}")
-        
-        app.send_message(chat_id=call.message.chat.id, text="مکالمه شما پایان یافت.")
-        
-    except Exception as e:
-        app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+        app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
 ##################################
 
 #####################################################################################################

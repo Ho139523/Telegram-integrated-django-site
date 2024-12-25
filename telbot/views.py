@@ -363,14 +363,19 @@ def handle_ten_products(message):
                 for product in products:
                     formatted_price = "{:,.0f}".format(float(product.price))
                     formatted_final_price = "{:,.0f}".format(float(product.final_price))
-                    caption = format_html(
+                    if product.discount > 0:
+                        price_text = f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
+                    else:
+                        price_text = f"💵 قیمت: {formatted_price} تومان"
+                        
+                    message = (
                         f"⭕️ {product.name}\n"
                         f"کد کالا: {product.code}\n\n"
                         f"{product.description}\n\n"
                         f"🔘 فروش با ضمانت ارویجینال💯\n"
                         f"📫 ارسال به تمام نقاط کشور\n"
                         f"🏃 {product.discount} % تخفیف\n"
-                        f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
+                        f"{price_text}"
                     )
                     photos = [
                         types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')

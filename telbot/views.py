@@ -191,7 +191,7 @@ def handle_check_subscription(call):
         
         # Display the main menu
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add("موجودی من", "خرید با کد کالا", "دسته بندی ها", "منو اصلی")
+        markup.add("💰 موجودی من", "خرید با کد کالا", "🗂 دسته بندی ها", "منو اصلی")
         app.send_message(call.message.chat.id, "انتخاب کنید:", reply_markup=markup)
     else:
         app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید.")
@@ -220,7 +220,7 @@ def handle_back(message):
             
             except IndexError as e:
                 if "list index out of range" in str(e):
-                    previous_category_title = "دسته بندی ها"
+                    previous_category_title = "🗂 دسته بندی ها"
                     
                     fake_message = message  # Clone the current message
                     fake_message.text = previous_category_title  # Change the text to previous category
@@ -246,7 +246,7 @@ def home(message):
     
 
 # Visit website
-@app.message_handler(func=lambda message: message.text=="بازدید سایت")
+@app.message_handler(func=lambda message: message.text=="🖥 بازدید سایت")
 def visit_website(message):
     if subscription_offer(message):
         send_website_link(message)
@@ -254,7 +254,7 @@ def visit_website(message):
         
         
 # balance
-@app.message_handler(func=lambda message: message.text=="موجودی")
+@app.message_handler(func=lambda message: message.text=="🧮 موجودی")
 def balance_menue(message):
     if subscription_offer(message):
         options = ["💰 موجودی من", "💳 افزایش موجودی"]
@@ -264,7 +264,7 @@ def balance_menue(message):
         
         
 # show balance
-@app.message_handler(func=lambda message: message.text=="موجودی من")
+@app.message_handler(func=lambda message: message.text=="💰 موجودی من")
 def my_balance(message):
     if subscription_offer(message):
         show_balance(message)
@@ -277,7 +277,7 @@ def buy_with_code(message):
 
 
 # First Layer category
-@app.message_handler(func=lambda message: message.text=="دسته بندی ها")
+@app.message_handler(func=lambda message: message.text=="🗂 دسته بندی ها")
 def category(message):
     if subscription_offer(message):
         cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
@@ -400,7 +400,7 @@ def handle_product_code(message):
 # support handlers
 
 # Handling the 'Support 👨🏻‍💻' button click event
-@app.message_handler(func= lambda message: message.text == "پیام به پشتیبان")
+@app.message_handler(func= lambda message: message.text == "💬 پیام به پشتیبان")
 def sup(message):
     app.send_message(chat_id=message.chat.id, text="لطفا پیام خود را تایپ کنید:")
     app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id)    

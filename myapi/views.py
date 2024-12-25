@@ -37,11 +37,14 @@ class HeartCreateAPIView(ListCreateAPIView):
 class CheckTelegramUserRegistrationView(APIView):
     def post(self, request):
         tel_id = request.data.get('tel_id')
+        print(tel_id)
         
         # Check if the user exists in telbotid or ProfileModel
         telbotid_exists = telbotid.objects.filter(tel_id=tel_id).exists()
+        print(telbotid_exists)
         profile_exists = ProfileModel.objects.filter(telegram=tel_id).exists()
-        
+        print(profile_exists)
+
         if tel_id in telbotid_exists or tel_id in profile_exists:
             return Response({
                 "message": f"{tel_id} عزیز شما قبلا در ربات ثبت‌نام کرده‌اید."

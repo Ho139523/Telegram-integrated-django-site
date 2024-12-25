@@ -618,23 +618,27 @@ def pick_email(message):
 
 # دریافت نام کاربری
 def pick_username(message, email):
-    username = message.text
-    is_valid, validation_message = validate_username(username)  # Validation message is now separate from `message`
-    
-    # Send validation message
-    app.send_message(message.chat.id, validation_message)
-    
-    if is_valid:
-        # Check if username already exists
-        if username in [item['username'] for item in User.objects.values("username")]:
-            app.send_message(message.chat.id, "متاسفانه نام کاربری که انتخاب کردی از قبل انتخاب شده لطفا یکی دیگه رو امتحان کن:")
-            app.register_next_step_handler(message, pick_username, email)
+    try:
+        username = message.text
+        is_valid, validation_message = validate_username(username)  # Validation message is now separate from `message`
+        
+        # Send validation message
+        app.send_message(message.chat.id, validation_message)
+        
+        if is_valid:
+            # Check if username already exists
+            if username in [item['username'] for item in User.objects.values("username")]:
+                app.send_message(message.chat.id, "متاسفانه نام کاربری که انتخاب کردی از قبل انتخاب شده لطفا یکی دیگه رو امتحان کن:")
+                app.register_next_step_handler(message, pick_username, email)
+            else:
+                app.send_message(message.chat.id, "عالیه! حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یکی از علامت‌ها برای خودت انتخاب کن:")
+                app.register_next_step_handler(message, pick_password, email, username)
         else:
-            app.send_message(message.chat.id, "عالیه! حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یکی از علامت‌ها برای خودت انتخاب کن:")
-            app.register_next_step_handler(message, pick_password, email, username)
-    else:
-        # If the username is invalid, re-prompt the user
-        app.register_next_step_handler(message, pick_username, email)
+            # If the username is invalid, re-prompt the user
+            app.register_next_step_handler(message, pick_username, email)
+    
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
         
         
 # تعیین رمز عبور

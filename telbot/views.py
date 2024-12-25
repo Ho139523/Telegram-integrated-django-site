@@ -369,7 +369,7 @@ def handle_ten_products(message):
         
         for product in products:
             try:
-                send_product_message(app, message, product, current_site, token=TOKEN)
+                send_product_message(app, message, product, current_site)
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
 
@@ -386,7 +386,7 @@ def handle_product_code(message):
             if Product.objects.get(code=message.text):
                 product=Product.objects.get(code=message.text)
                 try:
-                    send_product_message(app, message, product, current_site, token=TOKEN)
+                    send_product_message(app, message, product, current_site)
                 except Exception as e:
                     app.send_message(message.chat.id, f"the error is: {e}")
         else:

@@ -446,6 +446,13 @@ def sup_text(message):
 
 
 
+# هندلر برای دکمه "ثبت نام می‌کنم"
+@app.message_handler(func=lambda message: message.text == "🔐     ایجاد حساب کاربری    🛡️")
+def ask_username(message):
+    app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
+    app.register_next_step_handler(message, pick_email)
+
+
 
 # hadling any unralted message
 @app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
@@ -567,12 +574,6 @@ def check_website_subscription(call):
             # Buy Process
             pass
             
-
-# هندلر برای دکمه "ثبت نام می‌کنم"
-@app.message_handler(func=lambda message: message.text == "🔐     ایجاد حساب کاربری    🛡️")
-def ask_username(message):
-    app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
-    app.register_next_step_handler(message, pick_email)
 
 
 # email validation

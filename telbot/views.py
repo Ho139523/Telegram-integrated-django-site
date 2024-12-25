@@ -341,7 +341,7 @@ def handle_ten_products(message):
     if subscription_offer(message):
         try:
             if message.text == "پر تخفیف ها":
-                if Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0).exists():
+                if Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0):
                     products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("discount")[:10]
                 else:
                     products = []

@@ -486,22 +486,25 @@ def answer_text(message):
         user = int(re.findall(pattern=pattern, string=clean_text)[0].split()[4])
 
         # Retrieve the original message_id
-        user_message_id = texts[user]["message_id"]
-        user_message = texts[user]["text"]
+        if user in texts:
+            user_message_id = texts[user]["message_id"]
+            user_message = texts[user]["text"]
 
-        # Reply to the user's specific message
-        app.send_message(
-            chat_id=user,
-            text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>",
-            parse_mode="HTML",
-            reply_to_message_id=user_message_id
-        )
+            # Reply to the user's specific message
+            app.send_message(
+                chat_id=user,
+                text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>",
+                parse_mode="HTML",
+                reply_to_message_id=user_message_id
+            )
 
-        app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!")
+            app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!")
 
-        # Clean up the state and message data
-        del texts[user]
-        app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+            # Clean up the state and message data
+            del texts[user]
+            app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+        else:
+            app.send_message(chat_id=message.chat.id, text="پیام اصلی پیدا نشد. لطفاً دوباره تلاش کنید.")
 
     except Exception as e:
         app.send_message(
@@ -509,6 +512,7 @@ def answer_text(message):
             text=f"Something goes wrong...\n\nException:\n<code>{e}</code>",
             parse_mode="HTML"
         )
+
 
 
 # Handling the callback to terminate the chat

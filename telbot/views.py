@@ -401,7 +401,7 @@ def handle_ten_products(message):
                 except Exception as e:
                     app.send_message(message.chat.id, f"the error is: {e}")
         except Exception as e:
-                    app.send_message(message.chat.id, f"the error is: {e}")
+            app.send_message(message.chat.id, f"the error is: {e}")
 
 
 ##################################

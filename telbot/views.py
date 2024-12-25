@@ -423,6 +423,9 @@ def sup_text(message):
             "message_id": message.message_id
         }
 
+        # Print debug info to check message_id
+        print(f"Stored message_id for user {message.from_user.id}: {message.message_id}")
+
         # Add button with callback including message_id
         sup_markup.add(types.InlineKeyboardButton(
             text="پاسخ",
@@ -446,6 +449,7 @@ def sup_text(message):
 
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+
 
 
 # hadling any unralted message
@@ -490,16 +494,8 @@ def answer_text(message):
             user_message_id = texts[user]["message_id"]
             user_message = texts[user]["text"]
 
-            # Use app.get_message to verify if the message is still available
-            try:
-                app.get_message(chat_id=user, message_id=user_message_id)
-            except Exception as e:
-                app.send_message(
-                    chat_id=message.chat.id,
-                    text=f"Message to reply not found, the error is: {e}",
-                    parse_mode="HTML"
-                )
-                return
+            # Debug: Print the stored message_id
+            print(f"Replying to message_id: {user_message_id}")
 
             # Reply to the user's specific message
             app.send_message(
@@ -523,6 +519,7 @@ def answer_text(message):
             text=f"Something went wrong...\n\nException:\n<code>{e}</code>",
             parse_mode="HTML"
         )
+
 
 
 

@@ -380,42 +380,7 @@ def handle_product_code(message):
             try:
                 if Product.objects.get(code=message.text):
                     product=Product.objects.get(code=message.text)
-                    formatted_price = "{:,.0f}".format(float(product.price))
-                    formatted_final_price = "{:,.0f}".format(float(product.final_price))
-                    if product.discount > 0:
-                        price_text = (
-                            f"🏃 {product.discount} % تخفیف\n"
-                            f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
-                        )
-                    else:
-                        price_text = f"💵 قیمت: {formatted_price} تومان"
-                        
-                    caption = (
-                        f"⭕️ {product.name}\n"
-                        f"کد کالا: {product.code}\n\n"
-                        f"{product.description}\n\n"
-                        f"🔘 فروش با ضمانت ارویجینال💯\n"
-                        f"📫 ارسال به تمام نقاط کشور\n"
-                        f"{price_text}"
-                    )
-                    photos = [
-                        types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
-                    ] + [
-                        types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
-                    ]
-                    #app.send_message(message.chat.id, f"{print([i.image.path for i in product.additional_images.all()])}")
-
-                    if len(photos) > 10:
-                        photos = photos[:10]  # محدود به 10 عکس
-                    
-                    markup = types.InlineKeyboardMarkup()
-                    buy_button = types.InlineKeyboardButton(text="خرید", url=f"{current_site}/bbuy/product/product_code")#, callback_data=f"buy_{product['code']}")
-                    add_to_basket_button = types.InlineKeyboardButton(text="افزودن به سبد خرید", url=f"{current_site}/bbuy/product/product_code")
-                    markup.add(add_to_basket_button, buy_button)
-                    app.send_media_group(message.chat.id, media=photos)
-                    app.send_message(message.chat.id, "برای خریدن این محصول کلیک کنید 👇👇👇", reply_markup=markup)
-            except Exception as e:
-                app.send_message(message.chat.id, f"the error is: {e}")
+                    send_product_message(app, message, product, current_site)
         else:
             app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
         app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)

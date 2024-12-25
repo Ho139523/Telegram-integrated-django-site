@@ -485,7 +485,7 @@ def answer(call):
 
 @app.callback_query_handler(func= lambda call: call.data == "پایان مکالمه")
 def terminate_chat(call):
-    if subscription_offer(message):
+    if subscription_offer(call.message):
         try:
             app.delete_state(user_id=call.message.from_user.id, chat_id=call.message.chat.id)
             app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")

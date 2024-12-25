@@ -519,6 +519,6 @@ def send_website_link(message):
 @app.callback_query_handler(func=lambda call: call.data == 'check_website_subscription')
 def check_website_subscription(message):
     if subscription_offer(message):
-        
+        pass
 
 app.add_custom_filter(custom_filters.StateFilter(app))

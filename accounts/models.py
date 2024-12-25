@@ -48,9 +48,9 @@ class ProfileModel(models.Model):
     Phone=models.CharField(max_length=10, blank=True, null=True, verbose_name="Phone Number")
     address=models.OneToOneField(ShippingAddressModel, blank=True, null=True, on_delete=models.SET_NULL)
     about_me=models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)", verbose_name="About Me")
-    instagram=models.CharField(max_length=120, blank=True, null=True, verbose_name="Instagram ID")
-    tweeter=models.CharField(max_length=120, blank=True, null=True, verbose_name="Tweeter ID")
-    telegram=models.CharField(max_length=120, blank=True, null=True, verbose_name="Telegram ID")
+    instagram=models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Instagram ID")
+    tweeter=models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Tweeter ID")
+    telegram=models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Telegram ID")
     credit=models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
     
     def __str__(self):

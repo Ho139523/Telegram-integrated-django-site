@@ -501,6 +501,7 @@ def answer_text(message):
             try:
                 app.get_message(chat_id=user, message_id=user_message_id)
             except Exception as e:
+                # If the message is not found, inform the user
                 app.send_message(
                     chat_id=message.chat.id,
                     text=f"Message to reply not found. The error is: {e}",
@@ -508,7 +509,7 @@ def answer_text(message):
                 )
                 return
 
-            # Reply to the user's specific message
+            # Send reply to user with original message and support response
             app.send_message(
                 chat_id=user,
                 text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>",
@@ -516,6 +517,7 @@ def answer_text(message):
                 reply_to_message_id=user_message_id
             )
 
+            # Confirmation message to support agent
             app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!")
 
             # Clean up the state and message data
@@ -530,6 +532,7 @@ def answer_text(message):
             text=f"Something went wrong...\n\nException:\n<code>{e}</code>",
             parse_mode="HTML"
         )
+
 
 
 

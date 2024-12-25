@@ -9,7 +9,4 @@ urlpatterns = [
     
     # check telegram registration
     path('api/check-registration/', CheckTelegramUserRegistrationView.as_view(), name='check-registration'),
-    
-    # Copy the text link
-    path('copy-telegram-text-link/<slug:slug>/', copy_text, name='copy-text'),
 ]

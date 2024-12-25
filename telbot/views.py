@@ -593,27 +593,29 @@ def is_valid_email(email):
 
 
 # گرفتن آدرس ایمیل
-def pick_email(message):    
-    email = message.text
-    
-    is_valid, validation_message = is_valid_email(email)  # Assign directly to validation_message
-    
-    if email in [item['email'] for item in User.objects.values("email")]:
-        app.send_message(message.chat.id, "قبل تر از شما کسی با این ایمیل حساب کاربری افتتاح کرده است! می خوای با یه ایمیل دیگه ات امتحان کن:")
-        app.register_next_step_handler(message, pick_email)  # Prompt again for email
-    else:
-        if is_valid:
-            username = message.from_user.username
-            if username in [item['username'] for item in User.objects.values("username")]:
-                app.send_message(message.chat.id, validation_message)  # This now uses validation_message correctly
-                app.register_next_step_handler(message, pick_username, email)  # Proceed to username prompt
-            else:
-                app.send_message(message.chat.id, "نام کاربری شما همان ID تلگرام شماست!\n\n حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یک علامت‌ برای خودت انتخاب کن:")
-                app.register_next_step_handler(message, pick_password, email, username)
-        else:
-            app.send_message(message.chat.id, validation_message)  # Re-prompt for a valid email
+def pick_email(message):
+    try:
+        email = message.text
+        
+        is_valid, validation_message = is_valid_email(email)  # Assign directly to validation_message
+        
+        if email in [item['email'] for item in User.objects.values("email")]:
+            app.send_message(message.chat.id, "قبل تر از شما کسی با این ایمیل حساب کاربری افتتاح کرده است! می خوای با یه ایمیل دیگه ات امتحان کن:")
             app.register_next_step_handler(message, pick_email)  # Prompt again for email
-            
+        else:
+            if is_valid:
+                username = message.from_user.username
+                if username in [item['username'] for item in User.objects.values("username")]:
+                    app.send_message(message.chat.id, validation_message)  # This now uses validation_message correctly
+                    app.register_next_step_handler(message, pick_username, email)  # Proceed to username prompt
+                else:
+                    app.send_message(message.chat.id, "نام کاربری شما همان ID تلگرام شماست!\n\n حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یک علامت‌ برای خودت انتخاب کن:")
+                    app.register_next_step_handler(message, pick_password, email, username)
+            else:
+                app.send_message(message.chat.id, validation_message)  # Re-prompt for a valid email
+                app.register_next_step_handler(message, pick_email)  # Prompt again for email
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
 # دریافت نام کاربری
 def pick_username(message, email):

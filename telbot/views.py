@@ -569,7 +569,7 @@ def check_website_subscription(call):
             
 
 # هندلر برای دکمه "ثبت نام می‌کنم"
-@bot.message_handler(func=lambda message: message.text == "🔐     ایجاد حساب کاربری    🛡️")
+@app.message_handler(func=lambda message: message.text == "🔐     ایجاد حساب کاربری    🛡️")
 def ask_username(message):
     app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
     app.register_next_step_handler(message, pick_email)
@@ -602,13 +602,13 @@ def pick_email(message):
             username = message.from_user.username
             if username in [item['username'] for item in User.objects.values("username")]:
                 app.send_message(message.chat.id, validation_message)  # This now uses validation_message correctly
-                bot.register_next_step_handler(message, pick_username, email)  # Proceed to username prompt
+                app.register_next_step_handler(message, pick_username, email)  # Proceed to username prompt
             else:
-                bot.send_message(message.chat.id, "نام کاربری شما همان ID تلگرام شماست!\n\n حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یک علامت‌ برای خودت انتخاب کن:")
-                bot.register_next_step_handler(message, pick_password, email, username)
+                app.send_message(message.chat.id, "نام کاربری شما همان ID تلگرام شماست!\n\n حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یک علامت‌ برای خودت انتخاب کن:")
+                app.register_next_step_handler(message, pick_password, email, username)
         else:
-            bot.send_message(message.chat.id, validation_message)  # Re-prompt for a valid email
-            bot.register_next_step_handler(message, pick_email)  # Prompt again for email
+            app.send_message(message.chat.id, validation_message)  # Re-prompt for a valid email
+            app.register_next_step_handler(message, pick_email)  # Prompt again for email
             
 
 # دریافت نام کاربری
@@ -617,19 +617,19 @@ def pick_username(message, email):
     is_valid, validation_message = validate_username(username)  # Validation message is now separate from `message`
     
     # Send validation message
-    bot.send_message(message.chat.id, validation_message)
+    app.send_message(message.chat.id, validation_message)
     
     if is_valid:
         # Check if username already exists
         if username in [item['username'] for item in User.objects.values("username")]:
-            bot.send_message(message.chat.id, "متاسفانه نام کاربری که انتخاب کردی از قبل انتخاب شده لطفا یکی دیگه رو امتحان کن:")
-            bot.register_next_step_handler(message, pick_username, email)
+            app.send_message(message.chat.id, "متاسفانه نام کاربری که انتخاب کردی از قبل انتخاب شده لطفا یکی دیگه رو امتحان کن:")
+            app.register_next_step_handler(message, pick_username, email)
         else:
-            bot.send_message(message.chat.id, "عالیه! حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یکی از علامت‌ها برای خودت انتخاب کن:")
-            bot.register_next_step_handler(message, pick_password, email, username)
+            app.send_message(message.chat.id, "عالیه! حالا یه رمز عبور هشت رقمی شامل حروف برزگ و کوچک عدد و یکی از علامت‌ها برای خودت انتخاب کن:")
+            app.register_next_step_handler(message, pick_password, email, username)
     else:
         # If the username is invalid, re-prompt the user
-        bot.register_next_step_handler(message, pick_username, email)
+        app.register_next_step_handler(message, pick_username, email)
         
         
 # تعیین رمز عبور
@@ -638,18 +638,18 @@ def pick_password(message, email, username):
     is_valid, validation_message = validate_password(password)
     
     # Send validation message
-    bot.send_message(message.chat.id, validation_message)
+    app.send_message(message.chat.id, validation_message)
     
     # If password is valid, proceed with registration
     if is_valid:
         
-        bot.send_message(message.chat.id, "دمت گرم! حالا یه بار دیگه رمزت رو برام بزن تا تاییدش کنم و این بشه رمز عبورت:")
-        bot.register_next_step_handler(message, pick_password2, email, username, password)
+        app.send_message(message.chat.id, "دمت گرم! حالا یه بار دیگه رمزت رو برام بزن تا تاییدش کنم و این بشه رمز عبورت:")
+        app.register_next_step_handler(message, pick_password2, email, username, password)
         
     
     # If password is not valid, ask for a new one
     else:
-        bot.register_next_step_handler(message, pick_password, email, username)
+        app.register_next_step_handler(message, pick_password, email, username)
         
         
 
@@ -691,15 +691,15 @@ def pick_password2(message, email, username, password, current_site=current_site
         )
         email.send()
         
-        bot.send_message(
+        app.send_message(
             message.chat.id, 
             f"{message.from_user.first_name} عزیز افتتاح حساب شما تکمیل شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید."
         )
         
-        bot.send_message(message.chat.id, "حالا بریم سراغ آدرس... ")
-        # bot.register_next_step_handler(message, )
+        app.send_message(message.chat.id, "حالا بریم سراغ آدرس... ")
+        # app.register_next_step_handler(message, )
     else:
-        bot.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد. لطفا دباره آن را دقیقا مثل قبل وارد کنید:")
-        bot.register_next_step_handler(message, pick_password2, email, username, password)
+        app.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد. لطفا دباره آن را دقیقا مثل قبل وارد کنید:")
+        app.register_next_step_handler(message, pick_password2, email, username, password)
 
 app.add_custom_filter(custom_filters.StateFilter(app))

@@ -448,9 +448,9 @@ def sup_text(message):
         # app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
-  
-# Functions for specific actions
-@app.message_handler(func=lambda message: True)
+
+
+@app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
 def handle_message(message):
     if subscription_offer(message):
         app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
@@ -503,6 +503,8 @@ def answer(call):
 ##################################
 
 #####################################################################################################
+# Functions for specific actions
+
 
 # show balance
 def show_balance(message):
@@ -517,6 +519,7 @@ def ask_for_product_code(message):
     if subscription_offer(message):
         app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
         app.set_state(user_id=message.from_user.id, state=Support.code, chat_id=message.chat.id)  
+
 
 
 def send_website_link(message):

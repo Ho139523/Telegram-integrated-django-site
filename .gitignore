@@ -9,3 +9,5 @@ Pipfile
 Pipfile.lock
 nginx/logs/access.log
 nginx/logs/error.log
+ 
+ 

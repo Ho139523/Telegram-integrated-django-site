@@ -449,8 +449,11 @@ def sup_text(message):
 # هندلر برای دکمه "ثبت نام می‌کنم"
 @app.message_handler(func=lambda message: message.text == "🔐     ایجاد حساب کاربری    🛡️")
 def ask_username(message):
-    app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
-    app.register_next_step_handler(message, pick_email)
+    try:
+        app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
+        app.register_next_step_handler(message, pick_email)
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
 
 

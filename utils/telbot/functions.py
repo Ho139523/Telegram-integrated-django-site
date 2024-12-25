@@ -120,7 +120,7 @@ def send_product_message(app, message, product, current_site):
     # for att in product.
     
     attributes = product.attributes.filter(product=product)
-    attribute_text = "\n ✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
+    attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
 
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"

@@ -421,7 +421,7 @@ def sup_text(message):
 
         texts[message.from_user.id] = message.text
 
-        # app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+        app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 

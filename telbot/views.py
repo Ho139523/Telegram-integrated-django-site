@@ -1,4 +1,5 @@
 # General imports
+import re
 from telebot import TeleBot, types
 from collections import defaultdict
 import requests
@@ -24,7 +25,6 @@ from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
 from utils.telbot.variables import main_menu, extra_buttons, retun_menue
-import re
 from bs4 import BeautifulSoup
 
 # import models
@@ -615,6 +615,8 @@ def pick_email(message):
                 app.register_next_step_handler(message, pick_email)  # Prompt again for email
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+
+
 
 # دریافت نام کاربری
 def pick_username(message, email):

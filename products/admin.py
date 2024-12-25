@@ -57,9 +57,9 @@ class ProductAttributeAdmin(admin.ModelAdmin):
 
 
 ### **5. مدیریت تصاویر محصول (در صورت نیاز جداگانه)**
-@admin.register(ProductImage)
-class ProductImageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'image')  # نمایش شناسه و تصویر
+# @admin.register(ProductImage)
+# class ProductImageAdmin(admin.ModelAdmin):
+    # list_display = ('id', 'image')  # نمایش شناسه و تصویر
 
 admin.site.register(TutorialModel)
 admin.site.register(CategoryModel)

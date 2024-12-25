@@ -257,7 +257,7 @@ def visit_website(message):
 @app.message_handler(func=lambda message: message.text=="موجودی")
 def balance_menue(message):
     if subscription_offer(message):
-        options = ["موجودی من", "افزایش موجودی"]
+        options = ["💰 موجودی من", "💳 افزایش موجودی"]
         home_menue = ["🏡"]
         markup = send_menu(message, options, "balance_category", home_menue)
         app.send_message(message.chat.id, "می خوای موجودی بگیری یا موجودیت رو افزایش بدی؟", reply_markup=markup)
@@ -351,7 +351,7 @@ def handle_ten_products(message):
                 products = []
 
         elif message.text=="پر فروش ترین ها":
-            app.send_message(message.chat.id, f"با عرض پوزش هنوز این قابلیت فعال نشده است.")
+            app.send_message(message.chat.id, f"🚧 با عرض پوزش هنوز این قابلیت فعال نشده است. 🚧")
             
         elif message.text=="ارزان ترین ها":
             products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-price")[:10]
@@ -364,7 +364,7 @@ def handle_ten_products(message):
             return
         
         elif not products.exists():
-            app.send_message(message.chat.id, "محصولی در این دسته بندی یافت نشد.")
+            app.send_message(message.chat.id, "🚧 محصولی در این دسته بندی یافت نشد.🚧")
             return
         
         for product in products:
@@ -390,7 +390,7 @@ def handle_product_code(message):
                 except Exception as e:
                     app.send_message(message.chat.id, f"the error is: {e}")
         else:
-            app.send_message(chat_id, "قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید.")
+            app.send_message(chat_id, "🚫 قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید. ⛔️")
         app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
 
 

@@ -499,7 +499,10 @@ def answer(call):
 
 #####################################################################################################
 # Functions for specific actions
-
+@app.message_handler(func=lambda message: True)
+def handle_message(message):
+    if subscription_offer(message):
+        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 # show balance
 def show_balance(message):
@@ -509,11 +512,6 @@ def show_balance(message):
         balance = telbotid.objects.get(tel_id=user_id).credit
         formatted_balance = "{:,.2f}".format(float(balance))
         app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
-
-@app.message_handler(func=lambda message: True)
-def handle_message(message):
-    if subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 def ask_for_product_code(message):
     if subscription_offer(message):

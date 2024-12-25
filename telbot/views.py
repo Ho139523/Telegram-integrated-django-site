@@ -486,8 +486,11 @@ def answer(call):
 @app.callback_query_handler(func= lambda call: call.data == "پایان مکالمه")
 def terminate_chat(message):
     if subscription_offer(message):
-        app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
-        app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
+        try:
+            app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+            app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
+        except Exception as e:
+            app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 ##################################
 
 #####################################################################################################

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import TelegramBotWebhookView, telegram_activation_redirect
+from .views import TelegramBotWebhookView
 from myapi.views import CheckTelegramUserRegistrationView
 
 app_name = 'telbot'
@@ -10,7 +10,4 @@ urlpatterns = [
     # check telegram registration
     path('api/check-registration/', CheckTelegramUserRegistrationView.as_view(), name='check-registration'),
     
-    # account acctivation
-    path('activate/telegram/<uidb64>/<token>/', telegram_activation_redirect, name='telegram_activate'),
-
 ]

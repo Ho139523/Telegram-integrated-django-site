@@ -49,7 +49,6 @@ from django.utils import timezone
 from datetime import timedelta
 from accounts.models import ProfileModel, ShippingAddressModel
 from accounts.models import User
-from django.shortcuts import redirect
 
 
 ###############################################################################################
@@ -97,14 +96,7 @@ class TelegramBotWebhookView(View):
             return JsonResponse({"status": "error", "message": str(e)}, status=200)
             
             
-            
-def telegram_activation_redirect(request, uidb64, token):
-    bot_username = 'hussein2079_bot'
-    activation_text = f"activate_{uidb64}_{token}"
-    tg_link = f"tg://resolve?domain={bot_username}&text={activation_text}"
-    return redirect(tg_link)
-    
-    
+
 
 #################################################################################################
 
@@ -466,31 +458,21 @@ def ask_username(message):
 
 
 
-from django.contrib.auth import get_user_model
-from django.shortcuts import redirect
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-from django.contrib.sites.shortcuts import get_current_site
-from django.contrib.auth.tokens import default_token_generator as token_generator
-from django.contrib import messages
-
-
-def telegram_activate(request, uidb64, token):
-    User = get_user_model()
+@app.message_handler(func=lambda message: message.text.startswith("activate_"))
+def handle_activation_account(message):
     try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
+        _, uid, token = message.text.replace("/start ", "").split('_')
+        uid = force_str(urlsafe_base64_decode(uid))
         user = User.objects.get(pk=uid)
-        if token_generator.check_token(user, token):
+        
+        if generate_token.check_token(user, token):
             user.is_active = True
             user.save()
-            messages.success(request, "Your account has been activated via Telegram!")
-            return redirect('home')  # Redirect to home or dashboard
+            app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد و اکنون کاربر طلایی هستید.")
         else:
-            messages.error(request, "Activation link is invalid or expired.")
+            app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
     except Exception as e:
-        messages.error(request, "An error occurred during activation.")
-    return redirect('home')
-
+        app.send_message(message.chat.id, "مشکلی در فعالسازی حساب وجود دارد. لطفا با ادمین ارتباط بگیرید.")
 
 
 
@@ -733,7 +715,7 @@ def pick_password2(message, email, username, password, current_site=current_site
                 # Trigger activation email
                 current_site = current_site # Replace with your actual site domain
                 mail_subject = 'Activation link has been sent to your email id'
-                telegram_activation_link = f"https://{current_site}/telegram-activate/{urlsafe_base64_encode(force_bytes(user.pk))}/{generate_token.make_token(user)}"
+                telegram_activation_link = f"tg://resolve?domain=hussein2079_bot&text=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
 
                 message_content = render_to_string('registration/acc_active_email.html', {
                     'user': user,

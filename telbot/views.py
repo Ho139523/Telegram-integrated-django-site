@@ -160,7 +160,7 @@ def escape_special_characters(text):
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
-@app.message_handler(func=lambda message: message.text.startswith("activate_"))
+@app.message_handler(func=lambda message: message.text.startswith("/start activate_"))
 def handle_activation_account(message):
     try:
         parts = message.text.split('_')

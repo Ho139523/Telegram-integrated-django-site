@@ -51,7 +51,8 @@ from accounts.models import ProfileModel, ShippingAddressModel
 from accounts.models import User
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
-
+from django.db.utils import IntegrityError
+from django.db import transaction
 
 
 ###############################################################################################
@@ -163,7 +164,7 @@ def escape_special_characters(text):
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
-from django.db.utils import IntegrityError
+
 
 @app.message_handler(func=lambda message: message.text.startswith("/start activate_"))
 def handle_activation_account(message):
@@ -181,37 +182,42 @@ def handle_activation_account(message):
             user.is_active = True
             user.save()
 
-            # Try to create the profile
-            try:
+            # Start a transaction to ensure atomicity
+            with transaction.atomic():
+                # Get or create the profile
                 profile, created = ProfileModel.objects.get_or_create(user=user)
-                
-                # Handle if the unique constraint fails (duplicate telegram)
-                if created:
-                    # Profile created, but you may want to create a shipping address
-                    if not hasattr(profile, 'shippingaddressmodel'):
-                        shippingaddress = ShippingAddressModel(profile=profile)
-                        shippingaddress.save()
-                
-                # If profile already exists and telegram is unique, it might cause an error
-                profile.save()
 
-            except IntegrityError as e:
-                # Catch IntegrityError for unique constraint failure on `telegram`
-                if 'UNIQUE constraint failed' in str(e):
-                    app.send_message(message.chat.id, "این ID تلگرام قبلا ثبت شده است. لطفا با حساب تلگرام دیگری اقدام کنید.")
-                    return
-                else:
-                    # If the error is not a UNIQUE constraint, re-raise it or log it for debugging
-                    app.send_message(message.chat.id, f"خطا: {e}")
-                    raise e
+                # Check if a shipping address exists for this profile
+                if created or not profile.address:
+                    # Create a new shipping address if it doesn't exist
+                    shipping_address = ShippingAddressModel(
+                        profile=profile,
+                        shipping_line1="Default Address Line 1",  # Replace with actual data
+                        shipping_city="Default City",  # Replace with actual data
+                        shipping_country="Default Country",  # Replace with actual data
+                        shipping_zip="00000",  # Replace with actual data
+                    )
+                    shipping_address.save()  # Save the shipping address
 
-            app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
-            app.send_message(message.chat.id, "حالا بریم سراغ آدرس...")
+                    # Link the shipping address to the profile
+                    profile.address = shipping_address
+                    profile.save()  # Save profile with the shipping address linked
+
+                app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
+                app.send_message(message.chat.id, "حالا بریم سراغ آدرس...")
 
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
+    except IntegrityError as e:
+        # Catch IntegrityError for unique constraint failure on `telegram`
+        if 'UNIQUE constraint failed' in str(e):
+            app.send_message(message.chat.id, "این شماره تلگرام قبلا ثبت شده است. لطفا از شماره تلگرام دیگری استفاده کنید.")
+        else:
+            app.send_message(message.chat.id, f"خطا: {e}")
+            raise e
     except Exception as e:
         app.send_message(message.chat.id, f"خطا: {e}")  # Log error
+
 
 
 

@@ -178,11 +178,30 @@ def handle_activation_account(message):
         if generate_token.check_token(user, token):
             user.is_active = True
             user.save()
+
+            # Create or get the profile
+            profile, created = ProfileModel.objects.get_or_create(user=user)
+
+            # Create a shipping address if it doesn't already exist
+            if not hasattr(profile, 'shippingaddressmodel'):
+                shippingaddress = ShippingAddressModel(profile=profile)
+                shippingaddress.save()
+
+            # Save the profile
+            user.profilemodel.save()
+            profile.save()
+
+            # Send a confirmation message to the user
             app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
+
+            # Optionally, you can also send a message like "Now, let's proceed with the address..." if needed.
+            app.send_message(message.chat.id, "حالا بریم سراغ آدرس...")
+
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
     except Exception as e:
         app.send_message(message.chat.id, f"خطا: {e}")  # Log error
+
 
 
 
@@ -718,7 +737,7 @@ def pick_password2(message, email, username, password, current_site=current_site
                     is_active=False  # Keep inactive until email activation
                 )
                 
-                ProfileModel.objects.create(user=user, fname=message.from_user.first_name, lname=message.from_user.last_name, telegram=username)
+                ProfileModel.objects.create(user=user, fname=message.from_user.first_name, lname=message.from_user.last_name, telegram=message.from_user.username)
 
                 # Trigger activation email
                 current_site = current_site # Replace with your actual site domain

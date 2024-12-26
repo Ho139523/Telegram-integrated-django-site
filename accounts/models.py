@@ -35,6 +35,10 @@ class User(AbstractUser):
     is_special_user.boolean=True
     is_special_user.short_description="Special User"
     
+    def save(self, *args, **kwargs):
+        # Ensure the username is always saved in lowercase
+        self.username = self.username.lower()
+        super().save(*args, **kwargs)  # Call the parent class's save method
     
     
 class ProfileModel(models.Model):

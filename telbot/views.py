@@ -693,53 +693,56 @@ def pick_password(message, email, username):
 
 # تایید رمز
 def pick_password2(message, email, username, password, current_site=current_site):
-    password2 = message.text
-    
-    if password2 == password:
-        # Django's user model
-        User = get_user_model()
-        
-        # Set special_user to five days from now  
-        special_user_date = timezone.now() + timedelta(days=5)
-        
-        
-        # Create user in Django
-        user = User.objects.create(
-            username=username,
-            email=email,
-            password=make_password(password),  # Hash the password
-            special_user=special_user_date,  # Set the date to five days from now  
-            is_active=False  # Keep inactive until email activation
-        )
-        
-        ProfileModel.objects.create(user=user, fname=message.from_user.first_name, lname=message.from_user.last_name, telegram=username)
+    if subscription_offer(message):
+        try:
+            password2 = message.text
+            
+            if password2 == password:
+                # Django's user model
+                User = get_user_model()
+                
+                # Set special_user to five days from now  
+                special_user_date = timezone.now() + timedelta(days=5)
+                
+                
+                # Create user in Django
+                user = User.objects.create(
+                    username=username,
+                    email=email,
+                    password=make_password(password),  # Hash the password
+                    special_user=special_user_date,  # Set the date to five days from now  
+                    is_active=False  # Keep inactive until email activation
+                )
+                
+                ProfileModel.objects.create(user=user, fname=message.from_user.first_name, lname=message.from_user.last_name, telegram=username)
 
-        # Trigger activation email
-        current_site = current_site # Replace with your actual site domain
-        mail_subject = 'Activation link has been sent to your email id'
-        telegram_activation_link = f"https://t.me/{YOUR_BOT_USERNAME}?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
+                # Trigger activation email
+                current_site = current_site # Replace with your actual site domain
+                mail_subject = 'Activation link has been sent to your email id'
+                telegram_activation_link = f"https://t.me/{YOUR_BOT_USERNAME}?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
 
-        message_content = render_to_string('registration/acc_active_email.html', {
-            'user': user,
-            'domain': current_site[8:],
-            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-            'token': generate_token.make_token(user),
-            'telegram': True,
-            'telegram_activation_link': telegram_activation_link
-        })
-        
-        email = EmailMessage(
-            mail_subject, message_content, to=[email]
-        )
-        email.send()
-        
-        # app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز افتتاح حساب شما تکمیل شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید.")
-        
-        app.send_message(message.chat.id, "دوست عزیزم یک ایمیل از طرف شرکت اینتلیوم برای شما ارسال شده است که حاوی لینک فعالسازی حساب شماست لطفا روی آن کلیک کنید.")
-        # app.register_next_step_handler(message, )
-    else:
-        app.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد. لطفا دباره آن را دقیقا مثل قبل وارد کنید:")
-        app.register_next_step_handler(message, pick_password2, email, username, password)
-
+                message_content = render_to_string('registration/acc_active_email.html', {
+                    'user': user,
+                    'domain': current_site[8:],
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': generate_token.make_token(user),
+                    'telegram': True,
+                    'telegram_activation_link': telegram_activation_link
+                })
+                
+                email = EmailMessage(
+                    mail_subject, message_content, to=[email]
+                )
+                email.send()
+                
+                # app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز افتتاح حساب شما تکمیل شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید.")
+                
+                app.send_message(message.chat.id, "دوست عزیزم یک ایمیل از طرف شرکت اینتلیوم برای شما ارسال شده است که حاوی لینک فعالسازی حساب شماست لطفا روی آن کلیک کنید.")
+                # app.register_next_step_handler(message, )
+            else:
+                app.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد. لطفا دباره آن را دقیقا مثل قبل وارد کنید:")
+                app.register_next_step_handler(message, pick_password2, email, username, password)
+        except Exception as e:
+            app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
 app.add_custom_filter(custom_filters.StateFilter(app))

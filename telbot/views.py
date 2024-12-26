@@ -199,6 +199,7 @@ def handle_activation_account(message):
                 # Catch IntegrityError for unique constraint failure on `telegram`
                 if 'UNIQUE constraint failed' in str(e):
                     app.send_message(message.chat.id, "این ID تلگرام قبلا ثبت شده است. لطفا با حساب تلگرام دیگری اقدام کنید.")
+                    return
                 else:
                     # If the error is not a UNIQUE constraint, re-raise it or log it for debugging
                     app.send_message(message.chat.id, f"خطا: {e}")

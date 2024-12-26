@@ -450,12 +450,34 @@ def sup_text(message):
 # هندلر برای دکمه "ثبت نام می‌کنم"
 @app.message_handler(func=lambda message: message.text == "🔐     ایجاد حساب کاربری    🛡️")
 def ask_username(message):
-    try:
-        app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
-        app.register_next_step_handler(message, pick_email)
-    except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+    if subscription_offer(message):
+        try:
+            app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
+            app.register_next_step_handler(message, pick_email)
+        except Exception as e:
+            app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
+
+
+@app.message_handler(func=lambda message: message.text == "activate")
+def handle_acctivation_account(message):
+    if subscription_offer(message):
+        try:
+            _, uid, token = message.text.split('_')
+            uid = force_text(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=uid)
+            
+            if generate_token.check_token(user, token):
+                user.is_active = True
+                user.save()
+                app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب کاربری شما فعال شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید.")
+        
+                app.send_message(message.chat.id, "حالا بریم سراغ آدرس... ")
+                # app.register_next_step_handler(message, )
+            else:
+                bot.send_message(message.chat.id, "لینک فعالسازی نامعتبر است و یا اینکه منقضی شده است.")
+        except Exception as e:
+            bot.send_message(message.chat.id, "مشکلی در فعالسازی حساب شما وجود دارد. لطفا با ادمین ارتباط بگیرید.")
 
 
 # hadling any unralted message
@@ -695,11 +717,15 @@ def pick_password2(message, email, username, password, current_site=current_site
         # Trigger activation email
         current_site = current_site # Replace with your actual site domain
         mail_subject = 'Activation link has been sent to your email id'
+        telegram_activation_link = f"https://t.me/{YOUR_BOT_USERNAME}?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
+
         message_content = render_to_string('registration/acc_active_email.html', {
             'user': user,
             'domain': current_site[8:],
             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
             'token': generate_token.make_token(user),
+            'telegram': True,
+            'telegram_activation_link': telegram_activation_link
         })
         
         email = EmailMessage(
@@ -707,15 +733,13 @@ def pick_password2(message, email, username, password, current_site=current_site
         )
         email.send()
         
-        app.send_message(
-            message.chat.id, 
-            f"{message.from_user.first_name} عزیز افتتاح حساب شما تکمیل شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید."
-        )
+        # app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز افتتاح حساب شما تکمیل شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید.")
         
-        app.send_message(message.chat.id, "حالا بریم سراغ آدرس... ")
+        app.send_message(message.chat.id, "دوست عزیزم یک ایمیل از طرف شرکت اینتلیوم برای شما ارسال شده است که حاوی لینک فعالسازی حساب شماست لطفا روی آن کلیک کنید.")
         # app.register_next_step_handler(message, )
     else:
         app.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد. لطفا دباره آن را دقیقا مثل قبل وارد کنید:")
         app.register_next_step_handler(message, pick_password2, email, username, password)
+
 
 app.add_custom_filter(custom_filters.StateFilter(app))

@@ -163,6 +163,8 @@ def escape_special_characters(text):
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
+from django.db.utils import IntegrityError
+
 @app.message_handler(func=lambda message: message.text.startswith("/start activate_"))
 def handle_activation_account(message):
     try:
@@ -179,28 +181,38 @@ def handle_activation_account(message):
             user.is_active = True
             user.save()
 
-            # Check if the profile already exists and if the telegram field is unique
-            profile, created = ProfileModel.objects.get_or_create(user=user)
+            # Try to create the profile
+            try:
+                profile, created = ProfileModel.objects.get_or_create(user=user)
+                
+                # Handle if the unique constraint fails (duplicate telegram)
+                if created:
+                    # Profile created, but you may want to create a shipping address
+                    if not hasattr(profile, 'shippingaddressmodel'):
+                        shippingaddress = ShippingAddressModel(profile=profile)
+                        shippingaddress.save()
+                
+                # If profile already exists and telegram is unique, it might cause an error
+                profile.save()
 
-            if created:
-                # Create a shipping address if it doesn't already exist
-                if not hasattr(profile, 'shippingaddressmodel'):
-                    shippingaddress = ShippingAddressModel(profile=profile)
-                    shippingaddress.save()
+            except IntegrityError as e:
+                # Catch IntegrityError for unique constraint failure on `telegram`
+                if 'UNIQUE constraint failed' in str(e):
+                    app.send_message(message.chat.id, "این ID تلگرام قبلا ثبت شده است. لطفا با حساب تلگرام دیگری اقدام کنید.")
+                else:
+                    # If the error is not a UNIQUE constraint, re-raise it or log it for debugging
+                    app.send_message(message.chat.id, f"خطا: {e}")
+                    raise e
 
-            # Save the profile if it is new or already exists
-            profile.save()
-
-            # Send a confirmation message to the user
             app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
-
-            # Optionally, send a follow-up message like "Now, let's proceed with the address..."
             app.send_message(message.chat.id, "حالا بریم سراغ آدرس...")
 
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
     except Exception as e:
         app.send_message(message.chat.id, f"خطا: {e}")  # Log error
+
+
 
 
 

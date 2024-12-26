@@ -719,7 +719,7 @@ def pick_password2(message, email, username, password, current_site=current_site
                 # Trigger activation email
                 current_site = current_site # Replace with your actual site domain
                 mail_subject = 'Activation link has been sent to your email id'
-                telegram_activation_link = f"https://t.me/{YOUR_BOT_USERNAME}?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
+                telegram_activation_link = f"https://t.me/{hussein2079_bot}?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
 
                 message_content = render_to_string('registration/acc_active_email.html', {
                     'user': user,

@@ -49,6 +49,7 @@ from django.utils import timezone
 from datetime import timedelta
 from accounts.models import ProfileModel, ShippingAddressModel
 from accounts.models import User
+from django.shortcuts import redirect
 
 
 ###############################################################################################
@@ -97,7 +98,13 @@ class TelegramBotWebhookView(View):
             
             
             
-
+def telegram_activation_redirect(request, uidb64, token):
+    bot_username = 'hussein2079_bot'
+    activation_text = f"activate_{uidb64}_{token}"
+    tg_link = f"tg://resolve?domain={bot_username}&text={activation_text}"
+    return redirect(tg_link)
+    
+    
 
 #################################################################################################
 
@@ -730,6 +737,7 @@ def pick_password2(message, email, username, password, current_site=current_site
                 email = EmailMessage(
                     mail_subject, message_content, to=[email]
                 )
+                email.content_subtype = "html"
                 email.send()
                 
                 # app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز افتتاح حساب شما تکمیل شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید.")

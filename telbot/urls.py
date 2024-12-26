@@ -9,4 +9,8 @@ urlpatterns = [
     
     # check telegram registration
     path('api/check-registration/', CheckTelegramUserRegistrationView.as_view(), name='check-registration'),
+    
+    # account acctivation
+    path('activate/telegram/<uidb64>/<token>/', telegram_activation_redirect, name='telegram_activate'),
+
 ]

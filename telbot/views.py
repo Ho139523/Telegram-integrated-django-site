@@ -160,22 +160,27 @@ def escape_special_characters(text):
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
-# account activation
-@app.message_handler(func=lambda message: message.text.startswith("/start activate_"))
+@app.message_handler(func=lambda message: message.text.startswith("activate_"))
 def handle_activation_account(message):
     try:
-        _, uid, token = message.text.replace("/start activate_", "").split('_')
+        parts = message.text.split('_')
+        if len(parts) != 3:
+            app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است.")
+            return
+
+        _, uid, token = parts
         uid = force_str(urlsafe_base64_decode(uid))
         user = User.objects.get(pk=uid)
-        
+
         if generate_token.check_token(user, token):
             user.is_active = True
             user.save()
-            app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد و اکنون کاربر طلایی هستید.")
+            app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
     except Exception as e:
-        app.send_message(message.chat.id, f"خطا: {e}")  # Show error directly for debugging
+        app.send_message(message.chat.id, f"خطا: {e}")  # Log error
+
 
 
 

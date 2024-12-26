@@ -459,25 +459,22 @@ def ask_username(message):
 
 
 
-@app.message_handler(func=lambda message: message.text == "activate")
-def handle_acctivation_account(message):
-    if subscription_offer(message):
-        try:
-            _, uid, token = message.text.split('_')
-            uid = force_text(urlsafe_base64_decode(uid))
-            user = User.objects.get(pk=uid)
-            
-            if generate_token.check_token(user, token):
-                user.is_active = True
-                user.save()
-                app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب کاربری شما فعال شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید.")
+@app.message_handler(func=lambda message: message.text.startswith("activate_"))
+def handle_activation_account(message):
+    try:
+        _, uid, token = message.text.split('_')
+        uid = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.get(pk=uid)
         
-                app.send_message(message.chat.id, "حالا بریم سراغ آدرس... ")
-                # app.register_next_step_handler(message, )
-            else:
-                bot.send_message(message.chat.id, "لینک فعالسازی نامعتبر است و یا اینکه منقضی شده است.")
-        except Exception as e:
-            bot.send_message(message.chat.id, "مشکلی در فعالسازی حساب شما وجود دارد. لطفا با ادمین ارتباط بگیرید.")
+        if generate_token.check_token(user, token):
+            user.is_active = True
+            user.save()
+            app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب کاربری شما فعال شد. شما اکنون کاربر طلایی هستید.")
+        else:
+            app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
+    except Exception as e:
+        app.send_message(message.chat.id, "مشکلی در فعالسازی حساب وجود دارد. لطفا با ادمین ارتباط بگیرید.")
+
 
 
 # hadling any unralted message
@@ -719,7 +716,7 @@ def pick_password2(message, email, username, password, current_site=current_site
                 # Trigger activation email
                 current_site = current_site # Replace with your actual site domain
                 mail_subject = 'Activation link has been sent to your email id'
-                telegram_activation_link = f"https://t.me/hussein2079_bot?activate=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
+                telegram_activation_link = f"tg://resolve?domain=hussein2079_bot&text=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
 
                 message_content = render_to_string('registration/acc_active_email.html', {
                     'user': user,

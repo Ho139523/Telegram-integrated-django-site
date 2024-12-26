@@ -1,8 +1,12 @@
 {% autoescape off %}
 Hi dear {{ user.username }},
 
-We are very pleased to have you on Intelleum community member.
-In order to confirm your registration please click on the link bellow:
+We are very pleased to have you as an Intelleum community member.
+To confirm your registration, click on the link below:
 
-https://{{ domain }}{% url 'accounts:activate' uidb64=uid token=token %}
+{% if telegram %}
+    <a href="{{ telegram_activation_link }}">Activate via Telegram</a>
+{% else %}
+    <a href="https://{{ domain }}{% url 'accounts:activate' uidb64=uid token=token %}">Activate via Website</a>
+{% endif %}
 {% endautoescape %}

@@ -458,7 +458,7 @@ def ask_username(message):
 
 
 
-@app.message_handler(func=lambda message: message.text.startswith("/start activate_") or message.text.startswith("activate_"))
+@app.message_handler(func=lambda message: message.text.startswith("/start activate_"))
 def handle_activation_account(message):
     try:
         _, uid, token = message.text.replace("/start ", "").split('_')

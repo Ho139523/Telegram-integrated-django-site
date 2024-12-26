@@ -179,28 +179,29 @@ def handle_activation_account(message):
             user.is_active = True
             user.save()
 
-            # Create or get the profile
+            # Check if the profile already exists and if the telegram field is unique
             profile, created = ProfileModel.objects.get_or_create(user=user)
 
-            # Create a shipping address if it doesn't already exist
-            if not hasattr(profile, 'shippingaddressmodel'):
-                shippingaddress = ShippingAddressModel(profile=profile)
-                shippingaddress.save()
+            if created:
+                # Create a shipping address if it doesn't already exist
+                if not hasattr(profile, 'shippingaddressmodel'):
+                    shippingaddress = ShippingAddressModel(profile=profile)
+                    shippingaddress.save()
 
-            # Save the profile
-            user.profilemodel.save()
+            # Save the profile if it is new or already exists
             profile.save()
 
             # Send a confirmation message to the user
             app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
 
-            # Optionally, you can also send a message like "Now, let's proceed with the address..." if needed.
+            # Optionally, send a follow-up message like "Now, let's proceed with the address..."
             app.send_message(message.chat.id, "حالا بریم سراغ آدرس...")
 
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
     except Exception as e:
         app.send_message(message.chat.id, f"خطا: {e}")  # Log error
+
 
 
 

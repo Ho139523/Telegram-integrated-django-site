@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import TelegramBotWebhookView
-from myapi.views import CheckTelegramUserRegistrationView, telegram_activation_redirect
+from .views import TelegramBotWebhookView, telegram_activation_redirect
+from myapi.views import CheckTelegramUserRegistrationView
 
 app_name = 'telbot'
 

@@ -160,6 +160,23 @@ def escape_special_characters(text):
     return re.sub(special_characters, r'\\\1', text)
 
 ####################################################################################################
+# account activation
+@app.message_handler(func=lambda message: message.text.startswith("/start activate_"))
+def handle_activation_account(message):
+    try:
+        _, uid, token = message.text.replace("/start ", "").split('_')
+        uid = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.get(pk=uid)
+        
+        if generate_token.check_token(user, token):
+            user.is_active = True
+            user.save()
+            app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد و اکنون کاربر طلایی هستید.")
+        else:
+            app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
+    except Exception as e:
+        app.send_message(message.chat.id, "مشکلی در فعالسازی حساب وجود دارد. لطفا با ادمین ارتباط بگیرید.")
+
 
 # Start handler
 @app.message_handler(commands=['start'])
@@ -455,24 +472,6 @@ def ask_username(message):
             app.register_next_step_handler(message, pick_email)
         except Exception as e:
             app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
-
-
-
-@app.message_handler(func=lambda message: message.text.startswith("/start activate_"))
-def handle_activation_account(message):
-    try:
-        _, uid, token = message.text.replace("/start ", "").split('_')
-        uid = force_str(urlsafe_base64_decode(uid))
-        user = User.objects.get(pk=uid)
-        
-        if generate_token.check_token(user, token):
-            user.is_active = True
-            user.save()
-            app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد و اکنون کاربر طلایی هستید.")
-        else:
-            app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
-    except Exception as e:
-        app.send_message(message.chat.id, "مشکلی در فعالسازی حساب وجود دارد. لطفا با ادمین ارتباط بگیرید.")
 
 
 

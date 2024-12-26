@@ -1,6 +1,7 @@
 from utils.variables.TOKEN import TOKEN
 import requests
 import subprocess
+import re
 
 
 # send_product_message function

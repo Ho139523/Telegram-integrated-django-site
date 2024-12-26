@@ -50,6 +50,7 @@ from datetime import timedelta
 from accounts.models import ProfileModel, ShippingAddressModel
 from accounts.models import User
 from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 
 
 

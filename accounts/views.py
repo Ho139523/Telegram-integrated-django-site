@@ -52,36 +52,34 @@ def signup_user(request):
     if request.method == 'POST':  
         form = SignUpForm(request.POST)  
         if form.is_valid():  
-            # save form in the memory not in database  
             user = form.save(commit=False)  
             user.is_active = False  
-            user.save()  
-            # to get the domain of the current site  
+            user.save()
+            
+            # Create ProfileModel immediately after user creation
+            ProfileModel.objects.create(user=user)
+            
             current_site = get_current_site(request)  
             mail_subject = 'Activation link has been sent to your email id'  
             message = render_to_string('registration/acc_active_email.html', {  
                 'user': user,  
                 'domain': current_site.domain,  
-                'uid':urlsafe_base64_encode(force_bytes(user.pk)),  
-                'token':generate_token.make_token(user),  
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),  
+                'token': generate_token.make_token(user),  
             })  
             to_email = form.cleaned_data.get('email')  
-            email = EmailMessage(  
-                        mail_subject, message, to=[to_email]  
-            )  
+            email = EmailMessage(mail_subject, message, to=[to_email])  
             email.send()
+            
             messages.add_message(request, messages.SUCCESS, "Please confirm your email address to complete the registration")
             return redirect('accounts:login') 
-            
-            
         else:
-            
             messages.add_message(request, messages.WARNING, "Something went wrong!")
             return redirect('accounts:signup')
-            
     else:  
         form = SignUpForm()  
     return render(request, 'registration/signup.html', {'form': form})
+
 
         
         

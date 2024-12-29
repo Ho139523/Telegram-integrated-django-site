@@ -53,7 +53,7 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.db.utils import IntegrityError
 from django.db import transaction
-django.core.files.base import ContentFile
+from django.core.files.base import ContentFile
 
 
 ###############################################################################################

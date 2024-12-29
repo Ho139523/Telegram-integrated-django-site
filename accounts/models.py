@@ -24,21 +24,24 @@ class ShippingAddressModel(models.Model):
 
 
 class User(AbstractUser):
-    special_user=models.DateTimeField(default=timezone.now)
-    
+    special_user = models.DateTimeField(default=timezone.now)
+
     def is_special_user(self):
-        if self.special_user > timezone.now():
-            return True
-        else:
-            return False
+        return self.special_user > timezone.now()
     
-    is_special_user.boolean=True
-    is_special_user.short_description="Special User"
+    is_special_user.boolean = True
+    is_special_user.short_description = "Special User"
     
     def save(self, *args, **kwargs):
-        # Ensure the username is always saved in lowercase
-        self.username = self.username.lower()
-        super().save(*args, **kwargs)  # Call the parent class's save method
+        # Lowercase and trim the username before saving
+        self.username = self.username.strip().lower()
+        super().save(*args, **kwargs)
+
+    # Make username queries case-insensitive
+    def get_by_natural_key(self, username):
+        return self.__class__.objects.get(username__iexact=username.strip())
+
+
     
     
 class ProfileModel(models.Model):

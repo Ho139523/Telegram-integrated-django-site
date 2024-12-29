@@ -73,9 +73,3 @@ class ProfileModel(models.Model):
             - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
         )
         return age
-
-        
-        
-        
-    
-    

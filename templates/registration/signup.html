@@ -168,7 +168,15 @@
     });
 	
 	</script>
-  
+  	<script>
+		document.addEventListener('DOMContentLoaded', function () {
+        	// Focus on the username input field by targeting its id or name
+        	const usernameField = document.querySelector('[name="username"]');
+        	if (usernameField) {
+            		usernameField.focus();
+        	}
+    		});
+	</script>
   
   <!-- Github buttons -->
   <script async defer src="https://buttons.github.io/buttons.js"></script>

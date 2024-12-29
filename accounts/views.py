@@ -34,7 +34,7 @@ class login(LoginView):
     
     def get_success_url(self):
         
-        username=self.request.POST['username']
+        username=self.request.POST['username'].strip().lower()
         return reverse_lazy("accounts:profile", kwargs={"username":username})
         
         

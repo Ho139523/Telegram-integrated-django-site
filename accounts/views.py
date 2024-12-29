@@ -93,21 +93,24 @@ def activate(request, uidb64, token):
     except(TypeError, ValueError, OverflowError, User.DoesNotExist):  
         user = None  
     if user is not None and generate_token.check_token(user, token):  
-        user.is_active = True  
-        user.save()
+        try:
+          user.is_active = True  
+          user.save()
         
-        # Use get_or_create to avoid duplicate profiles
-        profile, created = ProfileModel.objects.get_or_create(user=user)
+          # Use get_or_create to avoid duplicate profiles
+          profile, created = ProfileModel.objects.get_or_create(user=user)
 
-        # Create and save a shipping address if it doesn't already exist
-        if not hasattr(profile, 'shippingaddressmodel'):
-            shippingaddress = ShippingAddressModel(profile=profile)
-            shippingaddress.save()
+          # Create and save a shipping address if it doesn't already exist
+          if not hasattr(profile, 'shippingaddressmodel'):
+              shippingaddress = ShippingAddressModel(profile=profile)
+              shippingaddress.save()
         
-        user.profilemodel.save()
-        profile.save()
-        messages.add_message(request, messages.SUCCESS, "Your account has been activated successfully.")
-        return redirect('accounts:login')
+          user.profilemodel.save()
+          profile.save()
+          messages.add_message(request, messages.SUCCESS, "Your account has been activated successfully.")
+          return redirect('accounts:login')
+        except Exception as e:
+          print(f"\n\n the error is: {e}\n\n")
     else:
         messages.add_message(request, messages.SUCCESS, "The link is invalid or expired! Please try again.")
         return redirect('accounts:login') 

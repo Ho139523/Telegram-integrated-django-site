@@ -240,7 +240,7 @@ def handle_activation_account(message):
                     profile.save()  # Save profile with the shipping address linked
 
                 app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
-                app.send_message(message.chat.id, "حالا بریم سراغ آدرس...")
+                app.register_next_step_handler(profile, pick_address)
 
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
@@ -746,6 +746,86 @@ def pick_username(message, email):
         
         
 # تعیین رمز عبور
+def pick_password(message, email, username):
+    try:
+        password = message.text
+        is_valid, validation_message = validate_password(password)
+        
+        # Send validation message
+        app.send_message(message.chat.id, validation_message)
+        
+        # If password is valid, proceed with registration
+        if is_valid:
+            
+            app.send_message(message.chat.id, "دمت گرم! حالا یه بار دیگه رمزت رو برام بزن تا تاییدش کنم و این بشه رمز عبورت:")
+            app.register_next_step_handler(message, pick_password2, email, username, password)
+            
+        
+        # If password is not valid, ask for a new one
+        else:
+            app.register_next_step_handler(message, pick_password, email, username)
+        
+    except Exception as e:
+        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+        
+        
+
+# تایید رمز
+def pick_password2(message, email, username, password, current_site=current_site):
+    if subscription_offer(message):
+        try:
+            password2 = message.text
+            
+            if password2 == password:
+                User = get_user_model()
+                
+                special_user_date = timezone.now() + timedelta(days=5)
+                
+                user = User.objects.create(
+                    username=username,
+                    email=email,
+                    password=make_password(password),
+                    special_user=special_user_date,
+                    is_active=False
+                )
+                
+                # ساخت پروفایل
+                profile = ProfileModel.objects.create(
+                    user=user,
+                    fname=message.from_user.first_name,
+                    lname=message.from_user.last_name,
+                    telegram=message.from_user.username
+                )
+                
+                # دانلود و تنظیم عکس نمایه از تلگرام
+                download_profile_photo(message.from_user.id, profile)
+                
+                mail_subject = 'Activation link has been sent to your email id'
+                telegram_activation_link = f"https://t.me/hussein2079_bot?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
+                
+                message_content = render_to_string('registration/acc_active_email.html', {
+                    'user': user,
+                    'domain': current_site[8:],
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': generate_token.make_token(user),
+                    'telegram': True,
+                    'telegram_activation_link': telegram_activation_link
+                })
+                
+                email = EmailMessage(
+                    mail_subject, message_content, to=[email]
+                )
+                email.content_subtype = "html"
+                email.send()
+                
+                app.send_message(message.chat.id, "دوست عزیزم یک ایمیل از طرف شرکت اینتلیوم برای شما ارسال شده است که حاوی لینک فعالسازی حساب شماست لطفا روی آن کلیک کنید.")
+            else:
+                app.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد.")
+                app.register_next_step_handler(message, pick_password2, email, username, password)
+        except Exception as e:
+            app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+
+
 # تابع برای پرسیدن اطلاعات آدرس
 def pick_address(message, profile):
     try:

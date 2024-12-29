@@ -53,6 +53,7 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.db.utils import IntegrityError
 from django.db import transaction
+django.core.files.base import ContentFile
 
 
 ###############################################################################################
@@ -162,6 +163,41 @@ def subscription_offer(message):
 def escape_special_characters(text):
     special_characters = r"([\*\_\[\]\(\)\~\`\>\#\+\-\=\|\{\}\.\!])"
     return re.sub(special_characters, r'\\\1', text)
+
+
+def download_profile_photo(telegram_user_id, profile):
+    try:
+        # درخواست دریافت عکس پروفایل
+        photos = app.get_user_profile_photos(telegram_user_id)
+        
+        if photos.total_count > 0:
+            # دریافت file_id اولین عکس (آخرین عکس پروفایل)
+            file_id = photos.photos[0][-1].file_id
+            file_info = app.get_file(file_id)
+            
+            # لینک فایل
+            file_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_info.file_path}"
+            
+            # دانلود عکس
+            response = requests.get(file_url)
+            
+            if response.status_code == 200:
+                # ساخت نام فایل
+                file_name = f"telegram_avatars/{telegram_user_id}.jpg"
+                
+                # ذخیره فایل به مدل پروفایل
+                profile.avatar.save(file_name, ContentFile(response.content), save=True)
+                
+                return True
+            else:
+                print("Failed to download the profile photo.")
+                return False
+        else:
+            print("User has no profile photo.")
+            return False
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
 
 ####################################################################################################
 
@@ -741,29 +777,32 @@ def pick_password2(message, email, username, password, current_site=current_site
             password2 = message.text
             
             if password2 == password:
-                # Django's user model
                 User = get_user_model()
                 
-                # Set special_user to five days from now  
                 special_user_date = timezone.now() + timedelta(days=5)
                 
-                
-                # Create user in Django
                 user = User.objects.create(
                     username=username,
                     email=email,
-                    password=make_password(password),  # Hash the password
-                    special_user=special_user_date,  # Set the date to five days from now  
-                    is_active=False  # Keep inactive until email activation
+                    password=make_password(password),
+                    special_user=special_user_date,
+                    is_active=False
                 )
                 
-                ProfileModel.objects.create(user=user, fname=message.from_user.first_name, lname=message.from_user.last_name, telegram=message.from_user.username)
-
-                # Trigger activation email
-                current_site = current_site # Replace with your actual site domain
+                # ساخت پروفایل
+                profile = ProfileModel.objects.create(
+                    user=user,
+                    fname=message.from_user.first_name,
+                    lname=message.from_user.last_name,
+                    telegram=message.from_user.username
+                )
+                
+                # دانلود و تنظیم عکس نمایه از تلگرام
+                download_profile_photo(message.from_user.id, profile)
+                
                 mail_subject = 'Activation link has been sent to your email id'
                 telegram_activation_link = f"https://t.me/hussein2079_bot?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
-
+                
                 message_content = render_to_string('registration/acc_active_email.html', {
                     'user': user,
                     'domain': current_site[8:],
@@ -779,12 +818,9 @@ def pick_password2(message, email, username, password, current_site=current_site
                 email.content_subtype = "html"
                 email.send()
                 
-                # app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز افتتاح حساب شما تکمیل شد. شما اکنون کاربر طلایی هستید. به علاوه از همین حالا می تونید از پنج روز عضویت ویژه استفاده کنید.")
-                
                 app.send_message(message.chat.id, "دوست عزیزم یک ایمیل از طرف شرکت اینتلیوم برای شما ارسال شده است که حاوی لینک فعالسازی حساب شماست لطفا روی آن کلیک کنید.")
-                # app.register_next_step_handler(message, )
             else:
-                app.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد. لطفا دباره آن را دقیقا مثل قبل وارد کنید:")
+                app.send_message(message.chat.id, "تایید رمز عبور با رمز عبوری که از قبل وارد کردید تطابق ندارد.")
                 app.register_next_step_handler(message, pick_password2, email, username, password)
         except Exception as e:
             app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")

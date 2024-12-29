@@ -176,14 +176,14 @@ def download_profile_photo(telegram_user_id, profile):
             file_info = app.get_file(file_id)
             
             # لینک فایل
-            file_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_info.file_path}"
+            file_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}"
             
             # دانلود عکس
             response = requests.get(file_url)
             
             if response.status_code == 200:
                 # ساخت نام فایل
-                file_name = f"telegram_avatars/{telegram_user_id}.jpg"
+                file_name = f"registration/user_avatars/{telegram_user_id}.jpg"
                 
                 # ذخیره فایل به مدل پروفایل
                 profile.avatar.save(file_name, ContentFile(response.content), save=True)

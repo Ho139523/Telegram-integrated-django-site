@@ -240,7 +240,7 @@ def handle_activation_account(message):
                     profile.save()  # Save profile with the shipping address linked
 
                 app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
-                app.register_next_step_handler(profile, pick_address)
+                app.register_next_step_handler(message, profile, pick_address)
 
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")

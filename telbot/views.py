@@ -834,7 +834,7 @@ def pick_address_line2(message):
     try:
         shipping_line1 = message.text
         app.send_message(message.chat.id, "لطفاً خط دوم آدرس را وارد کنید:")
-        app.register_next_step_handler(message, shipping_line1, pick_country)
+        app.register_next_step_handler(message, pick_country, shipping_line1)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 

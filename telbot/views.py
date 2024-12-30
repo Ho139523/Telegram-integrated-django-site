@@ -239,12 +239,10 @@ def handle_activation_account(message):
                     profile.address = shipping_address
                     profile.save()  # Save profile with the shipping address linked
 
-                app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.
-                try:
-                  app.register_next_step_handler(message, profile, pick_address)
-                except Exception as e:
-                  app.send_message(message.chat.id, f"خطا: {e}")
-                #
+                app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.\n\nحالا بریم سراغ آدرس ارسال کالا...")
+                app.send_message(message.chat.id, "لطفا خط اول آدرس خود را وارد کنید:")
+                app.register_next_step_handler(message, pick_address_line2)
+  
 
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
@@ -830,85 +828,76 @@ def pick_password2(message, email, username, password, current_site=current_site
             app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
 
 
-# تابع برای پرسیدن اطلاعات آدرس
-def pick_address(message, profile):
-    try:
-        # پرسیدن خط اول آدرس
-        app.send_message(message.chat.id, "لطفاً خط اول آدرس را وارد کنید:")
-        app.register_next_step_handler(message, pick_address_line2, profile)
-    except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
 # تابع برای پرسیدن خط دوم آدرس
-def pick_address_line2(message, profile):
+def pick_address_line2(message):
     try:
         shipping_line1 = message.text
         app.send_message(message.chat.id, "لطفاً خط دوم آدرس را وارد کنید:")
-        app.register_next_step_handler(message, pick_country, profile, shipping_line1)
+        app.register_next_step_handler(message, shipping_line1, pick_country)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
 # تابع برای پرسیدن کشور
-def pick_country(message, profile, shipping_line1):
+def pick_country(message, shipping_line1):
     try:
         shipping_line2 = message.text
         app.send_message(message.chat.id, "لطفاً کشور خود را وارد کنید:")
-        app.register_next_step_handler(message, pick_city, profile, shipping_line1, shipping_line2)
+        app.register_next_step_handler(message, shipping_line1, shipping_line2, pick_city)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
 # تابع برای پرسیدن شهر
-def pick_city(message, profile, shipping_line1, shipping_line2):
+def pick_province(message, shipping_line1, shipping_line2):
     try:
         shipping_country = message.text
-        app.send_message(message.chat.id, "لطفاً شهر خود را وارد کنید:")
-        app.register_next_step_handler(message, pick_province, profile, shipping_line1, shipping_line2, shipping_country)
+        app.send_message(message.chat.id, "لطفاً استان خود را وارد کنید:")
+        app.register_next_step_handler(message, shipping_line1, shipping_line2, shipping_country, pick_city)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
 # تابع برای پرسیدن استان
-def pick_province(message, profile, shipping_line1, shipping_line2, shipping_country):
+def pick_city(message, shipping_line1, shipping_line2, shipping_country):
     try:
-        shipping_city = message.text
-        app.send_message(message.chat.id, "لطفاً استان خود را وارد کنید:")
-        app.register_next_step_handler(message, pick_zip, profile, shipping_line1, shipping_line2, shipping_country, shipping_city)
+        shipping_privince = message.text
+        app.send_message(message.chat.id, "لطفاً شهر خود را وارد کنید:")
+        app.register_next_step_handler(message, profile, shipping_line1, shipping_line2, shipping_country, shipping_province, pick_zip)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
 # تابع برای پرسیدن کد پستی
-def pick_zip(message, profile, shipping_line1, shipping_line2, shipping_country, shipping_city):
+def pick_zip(message, shipping_line1, shipping_line2, shipping_country, shipping_province):
     try:
-        shipping_province = message.text
+        shipping_city = message.text
         app.send_message(message.chat.id, "لطفاً کد پستی خود را وارد کنید:")
-        app.register_next_step_handler(message, pick_phone, profile, shipping_line1, shipping_line2, shipping_country, shipping_city, shipping_province)
+        app.register_next_step_handler(message, shipping_line1, shipping_line2, shipping_country, shipping_province, shipping_city, pick_phone)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
 # تابع برای پرسیدن شماره تلفن
-def pick_phone(message, profile, shipping_line1, shipping_line2, shipping_country, shipping_city, shipping_province):
+def pick_phone(message, shipping_line1, shipping_line2, shipping_country, shipping_province, shipping_city):
     try:
         shipping_zip = message.text
         app.send_message(message.chat.id, "لطفاً شماره تلفن منزل خود را وارد کنید:")
-        app.register_next_step_handler(message, save_shipping_address, profile, shipping_line1, shipping_line2, shipping_country, shipping_city, shipping_province, shipping_zip)
+        app.register_next_step_handler(message, save_shipping_address, profile, shipping_line1, shipping_line2, shipping_country, shipping_province, shipping_city, shipping_zip)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
 # تابع برای ذخیره اطلاعات آدرس
-def save_shipping_address(message, profile, shipping_line1, shipping_line2, shipping_country, shipping_city, shipping_province, shipping_zip):
+def save_shipping_address(message, shipping_line1, shipping_line2, shipping_country, shipping_province, shipping_city, shipping_zip):
     try:
         shipping_home_phone = message.text
+        profile = ProfileModel.objects.get(telegram=message.from_user.username)
 
-        # ذخیره آدرس در مدل ShippingAddressModel
-        shipping_address = ShippingAddressModel.objects.create(
-            profile=profile,
-            shipping_line1=shipping_line1,
-            shipping_line2=shipping_line2,
-            shipping_country=shipping_country,
-            shipping_city=shipping_city,
-            shipping_province=shipping_province,
-            shipping_zip=shipping_zip,
-            shipping_home_phone=shipping_home_phone
-        )
+        # ذخیره آدرس در مدل pick_phone
+        shipping_address = ShippingAddressModel.objects.get_or_create(profile=profile)
+            shipping_address[shipping_line1]=shipping_line1
+            shipping_address[shipping_line2]=shipping_line2
+            shipping_address[shipping_country]=shipping_country
+            shipping_address[shipping_city]=shipping_city
+            shipping_address[shipping_province]=shipping_province
+            shipping_address[shipping_zip]=shipping_zip
+            shipping_address[shipping_home_phone]=shipping_home_phone
 
         # به‌روزرسانی پروفایل کاربر با آدرس جدید
         profile.address = shipping_address

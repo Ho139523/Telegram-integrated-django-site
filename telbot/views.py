@@ -239,8 +239,11 @@ def handle_activation_account(message):
                     profile.address = shipping_address
                     profile.save()  # Save profile with the shipping address linked
 
-                app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
-                app.register_next_step_handler(message, profile, pick_address)
+                app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.
+                try:
+                  app.register_next_step_handler(message, profile, pick_address)
+                except Exception as e:
+                  app.send_message(message.chat.id, f"خطا: {e}")
                 #
 
         else:

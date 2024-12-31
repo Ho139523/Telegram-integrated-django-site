@@ -861,7 +861,7 @@ def pick_city(message, shipping_line1, shipping_line2, shipping_country):
     try:
         shipping_privince = message.text
         app.send_message(message.chat.id, "لطفاً شهر خود را وارد کنید:")
-        app.register_next_step_handler(message, pick_zip, profile, shipping_line1, shipping_line2, shipping_country, shipping_province)
+        app.register_next_step_handler(message, pick_zip, shipping_line1, shipping_line2, shipping_country, shipping_province)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 

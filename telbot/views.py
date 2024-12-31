@@ -891,13 +891,13 @@ def save_shipping_address(message, shipping_line1, shipping_line2, shipping_coun
 
         # ذخیره آدرس در مدل pick_phone
         shipping_address = ShippingAddressModel.objects.get(profile=profile)
-        shipping_address[shipping_line1]=shipping_line1
-        shipping_address[shipping_line2]=shipping_line2
-        shipping_address[shipping_country]=shipping_country
-        shipping_address[shipping_city]=shipping_city
-        shipping_address[shipping_province]=shipping_province
-        shipping_address[shipping_zip]=shipping_zip
-        shipping_address[shipping_home_phone]=shipping_home_phone
+        shipping_address.shipping_line1=shipping_line1
+        shipping_address.shipping_line2=shipping_line2
+        shipping_address.shipping_country=shipping_country
+        shipping_address.shipping_city=shipping_city
+        shipping_address.shipping_province=shipping_province
+        shipping_address.shipping_zip=shipping_zip
+        shipping_address.shipping_home_phone=shipping_home_phone
 
         # به‌روزرسانی پروفایل کاربر با آدرس جدید
         profile.address = shipping_address

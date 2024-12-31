@@ -2,7 +2,10 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from utils.variables.countries import countries
-
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+#from .models import ProfileModel  # مدل پروفایل
+from telbot.models import telbotid  # مدل مرتبط از اپ ربات تلگرام
 
 
 
@@ -73,3 +76,16 @@ class ProfileModel(models.Model):
             - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
         )
         return age
+
+
+@receiver(post_save, sender=ProfileModel)
+def sync_telbot_credit_from_profile(sender, instance, **kwargs):
+    if hasattr(instance, '_syncing'):
+        return  # جلوگیری از حلقه بی‌نهایت
+    instance._syncing = True
+    telbot, created = telbotid.objects.get_or_create(profile=instance)
+    if telbot.credit != instance.credit:
+        telbot.credit = instance.credit
+        telbot._syncing = True
+        telbot.save()
+    del instance._syncing

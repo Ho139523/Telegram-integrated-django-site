@@ -10,7 +10,19 @@ class telbotid(models.Model):
     
     def __str__(self):
         return f"Telbot ID: {self.tel_id} - Credit: {self.credit}"
-        
+    
+    def save(self, *args, **kwargs):
+        # بررسی و به روزرسانی پروفایل اگر تغییر اعتبار رخ دهد
+        if self.pk:
+            old_credit = telbotid.objects.filter(pk=self.pk).values('credit').first()
+            if old_credit and old_credit['credit'] != self.credit:
+                if self.profile and self.profile.credit != self.credit:
+                    self.profile.credit = self.credit
+                    self.profile.save(update_fields=['credit'])
+
+        super(telbotid, self).save(*args, **kwargs)
+
+    
         
 class ConversationModel(models.Model):
     user_id = models.BigIntegerField()

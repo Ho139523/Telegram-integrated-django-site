@@ -71,4 +71,17 @@ class ProfileModel(models.Model):
             - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
         )
         return age
+    
+    def save(self, *args, **kwargs):
+        from telbot.models import telbotid
+        
+        # بررسی و به روزرسانی تلگرام بات اگر تغییر اعتبار رخ دهد
+        if self.pk:
+            old_credit = ProfileModel.objects.filter(pk=self.pk).values('credit').first()
+            if old_credit and old_credit['credit'] != self.credit:
+                telbot = telbotid.objects.filter(profile=self).first()
+                if telbot and telbot.credit != self.credit:
+                    telbot.credit = self.credit
+                    telbot.save(update_fields=['credit'])
 
+        super(ProfileModel, self).save(*args, **kwargs)

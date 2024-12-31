@@ -900,8 +900,9 @@ def save_shipping_address(message, shipping_line1, shipping_line2, shipping_coun
         shipping_address.shipping_home_phone=shipping_home_phone
 
         # به‌روزرسانی پروفایل کاربر با آدرس جدید
-        profile.address = shipping_address
-        profile.save()
+        #profile.address = shipping_address
+        shipping_address.save()
+        #profile.save()
 
         app.send_message(message.chat.id, "آدرس شما با موفقیت ثبت شد!")
     except Exception as e:

@@ -2,7 +2,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .models import telbotid
 
-@receiver(post_save, sender=telbot.telbotid)
+@receiver(post_save, sender=telbotid)
 def sync_profile_credit_from_telbot(sender, instance, **kwargs):
   from accounts.models import ProfileModel
   

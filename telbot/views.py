@@ -843,7 +843,7 @@ def pick_country(message, shipping_line1):
     try:
         shipping_line2 = message.text
         app.send_message(message.chat.id, "لطفاً کشور خود را وارد کنید:")
-        app.register_next_step_handler(message, pick_city, shipping_line1, shipping_line2)
+        app.register_next_step_handler(message, pick_province, shipping_line1, shipping_line2)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 

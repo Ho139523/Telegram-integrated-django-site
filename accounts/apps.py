@@ -5,4 +5,6 @@ class AccountsConfig(AppConfig):
     name = 'accounts'
 
     def ready(self):
-        from . import signals
+        import django.db.models.signals  # اطمینان از لود شدن سیگنال‌های اصلی
+        from django.utils.module_loading import autodiscover_modules
+        autodiscover_modules('signals')

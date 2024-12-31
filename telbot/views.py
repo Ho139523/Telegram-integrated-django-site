@@ -843,7 +843,7 @@ def pick_country(message, shipping_line1):
     try:
         shipping_line2 = message.text
         app.send_message(message.chat.id, "لطفاً کشور خود را وارد کنید:")
-        app.register_next_step_handler(message, shipping_line1, shipping_line2, pick_city)
+        app.register_next_step_handler(message, pick_city, shipping_line1, shipping_line2)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
@@ -852,7 +852,7 @@ def pick_province(message, shipping_line1, shipping_line2):
     try:
         shipping_country = message.text
         app.send_message(message.chat.id, "لطفاً استان خود را وارد کنید:")
-        app.register_next_step_handler(message, shipping_line1, shipping_line2, shipping_country, pick_city)
+        app.register_next_step_handler(message, pick_city, shipping_line1, shipping_line2, shipping_country)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
@@ -861,7 +861,7 @@ def pick_city(message, shipping_line1, shipping_line2, shipping_country):
     try:
         shipping_privince = message.text
         app.send_message(message.chat.id, "لطفاً شهر خود را وارد کنید:")
-        app.register_next_step_handler(message, profile, shipping_line1, shipping_line2, shipping_country, shipping_province, pick_zip)
+        app.register_next_step_handler(message, pick_zip, profile, shipping_line1, shipping_line2, shipping_country, shipping_province)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
@@ -870,7 +870,7 @@ def pick_zip(message, shipping_line1, shipping_line2, shipping_country, shipping
     try:
         shipping_city = message.text
         app.send_message(message.chat.id, "لطفاً کد پستی خود را وارد کنید:")
-        app.register_next_step_handler(message, shipping_line1, shipping_line2, shipping_country, shipping_province, shipping_city, pick_phone)
+        app.register_next_step_handler(message, pick_phone, shipping_line1, shipping_line2, shipping_country, shipping_province, shipping_city)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 
@@ -879,7 +879,7 @@ def pick_phone(message, shipping_line1, shipping_line2, shipping_country, shippi
     try:
         shipping_zip = message.text
         app.send_message(message.chat.id, "لطفاً شماره تلفن منزل خود را وارد کنید:")
-        app.register_next_step_handler(message, save_shipping_address, profile, shipping_line1, shipping_line2, shipping_country, shipping_province, shipping_city, shipping_zip)
+        app.register_next_step_handler(message, save_shipping_address, shipping_line1, shipping_line2, shipping_country, shipping_province, shipping_city, shipping_zip)
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"خطا: {e}")
 

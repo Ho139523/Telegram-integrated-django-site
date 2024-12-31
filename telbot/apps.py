@@ -7,4 +7,4 @@ class TelbotConfig(AppConfig):
     
     
     def ready(self):
-        from telbot import signals  # بارگذاری سیگنال‌ها
+        from . import signals  # بارگذاری سیگنال‌ها

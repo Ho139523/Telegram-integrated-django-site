@@ -4,14 +4,23 @@ from .models import telbotid
 
 @receiver(post_save, sender=telbotid)
 def sync_profile_credit_from_telbot(sender, instance, **kwargs):
-  from accounts.models import ProfileModel
-  
-  if hasattr(instance, '_syncing'):
-      return
-  instance._syncing = True
-  profile = instance.profile
-  if profile and profile.credit != instance.credit:
-      profile.credit = instance.credit
-      profile._syncing = True
-      profile.save()
-  del instance._syncing
+    from accounts.models import ProfileModel
+
+    # از profile مطمئن شو
+    if not instance.profile:
+        return
+
+    # بررسی اینکه پروفایل در حال sync نباشد
+    if hasattr(instance.profile, '_syncing'):
+        return
+
+    # تنظیم فیلد _syncing در پروفایل
+    instance.profile._syncing = True
+    
+    # اگر اعتبار پروفایل با اعتبار telbot فرق داشت، پروفایل را به‌روزرسانی کن
+    if instance.profile.credit != instance.credit:
+        instance.profile.credit = instance.credit
+        instance.profile.save()
+
+    # حذف _syncing بعد از عملیات
+    del instance.profile._syncing

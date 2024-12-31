@@ -12,17 +12,14 @@ class telbotid(models.Model):
         return f"Telbot ID: {self.tel_id} - Credit: {self.credit}"
     
     def save(self, *args, **kwargs):
-        if not self._updating_credit:
-            old_credit = telbotid.objects.filter(pk=self.pk).values('credit').first()
-            if old_credit and old_credit['credit'] != self.credit:
-                if self.profile and self.profile.credit != self.credit:
-                    self.profile._updating_credit = True  # جلوگیری از بازگشت بی‌پایان
-                    self.profile.credit = self.credit
-                    self.profile.save(update_fields=['credit'])
-                    self.profile._updating_credit = False  # بازنشانی فلگ
+        # مقدار قبلی اعتبار
+        old_credit = telbotid.objects.filter(pk=self.pk).values('credit').first()
+        if old_credit and old_credit['credit'] != self.credit:
+            # بروزرسانی اعتبار در پروفایل
+            if self.profile:
+                ProfileModel.objects.filter(pk=self.profile.pk).update(credit=self.credit)
 
         super(telbotid, self).save(*args, **kwargs)
-
     
         
 class ConversationModel(models.Model):

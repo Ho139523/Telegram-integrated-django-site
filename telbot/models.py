@@ -1,10 +1,6 @@
 from django.db import models
 from accounts.models import User
 from accounts.models import ProfileModel
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from accounts.models import ProfileModel
-#from .models import telbotid
 
 class telbotid(models.Model):
     profile = models.OneToOneField(ProfileModel, unique=True, on_delete=models.CASCADE, null=True, blank=True)
@@ -35,17 +31,3 @@ class MessageModel(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender_id} at {self.sent_at}"
-
-
-
-@receiver(post_save, sender=telbotid)
-def sync_profile_credit_from_telbot(sender, instance, **kwargs):
-    if hasattr(instance, '_syncing'):
-        return
-    instance._syncing = True
-    profile = instance.profile
-    if profile and profile.credit != instance.credit:
-        profile.credit = instance.credit
-        profile._syncing = True
-        profile.save()
-    del instance._syncing

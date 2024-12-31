@@ -75,14 +75,10 @@ class ProfileModel(models.Model):
     def save(self, *args, **kwargs):
         from telbot.models import telbotid
         
-        if not self._updating_credit:
-            old_credit = ProfileModel.objects.filter(pk=self.pk).values('credit').first()
-            if old_credit and old_credit['credit'] != self.credit:
-                telbot = telbotid.objects.filter(profile=self).first()
-                if telbot and telbot.credit != self.credit:
-                    telbot._updating_credit = True  # جلوگیری از بازگشت بی‌پایان
-                    telbot.credit = self.credit
-                    telbot.save(update_fields=['credit'])
-                    telbot._updating_credit = False  # بازنشانی فلگ
+        # مقدار قبلی اعتبار
+        old_credit = ProfileModel.objects.filter(pk=self.pk).values('credit').first()
+        if old_credit and old_credit['credit'] != self.credit:
+            # بروزرسانی اعتبار در telbotid
+            telbotid.objects.filter(profile=self).update(credit=self.credit)
 
         super(ProfileModel, self).save(*args, **kwargs)

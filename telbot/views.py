@@ -890,7 +890,7 @@ def save_shipping_address(message, shipping_line1, shipping_line2, shipping_coun
         profile = ProfileModel.objects.get(telegram=message.from_user.username)
 
         # ذخیره آدرس در مدل pick_phone
-        shipping_address = ShippingAddressModel.objects.get_or_create(profile=profile)
+        shipping_address = ShippingAddressModel.objects.get(profile=profile)
         shipping_address[shipping_line1]=shipping_line1
         shipping_address[shipping_line2]=shipping_line2
         shipping_address[shipping_country]=shipping_country

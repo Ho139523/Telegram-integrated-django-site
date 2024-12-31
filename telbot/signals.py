@@ -3,11 +3,14 @@ from django.dispatch import receiver
 from accounts.models import ProfileModel
 from .models import telbotid
 
-@receiver(post_save, sender=ProfileModel)
-def sync_credit_with_telbot(sender, instance, **kwargs):
-    try:
-        telbot_entry, created = TelbotId.objects.get_or_create(profile=instance)
-        telbot_entry.credit = instance.credit
-        telbot_entry.save()
-    except Exception as e:
-        print(f"Error syncing credit: {e}")
+@receiver(post_save, sender=telbotid)
+def sync_profile_credit_from_telbot(sender, instance, **kwargs):
+    if hasattr(instance, '_syncing'):
+        return
+    instance._syncing = True
+    profile = instance.profile
+    if profile and profile.credit != instance.credit:
+        profile.credit = instance.credit
+        profile._syncing = True
+        profile.save()
+    del instance._syncing

@@ -12,13 +12,14 @@ class telbotid(models.Model):
         return f"Telbot ID: {self.tel_id} - Credit: {self.credit}"
     
     def save(self, *args, **kwargs):
-        # بررسی و به روزرسانی پروفایل اگر تغییر اعتبار رخ دهد
-        if self.pk:
+        if not self._updating_credit:
             old_credit = telbotid.objects.filter(pk=self.pk).values('credit').first()
             if old_credit and old_credit['credit'] != self.credit:
                 if self.profile and self.profile.credit != self.credit:
+                    self.profile._updating_credit = True  # جلوگیری از بازگشت بی‌پایان
                     self.profile.credit = self.credit
                     self.profile.save(update_fields=['credit'])
+                    self.profile._updating_credit = False  # بازنشانی فلگ
 
         super(telbotid, self).save(*args, **kwargs)
 

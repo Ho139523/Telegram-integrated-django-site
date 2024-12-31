@@ -859,7 +859,7 @@ def pick_province(message, shipping_line1, shipping_line2):
 # تابع برای پرسیدن استان
 def pick_city(message, shipping_line1, shipping_line2, shipping_country):
     try:
-        shipping_privince = message.text
+        shipping_province = message.text
         app.send_message(message.chat.id, "لطفاً شهر خود را وارد کنید:")
         app.register_next_step_handler(message, pick_zip, shipping_line1, shipping_line2, shipping_country, shipping_province)
     except Exception as e:

@@ -14,10 +14,8 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from telbot.models import telbotid
 from accounts.models import ProfileModel
 from accounts.serializer import ProfileModelSerializer
-from telbot.serializer import TelbotidSerializer
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 

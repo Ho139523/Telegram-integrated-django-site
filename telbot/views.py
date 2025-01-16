@@ -11,7 +11,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
-from .models import telbotid
 from django.utils.html import format_html
 
 
@@ -24,7 +23,7 @@ from telebot import custom_filters
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.variables import main_menu, extra_buttons, retun_menue
+from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu
 from bs4 import BeautifulSoup
 
 # import models
@@ -47,7 +46,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from accounts.tokens import generate_token  # Update this with your token import
 from django.utils import timezone  
 from datetime import timedelta
-from accounts.models import ProfileModel, ShippingAddressModel
+from accounts.models import ProfileModel
 from accounts.models import User
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
@@ -223,21 +222,7 @@ def handle_activation_account(message):
                 # Get or create the profile
                 profile, created = ProfileModel.objects.get_or_create(user=user)
 
-                # Check if a shipping address exists for this profile
-                if created or not profile.address:
-                    # Create a new shipping address if it doesn't exist
-                    shipping_address = ShippingAddressModel(
-                        profile=profile,
-                        shipping_line1="Default Address Line 1",  # Replace with actual data
-                        shipping_city="Default City",  # Replace with actual data
-                        shipping_country="Default Country",  # Replace with actual data
-                        shipping_zip="00000",  # Replace with actual data
-                    )
-                    shipping_address.save()  # Save the shipping address
-
-                    # Link the shipping address to the profile
-                    profile.address = shipping_address
-                    profile.save()  # Save profile with the shipping address linked
+                profile.save()  # Save profile with the shipping address linked
 
                 app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.\n\nحالا بریم سراغ آدرس ارسال کالا...")
                 app.send_message(message.chat.id, "لطفا خط اول آدرس خود را وارد کنید:")
@@ -285,7 +270,7 @@ def start(message):
         
         if subscription_offer(message):
             # Display the main menu
-            
+            # if ProfileModel.objects.get(telegram=message.from_user.username).values_list('title', flat=True)
             markup = send_menu(message, main_menu, "main_menu", extra_buttons)
             app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
         
@@ -640,7 +625,7 @@ def show_balance(message):
     # Example: Fetch and send user balance
     if subscription_offer(message):
         user_id = message.from_user.username
-        balance = telbotid.objects.get(tel_id=user_id).credit
+        balance = ProfileModel.objects.get(tel_id=user_id).credit
         formatted_balance = "{:,.2f}".format(float(balance))
         app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
 
@@ -708,7 +693,7 @@ def pick_email(message):
         else:
             if is_valid:
                 username = message.from_user.username
-                if username in [item['username'] for item in User.objects.values("username")] + [item['telegram'] for item in ProfileModel.objects.values("telegram")]:
+                if username in [item['username'] for item in User.objects.values("username")] + [item['telegram'] for item in ProfileModel.objects.values("telegram")] + [item['tel_id'] for item in ProfileModel.objects.values("tel_id")]:
                     app.send_message(message.chat.id, validation_message)  # This now uses validation_message correctly
                     app.register_next_step_handler(message, pick_username, email)  # Proceed to username prompt
                 else:
@@ -890,18 +875,17 @@ def save_shipping_address(message, shipping_line1, shipping_line2, shipping_coun
         profile = ProfileModel.objects.get(telegram=message.from_user.username)
 
         # ذخیره آدرس در مدل pick_phone
-        shipping_address = ShippingAddressModel.objects.get(profile=profile)
-        shipping_address.shipping_line1=shipping_line1
-        shipping_address.shipping_line2=shipping_line2
-        shipping_address.shipping_country=shipping_country
-        shipping_address.shipping_city=shipping_city
-        shipping_address.shipping_province=shipping_province
-        shipping_address.shipping_zip=shipping_zip
-        shipping_address.shipping_home_phone=shipping_home_phone
+        profile.shipping_line1=shipping_line1
+        profile.shipping_line2=shipping_line2
+        profile.shipping_country=shipping_country
+        profile.shipping_city=shipping_city
+        profile.shipping_province=shipping_province
+        profile.shipping_zip=shipping_zip
+        profile.shipping_home_phone=shipping_home_phone
 
         # به‌روزرسانی پروفایل کاربر با آدرس جدید
         #profile.address = shipping_address
-        shipping_address.save()
+        profile.save()
         #profile.save()
 
         app.send_message(message.chat.id, "آدرس شما با موفقیت ثبت شد!")

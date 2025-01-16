@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, ProfileModel, ShippingAddressModel
+from .models import User, ProfileModel
 from django import forms
 from .form import ShippingAddressForm
 
@@ -31,8 +31,6 @@ class ShippingAddressAdmin(admin.ModelAdmin):
                 kwargs['choices'] = provinces
         return super().formfield_for_choice_field(db_field, request, **kwargs)
 
-
-admin.site.register(ShippingAddressModel, ShippingAddressAdmin)    
 
 
 

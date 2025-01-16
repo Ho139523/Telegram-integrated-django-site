@@ -9,7 +9,7 @@ from .models import User
 from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm, ShippingAddressForm
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
 from django.urls import reverse_lazy, reverse
-from .models import ProfileModel, ShippingAddressModel
+from .models import ProfileModel
 from django.forms import inlineformset_factory
 from django.contrib.auth import get_user_model
 User = get_user_model()

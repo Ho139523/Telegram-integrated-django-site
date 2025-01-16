@@ -8,18 +8,7 @@ from utils.variables.countries import countries
 
 class User(AbstractUser):
     special_user = models.DateTimeField(default=timezone.now)
-    class UserLevel(models.TextChoices):
-        BLUE = 'blue', 'کاربر آبی'
-        GREEN = 'green', 'کاربر سبز'
-        SILVER = 'silver', 'کاربر نقره‌ای'
-        GOLD = 'gold', 'کاربر طلایی'
-        SELLER = 'seller', 'کاربر فروشنده'
-
-    user_level = models.CharField(
-        max_length=10,
-        choices=UserLevel.choices,
-        default=UserLevel.BLUE
-    )
+    
 
     def is_special_user(self):
         return self.special_user > timezone.now()
@@ -52,6 +41,7 @@ class ProfileModel(models.Model):
     tweeter = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Tweeter ID")
     telegram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Telegram ID")
     credit = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
+    tel_id = models.IntegerField(default=0, null=False, blank=True)
     
     # Moved Shipping Address Fields
     shipping_line1 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 1")
@@ -74,3 +64,16 @@ class ProfileModel(models.Model):
             - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
         )
         return age
+        
+    
+    class UserLevel(models.TextChoices):
+        BLUE = 'blue', 'Blue User'
+        GREEN = 'green', 'Green User'
+        SILVER = 'silver', 'Silver User'
+        GOLD = 'gold', 'Golden User'
+
+    user_level = models.CharField(
+        max_length=10,
+        choices=UserLevel.choices,
+        default=UserLevel.BLUE
+    )

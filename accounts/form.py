@@ -1,7 +1,7 @@
 from .models import User
 from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from django import forms
-from .models import ProfileModel, ShippingAddressModel
+from .models import ProfileModel
 from django.forms import inlineformset_factory
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -95,8 +95,8 @@ class ShippingAddressForm(forms.ModelForm):
     shipping_province = forms.ChoiceField(choices=[], required=False,widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_shipping_province'}))
 
     class Meta:
-        model = ShippingAddressModel
-        exclude = ['profile']
+        model = ProfileModel
+        fields = ['shipping_line1', 'shipping_line2', 'shipping_city', 'shipping_country', 'shipping_province', 'shipping_zip', 'shipping_home_phone']
 
         widgets = {
             'shipping_line1': forms.TextInput(attrs={'class': 'textinput form-control', 'placeholder': 'Address Line 1', 'onfocus': 'focused(this)', 'onfocusout': 'defocused(this)', 'id': 'id_shipping_line1',  'name': 'shipping_line1'}),

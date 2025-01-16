@@ -23,7 +23,7 @@ from telebot import custom_filters
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu
+from utils.telbot.variables import main_menu, extra_buttons, retun_menue, seller_main_menu
 from bs4 import BeautifulSoup
 
 # import models
@@ -81,7 +81,6 @@ class Support(StatesGroup):
     
     
 # model variables
-
 
 ################################################################################################
 
@@ -150,6 +149,9 @@ def subscription_offer(message):
     channel_markup.add(channel_subscription_button, group_subscription_button)
     channel_markup.add(check_subscription_button)
     current_site_markup.add(current_site_button)
+    
+    if ProfileModel.objects.get(telegram=message.from_user.username).user_level == "green":
+        main_menu=seller_main_menu
     
     if check_subscription(user=message.from_user.id)==False:
         app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
@@ -270,7 +272,8 @@ def start(message):
         
         if subscription_offer(message):
             # Display the main menu
-            # if ProfileModel.objects.get(telegram=message.from_user.username).values_list('title', flat=True)
+            # if ProfileModel.objects.get(telegram=message.from_user.username).user_level == "green":
+                # main_menu=seller_main_menu
             markup = send_menu(message, main_menu, "main_menu", extra_buttons)
             app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
         
@@ -345,6 +348,8 @@ def handle_back(message):
 def home(message):
     if subscription_offer(message):
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+        # if ProfileModel.objects.get(telegram=message.from_user.username).user_level == "green":
+                # main_menu=seller_main_menu
         markup = send_menu(message, main_menu, "main_menu", extra_buttons)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
     
@@ -599,7 +604,9 @@ def answer_text(message):
         
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>", parse_mode="HTML")
-
+    
+    # if ProfileModel.objects.get(telegram=message.from_user.username).user_level == "green":
+         # main_menu=seller_main_menu
     markup = send_menu(message, main_menu, "main_menu", extra_buttons)
     app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 

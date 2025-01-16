@@ -149,11 +149,15 @@ def subscription_offer(message):
     channel_markup.add(channel_subscription_button, group_subscription_button)
     channel_markup.add(check_subscription_button)
     current_site_markup.add(current_site_button)
-    
-    if ProfileModel.objects.get(telegram=message.from_user.username).user_level == "green":
-        main_menu=seller_main_menu
-    
-    if check_subscription(user=message.from_user.id)==False:
+
+    # Retrieve user level
+    profile = ProfileModel.objects.get(telegram=message.from_user.username)
+    if profile.user_level == "green":
+        global main_menu
+        main_menu = seller_main_menu  # Dynamically assign seller menu
+
+    # Check subscription
+    if not check_subscription(user=message.from_user.id):
         app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
         return False
     else:

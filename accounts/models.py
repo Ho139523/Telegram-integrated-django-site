@@ -5,24 +5,21 @@ from utils.variables.countries import countries
 
 
 
-class ShippingAddressModel(models.Model):
-    profile=models.OneToOneField("ProfileModel", on_delete=models.CASCADE, verbose_name="User Profile")
-    shipping_line1=models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 1")
-    shipping_line2=models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 2")
-    shipping_country=models.CharField(max_length=10, choices=countries, blank=True, null=True, verbose_name="Country")
-    shipping_city=models.CharField(max_length=10, blank=True, null=True, verbose_name="City")
-    shipping_province=models.CharField(max_length=30, blank=True, null=True, verbose_name="Province")
-    shipping_zip=models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
-    shipping_home_phone=models.CharField(max_length=8, blank=True, null=True, verbose_name="Residential Phone Number")
-    
-    def __str__(self):
-        return "profile: "+ str(self.profile) + ", " +"Zipcode: " + str(self.shipping_zip) + ", " + str(self.shipping_city) + ", " + str(self.shipping_province) + ", " + str(self.shipping_country)
-
-
-
 
 class User(AbstractUser):
     special_user = models.DateTimeField(default=timezone.now)
+    class UserLevel(models.TextChoices):
+        BLUE = 'blue', 'کاربر آبی'
+        GREEN = 'green', 'کاربر سبز'
+        SILVER = 'silver', 'کاربر نقره‌ای'
+        GOLD = 'gold', 'کاربر طلایی'
+        SELLER = 'seller', 'کاربر فروشنده'
+
+    user_level = models.CharField(
+        max_length=10,
+        choices=UserLevel.choices,
+        default=UserLevel.BLUE
+    )
 
     def is_special_user(self):
         return self.special_user > timezone.now()
@@ -43,24 +40,30 @@ class User(AbstractUser):
     
     
 class ProfileModel(models.Model):
+    user = models.OneToOneField(User, unique=True, on_delete=models.CASCADE)
+    fname = models.CharField(max_length=100, blank=True, null=True, verbose_name="First Name")
+    lname = models.CharField(max_length=150, blank=True, null=True, verbose_name="Last Name")
+    avatar = models.ImageField(default="registration/user_avatars/default-avatar.png", upload_to="registration/user_avatars")
+    background_pic = models.ImageField(default="registration/user_headers/default_header.avif", upload_to="registration/user_headers", verbose_name="Header Image")
+    birthday = models.DateField(blank=True, null=True)
+    Phone = models.CharField(max_length=10, blank=True, null=True, verbose_name="Phone Number")
+    about_me = models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)", verbose_name="About Me")
+    instagram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Instagram ID")
+    tweeter = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Tweeter ID")
+    telegram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Telegram ID")
+    credit = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
     
-    user=models.OneToOneField(User, unique=True, on_delete=models.CASCADE)
-    fname=models.CharField(max_length=100, blank=True, null=True, verbose_name="First Name")
-    lname=models.CharField(max_length=150, blank=True, null=True, verbose_name="Last Name")
-    avatar=models.ImageField(default="registration/user_avatars/default-avatar.png", upload_to="registration/user_avatars")
-    background_pic=models.ImageField(default="registration/user_headers/default_header.avif", upload_to="registration/user_headers", verbose_name="Header Image")
-    birthday=models.DateField(blank=True, null=True)
-    Phone=models.CharField(max_length=10, blank=True, null=True, verbose_name="Phone Number")
-    address=models.OneToOneField(ShippingAddressModel, blank=True, null=True, on_delete=models.SET_NULL)
-    about_me=models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)", verbose_name="About Me")
-    instagram=models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Instagram ID")
-    tweeter=models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Tweeter ID")
-    telegram=models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Telegram ID")
-    credit=models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
-    
+    # Moved Shipping Address Fields
+    shipping_line1 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 1")
+    shipping_line2 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 2")
+    shipping_country = models.CharField(max_length=10, choices=countries, blank=True, null=True, verbose_name="Country")
+    shipping_city = models.CharField(max_length=10, blank=True, null=True, verbose_name="City")
+    shipping_province = models.CharField(max_length=30, blank=True, null=True, verbose_name="Province")
+    shipping_zip = models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
+    shipping_home_phone = models.CharField(max_length=8, blank=True, null=True, verbose_name="Residential Phone Number")
+
     def __str__(self):
         return self.user.username
-
 
     @property
     def age(self):
@@ -71,14 +74,3 @@ class ProfileModel(models.Model):
             - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
         )
         return age
-    
-    def save(self, *args, **kwargs):
-        from telbot.models import telbotid
-        
-        # مقدار قبلی اعتبار
-        old_credit = ProfileModel.objects.filter(pk=self.pk).values('credit').first()
-        if old_credit and old_credit['credit'] != self.credit:
-            # بروزرسانی اعتبار در telbotid
-            telbotid.objects.filter(profile=self).update(credit=self.credit)
-
-        super(ProfileModel, self).save(*args, **kwargs)

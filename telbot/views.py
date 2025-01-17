@@ -23,7 +23,7 @@ from telebot import custom_filters
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.variables import main_menu, extra_buttons, retun_menue, seller_main_menu
+from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu
 from bs4 import BeautifulSoup
 
 # import models
@@ -55,6 +55,9 @@ from django.db import transaction
 from django.core.files.base import ContentFile
 
 
+# python tools
+from functools import wraps
+
 ###############################################################################################
 
 # Logging setup
@@ -81,7 +84,7 @@ class Support(StatesGroup):
     
     
 # model variables
-
+main_menu = customer_main_menu
 ################################################################################################
 
 # Webhook settings
@@ -103,12 +106,38 @@ class TelegramBotWebhookView(View):
 
 #################################################################################################
 
+
+def inject_main_menu(message):
+    """
+    A decorator-like function to determine and return the appropriate main menu for a user.
+    """
+    try:
+        username = message.from_user.username
+        # Get user profile and determine the menu
+        profile = ProfileModel.objects.get(telegram=username)
+        print(profile.user_level)
+        if profile.user_level == ProfileModel.UserLevel.GREEN:
+            return seller_main_menu
+        else:
+            return customer_main_menu
+    except ProfileModel.DoesNotExist:
+        # Default to customer menu if profile is not found
+        return customer_main_menu
+    except Exception as e:
+        app.send_message(message.chat.id, f"خطا در دریافت اطلاعات منو: {e}")
+        return customer_main_menu
+
+
+
+
+
 # Helper function to send menu
 def send_menu(message, options, current_menu, extra_buttons=None):
     """Send a menu with options and update the session."""
     if subscription_offer(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-
+        options = inject_main_menu(message)
+        
         # Organize buttons into rows of three
         rows = [options[i:i + 3] for i in range(0, len(options), 3)]
         for row in rows:
@@ -150,11 +179,7 @@ def subscription_offer(message):
     channel_markup.add(check_subscription_button)
     current_site_markup.add(current_site_button)
 
-    # Retrieve user level
-    profile = ProfileModel.objects.get(telegram=message.from_user.username)
-    if profile.user_level == "green":
-        global main_menu
-        main_menu = seller_main_menu  # Dynamically assign seller menu
+    
 
     # Check subscription
     if not check_subscription(user=message.from_user.id):
@@ -276,8 +301,6 @@ def start(message):
         
         if subscription_offer(message):
             # Display the main menu
-            # if ProfileModel.objects.get(telegram=message.from_user.username).user_level == "green":
-                # main_menu=seller_main_menu
             markup = send_menu(message, main_menu, "main_menu", extra_buttons)
             app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
         
@@ -339,9 +362,6 @@ def handle_back(message):
                     # Call the subcategory handler directly
                     category(fake_message)
              
-
-            
-
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")
 
@@ -352,8 +372,6 @@ def handle_back(message):
 def home(message):
     if subscription_offer(message):
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
-        # if ProfileModel.objects.get(telegram=message.from_user.username).user_level == "green":
-                # main_menu=seller_main_menu
         markup = send_menu(message, main_menu, "main_menu", extra_buttons)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
     
@@ -609,8 +627,6 @@ def answer_text(message):
     except Exception as e:
         app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>", parse_mode="HTML")
     
-    # if ProfileModel.objects.get(telegram=message.from_user.username).user_level == "green":
-         # main_menu=seller_main_menu
     markup = send_menu(message, main_menu, "main_menu", extra_buttons)
     app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 

@@ -136,7 +136,6 @@ def send_menu(message, options, current_menu, extra_buttons=None):
     """Send a menu with options and update the session."""
     if subscription_offer(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        options = inject_main_menu(message)
         
         # Organize buttons into rows of three
         rows = [options[i:i + 3] for i in range(0, len(options), 3)]
@@ -301,6 +300,7 @@ def start(message):
         
         if subscription_offer(message):
             # Display the main menu
+            main_menu = inject_main_menu(message)
             markup = send_menu(message, main_menu, "main_menu", extra_buttons)
             app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
         
@@ -372,6 +372,7 @@ def handle_back(message):
 def home(message):
     if subscription_offer(message):
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+        main_menu = inject_main_menu(message)
         markup = send_menu(message, main_menu, "main_menu", extra_buttons)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
     

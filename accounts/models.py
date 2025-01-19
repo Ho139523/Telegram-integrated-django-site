@@ -29,51 +29,56 @@ class User(AbstractUser):
     
     
 class ProfileModel(models.Model):
-    user = models.OneToOneField(User, unique=True, on_delete=models.CASCADE)
-    fname = models.CharField(max_length=100, blank=True, null=True, verbose_name="First Name")
-    lname = models.CharField(max_length=150, blank=True, null=True, verbose_name="Last Name")
-    avatar = models.ImageField(default="registration/user_avatars/default-avatar.png", upload_to="registration/user_avatars")
-    background_pic = models.ImageField(default="registration/user_headers/default_header.avif", upload_to="registration/user_headers", verbose_name="Header Image")
-    birthday = models.DateField(blank=True, null=True)
-    Phone = models.CharField(max_length=10, blank=True, null=True, verbose_name="Phone Number")
-    about_me = models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)", verbose_name="About Me")
-    instagram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Instagram ID")
-    tweeter = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Tweeter ID")
-    telegram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Telegram ID")
-    credit = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
-    tel_id = models.IntegerField(default=0, null=False, blank=True)
-    
-    # Moved Shipping Address Fields
-    shipping_line1 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 1")
-    shipping_line2 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 2")
-    shipping_country = models.CharField(max_length=10, choices=countries, blank=True, null=True, verbose_name="Country")
-    shipping_city = models.CharField(max_length=10, blank=True, null=True, verbose_name="City")
-    shipping_province = models.CharField(max_length=30, blank=True, null=True, verbose_name="Province")
-    shipping_zip = models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
-    shipping_home_phone = models.CharField(max_length=8, blank=True, null=True, verbose_name="Residential Phone Number")
+  
+  def default_tel_menu():
+    return ["🧮 موجودی", "خرید با کد کالا", "🗂 دسته بندی ها", "🖥 بازدید سایت", "💬 پیام به پشتیبان", "تنظیمات ⚙"]
+  
+  user = models.OneToOneField(User, unique=True, on_delete=models.CASCADE)
+  fname = models.CharField(max_length=100, blank=True, null=True, verbose_name="First Name")
+  lname = models.CharField(max_length=150, blank=True, null=True, verbose_name="Last Name")
+  avatar = models.ImageField(default="registration/user_avatars/default-avatar.png", upload_to="registration/user_avatars")
+  background_pic = models.ImageField(default="registration/user_headers/default_header.avif", upload_to="registration/user_headers", verbose_name="Header Image")
+  birthday = models.DateField(blank=True, null=True)
+  Phone = models.CharField(max_length=10, blank=True, null=True, verbose_name="Phone Number")
+  about_me = models.TextField(max_length=1000, blank=True, null=True, default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)", verbose_name="About Me")
+  instagram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Instagram ID")
+  tweeter = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Tweeter ID")
+  telegram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Telegram ID")
+  credit = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
+  tel_id = models.IntegerField(default=0, null=False, blank=True)
+  tel_menu = models.JSONField(default= default_tel_menu, blank=True, null=False)
+  
+  # Moved Shipping Address Fields
+  shipping_line1 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 1")
+  shipping_line2 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 2")
+  shipping_country = models.CharField(max_length=10, choices=countries, blank=True, null=True, verbose_name="Country")
+  shipping_city = models.CharField(max_length=10, blank=True, null=True, verbose_name="City")
+  shipping_province = models.CharField(max_length=30, blank=True, null=True, verbose_name="Province")
+  shipping_zip = models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
+  shipping_home_phone = models.CharField(max_length=8, blank=True, null=True, verbose_name="Residential Phone Number")
 
-    def __str__(self):
-        return self.user.username
+  def __str__(self):
+      return self.user.username
 
-    @property
-    def age(self):
-        today = timezone.now().date()
-        age = int(
-            today.year
-            - (self.birthday.year)
-            - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
-        )
-        return age
-        
-    
-    class UserLevel(models.TextChoices):
-        BLUE = 'blue', 'Blue User'
-        GREEN = 'green', 'Green User'
-        SILVER = 'silver', 'Silver User'
-        GOLD = 'gold', 'Golden User'
+  @property
+  def age(self):
+      today = timezone.now().date()
+      age = int(
+          today.year
+          - (self.birthday.year)
+          - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
+      )
+      return age
+      
+  
+  class UserLevel(models.TextChoices):
+      BLUE = 'blue', 'Blue User'
+      GREEN = 'green', 'Green User'
+      SILVER = 'silver', 'Silver User'
+      GOLD = 'gold', 'Golden User'
 
-    user_level = models.CharField(
-        max_length=10,
-        choices=UserLevel.choices,
-        default=UserLevel.BLUE
-    )
+  user_level = models.CharField(
+      max_length=10,
+      choices=UserLevel.choices,
+      default=UserLevel.BLUE
+  )

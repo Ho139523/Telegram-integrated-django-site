@@ -372,7 +372,7 @@ def handle_back(message):
 def home(message):
     if subscription_offer(message):
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
-        main_menu = inject_main_menu(message)
+        main_menu = ProfileModel.objects.get(telegram=message.from_user.username).tel_menu
         markup = send_menu(message, main_menu, "main_menu", extra_buttons)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
     

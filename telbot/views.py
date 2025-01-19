@@ -250,15 +250,33 @@ def handle_activation_account(message):
             # Start a transaction to ensure atomicity
             with transaction.atomic():
                 # Get or create the profile
-                profile, created = ProfileModel.objects.get_or_create(user=user)
+                tel_id = message.from_user.id
+                tel_username = message.from_user.username
+                tel_first_name = message.from_user.first_name
+                tel_last_name = message.from_user.last_name
+                
+                profile, created = ProfileModel.objects.get_or_create(
+                    tel_id=tel_id,
+                    defaults={
+                        "telegram": tel_username,
+                        "fname": tel_first_name,
+                        "lname": tel_last_name,
+                        "user": user,
+                        "user_level": ProfileModel.UserLevel.GREEN,
+                    }
+                )
+                
+                if not created:
+                    # Update existing profile with the user and level if it already exists
+                    profile.user = user
+                    profile.user_level = ProfileModel.UserLevel.GREEN
+                    profile.save()
 
-                profile.save()  # Save profile with the shipping address linked
-
-                app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.\n\nحالا بریم سراغ آدرس ارسال کالا...")
-                app.send_message(message.chat.id, "لطفا خط اول آدرس خود را وارد کنید:")
-                app.register_next_step_handler(message, pick_address_line2)
-  
-
+            app.send_message(message.chat.id, f"{message.from_user.first_name} عزیز حساب شما فعال شد.")
+            main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
+            extra_buttons = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
+            markup = send_menu(message, main_menu, "main_menu", extra_buttons)
+            app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
         else:
             app.send_message(message.chat.id, "لینک فعالسازی نامعتبر است یا منقضی شده است.")
     except IntegrityError as e:
@@ -279,28 +297,36 @@ def handle_activation_account(message):
 
 
 
+
 # Start handler
 @app.message_handler(commands=['start'])
 def start(message):
     try:
-        tel_id = message.from_user.username if message.from_user.username else message.from_user.id
-        tel_name = message.from_user.first_name
+        tel_id = message.from_user.id
+        tel_username = message.from_user.username 
+        tel_first_name = message.from_user.first_name
+        tel_last_name = message.from_user.last_name
         response = requests.post(f"{current_site}/telbot/api/check-registration/", json={"tel_id": tel_id})
 
         if response.status_code == 201:
             app.send_message(
                 message.chat.id,
-                f"🏆 {tel_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
+                f"🏆 {tel_first_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
             )
         else:
             app.send_message(
                 message.chat.id,
-                f"{tel_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
+                f"{tel_first_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
             )
         
+        profile, created = ProfileModel.objects.get_or_create(tel_id=tel_id, telegram=tel_username, fname=tel_first_name, lname=tel_last_name)
+        
+        if created:
+            print("yes")
         if subscription_offer(message):
             # Display the main menu
-            main_menu = inject_main_menu(message)
+            main_menu = profile.tel_menu
+            extra_buttons = profile.extra_button_menu
             markup = send_menu(message, main_menu, "main_menu", extra_buttons)
             app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
         
@@ -372,7 +398,8 @@ def handle_back(message):
 def home(message):
     if subscription_offer(message):
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
-        main_menu = ProfileModel.objects.get(telegram=message.from_user.username).tel_menu
+        main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
+        extra_buttons = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
         markup = send_menu(message, main_menu, "main_menu", extra_buttons)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
     
@@ -382,9 +409,48 @@ def home(message):
 def visit_website(message):
     if subscription_offer(message):
         send_website_link(message)
-        app.send_message(message.chat.id, f"error is: {e}")
+        
+
+
+# settings handler
+@app.message_handler(func=lambda message: message.text=="تنظیمات ⚙")
+def settings(message):
+    if subscription_offer(message):
+        home_menue = ["🏡"]
+        markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).settings_menu, "settings", home_menue)
+        app.send_message(message.chat.id, "اینجا می تونی تنظیمات حسابت رو تغییر بدی:", reply_markup=markup)
+
+
+
+# become a seller handler
+@app.message_handler(func=lambda message: message.text=="فروشنده شو")
+def become_a_seller(message):
+    if subscription_offer(message):
+        profile=ProfileModel.objects.get(tel_id=message.from_user.id)
+        profile.seller_mode = True
+        profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
+        profile.save()
+        profile.save()
         
         
+        markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
+        app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+        
+        
+# back to buyer mode handler# become a seller handler
+@app.message_handler(func=lambda message: message.text=="بازگشت به حالت خریدار")
+def back_to_buyer(message):
+    if subscription_offer(message):
+        profile=ProfileModel.objects.get(tel_id=message.from_user.id)
+        profile.seller_mode = False
+        profile.settings_menu = profile.LEVEL_MENUS[profile.user_level][2]
+        profile.save()
+        profile.save()
+        
+        markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
+        app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+
+    
 # balance
 @app.message_handler(func=lambda message: message.text=="🧮 موجودی")
 def balance_menue(message):
@@ -805,12 +871,9 @@ def pick_password2(message, email, username, password, current_site=current_site
                 )
                 
                 # ساخت پروفایل
-                profile = ProfileModel.objects.create(
-                    user=user,
-                    fname=message.from_user.first_name,
-                    lname=message.from_user.last_name,
-                    telegram=message.from_user.username
-                )
+                profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+                
+                profile.user = user 
                 
                 # دانلود و تنظیم عکس نمایه از تلگرام
                 download_profile_photo(message.from_user.id, profile)

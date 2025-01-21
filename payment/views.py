@@ -7,7 +7,7 @@ pay = ZarinPal(merchant='xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', call_back_url="h
 
 def send_request(request):
     # email and mobile is optimal
-    response = pay.send_request(amount='1000', description='توضیحات مربوط به پرداخت', email="Example@test.com",
+    response = pay.send_request(amount='100000', description='توضیحات مربوط به پرداخت', email="Example@test.com",
                                mobile='09123456789')
     if response.get('error_code') is None:
         # redirect object
@@ -17,7 +17,7 @@ def send_request(request):
 
 
 def verify(request):
-    response = pay.verify(request=request, amount='1000')
+    response = pay.verify(request=request, amount='100000')
 
     if response.get("transaction"):
         if response.get("pay"):

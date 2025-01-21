@@ -54,6 +54,8 @@ from django.db.utils import IntegrityError
 from django.db import transaction
 from django.core.files.base import ContentFile
 
+# functions and classes
+from utils.telbot.functions import subscription, CategoryClass
 
 # python tools
 from functools import wraps
@@ -70,8 +72,14 @@ state_storage = StateMemoryStorage()
 app = TeleBot(token=TOKEN, state_storage=state_storage)
 current_site = 'https://intelleum.ir'
 
+# subscription instance
+subscription= SubscriptionClass()
+
 # Tracking user menu history
-user_sessions = defaultdict(lambda: {"current_menu": None})
+from telbot.sessions import session_manager
+
+# Access shared user_sessions
+user_sessions = session_manager.user_sessions
 
 # support class
 chat_ids=[]
@@ -127,65 +135,6 @@ def inject_main_menu(message):
         app.send_message(message.chat.id, f"خطا در دریافت اطلاعات منو: {e}")
         return customer_main_menu
 
-
-
-
-
-# Helper function to send menu
-def send_menu(message, options, current_menu, extra_buttons=None):
-    """Send a menu with options and update the session."""
-    if subscription_offer(message):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        
-        # Organize buttons into rows of three
-        rows = [options[i:i + 3] for i in range(0, len(options), 3)]
-        for row in rows:
-            markup.row(*row)
-
-        # Add extra buttons
-        if extra_buttons:
-            extra_rows = [extra_buttons[i:i + 2] for i in range(0, len(extra_buttons), 2)]
-            for extra_row in extra_rows:
-                markup.row(*extra_row)
-
-        
-
-        # Send the menu
-        return markup
-
-
-# Check subscription
-def check_subscription(user, channels=my_channels_with_atsign):
-    for channel in channels:
-        is_member = app.get_chat_member(chat_id=channel, user_id=user)
-        if is_member.status in ["kicked", "left"]:
-            return False
-        return True
-
-
-
-# subscription offer
-def subscription_offer(message):
-    # Create keyboard for subscription check
-    channel_markup = types.InlineKeyboardMarkup()
-    current_site_markup = types.InlineKeyboardMarkup(row_width=1)
-    current_site_button = types.InlineKeyboardButton(text='بازدید از سایت', url=f"{current_site}")
-    check_subscription_button = types.InlineKeyboardButton(text='عضو شدم.', callback_data='check_subscription')
-    channel_subscription_button = types.InlineKeyboardButton(text='در کانال ما عضو شوید...', url=f"https://t.me/{my_channels_without_atsign[0]}")
-    group_subscription_button = types.InlineKeyboardButton(text="در گروه ما عضو شوید...", url=f"https://t.me/{my_channels_without_atsign[1]}")
-    
-    channel_markup.add(channel_subscription_button, group_subscription_button)
-    channel_markup.add(check_subscription_button)
-    current_site_markup.add(current_site_button)
-
-    
-
-    # Check subscription
-    if not check_subscription(user=message.from_user.id):
-        app.send_message(message.chat.id, "برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
-        return False
-    else:
-        return True
 
 
 # Function to escape all special characters with a backslash
@@ -323,7 +272,7 @@ def start(message):
         
         if created:
             print("yes")
-        if subscription_offer(message):
+        if subscription.subscription_offer(message):
             # Display the main menu
             main_menu = profile.tel_menu
             extra_buttons = profile.extra_button_menu
@@ -339,29 +288,12 @@ def start(message):
 #####################################################################################################
 
 
-@app.callback_query_handler(func=lambda call: call.data == 'check_subscription')
-def handle_check_subscription(call):
-    user_id = call.from_user.id
-    is_member = check_subscription(user_id)
-    
-    if is_member:
-        app.answer_callback_query(call.id, "تشکر! عضویت شما تایید شد.")
-        app.edit_message_text("🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.",
-                              chat_id=call.message.chat.id, message_id=call.message.message_id)
-        
-        # Display the main menu
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add("💰 موجودی من", "خرید با کد کالا", "🗂 دسته بندی ها", "منو اصلی")
-        app.send_message(call.message.chat.id, "انتخاب کنید:", reply_markup=markup)
-    else:
-        app.answer_callback_query(call.id, "لطفاً ابتدا در کانال یا گروه عضو شوید.")
-
 
 
 # Back to Previous Menu
 @app.message_handler(func=lambda message: message.text == "🔙")
 def handle_back(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         try:
             session = user_sessions[message.chat.id]
             
@@ -396,7 +328,7 @@ def handle_back(message):
 # Home
 @app.message_handler(func=lambda message: message.text=="🏡")
 def home(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
         main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
         extra_buttons = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
@@ -407,7 +339,7 @@ def home(message):
 # Visit website
 @app.message_handler(func=lambda message: message.text=="🖥 بازدید سایت")
 def visit_website(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         send_website_link(message)
         
 
@@ -415,7 +347,7 @@ def visit_website(message):
 # settings handler
 @app.message_handler(func=lambda message: message.text=="تنظیمات ⚙")
 def settings(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         home_menue = ["🏡"]
         markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).settings_menu, "settings", home_menue)
         app.send_message(message.chat.id, "اینجا می تونی تنظیمات حسابت رو تغییر بدی:", reply_markup=markup)
@@ -425,7 +357,7 @@ def settings(message):
 # become a seller handler
 @app.message_handler(func=lambda message: message.text=="فروشنده شو")
 def become_a_seller(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         profile=ProfileModel.objects.get(tel_id=message.from_user.id)
         profile.seller_mode = True
         profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
@@ -440,7 +372,7 @@ def become_a_seller(message):
 # back to buyer mode handler# become a seller handler
 @app.message_handler(func=lambda message: message.text=="بازگشت به حالت خریدار")
 def back_to_buyer(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         profile=ProfileModel.objects.get(tel_id=message.from_user.id)
         profile.seller_mode = False
         profile.settings_menu = profile.LEVEL_MENUS[profile.user_level][2]
@@ -451,10 +383,26 @@ def back_to_buyer(message):
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 
     
+    
+# adding product
+product_bot = ProductBot(app)
+product_bot.register_handlers()
+@app.message_handler(func=lambda message: message.text=="افزودن کالا")
+def add_product(message):
+    """Start the product addition process."""
+    if subscription.subscription_offer(message):
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        if profile.seller_mode:
+            try:
+                product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
+                product_bot.bot.send_message(message.chat.id, "لطفاً نام محصول را وارد کنید:")
+            except Exception as e:
+                print(e)
+    
 # balance
 @app.message_handler(func=lambda message: message.text=="🧮 موجودی")
 def balance_menue(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         options = ["💰 موجودی من", "💳 افزایش موجودی"]
         home_menue = ["🏡"]
         markup = send_menu(message, options, "balance_category", home_menue)
@@ -464,76 +412,29 @@ def balance_menue(message):
 # show balance
 @app.message_handler(func=lambda message: message.text=="💰 موجودی من")
 def my_balance(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         show_balance(message)
         
 # Buy products with code
 @app.message_handler(func=lambda message: message.text=="خرید با کد کالا")
 def buy_with_code(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         ask_for_product_code(message)
 
-
-# First Layer category
-@app.message_handler(func=lambda message: message.text=="🗂 دسته بندی ها")
+category_class = CategoryClass()
+@app.message_handler(func=lambda message: message.text == "🗂 دسته بندی ها")
 def category(message):
-    if subscription_offer(message):
-        cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
-        home_menue = ["🏡"]
-        markup = send_menu(message, cats, message.text, home_menue)
-        app.send_message(message.chat.id, "کالایی که دنبالشی جزو کدام دسته است", reply_markup=markup)
-        
-        
+    
+            category_class.handle_category(message)
 
-# second layer category
 @app.message_handler(func=lambda message: message.text.title() in Category.objects.filter(title__iexact=message.text, status=True).values_list('title', flat=True))
 def subcategory(message):
-    try:
-        if subscription_offer(message):
-            current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
-            
-            # Get the titles of the child categories
-            children = [child.title for child in current_category.get_next_layer_categories()]
-            
-            # Send full path of the category
-            
-            
-            # Send the child titles to the menu
-            if children == []:
-                # Update session: push current menu into history
-                session = user_sessions[message.chat.id]
-                
-                session["current_menu"] = message.text.title()
-                
-                fake_message = message  # Clone the current message
-                fake_message.text = "hi"
-                handle_products(fake_message)
-            else:
-                # Update session: push current menu into history
-                session = user_sessions[message.chat.id]
-                
-                session["current_menu"] = message.text.title()
-                markup = send_menu(message, children, message.text, retun_menue)
-                app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
-            
-    except Exception as e:
-        print(f'Error: {e}')
+    category_class.handle_subcategory(message)
 
 
 
-# Top discounts
-def handle_products(message):
-    if subscription_offer(message):
-        chat_id = message.chat.id
-        subcategory = message.text  # Save subcategory
-        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
 
-        # Save session
-        home_menue = ["🏡"]
-        markup = send_menu(message, options, "products", home_menue)
-        session = user_sessions[message.chat.id]
-        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True)
-        app.send_message(message.chat.id, f"{current_category.get_full_path()}", reply_markup=markup)
+
         
 
 
@@ -541,7 +442,7 @@ def handle_products(message):
 # 10 products
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         if message.text == "پر تخفیف ها":
             if Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0).exists():
                 products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0).order_by("discount")[:10]
@@ -576,7 +477,7 @@ def handle_ten_products(message):
 
 @app.message_handler(state=Support.code)
 def handle_product_code(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         chat_id = message.chat.id
         product_code = message.text
         if re.match(r'^[A-Z]{4}\d{6}$', message.text):
@@ -631,7 +532,7 @@ def sup_text(message):
 # هندلر برای دکمه "ثبت نام می‌کنم"
 @app.message_handler(func=lambda message: message.text == "🔐     ایجاد حساب کاربری    🛡️")
 def ask_username(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         try:
             app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
             app.register_next_step_handler(message, pick_email)
@@ -643,7 +544,7 @@ def ask_username(message):
 # hadling any unralted message
 @app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
 def handle_message(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
 
 
@@ -702,7 +603,7 @@ def answer_text(message):
 
 @app.callback_query_handler(func= lambda call: call.data == "پایان مکالمه")
 def terminate_chat(call):
-    if subscription_offer(call.message):
+    if subscription.subscription_offer(call.message):
         try:
             app.delete_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
             app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
@@ -717,14 +618,14 @@ def terminate_chat(call):
 # show balance
 def show_balance(message):
     # Example: Fetch and send user balance
-    if subscription_offer(message):
-        user_id = message.from_user.username
+    if subscription.subscription_offer(message):
+        user_id = message.from_user.id
         balance = ProfileModel.objects.get(tel_id=user_id).credit
         formatted_balance = "{:,.2f}".format(float(balance))
         app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان") 
 
 def ask_for_product_code(message):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
         app.set_state(user_id=message.from_user.id, state=Support.code, chat_id=message.chat.id)  
 
@@ -732,7 +633,7 @@ def ask_for_product_code(message):
 
 def send_website_link(message):
     """Send a button that opens the website in a browser."""
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         # Create an Inline Keyboard with a button linking to the website
         markup = types.InlineKeyboardMarkup()
         website_button = types.InlineKeyboardButton("بازدید از سایت", url=current_site)
@@ -748,7 +649,7 @@ def send_website_link(message):
 
 @app.callback_query_handler(func=lambda call: call.data == 'check_website_subscription')
 def check_website_subscription(call):
-    if subscription_offer(call.message):
+    if subscription.subscription_offer(call.message):
         if not ProfileModel.objects.filter(telegram=call.from_user.username).exists():
             # signup process
             
@@ -853,7 +754,7 @@ def pick_password(message, email, username):
 
 # تایید رمز
 def pick_password2(message, email, username, password, current_site=current_site):
-    if subscription_offer(message):
+    if subscription.subscription_offer(message):
         try:
             password2 = message.text
             

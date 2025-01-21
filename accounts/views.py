@@ -144,27 +144,23 @@ class PasswordResetConfirm(PasswordResetConfirmView):
 def profile(request, username):
    
     profile=ProfileModel.objects.get(user__username=username)
-    shippingaddress=ShippingAddressModel.objects.get(profile=profile)
     header_form = HeaderImageForm()
     avatar_form = AvatarImageForm()
     update_form = ProfileUpdateForm(initial={
                                             "fname": profile.fname,
                                             "lname": profile.lname,
                                             "Phone": profile.Phone,
-                                            "address": profile.address,
                                             "about_me": profile.about_me,
                                             "birthday": profile.birthday,
                                             "tweeter": profile.tweeter,
                                             "instagram": profile.instagram,
-                                            },)
-    address_form=ShippingAddressForm(initial={
-                                            "shipping_line1": shippingaddress.shipping_line1,
-                                            "shipping_line2": shippingaddress.shipping_line2,
-                                            "shipping_city": shippingaddress.shipping_city,
-                                            "shipping_country": shippingaddress.shipping_country,
-                                            "shipping_province": shippingaddress.shipping_province,
-                                            "shipping_zip": shippingaddress.shipping_zip,
-                                            "shipping_home_phone": shippingaddress.shipping_home_phone,
+                                            "shipping_line1": profile.shipping_line1,
+                                            "shipping_line2": profile.shipping_line2,
+                                            "shipping_city": profile.shipping_city,
+                                            "shipping_country": profile.shipping_country,
+                                            "shipping_province": profile.shipping_province,
+                                            "shipping_zip": profile.shipping_zip,
+                                            "shipping_home_phone": profile.shipping_home_phone,
                                             })
     
     
@@ -174,7 +170,6 @@ def profile(request, username):
         "header_form": header_form,
         "avatar_form": avatar_form,
         "update_form": update_form,
-        "address_form": address_form,
 
     }
     return render(request, "registration/dashboard/profile.html", context=context)

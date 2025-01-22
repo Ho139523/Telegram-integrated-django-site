@@ -6,7 +6,7 @@ from telebot import TeleBot
 from telebot.types import Message
 from telebot.storage import StateMemoryStorage
 from accounts.models import ProfileModel
-from products.models import Product, Category
+from products.models import Product, Category, ProductImage, ProductAttribute, Store
 
 import requests
 from django.core.files.base import ContentFile
@@ -27,6 +27,11 @@ from telbot.sessions import session_manager
 # Access shared user_sessions
 user_sessions = session_manager.user_sessions
 
+from utils.telbot.variables import *
+from pathlib import Path
+import os
+import requests
+from django.conf import settings
 
 def get_tunnel_password():
     try:
@@ -273,9 +278,6 @@ class CategoryClass:
                 # Get the titles of the child categories
                 children = [child.title for child in current_category.get_next_layer_categories()]
                 
-                # Send full path of the category
-                
-                
                 # Send the child titles to the menu
                 if children == []:
                     # Update session: push current menu into history
@@ -292,32 +294,51 @@ class CategoryClass:
                     
                     session["current_menu"] = message.text.title()
                     markup = send_menu(message, children, message.text, retun_menue)
-                    app.send_message(message.chat.id, f"سلام", reply_markup=markup)
+                    app.send_message(message.chat.id, f"{Category.objects.get(title__iexact=session["current_menu"], status=True).get_full_path()}", reply_markup=markup)
                 
         except Exception as e:
             print(f'Error: {e}')
 
 ############################  ADD PRODUCT  ############################
 
-def download_and_save_image(file_id, bot, upload_path="product_images/"):
-    """
-    دانلود تصویر از تلگرام و ذخیره در سیستم فایل Django.
-    """
-    file_info = bot.get_file(file_id)
-    file_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
-    response = requests.get(file_url)
+def download_and_save_image(file_id, bot, save_dir="product_images"):
+    try:
+        # دریافت اطلاعات فایل
+        file_info = bot.get_file(file_id)
+        file_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
+        
+        # ایجاد مسیر ذخیره در صورت عدم وجود
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
 
-    if response.status_code == 200:
         # استخراج نام فایل
-        file_name = file_info.file_path.split("/")[-1]
-        return ContentFile(response.content, name=f"{upload_path}{file_name}")
-    return None
+        file_name = os.path.basename(file_info.file_path)
+        save_path = os.path.join(settings.MEDIA_ROOT, save_dir, file_name)
+        print(save_path)
+        save_path = save_path.replace("\\", "/")
+        print(save_path)
+
+        # دانلود فایل
+        response = requests.get(file_url)
+        if response.status_code == 200:
+            with open(save_path, "wb") as f:
+                f.write(response.content)
+                print(save_path)
+            return save_path  # بازگشت مسیر ذخیره شده
+        else:
+            raise Exception(f"Failed to download file, status code: {response.status_code}")
+    except Exception as e:
+        print(f"Error downloading image: {e}")
+        return None
+
+
 
 
 class ProductBot:
     def __init__(self, bot: TeleBot):
         self.bot = bot
         self.user_data = {}
+        self.product_state = self.ProductState()
 
     class ProductState:
         NAME = "name"
@@ -332,6 +353,17 @@ class ProductBot:
         CODE = "code"
         MAIN_IMAGE = "main_image"
         ADDITIONAL_IMAGES = "additional_images"
+        
+        def __init__(self):
+            self.user_menus = {}
+        
+        def update_user_menu(self, chat_id, menu_title):
+            self.user_menus[chat_id] = menu_title
+            
+        def get_user_menu(self, chat_id):
+            return self.user_menus.get(chat_id, None)
+
+
 
     def register_handlers(self):
         """Register message handlers."""
@@ -345,7 +377,6 @@ class ProductBot:
         self.bot.register_message_handler(self.get_is_available, func=self.is_state(self.ProductState.IS_AVAILABLE))
         self.bot.register_message_handler(self.get_category, func=self.is_state(self.ProductState.CATEGORY))
         self.bot.register_message_handler(self.get_description, func=self.is_state(self.ProductState.DESCRIPTION))
-        self.bot.register_message_handler(self.get_code, func=self.is_state(self.ProductState.CODE))
         self.bot.register_message_handler(self.get_main_image, func=self.is_state(self.ProductState.MAIN_IMAGE), content_types=["photo"])
         self.bot.register_message_handler(self.get_additional_images, func=self.is_state(self.ProductState.ADDITIONAL_IMAGES), content_types=["photo"])
 
@@ -414,36 +445,149 @@ class ProductBot:
         try:
             stock = int(message.text)
             self.save_user_data(message.chat.id, "stock", stock)
+            markup = send_menu(message, ["بله", "خیر"], message.text, home_menu)
+            app.send_message(message.chat.id, "آیا در انبار موجود است:", reply_markup=markup)
             self.set_state(message.chat.id, self.ProductState.IS_AVAILABLE)
-            self.bot.send_message(message.chat.id, "آیا محصول در دسترس است؟ (بله/خیر):")
         except ValueError:
             self.bot.send_message(message.chat.id, "موجودی باید یک عدد صحیح باشد!")
 
     def get_is_available(self, message: Message):
-        is_available = message.text.strip().lower() in ["بله", "yes"]
-        self.save_user_data(message.chat.id, "is_available", is_available)
-        self.set_state(message.chat.id, self.ProductState.CATEGORY)
-        self.bot.send_message(message.chat.id, "لطفاً دسته‌بندی محصول را وارد کنید:")
+        try:
+            availability = message.text.strip()
+            
+            # ذخیره وضعیت موجود بودن کالا
+            self.save_user_data(message.chat.id, "is_available", availability.lower() == "بله")
+            
+            # نمایش منوی دسته‌بندی اصلی
+            self.display_category_menu(message, None)
+        except Exception as e:
+            error_message = traceback.format_exc()  # دریافت اطلاعات کامل خطا
+            self.bot.send_message(message.chat.id, f"Error: {e}\nDetails:\n{error_message}")
+
+    def display_category_menu(self, message, parent_category_title=None):
+        try:
+            # مدیریت دکمه بازگشت
+            if message.text == "🔙":
+                previous_menu = self.product_state.get_user_menu(message.chat.id)
+                
+                if previous_menu:
+                    try:
+                        parent_category = Category.objects.get(title__iexact=previous_menu, status=True)
+                        
+                        if parent_category.parent:
+                            # بازگشت به دسته‌بندی والد
+                            self.product_state.update_user_menu(message.chat.id, parent_category.parent.title)
+                            category_titles = Category.objects.filter(parent=parent_category.parent, status=True).values_list("title", flat=True)
+                            markup = send_menu(message, category_titles, parent_category_title or "انتخاب دسته‌بندی", retun_menue)
+                            self.bot.send_message(
+                                message.chat.id,
+                                "لطفاً دسته‌بندی مناسب برای کالای خود را انتخاب کنید:",
+                                reply_markup=markup
+                            )
+                        else:
+                            # بازگشت به منوهای سطح اول
+                            self.product_state.update_user_menu(message.chat.id, None)
+                            categories = Category.objects.filter(parent__isnull=True, status=True)
+                            category_titles = [category.title for category in categories]
+                            markup = send_menu(message, category_titles, "انتخاب دسته‌بندی اصلی", home_menu)
+                            self.bot.send_message(
+                                message.chat.id,
+                                "لطفاً دسته‌بندی اصلی را انتخاب کنید:",
+                                reply_markup=markup
+                            )
+                    except Category.DoesNotExist:
+                        # اگر دسته‌بندی قبلی معتبر نبود
+                        self.bot.send_message(
+                            message.chat.id, 
+                            "دسته‌بندی قبلی معتبر نیست. لطفاً دوباره انتخاب کنید."
+                        )
+                return
+
+            # بررسی دسته‌بندی والد
+            if not parent_category_title:
+                categories = Category.objects.filter(parent__isnull=True, status=True)
+                menu_type = home_menu  # اگر دسته‌بندی والد ندارد، از home_menu استفاده کنید
+            else:
+                parent_category = Category.objects.get(title__iexact=parent_category_title, status=True)
+                categories = parent_category.get_next_layer_categories()
+                menu_type = retun_menue  # اگر دسته‌بندی والد دارد، از retun_menue استفاده کنید
+
+            # استخراج عنوان دسته‌بندی‌ها
+            category_titles = [category.title for category in categories]
+
+            # نمایش دسته‌بندی‌ها
+            if category_titles:
+                markup = send_menu(message, category_titles, parent_category_title or "انتخاب دسته‌بندی", menu_type)
+                self.bot.send_message(
+                    message.chat.id,
+                    "لطفاً دسته‌بندی مناسب برای کالای خود را انتخاب کنید:",
+                    reply_markup=markup
+                )
+                self.product_state.update_user_menu(message.chat.id, parent_category_title)
+                self.set_state(message.chat.id, self.ProductState.CATEGORY)
+
+        except Exception as e:
+            error_message = traceback.format_exc()
+            self.bot.send_message(message.chat.id, f"Error: {e}\nDetails:\n{error_message}")
+
+
+
+
+
 
     def get_category(self, message: Message):
-        self.save_user_data(message.chat.id, "category", message.text)
-        self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
-        self.bot.send_message(message.chat.id, "توضیحات محصول را وارد کنید (اختیاری):")
+        try:
+            selected_category_title = message.text.strip()
+            
+            if message.text == "🔙":
+                print("yes")
+                self.display_category_menu(message, selected_category_title)
+            
+            # بررسی وجود دسته‌بندی انتخابی
+            elif not Category.objects.filter(title__iexact=selected_category_title, status=True).exists():
+                self.bot.send_message(message.chat.id, "دسته‌بندی انتخابی معتبر نیست. لطفاً دوباره انتخاب کنید.")
+                return
+
+            # ذخیره دسته‌بندی انتخاب شده
+            self.save_user_data(message.chat.id, "category", selected_category_title)
+
+            # بررسی زیر دسته‌ها
+            selected_category = Category.objects.get(title__iexact=selected_category_title, status=True)
+            if selected_category.get_next_layer_categories():
+                # نمایش زیر دسته‌ها
+                self.display_category_menu(message, selected_category_title)
+            else:
+                # پایان فرآیند انتخاب دسته‌بندی
+                self.bot.send_message(message.chat.id, f"دسته‌بندی انتخاب شده: {selected_category.get_full_path()}")
+                self.save_user_data(message.chat.id, "category", selected_category)
+                self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
+                main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
+                markup = send_menu(message, main_menu, "main menu", home_menu)
+                self.bot.send_message(message.chat.id, "لطفاً توضیحات محصول را وارد کنید (اختیاری):", reply_markup=markup)
+        except Exception as e:
+            error_message = traceback.format_exc()  # دریافت اطلاعات کامل خطا
+            self.bot.send_message(message.chat.id, f"Error: {e}\nDetails:\n{error_message}")
+
 
     def get_description(self, message: Message):
         self.save_user_data(message.chat.id, "description", message.text)
-        self.set_state(message.chat.id, self.ProductState.CODE)
-        self.bot.send_message(message.chat.id, "لطفاً یک کد یکتا برای محصول وارد کنید:")
-
-    def get_code(self, message: Message):
-        self.save_user_data(message.chat.id, "code", message.text)
         self.set_state(message.chat.id, self.ProductState.MAIN_IMAGE)
         self.bot.send_message(message.chat.id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
 
     def get_main_image(self, message: Message):
-        self.save_user_data(message.chat.id, "main_image", message.photo[-1].file_id)
-        self.set_state(message.chat.id, self.ProductState.ADDITIONAL_IMAGES)
-        self.bot.send_message(message.chat.id, "لطفاً 3 تصویر اضافی برای محصول ارسال کنید:")
+        try:
+            # دانلود و ذخیره تصویر
+            file_id = message.photo[-1].file_id
+            saved_path = download_and_save_image(file_id, self.bot)
+            if saved_path:
+                self.save_user_data(message.chat.id, "main_image", saved_path)  # ذخیره مسیر تصویر
+                self.set_state(message.chat.id, self.ProductState.ADDITIONAL_IMAGES)
+                self.bot.send_message(message.chat.id, "لطفاً 3 تصویر اضافی برای محصول ارسال کنید:")
+            else:
+                self.bot.send_message(message.chat.id, "خطا در ذخیره تصویر اصلی رخ داده است.")
+        except Exception as e:
+            self.bot.send_message(message.chat.id, f"Error: {e}")
+
 
     def get_additional_images(self, message: Message):
         try:
@@ -453,44 +597,37 @@ class ProductBot:
             # دانلود و ذخیره تصویر
             saved_image = download_and_save_image(file_id, self.bot)
             if saved_image:
-                additional_images.append(saved_image)  # ذخیره تصویر دانلود شده
+                additional_images.append(saved_image)  # ذخیره مسیر تصویر
                 self.save_user_data(message.chat.id, "additional_images", additional_images)
 
             # بررسی تعداد تصاویر
             if len(additional_images) >= 3:
                 # پایان فرآیند
-                user_data = self.user_data.get(message.from_user.id, {})
-                if user_data:
-                    print("User Data:")
-                    for key, value in user_data.items():
-                        print(f"{key}: {value}")
-                else:
-                    print("No data found for the user.")
+                user_data = self.user_data.get(message.chat.id, {})
                 product = Product.objects.create(
-                    name=self.user_data[message.from_user.id]["name"],
-                    slug=self.user_data[message.from_user.id]["slug"],
-                    brand=self.user_data[message.from_user.id]["brand"],
-                    price=self.user_data[message.from_user.id]["price"],
-                    discount=self.user_data[message.from_user.id]["discount"],
-                    stock=self.user_data[message.from_user.id]["stock"],
-                    is_available=self.user_data[message.from_user.id]["is_available"],
-                    category=self.user_data[message.from_user.id]["category"],
-                    description=self.user_data[message.from_user.id]["description"],
-                    main_image=self.user_data[message.from_user.id]["main_image"],  # تصویر اصلی
-                    code=self.user_data[message.from_user.id]["code"]
+                    name=user_data["name"],
+                    slug=user_data["slug"],
+                    brand=user_data["brand"],
+                    price=user_data["price"],
+                    discount=user_data["discount"],
+                    stock=user_data["stock"],
+                    is_available=user_data["is_available"],
+                    category=user_data["category"],
+                    description=user_data["description"],
+                    main_image=user_data["main_image"],  # تصویر اصلی
                 )
+                product.save()
 
                 # ذخیره تصاویر اضافی
-                for image in additional_images:
-                    ProductImage.objects.create(product=product, image=image)
+                for image_path in additional_images:
+                    ProductImage.objects.create(product=product, image=image_path)
 
                 self.bot.send_message(message.chat.id, "اطلاعات محصول با موفقیت ثبت شد!")
-                print(self.user_data[message.chat.id])  # نمایش یا ذخیره اطلاعات
                 self.reset_state(message.chat.id)
             else:
                 self.bot.send_message(message.chat.id, f"لطفاً {3 - len(additional_images)} تصویر دیگر ارسال کنید:")
-                
         except Exception as e:
-            self.bot.send_message(message.chat.id, f"error is: {e}")
+            self.bot.send_message(message.chat.id, f"Error: {e}")
+
 
 

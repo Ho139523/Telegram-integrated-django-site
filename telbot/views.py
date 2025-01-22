@@ -290,46 +290,13 @@ def start(message):
 
 
 
-# Back to Previous Menu
-@app.message_handler(func=lambda message: message.text == "🔙")
-def handle_back(message):
-    if subscription.subscription_offer(message):
-        try:
-            session = user_sessions[message.chat.id]
-            
-            # Get the previous category's title
-            try:
-                previous_category_title = Category.objects.get(
-                    title__iexact=session["current_menu"], status=True
-                ).get_parents()[0].title
-                
-                # Manually trigger the handler by simulating a message
-                fake_message = message  # Clone the current message
-                fake_message.text = previous_category_title  # Change the text to previous category
-                
-                # Call the subcategory handler directly
-                subcategory(fake_message)
-            
-            except IndexError as e:
-                if "list index out of range" in str(e):
-                    previous_category_title = "🗂 دسته بندی ها"
-                    
-                    fake_message = message  # Clone the current message
-                    fake_message.text = previous_category_title  # Change the text to previous category
-                    
-                    # Call the subcategory handler directly
-                    category(fake_message)
-             
-        except Exception as e:
-            app.send_message(message.chat.id, f"the error is: {e}")
-
 
 
 # Home
 @app.message_handler(func=lambda message: message.text=="🏡")
 def home(message):
     if subscription.subscription_offer(message):
-        user_sessions = defaultdict(lambda: {"history": [], "current_menu": None})
+        user_sessions["current_menu"] = None
         main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
         extra_buttons = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
         markup = send_menu(message, main_menu, "main_menu", extra_buttons)
@@ -398,7 +365,43 @@ def add_product(message):
                 product_bot.bot.send_message(message.chat.id, "لطفاً نام محصول را وارد کنید:")
             except Exception as e:
                 print(e)
-    
+
+
+# Back to Previous Menu
+@app.message_handler(func=lambda message: message.text == "🔙")
+def handle_back(message):
+    if subscription.subscription_offer(message):
+        try:
+            session = user_sessions[message.chat.id]
+            
+            # Get the previous category's title
+            try:
+                previous_category_title = Category.objects.get(
+                    title__iexact=session["current_menu"], status=True
+                ).get_parents()[0].title
+                
+                # Manually trigger the handler by simulating a message
+                fake_message = message  # Clone the current message
+                fake_message.text = previous_category_title  # Change the text to previous category
+                
+                # Call the subcategory handler directly
+                subcategory(fake_message)
+            
+            except IndexError as e:
+                if "list index out of range" in str(e):
+                    previous_category_title = "🗂 دسته بندی ها"
+                    
+                    fake_message = message  # Clone the current message
+                    fake_message.text = previous_category_title  # Change the text to previous category
+                    
+                    # Call the subcategory handler directly
+                    category(fake_message)
+             
+        except Exception as e:
+            app.send_message(message.chat.id, f"the error is: {e}")
+
+
+
 # balance
 @app.message_handler(func=lambda message: message.text=="🧮 موجودی")
 def balance_menue(message):

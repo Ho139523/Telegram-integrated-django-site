@@ -162,6 +162,7 @@ class Category(models.Model):
 from django.db import models
 
 class Product(models.Model):
+    id = models.BigAutoField(primary_key=True)  # شناسه خودکار بزرگ برای مقیاس‌پذیری
     name = models.CharField(max_length=100, verbose_name='Product Name')
     slug = models.SlugField(unique=True, verbose_name='Slug')
     brand = models.CharField(max_length=50, blank=True, null=True, verbose_name='Brand')
@@ -175,7 +176,18 @@ class Product(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name='Description')
     main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')
     additional_images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
-    code = models.CharField(max_length=10, unique=True, null=True, blank=False)
+    code = models.CharField(max_length=10, unique=True, editable=False, blank=True)  # فیلد کد ده رقمی
+
+    def save(self, *args, **kwargs):
+        # ابتدا رکورد را ذخیره کنید تا id مقداردهی شود
+        if not self.id:
+            super().save(*args, **kwargs)
+        
+        # پس از ذخیره، کد را مقداردهی کنید
+        if not self.code:  # در صورتی که کد هنوز تنظیم نشده باشد
+            self.code = f"{self.id:010d}"  # فرمت ده رقمی
+            super().save(*args, **kwargs)  # دوباره ذخیره کنید تا کد نیز ذخیره شود
+
 
     def __str__(self):
         return self.name

@@ -264,7 +264,9 @@ class CategoryClass:
                 markup = send_menu(message, cats, message.text, home_menue)
                 app.send_message(message.chat.id, "کالایی که دنبالشی جزو کدام دسته است", reply_markup=markup)
             except Exception as e:
-                print(f'Error: {e}')
+                app.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+                print(f"Error: {e}")
+
             
             
 
@@ -297,38 +299,40 @@ class CategoryClass:
                     app.send_message(message.chat.id, f"{Category.objects.get(title__iexact=session["current_menu"], status=True).get_full_path()}", reply_markup=markup)
                 
         except Exception as e:
-            print(f'Error: {e}')
+            app.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+            print(f"Error: {e}")
+
 
 ############################  ADD PRODUCT  ############################
 
-def download_and_save_image(file_id, bot, save_dir="product_images"):
+# ایجاد slug یکتا
+def generate_unique_slug(model, name):
+    from django.utils.text import slugify
+    
+    slug = slugify(name)
+    unique_slug = slug
+    counter = 1
+    while model.objects.filter(slug=unique_slug).exists():
+        unique_slug = f"{slug}-{counter}"
+        counter += 1
+    return unique_slug
+
+
+def download_and_save_image(file_id, bot):
     try:
-        # دریافت اطلاعات فایل
-        file_info = bot.get_file(file_id)
-        file_url = f"https://api.telegram.org/file/bot{bot.token}/{file_info.file_path}"
-        
-        # ایجاد مسیر ذخیره در صورت عدم وجود
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        # استخراج نام فایل
-        file_name = os.path.basename(file_info.file_path)
-        save_path = os.path.join(settings.MEDIA_ROOT, save_dir, file_name)
-        print(save_path)
-        save_path = save_path.replace("\\", "/")
-        print(save_path)
-
         # دانلود فایل
-        response = requests.get(file_url)
-        if response.status_code == 200:
-            with open(save_path, "wb") as f:
-                f.write(response.content)
-                print(save_path)
-            return save_path  # بازگشت مسیر ذخیره شده
-        else:
-            raise Exception(f"Failed to download file, status code: {response.status_code}")
+        file_info = bot.get_file(file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        
+        # مسیر ذخیره‌سازی
+        file_path = f"product_images/{file_info.file_path.split('/')[-1]}"
+        
+        # ذخیره فایل در سیستم
+        with open(file_path, 'wb') as new_file:
+            new_file.write(downloaded_file)
+        return file_path  # مسیر ذخیره‌شده را برمی‌گرداند
     except Exception as e:
-        print(f"Error downloading image: {e}")
+        print(f"خطا در ذخیره تصویر: {e}")
         return None
 
 
@@ -353,6 +357,7 @@ class ProductBot:
         CODE = "code"
         MAIN_IMAGE = "main_image"
         ADDITIONAL_IMAGES = "additional_images"
+        ATTRIBUTES = "attributes"
         
         def __init__(self):
             self.user_menus = {}
@@ -369,7 +374,6 @@ class ProductBot:
         """Register message handlers."""
         # self.bot.register_message_handler(self.start, func=lambda message: message.text == "افزودن کالا")
         self.bot.register_message_handler(self.get_name, func=self.is_state(self.ProductState.NAME))
-        self.bot.register_message_handler(self.get_slug, func=self.is_state(self.ProductState.SLUG))
         self.bot.register_message_handler(self.get_brand, func=self.is_state(self.ProductState.BRAND))
         self.bot.register_message_handler(self.get_price, func=self.is_state(self.ProductState.PRICE))
         self.bot.register_message_handler(self.get_discount, func=self.is_state(self.ProductState.DISCOUNT))
@@ -377,6 +381,7 @@ class ProductBot:
         self.bot.register_message_handler(self.get_is_available, func=self.is_state(self.ProductState.IS_AVAILABLE))
         self.bot.register_message_handler(self.get_category, func=self.is_state(self.ProductState.CATEGORY))
         self.bot.register_message_handler(self.get_description, func=self.is_state(self.ProductState.DESCRIPTION))
+        self.bot.register_message_handler(self.get_product_attributes, func=self.is_state(self.ProductState.ATTRIBUTES))
         self.bot.register_message_handler(self.get_main_image, func=self.is_state(self.ProductState.MAIN_IMAGE), content_types=["photo"])
         self.bot.register_message_handler(self.get_additional_images, func=self.is_state(self.ProductState.ADDITIONAL_IMAGES), content_types=["photo"])
 
@@ -410,11 +415,6 @@ class ProductBot:
 
     def get_name(self, message: Message):
         self.save_user_data(message.chat.id, "name", message.text)
-        self.set_state(message.chat.id, self.ProductState.SLUG)
-        self.bot.send_message(message.chat.id, "لطفاً یک اسلاگ برای محصول وارد کنید:")
-
-    def get_slug(self, message: Message):
-        self.save_user_data(message.chat.id, "slug", message.text)
         self.set_state(message.chat.id, self.ProductState.BRAND)
         self.bot.send_message(message.chat.id, "لطفاً برند محصول را وارد کنید (اختیاری):")
 
@@ -461,8 +461,9 @@ class ProductBot:
             # نمایش منوی دسته‌بندی اصلی
             self.display_category_menu(message, None)
         except Exception as e:
-            error_message = traceback.format_exc()  # دریافت اطلاعات کامل خطا
-            self.bot.send_message(message.chat.id, f"Error: {e}\nDetails:\n{error_message}")
+            self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+            print(f"Error: {e}")
+
 
     def display_category_menu(self, message, parent_category_title=None):
         try:
@@ -527,8 +528,9 @@ class ProductBot:
                 self.set_state(message.chat.id, self.ProductState.CATEGORY)
 
         except Exception as e:
-            error_message = traceback.format_exc()
-            self.bot.send_message(message.chat.id, f"Error: {e}\nDetails:\n{error_message}")
+            self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+            print(f"Error: {e}")
+
 
 
 
@@ -565,14 +567,75 @@ class ProductBot:
                 markup = send_menu(message, main_menu, "main menu", home_menu)
                 self.bot.send_message(message.chat.id, "لطفاً توضیحات محصول را وارد کنید (اختیاری):", reply_markup=markup)
         except Exception as e:
-            error_message = traceback.format_exc()  # دریافت اطلاعات کامل خطا
-            self.bot.send_message(message.chat.id, f"Error: {e}\nDetails:\n{error_message}")
+            self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+            print(f"Error: {e}")
+
 
 
     def get_description(self, message: Message):
         self.save_user_data(message.chat.id, "description", message.text)
-        self.set_state(message.chat.id, self.ProductState.MAIN_IMAGE)
-        self.bot.send_message(message.chat.id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
+        self.set_state(message.chat.id, self.ProductState.ATTRIBUTES)
+        markup = types.InlineKeyboardMarkup()
+        finish_button = types.InlineKeyboardButton(text="پایان", callback_data="finish_attributes")
+        markup.add(finish_button)
+        
+        self.bot.send_message(
+            message.chat.id, 
+            "لطفاً ویژگی‌های تبلیغاتی محصول را یک به یک بنویسید و در انتها دکمه پایان را ارسال کنید.",
+            reply_markup=markup
+        )
+        
+        
+
+
+    def get_product_attributes(self, message: Message):
+        # نمایش پیام برای وارد کردن ویژگی‌های محصول
+        markup = types.InlineKeyboardMarkup()
+        finish_button = types.InlineKeyboardButton(text="پایان", callback_data="finish_attributes")
+        markup.add(finish_button)
+        
+        self.bot.send_message(
+            message.chat.id, 
+            "لطفاً ویژگی‌های تبلیغاتی محصول را یک به یک بنویسید و در انتها دکمه پایان را ارسال کنید.",
+            reply_markup=markup
+        )
+        self.set_state(message.chat.id, self.ProductState.ATTRIBUTES)  # وضعیت به حالت ویژگی‌های محصول تغییر می‌کن
+
+    
+    def handle_finish_attributes(self, callback_query: types.CallbackQuery):
+        # پس از فشردن دکمه پایان، به مرحله دریافت تصاویر می‌رویم
+        chat_id = callback_query.message.chat.id
+        self.set_state(chat_id, self.ProductState.MAIN_IMAGE)
+        self.bot.send_message(chat_id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
+        
+        
+    def register_handle_finish_attributes(self):
+        self.bot.callback_query_handler(func=lambda call: call.data == 'finish_attributes')(self.handle_finish_attributes)
+
+    def receive_product_attribute(self, message: Message):
+        try:
+            # اگر پیام دریافتی "پایان" نباشد، ویژگی را ذخیره می‌کنیم
+            if message.text.lower() != "پایان":
+                user_data = self.user_data.get(message.chat.id, {})
+                product = Product.objects.get(id=user_data["product_id"])  # بازیابی محصولی که در حال ایجاد است
+
+                # ذخیره ویژگی در مدل ProductAttribute
+                ProductAttribute.objects.create(
+                    product=product,
+                    key=message.text.split(":")[0],  # کلید ویژگی (مانند "وزن")
+                    value=message.text.split(":")[1]  # مقدار ویژگی (مانند "1kg")
+                )
+
+                self.bot.send_message(message.chat.id, "ویژگی با موفقیت ذخیره شد. ویژگی بعدی را ارسال کنید یا 'پایان' را بزنید.")
+            
+            else:
+                # در صورتی که پیام "پایان" باشد، به مرحله دریافت تصاویر می‌رویم
+                self.set_state(message.chat.id, self.ProductState.MAIN_IMAGE)
+                self.bot.send_message(message.chat.id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
+        
+        except Exception as e:
+            self.bot.send_message(message.chat.id, "خطا در ذخیره ویژگی رخ داده است.")
+            print(f"Error: {e}")
 
     def get_main_image(self, message: Message):
         try:
@@ -586,27 +649,34 @@ class ProductBot:
             else:
                 self.bot.send_message(message.chat.id, "خطا در ذخیره تصویر اصلی رخ داده است.")
         except Exception as e:
-            self.bot.send_message(message.chat.id, f"Error: {e}")
-
+            self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+            print(f"Error: {e}")
 
     def get_additional_images(self, message: Message):
         try:
+            # بازیابی تصاویر اضافی
             additional_images = self.user_data[message.chat.id].get("additional_images", [])
             file_id = message.photo[-1].file_id
 
             # دانلود و ذخیره تصویر
             saved_image = download_and_save_image(file_id, self.bot)
+            
             if saved_image:
                 additional_images.append(saved_image)  # ذخیره مسیر تصویر
                 self.save_user_data(message.chat.id, "additional_images", additional_images)
+            else:
+                self.bot.send_message(message.chat.id, "یکی از تصاویر اضافی ذخیره نشد. لطفاً دوباره تلاش کنید.")
 
             # بررسی تعداد تصاویر
             if len(additional_images) >= 3:
-                # پایان فرآیند
+                # بازیابی اطلاعات کاربر
                 user_data = self.user_data.get(message.chat.id, {})
+                slug = generate_unique_slug(Product, user_data["name"])
+                
+                # ایجاد و ذخیره محصول
                 product = Product.objects.create(
                     name=user_data["name"],
-                    slug=user_data["slug"],
+                    slug=slug,
                     brand=user_data["brand"],
                     price=user_data["price"],
                     discount=user_data["discount"],
@@ -614,20 +684,24 @@ class ProductBot:
                     is_available=user_data["is_available"],
                     category=user_data["category"],
                     description=user_data["description"],
-                    main_image=user_data["main_image"],  # تصویر اصلی
+                    main_image=user_data["main_image"],
                 )
-                product.save()
-
-                # ذخیره تصاویر اضافی
+                
+                # ذخیره تصاویر اضافی مرتبط با محصول
                 for image_path in additional_images:
                     ProductImage.objects.create(product=product, image=image_path)
-
+                    
                 self.bot.send_message(message.chat.id, "اطلاعات محصول با موفقیت ثبت شد!")
                 self.reset_state(message.chat.id)
             else:
                 self.bot.send_message(message.chat.id, f"لطفاً {3 - len(additional_images)} تصویر دیگر ارسال کنید:")
         except Exception as e:
-            self.bot.send_message(message.chat.id, f"Error: {e}")
+            error_message = traceback.format_exc()
+            self.bot.send_message(message.chat.id, f"خطایی رخ داده است: {e}\nجزئیات:\n{error_message}")
+            print(error_message)
+
+
+
 
 
 

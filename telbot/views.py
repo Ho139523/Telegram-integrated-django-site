@@ -354,6 +354,8 @@ def back_to_buyer(message):
 # adding product
 product_bot = ProductBot(app)
 product_bot.register_handlers()
+product_bot.register_handle_finish_attributes()
+
 @app.message_handler(func=lambda message: message.text=="افزودن کالا")
 def add_product(message):
     """Start the product addition process."""
@@ -401,6 +403,13 @@ def handle_back(message):
             app.send_message(message.chat.id, f"the error is: {e}")
 
 
+
+# @app.callback_query_handler(func=lambda call: call.data == 'finish_attributes')
+# def handle_finish_attributes(callback_query: types.CallbackQuery):
+    # # پس از فشردن دکمه پایان، به مرحله دریافت تصاویر می‌رویم
+    # chat_id = callback_query.message.chat.id
+    # product_bot.ProductState.set_state(chat_id, product_bot.ProductState.MAIN_IMAGE)
+    # app.send_message(chat_id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
 
 # balance
 @app.message_handler(func=lambda message: message.text=="🧮 موجودی")

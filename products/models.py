@@ -162,7 +162,6 @@ class Category(models.Model):
 from django.db import models
 
 class Product(models.Model):
-    id = models.BigAutoField(primary_key=True)  # شناسه خودکار بزرگ برای مقیاس‌پذیری
     name = models.CharField(max_length=100, verbose_name='Product Name')
     slug = models.SlugField(unique=True, verbose_name='Slug')
     brand = models.CharField(max_length=50, blank=True, null=True, verbose_name='Brand')
@@ -179,14 +178,12 @@ class Product(models.Model):
     code = models.CharField(max_length=10, unique=True, editable=False, blank=True)  # فیلد کد ده رقمی
 
     def save(self, *args, **kwargs):
-        # ابتدا رکورد را ذخیره کنید تا id مقداردهی شود
-        if not self.id:
-            super().save(*args, **kwargs)
-        
-        # پس از ذخیره، کد را مقداردهی کنید
-        if not self.code:  # در صورتی که کد هنوز تنظیم نشده باشد
-            self.code = f"{self.id:010d}"  # فرمت ده رقمی
-            super().save(*args, **kwargs)  # دوباره ذخیره کنید تا کد نیز ذخیره شود
+        # در صورتی که کد هنوز تنظیم نشده باشد، از شمارنده استفاده می‌کنیم
+        if not self.code:
+            product_code_counter, created = ProductCodeCounter.objects.get_or_create(id=1)
+            self.code = product_code_counter.get_next_code()  # دریافت کد جدید از شمارنده
+        super().save(*args, **kwargs)
+
 
 
     def __str__(self):
@@ -222,7 +219,17 @@ class ProductAttribute(models.Model):
     def __str__(self):
         return f"{self.key}: {self.value}"
         
-        
+
+class ProductCodeCounter(models.Model):
+    # برای مدیریت شمارنده کد محصولات
+    counter = models.BigIntegerField(default=1, unique=True)
+
+    def get_next_code(self):
+        # افزایش شمارنده و بازگشت کد جدید
+        self.counter += 1
+        self.save()
+        return f"{self.counter:010d}"  # فرمت ده رقمی
+
         
 class Store(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='store', verbose_name='Store Owner')

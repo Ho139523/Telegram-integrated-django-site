@@ -23,7 +23,7 @@ from telebot import custom_filters
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu
+from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu, home_menu
 from bs4 import BeautifulSoup
 
 # import models
@@ -256,6 +256,7 @@ def start(message):
         tel_first_name = message.from_user.first_name
         tel_last_name = message.from_user.last_name
         response = requests.post(f"{current_site}/telbot/api/check-registration/", json={"tel_id": tel_id})
+        print(response.status_code)
 
         if response.status_code == 201:
             app.send_message(
@@ -263,6 +264,7 @@ def start(message):
                 f"🏆 {tel_first_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
             )
         else:
+            print("why")
             app.send_message(
                 message.chat.id,
                 f"{tel_first_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
@@ -364,9 +366,28 @@ def add_product(message):
         if profile.seller_mode:
             try:
                 product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
-                product_bot.bot.send_message(message.chat.id, "لطفاً نام محصول را وارد کنید:")
+                markup = send_menu(message, ["منصرف شدم"], message.text)
+                product_bot.bot.send_message(message.chat.id, "لطفاً نام محصول را وارد کنید:", reply_markup=markup)
             except Exception as e:
                 print(e)
+        else:
+            product_bot.bot.send_message(message.chat.id, "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به افزودن کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
+                
+                
+@app.message_handler(func=lambda message: message.text=="حذف کالا")
+def remove_product(message):
+    """Start the product deletion process."""
+    if subscription.subscription_offer(message):
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        if profile.seller_mode:
+            try:
+                product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
+                markup = send_menu(message, [], "deletion", ["منصرف شدم"])
+                product_bot.bot.send_message(message.chat.id, "کد کالایی که می خواهید حذف کنید را وارد کنید", reply_markup=markup)
+            except Exception as e:
+                print(e)
+        else:
+            product_bot.bot.send_message(message.chat.id, "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به حذف کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
 
 
 # Back to Previous Menu

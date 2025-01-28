@@ -33,6 +33,9 @@ import os
 import requests
 from django.conf import settings
 
+from utils.telbot.variables import home_menu
+import traceback
+
 def get_tunnel_password():
     try:
         result = subprocess.run(
@@ -129,7 +132,7 @@ def validate_username(username):
     
     
     
-def send_product_message(app, message, product, current_site):
+def send_product_message(app, message, product, current_site, buttons=True):
     formatted_price = "{:,.0f}".format(float(product.price))
     formatted_final_price = "{:,.0f}".format(float(product.final_price))
     
@@ -144,19 +147,27 @@ def send_product_message(app, message, product, current_site):
     # for att in product.
     
     attributes = product.attributes.filter(product=product)
-    attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" for attr in attributes])
+
+    # تولید متن ویژگی‌ها
+    if attributes.exists():
+        attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in attributes])
+        attribute_text = f"✅ {attribute_text}\n\n"  # اضافه کردن تیک سبز فقط در صورت وجود ویژگی‌ها
+    else:
+        attribute_text = ""  # در صورت نبود ویژگی، متن ویژگی‌ها خالی باشد
     
+    brand_text = f"🔖 برند کالا: {product.brand}\n" if product.brand else ""
+    description_text = f"🔖 برند کالا: {product.description}\n" if product.description else ""
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"
-        f"🔖 برند کالا: {product.brand}\n"
+        f"{brand_text}"
         f"کد کالا: {product.code}\n\n"
-        f"{product.description}\n\n"
-        f"✅ {attribute_text}\n\n"
+        f"{description_text}\n"
+        f"{attribute_text}"
         f"🔘 فروش با ضمانت ارویجینال💯\n"
         f"📫 ارسال به تمام نقاط کشور\n\n"
         f"{price_text}\n"
     )
-    
+
     # Prepare photos
     photos = [
         types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
@@ -167,15 +178,52 @@ def send_product_message(app, message, product, current_site):
     if len(photos) > 10:
         photos = photos[:10]  # Limit to 10 photos
     
-    # Create inline keyboard markup
-    markup = types.InlineKeyboardMarkup()
-    buy_button = types.InlineKeyboardButton(text="💰 خرید", callback_data='check_website_subscription')
-    add_to_basket_button = types.InlineKeyboardButton(text="🛒", url=f"{current_site}/buy/product/{product.code}")
-    markup.add(add_to_basket_button, buy_button)
-    
     # Send product photos and message
     app.send_media_group(message.chat.id, media=photos)
-    app.send_message(message.chat.id, "برای خرید یا افزودن کالا به سبد خرید کلیک کیند 👇👇👇", reply_markup=markup)
+    
+    # Create inline keyboard markup
+    if buttons:
+        url = current_site + "/buy/"
+
+        # درخواست برای دریافت اطلاعات محصول
+        product_response = requests.get(current_site + "/api/products/", params={"code": product.code})
+
+        # بررسی وضعیت پاسخ
+        print("Product Response Status Code:", product_response.status_code)
+        print("Product Response Content:", product_response.text)
+
+        if product_response.status_code == 200:
+            try:
+                # داده‌های محصول را از پاسخ دریافت کنید
+                product_data = product_response.json()
+                print("Product Data:", product_data)
+                
+                # ارسال اطلاعات محصول به تابع خرید
+                response = requests.post(url, json={"data": product_data})
+                print("Buy Response Status Code:", response.status_code)
+                print("Buy Response Content:", response.text)
+
+                if response.status_code == 200:
+                    # دریافت URL بازگشتی برای خرید
+                    redirect_url = response.json().get("redirect_url")
+                    markup = types.InlineKeyboardMarkup()
+                    buy_button = types.InlineKeyboardButton(text="💰 خرید", url=redirect_url)
+                    markup.add(buy_button)
+                    app.send_message(
+                        message.chat.id,
+                        "برای خرید یا افزودن کالا به سبد خرید کلیک کنید 👇👇👇",
+                        reply_markup=markup
+                    )
+                else:
+                    app.send_message(message.chat.id, "مشکلی در پردازش درخواست خرید به وجود آمد.")
+            except Exception as e:
+                print("Error while processing product data:", e)
+                app.send_message(message.chat.id, "خطایی در پردازش اطلاعات محصول رخ داد.")
+        else:
+            app.send_message(message.chat.id, "مشکلی در دریافت اطلاعات کالا به وجود آمد.")
+
+
+
 
 ############################  CHECK SUBSCRIPTION  ############################
 
@@ -325,7 +373,7 @@ def download_and_save_image(file_id, bot):
         downloaded_file = bot.download_file(file_info.file_path)
         
         # مسیر ذخیره‌سازی
-        file_path = f"product_images/{file_info.file_path.split('/')[-1]}"
+        file_path = str(settings.MEDIA_ROOT).replace('\\', '/') + "/product_images/" + file_info.file_path.split('/')[-1]
         
         # ذخیره فایل در سیستم
         with open(file_path, 'wb') as new_file:
@@ -334,6 +382,7 @@ def download_and_save_image(file_id, bot):
     except Exception as e:
         print(f"خطا در ذخیره تصویر: {e}")
         return None
+
 
 
 
@@ -358,6 +407,7 @@ class ProductBot:
         MAIN_IMAGE = "main_image"
         ADDITIONAL_IMAGES = "additional_images"
         ATTRIBUTES = "attributes"
+        DELETE = "delete"
         
         def __init__(self):
             self.user_menus = {}
@@ -372,7 +422,7 @@ class ProductBot:
 
     def register_handlers(self):
         """Register message handlers."""
-        # self.bot.register_message_handler(self.start, func=lambda message: message.text == "افزودن کالا")
+        self.bot.register_message_handler(self.cancle_request, func=lambda message: message.text == "منصرف شدم")
         self.bot.register_message_handler(self.get_name, func=self.is_state(self.ProductState.NAME))
         self.bot.register_message_handler(self.get_brand, func=self.is_state(self.ProductState.BRAND))
         self.bot.register_message_handler(self.get_price, func=self.is_state(self.ProductState.PRICE))
@@ -384,6 +434,7 @@ class ProductBot:
         self.bot.register_message_handler(self.get_product_attributes, func=self.is_state(self.ProductState.ATTRIBUTES))
         self.bot.register_message_handler(self.get_main_image, func=self.is_state(self.ProductState.MAIN_IMAGE), content_types=["photo"])
         self.bot.register_message_handler(self.get_additional_images, func=self.is_state(self.ProductState.ADDITIONAL_IMAGES), content_types=["photo"])
+        self.bot.register_message_handler(self.delete, func=self.is_state(self.ProductState.DELETE))
 
     def is_state(self, state):
         """Check if the current state matches the given state."""
@@ -416,12 +467,17 @@ class ProductBot:
     def get_name(self, message: Message):
         self.save_user_data(message.chat.id, "name", message.text)
         self.set_state(message.chat.id, self.ProductState.BRAND)
-        self.bot.send_message(message.chat.id, "لطفاً برند محصول را وارد کنید (اختیاری):")
+        markup = send_menu(message, ["بدون برند"], message.text, ["منصرف شدم"])
+        self.bot.send_message(message.chat.id, "لطفاً برند محصول را وارد کنید (اختیاری):", reply_markup=markup)
 
     def get_brand(self, message: Message):
-        self.save_user_data(message.chat.id, "brand", message.text)
+        if message.text == "بدون برند":
+            self.save_user_data(message.chat.id, "brand", None)
+        else:
+            self.save_user_data(message.chat.id, "brand", message.text)
         self.set_state(message.chat.id, self.ProductState.PRICE)
-        self.bot.send_message(message.chat.id, "لطفاً قیمت محصول را وارد کنید:")
+        markup = send_menu(message, ["منصرف شدم"], message.text)
+        self.bot.send_message(message.chat.id, "لطفاً قیمت محصول را وارد کنید:", reply_markup=markup)
 
     def get_price(self, message: Message):
         try:
@@ -445,7 +501,7 @@ class ProductBot:
         try:
             stock = int(message.text)
             self.save_user_data(message.chat.id, "stock", stock)
-            markup = send_menu(message, ["بله", "خیر"], message.text, home_menu)
+            markup = send_menu(message, ["بله", "خیر"], message.text, ["منصرف شدم"])
             app.send_message(message.chat.id, "آیا در انبار موجود است:", reply_markup=markup)
             self.set_state(message.chat.id, self.ProductState.IS_AVAILABLE)
         except ValueError:
@@ -542,8 +598,8 @@ class ProductBot:
             selected_category_title = message.text.strip()
             
             if message.text == "🔙":
-                print("yes")
                 self.display_category_menu(message, selected_category_title)
+                return 
             
             # بررسی وجود دسته‌بندی انتخابی
             elif not Category.objects.filter(title__iexact=selected_category_title, status=True).exists():
@@ -564,16 +620,21 @@ class ProductBot:
                 self.save_user_data(message.chat.id, "category", selected_category)
                 self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
                 main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
-                markup = send_menu(message, main_menu, "main menu", home_menu)
+                markup = send_menu(message, ["توضیحات ندارد"], "main menu", ["منصرف شدم"])
                 self.bot.send_message(message.chat.id, "لطفاً توضیحات محصول را وارد کنید (اختیاری):", reply_markup=markup)
         except Exception as e:
-            self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-            print(f"Error: {e}")
+            error_details = traceback.format_exc()
+            custom_message = f"An error occurred: {e}\nDetails:\n{error_details}"
+            self.bot.send_message(message.chat.id, f"{custom_message}")
 
 
 
     def get_description(self, message: Message):
-        self.save_user_data(message.chat.id, "description", message.text)
+        self.save_user_data(message.chat.id, "product_attributes", {})
+        if message.text == "توضیحات ندارد":
+            self.save_user_data(message.chat.id, "description", None)
+        else:
+            self.save_user_data(message.chat.id, "description", message.text)
         self.set_state(message.chat.id, self.ProductState.ATTRIBUTES)
         markup = types.InlineKeyboardMarkup()
         finish_button = types.InlineKeyboardButton(text="پایان", callback_data="finish_attributes")
@@ -594,6 +655,17 @@ class ProductBot:
         finish_button = types.InlineKeyboardButton(text="پایان", callback_data="finish_attributes")
         markup.add(finish_button)
         
+        key = message.text.split(":")[0]  # کلید ویژگی (مانند "وزن")
+        if ":" not in message.text:
+            value = ""
+        else:
+            value = message.text.split(":")[1]  # مقدار ویژگی (مانند "1kg")
+        user_data = self.user_data.get(message.chat.id, {})
+        product_attributes = user_data["product_attributes"]
+        product_attributes[key] = value
+        
+        self.save_user_data(message.chat.id, "product_attributes", product_attributes)
+        
         self.bot.send_message(
             message.chat.id, 
             "لطفاً ویژگی‌های تبلیغاتی محصول را یک به یک بنویسید و در انتها دکمه پایان را ارسال کنید.",
@@ -603,39 +675,20 @@ class ProductBot:
 
     
     def handle_finish_attributes(self, callback_query: types.CallbackQuery):
-        # پس از فشردن دکمه پایان، به مرحله دریافت تصاویر می‌رویم
-        chat_id = callback_query.message.chat.id
-        self.set_state(chat_id, self.ProductState.MAIN_IMAGE)
-        self.bot.send_message(chat_id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
+        try:
+            chat_id = callback_query.message.chat.id
+            
+            self.set_state(chat_id, self.ProductState.MAIN_IMAGE)
+            self.bot.send_message(chat_id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
+        except Exception as e:
+            self.bot.send_message(callback_query.message.chat.id, "خطا در ذخیره ویژگی رخ داده است.")
+            print(f"Error: {e}")
         
         
     def register_handle_finish_attributes(self):
         self.bot.callback_query_handler(func=lambda call: call.data == 'finish_attributes')(self.handle_finish_attributes)
 
-    def receive_product_attribute(self, message: Message):
-        try:
-            # اگر پیام دریافتی "پایان" نباشد، ویژگی را ذخیره می‌کنیم
-            if message.text.lower() != "پایان":
-                user_data = self.user_data.get(message.chat.id, {})
-                product = Product.objects.get(id=user_data["product_id"])  # بازیابی محصولی که در حال ایجاد است
-
-                # ذخیره ویژگی در مدل ProductAttribute
-                ProductAttribute.objects.create(
-                    product=product,
-                    key=message.text.split(":")[0],  # کلید ویژگی (مانند "وزن")
-                    value=message.text.split(":")[1]  # مقدار ویژگی (مانند "1kg")
-                )
-
-                self.bot.send_message(message.chat.id, "ویژگی با موفقیت ذخیره شد. ویژگی بعدی را ارسال کنید یا 'پایان' را بزنید.")
-            
-            else:
-                # در صورتی که پیام "پایان" باشد، به مرحله دریافت تصاویر می‌رویم
-                self.set_state(message.chat.id, self.ProductState.MAIN_IMAGE)
-                self.bot.send_message(message.chat.id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
-        
-        except Exception as e:
-            self.bot.send_message(message.chat.id, "خطا در ذخیره ویژگی رخ داده است.")
-            print(f"Error: {e}")
+    
 
     def get_main_image(self, message: Message):
         try:
@@ -651,6 +704,8 @@ class ProductBot:
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
             print(f"Error: {e}")
+
+
 
     def get_additional_images(self, message: Message):
         try:
@@ -672,7 +727,6 @@ class ProductBot:
                 # بازیابی اطلاعات کاربر
                 user_data = self.user_data.get(message.chat.id, {})
                 slug = generate_unique_slug(Product, user_data["name"])
-                
                 # ایجاد و ذخیره محصول
                 product = Product.objects.create(
                     name=user_data["name"],
@@ -687,11 +741,21 @@ class ProductBot:
                     main_image=user_data["main_image"],
                 )
                 
+                for key, value in user_data["product_attributes"].items():
+                    ProductAttribute.objects.create(
+                        product=product,
+                        key=key,  # کلید ویژگی (مانند "وزن")
+                        value=value  # مقدار ویژگی (مانند "1kg")
+                    )
+                
+                
+                
                 # ذخیره تصاویر اضافی مرتبط با محصول
                 for image_path in additional_images:
                     ProductImage.objects.create(product=product, image=image_path)
                     
-                self.bot.send_message(message.chat.id, "اطلاعات محصول با موفقیت ثبت شد!")
+                markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu, message.text, ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu)
+                self.bot.send_message(message.chat.id, "اطلاعات محصول با موفقیت ثبت شد!", reply_markup=markup)
                 self.reset_state(message.chat.id)
             else:
                 self.bot.send_message(message.chat.id, f"لطفاً {3 - len(additional_images)} تصویر دیگر ارسال کنید:")
@@ -699,9 +763,63 @@ class ProductBot:
             error_message = traceback.format_exc()
             self.bot.send_message(message.chat.id, f"خطایی رخ داده است: {e}\nجزئیات:\n{error_message}")
             print(error_message)
+            
 
+    def delete(self, message: Message):
+        try:
+            if message.text=="منصرف شدم":
+                self.cancle_request(message)
+            else:
+                code=message.text
+                product = Product.objects.get(code=code)
+                send_product_message(self.bot, message, product, current_site='https://intelleum.ir', buttons=False)
+                menu = ["بله مطمئنم", "منصرف شدم"]
+                markup = send_menu(message, menu, "main menu", home_menu)
+                self.bot.send_message(message.chat.id, f"آیا از حذف این کالا اطمینان داری؟", reply_markup=markup)
+                self.bot.register_next_step_handler(message, self.delete_sure, product)
+                self.reset_state(message.chat.id)
+                
+        except Product.DoesNotExist:
+            self.bot.send_message(message.chat.id, "کالایی با این کد وجود ندارد.")
+            return
+            
+           
+    
+    def delete_sure(self, message, product):
+        try:
+            if message.text=="بله مطمئنم":
+                product.delete()
+                main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
+                extra_button_menu = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
+                markup = send_menu(message, main_menu, "main menu", extra_button_menu)
+                self.bot.send_message(message.chat.id, f"کالای مورد نظر با موفقیت حذف شد.", reply_markup=markup)
+                self.reset_state(message.chat.id)
+                
+            elif message.text=="منصرف شدم":
+                self.cancle_request(message)
+                return 
+        except Exception as e:
+            self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+            print(f"Error: {e}")
+            
+    def cancle_request(self, message):
+        if subscription.subscription_offer(message):
+            main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
+            extra_button_menu = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
+            markup = send_menu(message, main_menu, "main menu", extra_button_menu)
+            self.bot.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+            self.reset_state(message.chat.id)
+            return
+            
+            
+def send_payment_link(app, context):
+    chat_id = update.message.chat_id
+    email = "example@test.com"  # ایمیل کاربر
+    mobile = "09123456789"  # شماره موبایل کاربر
+    amount = 100000  # مبلغ پرداخت
+    description = "توضیحات کالا"
 
+    # ساخت لینک پرداخت
+    payment_url = f"http://intelleum.ir/buy/{amount}/{description}/?email={email}&mobile={mobile}"
 
-
-
-
+    return payment_url

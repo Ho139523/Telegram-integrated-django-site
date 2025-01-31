@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.models import User
+from accounts.models import User, ProfileModel
 
 
 class CategoryModel(models.Model):
@@ -162,6 +162,7 @@ class Category(models.Model):
 from django.db import models
 
 class Product(models.Model):
+    profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="profilemodel")
     name = models.CharField(max_length=100, verbose_name='Product Name')
     slug = models.SlugField(unique=True, verbose_name='Slug')
     brand = models.CharField(max_length=50, blank=True, null=True, verbose_name='Brand')
@@ -176,13 +177,6 @@ class Product(models.Model):
     main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')
     additional_images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
     code = models.CharField(max_length=10, unique=True, editable=False, blank=True)  # فیلد کد ده رقمی
-
-    def save(self, *args, **kwargs):
-        # در صورتی که کد هنوز تنظیم نشده باشد، از شمارنده استفاده می‌کنیم
-        if not self.code:
-            product_code_counter, created = ProductCodeCounter.objects.get_or_create(id=1)
-            self.code = product_code_counter.get_next_code()  # دریافت کد جدید از شمارنده
-        super().save(*args, **kwargs)
 
 
 
@@ -199,6 +193,19 @@ class Product(models.Model):
     class Meta:
         verbose_name = "Product"
         verbose_name_plural = "Products"
+    
+    def clean(self):
+        if self.price < 10000:
+            raise ValidationError({'price': 'قیمت نمی‌تواند کمتر از 10000 باشد.'})
+    
+        
+    def save(self, *args, **kwargs):
+        # در صورتی که کد هنوز تنظیم نشده باشد، از شمارنده استفاده می‌کنیم
+        self.clean()  # اجرای اعتبارسنجی هنگام ذخیره
+        if not self.code:
+            product_code_counter, created = ProductCodeCounter.objects.get_or_create(id=1)
+            self.code = product_code_counter.get_next_code()  # دریافت کد جدید از شمارنده
+        super().save(*args, **kwargs)
 
 
 

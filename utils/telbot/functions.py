@@ -156,7 +156,7 @@ def send_product_message(app, message, product, current_site, buttons=True):
         attribute_text = ""  # در صورت نبود ویژگی، متن ویژگی‌ها خالی باشد
     
     brand_text = f"🔖 برند کالا: {product.brand}\n" if product.brand else ""
-    description_text = f"🔖 برند کالا: {product.description}\n" if product.description else ""
+    description_text = f"{product.description}\n" if product.description else ""
     caption = (
         f"\n⭕️ نام کالا: {product.name}\n"
         f"{brand_text}"
@@ -199,7 +199,12 @@ def send_product_message(app, message, product, current_site, buttons=True):
                 print("Product Data:", product_data)
                 
                 # ارسال اطلاعات محصول به تابع خرید
-                response = requests.post(url, json={"data": product_data})
+                message_data = {
+                    "chat_id": message.chat.id,
+                    "username": message.from_user.username,
+                    "first_name": message.from_user.first_name
+                }
+                response = requests.post(url, json={"data": product_data, "message": message_data})
                 print("Buy Response Status Code:", response.status_code)
                 print("Buy Response Content:", response.text)
 
@@ -481,21 +486,62 @@ class ProductBot:
 
     def get_price(self, message: Message):
         try:
+            # تلاش برای تبدیل پیام به عدد
             price = float(message.text)
+
+            # بررسی اینکه قیمت معتبر است یا خیر
+            if price < 10000:
+                self.bot.send_message(
+                    message.chat.id,
+                    "❌ قیمت وارد شده کمتر از حد مجاز (10000) است. لطفاً قیمتی معتبر وارد کنید:"
+                )
+                return  # خروج از تابع تا کاربر دوباره قیمت وارد کند
+
+            # ذخیره قیمت در داده‌های کاربر
             self.save_user_data(message.chat.id, "price", price)
             self.set_state(message.chat.id, self.ProductState.DISCOUNT)
+
+            # ارسال پیام برای درخواست درصد تخفیف
             self.bot.send_message(message.chat.id, "درصد تخفیف را وارد کنید:")
         except ValueError:
-            self.bot.send_message(message.chat.id, "قیمت باید یک عدد باشد!")
+            # مدیریت خطای تبدیل مقدار نامعتبر
+            self.bot.send_message(
+                message.chat.id,
+                "❌ قیمت باید یک عدد باشد! لطفاً دوباره تلاش کنید:"
+            )
 
     def get_discount(self, message: Message):
         try:
+            # تلاش برای تبدیل تخفیف به عدد
             discount = float(message.text)
+
+            # دریافت قیمت و محاسبه قیمت نهایی
+            user_data = self.user_data.get(message.chat.id, {})
+            price = user_data.get("price", 0)
+            final_price = price - ((price * discount) / 100)
+
+            # بررسی اینکه قیمت نهایی معتبر است یا خیر
+            if final_price < 10000:
+                self.bot.send_message(
+                    message.chat.id,
+                    "❌ قیمت نهایی پس از تخفیف کمتر از حد مجاز (10000) است. لطفاً دوباره قیمت اصلی را وارد کنید:"
+                )
+                self.set_state(message.chat.id, self.ProductState.PRICE)  # بازگشت به مرحله قیمت
+                return
+
+            # ذخیره تخفیف در داده‌های کاربر و ادامه به مرحله بعد
             self.save_user_data(message.chat.id, "discount", discount)
             self.set_state(message.chat.id, self.ProductState.STOCK)
+
+            # ارسال پیام برای دریافت توضیحات
             self.bot.send_message(message.chat.id, "موجودی محصول را وارد کنید:")
         except ValueError:
-            self.bot.send_message(message.chat.id, "تخفیف باید یک عدد باشد!")
+            # مدیریت خطای تبدیل مقدار نامعتبر
+            self.bot.send_message(
+                message.chat.id,
+                "❌ درصد تخفیف باید یک عدد باشد! لطفاً دوباره تلاش کنید:"
+            )
+
 
     def get_stock(self, message: Message):
         try:
@@ -637,7 +683,7 @@ class ProductBot:
             self.save_user_data(message.chat.id, "description", message.text)
         self.set_state(message.chat.id, self.ProductState.ATTRIBUTES)
         markup = types.InlineKeyboardMarkup()
-        finish_button = types.InlineKeyboardButton(text="پایان", callback_data="finish_attributes")
+        finish_button = types.InlineKeyboardButton(text="هیچ ویژگی تبلیغاتی مد نظرم نیست ...!", callback_data="finish_attributes")
         markup.add(finish_button)
         
         self.bot.send_message(
@@ -645,8 +691,12 @@ class ProductBot:
             "لطفاً ویژگی‌های تبلیغاتی محصول را یک به یک بنویسید و در انتها دکمه پایان را ارسال کنید.",
             reply_markup=markup
         )
-        
-        
+        markup = send_menu(message, [], "main menu", ["منصرف شدم"])
+        self.bot.edit_message_reply_markup(
+            chat_id=message.chat.id,
+            message_id=message.message_id,
+            reply_markup=markup
+        )
 
 
     def get_product_attributes(self, message: Message):
@@ -729,6 +779,7 @@ class ProductBot:
                 slug = generate_unique_slug(Product, user_data["name"])
                 # ایجاد و ذخیره محصول
                 product = Product.objects.create(
+                    profile=ProfileModel.objects.get(tel_id=message.from_user.id),
                     name=user_data["name"],
                     slug=slug,
                     brand=user_data["brand"],

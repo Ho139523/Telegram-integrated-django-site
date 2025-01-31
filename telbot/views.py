@@ -513,7 +513,7 @@ def handle_product_code(message):
     if subscription.subscription_offer(message):
         chat_id = message.chat.id
         product_code = message.text
-        if re.match(r'^[A-Z]{4}\d{6}$', message.text):
+        if re.match(r'^\d{10}$', message.text):
             
             if Product.objects.get(code=message.text):
                 product=Product.objects.get(code=message.text)

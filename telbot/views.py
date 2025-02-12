@@ -12,6 +12,11 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
 from django.utils.html import format_html
+import os
+from reportlab.pdfgen import canvas
+from django.http import HttpResponse
+from django.conf import settings as sett
+from datetime import datetime
 
 
 # support imports
@@ -28,6 +33,7 @@ from bs4 import BeautifulSoup
 
 # import models
 from products.models import Category, Product, ProductAttribute
+from payment.models import Transaction
 from telbot.models import ConversationModel, MessageModel
 from telebot.types import Message
 
@@ -55,10 +61,11 @@ from django.db import transaction
 from django.core.files.base import ContentFile
 
 # functions and classes
-from utils.telbot.functions import subscription, CategoryClass
+from utils.telbot.functions import SubscriptionClass, CategoryClass
 
 # python tools
 from functools import wraps
+from django.db.models.functions import Lower
 
 ###############################################################################################
 
@@ -73,7 +80,8 @@ app = TeleBot(token=TOKEN, state_storage=state_storage)
 current_site = 'https://intelleum.ir'
 
 # subscription instance
-subscription= SubscriptionClass()
+subscription= SubscriptionClass(app)
+subscription.register_handlers()
 
 # Tracking user menu history
 from telbot.sessions import session_manager
@@ -96,6 +104,15 @@ main_menu = customer_main_menu
 ################################################################################################
 
 # Webhook settings
+from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class TelegramBotWebhookView(View):
     def post(self, request, *args, **kwargs):
@@ -108,9 +125,6 @@ class TelegramBotWebhookView(View):
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")
             return JsonResponse({"status": "error", "message": str(e)}, status=200)
-            
-            
-
 
 #################################################################################################
 
@@ -390,6 +404,169 @@ def remove_product(message):
             product_bot.bot.send_message(message.chat.id, "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به حذف کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
 
 
+
+
+
+
+import os
+import arabic_reshaper
+from bidi.algorithm import get_display
+from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+import pandas as pd
+
+@app.message_handler(func=lambda message: message.text == "آمار فروش")
+def sale_statistics(message):
+    try:
+        if subscription.subscription_offer(message):
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            store = Store.objects.filter(profile=profile).first()
+
+            if not store:
+                app.send_message(message.chat.id, "❌ شما فروشنده نیستید.")
+                return
+
+            if profile.seller_mode:
+                try:
+                    sales = Transaction.objects.filter(product__store=store, status="paid").order_by("-created_at")
+
+                    if not sales.exists():
+                        app.send_message(message.chat.id, "متاسفانه شما تا کنون فروشی نداشته‌اید!", parse_mode="HTML")
+                        return
+
+                    today_date = datetime.today().strftime('%Y-%m-%d')
+                    directory = os.path.join(sett.MEDIA_ROOT, "sale_reports")
+                    if not os.path.exists(directory):
+                        os.makedirs(directory)
+
+                    file_path = os.path.join(directory, f"{store.name}_{store.profile.fname} {store.profile.lname}_{today_date}.pdf")
+
+                    font_path = os.path.join(sett.MEDIA_ROOT, "fonts", "Vazir.ttf")
+                    pdfmetrics.registerFont(TTFont("Vazir", font_path))
+
+                    p = canvas.Canvas(file_path, pagesize=A4)
+                    p.setFont("Vazir", 14)
+                    
+                    
+                    # رسم کادر ضخیم دور صفحه
+                    border_margin = 28  # معادل 1 سانتی‌متر (هر واحد در ReportLab تقریباً 2.83 پیکسل است)
+                    p.setStrokeColorRGB(0, 0, 0)  # رنگ مشکی
+                    p.setLineWidth(5)  # ضخامت خط
+                    p.rect(border_margin, border_margin, A4[0] - 2 * border_margin, A4[1] - 2 * border_margin)
+
+                    
+
+                    # 🖼️ **درج لوگوی فروشگاه در گوشه بالا-چپ با فاصله ۰.۲۵ سانتی‌متر**
+                    logo_dir = os.path.join(sett.MEDIA_ROOT, "store_logos")
+                    store_logo_path = os.path.join(logo_dir, f"{store.name}.png")
+                    default_logo_path = os.path.join(logo_dir, "default_store.png")  # لوگوی پیش‌فرض
+
+                    logo_x = 65  # فاصله 0.25 سانتی‌متر از چپ
+                    logo_y = A4[1] - 125  # فاصله 0.25 سانتی‌متر از بالا (60 ارتفاع لوگو)
+
+                    if os.path.exists(store_logo_path):
+                        p.drawImage(store_logo_path, logo_x, logo_y, width=70, height=70, mask='auto')
+                    else:
+                        p.drawImage(default_logo_path, logo_x, logo_y, width=70, height=70, mask='auto')
+
+                    # 📊 **عنوان گزارش**
+                    title_text = get_display(arabic_reshaper.reshape(f"📊 گزارش فروش فروشگاه: {store.name}"))
+                    p.drawCentredString(A4[0] / 2, A4[1] - 100, title_text)
+
+                    start_y = A4[1] - 160
+
+                    # ✅ **پردازش متون فارسی**
+                    headers = [
+                        get_display(arabic_reshaper.reshape("تاریخ")),
+                        get_display(arabic_reshaper.reshape("قیمت (تومان)")),
+                        get_display(arabic_reshaper.reshape("نام محصول")),
+                        get_display(arabic_reshaper.reshape("شماره"))
+                    ]
+                    
+                    data = [headers]
+
+                    for idx, sale in enumerate(sales, start=1):
+                        row = [
+                            get_display(arabic_reshaper.reshape(sale.created_at.strftime('%Y-%m-%d'))),
+                            f"{sale.amount:,.0f}",
+                            get_display(arabic_reshaper.reshape(sale.product.name)),
+                            str(idx)
+                        ]
+                        data.append(row)
+
+                    df = pd.DataFrame(data)
+
+                    table = Table(df.values.tolist(), colWidths=[100, 100, 200, 50], repeatRows=1)
+
+                    table.setStyle(TableStyle([
+                        ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ]))
+
+                    table_x = (A4[0] - 450) / 2
+                    table_y = start_y - (len(sales) * 20) - 40  
+                    table.wrapOn(p, A4[0], A4[1])
+                    table.drawOn(p, table_x, table_y)
+
+                    p.showPage()
+                    p.save()
+
+                    with open(file_path, "rb") as pdf_file:
+                        app.send_document(message.chat.id, pdf_file, caption="📄 گزارش فروش شما آماده است.")
+
+                    os.remove(file_path)
+
+                except Exception as e:
+                    app.send_message(message.chat.id, "❌ خطایی رخ داد. لطفاً مجدداً تلاش کنید.")
+                    print(e)
+            else:
+                app.send_message(message.chat.id, "شما در حالت فروشندگی قرار ندارید. تنها فروشندگان قادر به گرفتن آمار فروش خود هستند.\n\nمنو اصلی > تنظیمات ⚙ > فروشنده شو")
+    except Exception as e:
+        app.send_message(message.chat.id, f"your error is: {e}")
+
+
+
+
+
+
+
+# def handle_check_subscription(self, call):
+        # """✅ بررسی عضویت هنگام کلیک روی دکمه 'عضو شدم'"""
+        # chat_id = call.message.chat.id
+        # user_id = call.from_user.id
+
+        # # ✅ پاسخ اولیه به Callback Query
+        # app.answer_callback_query(call.id, "🔄 در حال بررسی عضویت شما...", show_alert=False)
+        # logger.info(f"📢 بررسی عضویت برای کاربر {user_id}")
+
+        # # بررسی عضویت
+        # is_member = self.check_subscription(user_id)  
+
+        # if is_member:
+            # app.edit_message_text("🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.",
+                                  # chat_id=chat_id, message_id=call.message.message_id)
+
+            # profile = ProfileModel.objects.get(tel_id=user_id)
+            # main_menu = profile.tel_menu
+            # extra_buttons = profile.extra_button_menu
+            # markup = send_menu(call.message, main_menu, "main_menu", extra_buttons)
+
+            # app.send_message(user_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+        # else:
+            # app.answer_callback_query(call.id, "❌ شما هنوز در کانال عضو نشده‌اید.", show_alert=True)
+
+
+
+
 # Back to Previous Menu
 @app.message_handler(func=lambda message: message.text == "🔙")
 def handle_back(message):
@@ -425,13 +602,6 @@ def handle_back(message):
 
 
 
-# @app.callback_query_handler(func=lambda call: call.data == 'finish_attributes')
-# def handle_finish_attributes(callback_query: types.CallbackQuery):
-    # # پس از فشردن دکمه پایان، به مرحله دریافت تصاویر می‌رویم
-    # chat_id = callback_query.message.chat.id
-    # product_bot.ProductState.set_state(chat_id, product_bot.ProductState.MAIN_IMAGE)
-    # app.send_message(chat_id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
-
 # balance
 @app.message_handler(func=lambda message: message.text=="🧮 موجودی")
 def balance_menue(message):
@@ -457,10 +627,9 @@ def buy_with_code(message):
 category_class = CategoryClass()
 @app.message_handler(func=lambda message: message.text == "🗂 دسته بندی ها")
 def category(message):
-    
-            category_class.handle_category(message)
+    category_class.handle_category(message)
 
-@app.message_handler(func=lambda message: message.text.title() in Category.objects.filter(title__iexact=message.text, status=True).values_list('title', flat=True))
+@app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in Category.objects.annotate(lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)])
 def subcategory(message):
     category_class.handle_subcategory(message)
 
@@ -477,8 +646,10 @@ def subcategory(message):
 def handle_ten_products(message):
     if subscription.subscription_offer(message):
         if message.text == "پر تخفیف ها":
-            if Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0).exists():
-                products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"], discount__gt=0).order_by("discount")[:10]
+            if Product.objects.annotate(lower_title=Lower('category__title')).filter(lower_title=user_sessions[message.chat.id]["current_menu"].lower(), discount__gt=0).exists():
+                
+                
+                products = Product.objects.annotate(lower_title=Lower('category__title')).filter(lower_title=user_sessions[message.chat.id]["current_menu"].lower(), discount__gt=0, status=True, category__status=True).order_by("discount")[:10]
             else:
                 products = []
 
@@ -486,10 +657,10 @@ def handle_ten_products(message):
             app.send_message(message.chat.id, f"🚧 با عرض پوزش هنوز این قابلیت فعال نشده است. 🚧")
             
         elif message.text=="ارزان ترین ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("-price")[:10]
+            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(lower_title=user_sessions[message.chat.id]["current_menu"].lower(), status=True, category__status=True).order_by("-price")[:10]
             
         elif message.text=="گران ترین ها":
-            products = Product.objects.filter(category__title=user_sessions[message.chat.id]["current_menu"]).order_by("price")[:10]
+            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(lower_title=user_sessions[message.chat.id]["current_menu"].lower(), status=True, category__status=True).order_by("price")[:10]
         
         if products==[]:
             app.send_message(message.chat.id, "متاسفانه این محصول شامل تخفیف نشده است")
@@ -501,7 +672,7 @@ def handle_ten_products(message):
         
         for product in products:
             try:
-                send_product_message(app, message, product, current_site)
+                send_product_message(app, message=message, product=product, current_site=current_site)
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
 
@@ -511,19 +682,30 @@ def handle_ten_products(message):
 @app.message_handler(state=Support.code)
 def handle_product_code(message):
     if subscription.subscription_offer(message):
-        chat_id = message.chat.id
-        product_code = message.text
-        if re.match(r'^\d{10}$', message.text):
-            
-            if Product.objects.get(code=message.text):
-                product=Product.objects.get(code=message.text)
-                try:
-                    send_product_message(app, message, product, current_site)
-                except Exception as e:
-                    app.send_message(message.chat.id, f"the error is: {e}")
-        else:
-            app.send_message(chat_id, "🚫 قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید. ⛔️")
-        app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+        try:
+            chat_id = message.chat.id
+            product_code = message.text
+            if re.match(r'^\d{10}$', message.text):
+                
+                if Product.objects.filter(code=message.text, status=True, category__status=True).exists():
+                    product=Product.objects.get(code=message.text, status=True, category__status=True)
+                    try:
+                        send_product_message(app, message=message, product=product, current_site=current_site)
+                    except Exception as e:
+                        app.send_message(message.chat.id, f"the error is: {e}")
+                elif Product.objects.filter(code=message.text, status=False, category__status=True).exists():
+                    app.send_message(message.chat.id, f"کالای مورد نظر توسط فروشنده غیر فعال شده است. \n\nبرای کسب اطلاع بیشتر با پشتیبانی این فروشنده ارتباط بگیربد.")
+                    
+                elif Product.objects.filter(code=message.text, status=True, category__status=False).exists():
+                    print("here")
+                    app.send_message(message.chat.id, f"دسته بندی {Product.objects.get(code=message.text, status=True, category__status=False).category.title} توسط فروشنده غیرفعال شده است لذا همه کالاهای موجود در این دسته بندی از جمله کالای مورد نظر شما نیز غیر فعال هستند.\n\n برای کسب اطلاع بیشتر با پشتیبان این فروشگاه ارتباط بگیرید.")
+                    
+            else:
+                app.send_message(chat_id, "🚫 قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید. ⛔️")
+            app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
+        except Exception as e:
+            app.send_message(message.chat.id, f"the error is: {e}")
+            print(f"the error is: {e}")
 
 
 

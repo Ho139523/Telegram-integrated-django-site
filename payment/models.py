@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from products.models import Product  # Ensure you have a Product model
+from products.models import Product, Store  # Ensure you have a Product model
 import uuid
 from accounts.models import ProfileModel
 
@@ -50,3 +50,15 @@ class Transaction(models.Model):
     def __str__(self):
         return f"Transaction {self.transaction_id} - {self.profile.fname} {self.profile.lname} - {self.status}"
 
+
+
+
+class Sale(models.Model):
+    seller = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="sales", verbose_name="Seller")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="sales", verbose_name="Product")
+    transaction = models.OneToOneField(Transaction, on_delete=models.CASCADE, related_name="sale", verbose_name="Transaction")
+    amount = models.PositiveIntegerField(verbose_name="Amount")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Sale Date")
+
+    def __str__(self):
+        return f"Sale: {self.product.name} - {self.seller.name} - {self.amount} تومان"

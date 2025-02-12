@@ -223,3 +223,7 @@ ZARINPAL = {
     'CALLBACK_URL': 'https://intelleum.ir/verify/',  # آدرس بازگشت
     'SANDBOX': True,  # برای محیط تست (False برای محیط واقعی)
 }
+
+
+SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
+CSRF_TRUSTED_ORIGINS = ['https://intelleum.ir']

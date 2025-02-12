@@ -1,5 +1,7 @@
-from django.db import models
+from django.db import models, transaction
 from accounts.models import User, ProfileModel
+from django.core.exceptions import ValidationError
+import os
 
 
 class CategoryModel(models.Model):
@@ -155,7 +157,21 @@ class Category(models.Model):
             "position": self.position,
             "stores": [store.name for store in self.stores.all()]  # Assuming Store model has a name field
         }
+        
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None  # بررسی کنیم آیا دسته جدید است
 
+        super().save(*args, **kwargs)  # ابتدا دسته جدید را ذخیره کنیم
+
+        if is_new and self.parent:  # اگر دسته جدید است و والد دارد
+            parent_category = self.parent
+
+            if parent_category.products.exists():
+                with transaction.atomic():
+                    parent_category.products.update(category=self)  # انتقال محصولات به دسته جدید
+
+
+        super().save(*args, **kwargs)  # ذخیره دسته‌بندی جدید
 
 
 
@@ -169,7 +185,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=20, decimal_places=2, verbose_name='Price')
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name='Discount (%)')
     stock = models.PositiveIntegerField(default=0, verbose_name='Stock')
-    is_available = models.BooleanField(default=True, verbose_name='Is Available')
+    status = models.BooleanField(default=True, verbose_name='Status')
     category = models.ForeignKey(
         'Category', on_delete=models.SET_NULL, null=True, related_name='products', verbose_name='Category'
     )
@@ -177,6 +193,7 @@ class Product(models.Model):
     main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')
     additional_images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
     code = models.CharField(max_length=10, unique=True, editable=False, blank=True)  # فیلد کد ده رقمی
+    store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='product_store', verbose_name='Store')
 
 
 
@@ -195,18 +212,34 @@ class Product(models.Model):
         verbose_name_plural = "Products"
     
     def clean(self):
+        """ بررسی اضافه کردن محصول به دسته‌بندی‌ای که دارای زیرمجموعه است """
+        if self.category and self.category.get_next_layer_categories().exists():
+            raise ValidationError(
+                {'category': "This category includes subcategory. So you can't add product to it."}
+            )
+
         if self.price < 10000:
             raise ValidationError({'price': 'قیمت نمی‌تواند کمتر از 10000 باشد.'})
-    
-        
+
     def save(self, *args, **kwargs):
-        # در صورتی که کد هنوز تنظیم نشده باشد، از شمارنده استفاده می‌کنیم
         self.clean()  # اجرای اعتبارسنجی هنگام ذخیره
         if not self.code:
             product_code_counter, created = ProductCodeCounter.objects.get_or_create(id=1)
-            self.code = product_code_counter.get_next_code()  # دریافت کد جدید از شمارنده
+            self.code = product_code_counter.get_next_code()
         super().save(*args, **kwargs)
+        
+    def delete(self, *args, **kwargs):
+        # حذف تصویر اصلی از سیستم
+        if self.main_image and os.path.isfile(self.main_image.path):
+            os.remove(self.main_image.path)
 
+        # حذف تمام تصاویر اضافی مرتبط و فایل‌های فیزیکی‌شان
+        for image in self.image_set.all():  # توجه به related_name جدید
+            if image.image and os.path.isfile(image.image.path):
+                os.remove(image.image.path)
+            image.delete()  # حذف رکورد از دیتابیس
+
+        super().delete(*args, **kwargs)  # حذف خود محصول از دیتابیس
 
 
 class ProductImage(models.Model):
@@ -215,6 +248,13 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image: {self.id}"
+        
+    def delete(self, *args, **kwargs):
+        # حذف فایل تصویر از سیستم
+        if self.image and os.path.isfile(self.image.path):
+            os.remove(self.image.path)
+        
+        super().delete(*args, **kwargs)  # حذف رکورد از دیتابیس
         
         
         
@@ -248,12 +288,12 @@ class ProductCodeCounter(models.Model):
 
         
 class Store(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='store', verbose_name='Store Owner')
+    profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="store")
     name = models.CharField(max_length=100, verbose_name='Store Name')
     address = models.CharField(max_length=255, verbose_name='Address')
     city = models.CharField(max_length=50, verbose_name='City')
     province = models.CharField(max_length=50, verbose_name='Province')
-    products = models.ManyToManyField(Product, blank=True, related_name='stores', verbose_name='Products')
+    logo = models.ImageField(upload_to="store_logos/", blank=True, null=True, verbose_name="Store Logo")
 
     def __str__(self):
         return self.name

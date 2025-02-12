@@ -4,9 +4,10 @@ from .zarinpal import ZarinPal
 import json
 from products.models import Product
 from accounts.models import ProfileModel
-from payment.models import Transaction
+from payment.models import Transaction, Sale
 import requests
 from utils.variables.TOKEN import TOKEN
+from django.shortcuts import render
 
 pay = ZarinPal()
 
@@ -41,7 +42,7 @@ def send_request(request):
 
 
                 # 🚀 لاگ پاسخ دریافتی از زرین‌پال
-                print(f"ZarinPal Response: {response}")
+                # print(f"ZarinPal Response: {response}")
 
                 authority = response.get("authority")
                 if not authority:
@@ -68,11 +69,13 @@ def send_request(request):
         return JsonResponse({"error": f"An internal error occurred. {str(e)}"}, status=500)
 
 
+
+from django.shortcuts import render
+
 @csrf_exempt
 def verify(request):
     try:
         authority = request.GET.get('Authority')
-        print(f"Received authority in verify: {authority}")
         status = request.GET.get('Status')
 
         if not authority:
@@ -87,30 +90,44 @@ def verify(request):
         # ارسال درخواست تأیید به زرین‌پال
         response = pay.verify(authority=authority, amount=transaction.amount * 10)
 
-        if response.get("transaction"):
-            if response.get("pay"):
-                transaction.mark_as_paid()  # وضعیت در دیتابیس را تغییر بده
+        if response.get("transaction") and response.get("pay"):
+            transaction.status = "paid"  # تغییر وضعیت تراکنش
+            transaction.save()
+            handle_successful_payment(transaction)  # اجرای تابع پردازش پرداخت موفق
+            return render(request, "payment/tel_payment_success.html")
+
+        else:
+            transaction.mark_as_failed()
+            return render(request, "payment/tel_payment_failed.html", {"chat_id": transaction.profile.tel_id, "message": "پرداخت ناموفق بود."})
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return JsonResponse({"error": f"An internal error occurred. {e}"}, status=500)
+
+
+
+def handle_successful_payment(transaction):
+    """ این تابع پس از پرداخت موفق اجرا می‌شود و اطلاعات فروش را ذخیره می‌کند """
+    print(transaction.status )
+    try:
+        if transaction.status == "paid":
+            # بررسی کنیم که این تراکنش قبلاً در مدل Sale ذخیره نشده باشد
+            print("hello-2")
+            if not Sale.objects.filter(transaction=transaction).exists():
                 
-                # ارسال پیام موفقیت به تلگرام
+                Sale.objects.create(
+                    seller=transaction.product.store,  # فروشنده را از مدل محصول دریافت می‌کنیم
+                    product=transaction.product,
+                    transaction=transaction,
+                    amount=transaction.amount
+                )
+                print("hello")
+                
+                # ارسال پیام به تلگرام
                 chat_id = transaction.profile.tel_id
                 telegram_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
                 message = f"✅ پرداخت شما با موفقیت انجام شد!\n🔹 مبلغ: {transaction.amount} تومان\n🛍 محصول: {transaction.product.name}"
                 requests.post(telegram_url, json={"chat_id": chat_id, "text": message})
 
-                return JsonResponse({"message": "Transaction successfully completed"}, status=200)
-
-            else:
-                transaction.mark_as_failed()  # اگر پرداخت قبلاً تأیید شده بود
-                return JsonResponse({"message": "Transaction already verified."}, status=400)
-
-        else:
-            if response.get("status") == "ok":
-                transaction.mark_as_failed()
-                return JsonResponse({"error": response.get("message")}, status=400)
-            elif response.get("status") == "cancel":
-                transaction.mark_as_canceled()
-                return JsonResponse({"error": "Transaction was canceled by user."}, status=400)
-
     except Exception as e:
-        print(f"Error: {e}")
-        return JsonResponse({"error": f"An internal error occurred. {e}"}, status=500)
+        print(f"Error in processing successful payment: {e}")

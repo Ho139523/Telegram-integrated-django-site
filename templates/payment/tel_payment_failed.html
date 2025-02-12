@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پرداخت ناموفق</title>
+    <script>
+        setTimeout(function() {
+            window.location.href = "https://t.me/your_bot_username"; // لینک به ربات تلگرام
+            window.close();
+        }, 3000);
+    </script>
+</head>
+<body>
+    <h2 style="color: red;">❌ پرداخت شما انجام نشد!</h2>
+    <p>{{ message|default:"متأسفیم، پرداخت شما ناموفق بود." }}</p>
+    <p>در حال بازگشت به تلگرام...</p>
+</body>
+</html>

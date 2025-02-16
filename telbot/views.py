@@ -348,6 +348,7 @@ def become_a_seller(message):
         profile.save()
         
         
+        
         markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
         
@@ -365,8 +366,37 @@ def back_to_buyer(message):
         markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 
-    
-    
+
+
+
+
+# @app.message_handler(func=lambda message: message.text.lower() == "test")
+# def send_buttons(message):
+    # chat_id = message.chat.id
+    # buttons = {
+        # f"{message.from_user.first_name} {message.from_user.last_name}": ("count", 0),
+        # "شماره تلفن": ("increase", 1),
+        # "ارز": ("decrease", 2),
+        # "بستن پنجره ❌": ("close", 3),
+    # }
+
+    # markup = SendMarkup(
+        # bot=app,
+        # chat_id=chat_id,
+        # text="🔹  نمایه شما :",
+        # buttons=buttons,
+        # button_layout=[1, 1, 1, 1]
+    # )
+
+    # markup.send()
+
+
+
+
+
+
+
+  
 # adding product
 product_bot = ProductBot(app)
 product_bot.register_handlers()
@@ -418,6 +448,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
+from reportlab.lib.utils import ImageReader
 import pandas as pd
 
 @app.message_handler(func=lambda message: message.text == "آمار فروش")
@@ -445,42 +476,39 @@ def sale_statistics(message):
                         os.makedirs(directory)
 
                     file_path = os.path.join(directory, f"{store.name}_{store.profile.fname} {store.profile.lname}_{today_date}.pdf")
-
                     font_path = os.path.join(sett.MEDIA_ROOT, "fonts", "Vazir.ttf")
                     pdfmetrics.registerFont(TTFont("Vazir", font_path))
 
                     p = canvas.Canvas(file_path, pagesize=A4)
                     p.setFont("Vazir", 14)
                     
+                    border_margin = 28  # حاشیه 1 سانتی‌متر
                     
-                    # رسم کادر ضخیم دور صفحه
-                    border_margin = 28  # معادل 1 سانتی‌متر (هر واحد در ReportLab تقریباً 2.83 پیکسل است)
-                    p.setStrokeColorRGB(0, 0, 0)  # رنگ مشکی
-                    p.setLineWidth(5)  # ضخامت خط
-                    p.rect(border_margin, border_margin, A4[0] - 2 * border_margin, A4[1] - 2 * border_margin)
+                    def draw_header_footer(page_num):
+                        p.setStrokeColorRGB(0, 0, 0)
+                        p.setLineWidth(5)
+                        p.rect(border_margin, border_margin, A4[0] - 2 * border_margin, A4[1] - 2 * border_margin)
+                        
+                        logo_dir = os.path.join(sett.MEDIA_ROOT, "store_logos")
+                        store_logo_path = os.path.join(logo_dir, f"{store.name}.png")
+                        default_logo_path = os.path.join(logo_dir, "default_store.png")
 
+                        logo_x = 65
+                        logo_y = A4[1] - 125
+
+                        logo_path = store_logo_path if os.path.exists(store_logo_path) else default_logo_path
+                        logo_image = ImageReader(logo_path)
+                        orig_width, orig_height = logo_image.getSize()
+
+                        new_height = 65
+                        new_width = (orig_width / orig_height) * new_height
+
+                        p.drawImage(logo_path, logo_x, logo_y, width=new_width, height=new_height, mask='auto')
+                        title_text = get_display(arabic_reshaper.reshape(f"📊 گزارش فروش فروشگاه: {store.name}"))
+                        p.drawCentredString(A4[0] / 2, A4[1] - 100, title_text)
+                        
+                        p.drawCentredString(A4[0] / 2, border_margin - 18, f"{page_num}")
                     
-
-                    # 🖼️ **درج لوگوی فروشگاه در گوشه بالا-چپ با فاصله ۰.۲۵ سانتی‌متر**
-                    logo_dir = os.path.join(sett.MEDIA_ROOT, "store_logos")
-                    store_logo_path = os.path.join(logo_dir, f"{store.name}.png")
-                    default_logo_path = os.path.join(logo_dir, "default_store.png")  # لوگوی پیش‌فرض
-
-                    logo_x = 65  # فاصله 0.25 سانتی‌متر از چپ
-                    logo_y = A4[1] - 125  # فاصله 0.25 سانتی‌متر از بالا (60 ارتفاع لوگو)
-
-                    if os.path.exists(store_logo_path):
-                        p.drawImage(store_logo_path, logo_x, logo_y, width=70, height=70, mask='auto')
-                    else:
-                        p.drawImage(default_logo_path, logo_x, logo_y, width=70, height=70, mask='auto')
-
-                    # 📊 **عنوان گزارش**
-                    title_text = get_display(arabic_reshaper.reshape(f"📊 گزارش فروش فروشگاه: {store.name}"))
-                    p.drawCentredString(A4[0] / 2, A4[1] - 100, title_text)
-
-                    start_y = A4[1] - 160
-
-                    # ✅ **پردازش متون فارسی**
                     headers = [
                         get_display(arabic_reshaper.reshape("تاریخ")),
                         get_display(arabic_reshaper.reshape("قیمت (تومان)")),
@@ -489,8 +517,16 @@ def sale_statistics(message):
                     ]
                     
                     data = [headers]
-
+                    total_amount = 0
+                    max_rows_per_page = 20
+                    start_y = A4[1] - 160
+                    current_y = start_y
+                    page_num = 1
+                    
+                    draw_header_footer(page_num)
+                    
                     for idx, sale in enumerate(sales, start=1):
+                        total_amount += sale.amount
                         row = [
                             get_display(arabic_reshaper.reshape(sale.created_at.strftime('%Y-%m-%d'))),
                             f"{sale.amount:,.0f}",
@@ -498,44 +534,72 @@ def sale_statistics(message):
                             str(idx)
                         ]
                         data.append(row)
-
-                    df = pd.DataFrame(data)
-
-                    table = Table(df.values.tolist(), colWidths=[100, 100, 200, 50], repeatRows=1)
-
+                        
+                        if len(data) > max_rows_per_page:
+                            table = Table(data, colWidths=[100, 100, 200, 50], repeatRows=1)
+                            table.setStyle(TableStyle([
+                                ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+                                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                            ]))
+                            
+                            table_x = (A4[0] - 450) / 2
+                            table_y = start_y - (max_rows_per_page * 20) - 40
+                            table.wrapOn(p, A4[0], A4[1])
+                            table.drawOn(p, table_x, table_y)
+                            
+                            p.showPage()
+                            p.setFont("Vazir", 14)
+                            page_num += 1
+                            draw_header_footer(page_num)
+                            data = [headers]
+                    
+                    total_row = [
+                        "", 
+                        f"{total_amount:,.0f}", 
+                        get_display(arabic_reshaper.reshape("مجموع کل")),
+                        ""
+                    ]
+                    data.append(total_row)
+                    
+                    table = Table(data, colWidths=[100, 100, 200, 50], repeatRows=1)
                     table.setStyle(TableStyle([
                         ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
                         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                         ('GRID', (0, 0), (-1, -1), 1, colors.black),
                         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+                        ('SPAN', (2, -1), (3, -1)),
+                        ('ALIGN', (2, -1), (3, -1), 'CENTER'),
                     ]))
-
+                    
                     table_x = (A4[0] - 450) / 2
-                    table_y = start_y - (len(sales) * 20) - 40  
+                    table_y = start_y - (len(data) * 20) - 40
                     table.wrapOn(p, A4[0], A4[1])
                     table.drawOn(p, table_x, table_y)
-
+                    
                     p.showPage()
                     p.save()
-
+                    
                     with open(file_path, "rb") as pdf_file:
                         app.send_document(message.chat.id, pdf_file, caption="📄 گزارش فروش شما آماده است.")
-
+                    
                     os.remove(file_path)
-
                 except Exception as e:
                     app.send_message(message.chat.id, "❌ خطایی رخ داد. لطفاً مجدداً تلاش کنید.")
                     print(e)
             else:
-                app.send_message(message.chat.id, "شما در حالت فروشندگی قرار ندارید. تنها فروشندگان قادر به گرفتن آمار فروش خود هستند.\n\nمنو اصلی > تنظیمات ⚙ > فروشنده شو")
+                app.send_message(message.chat.id, "شما در حالت فروشندگی قرار ندارید.")
     except Exception as e:
         app.send_message(message.chat.id, f"your error is: {e}")
 
 
 
+@app.callback_query_handler(func=lambda call: call.data in ["increase", "decrease"])
+def handle_callback(call):
 
+    handle_buttons(call)
 
 
 

@@ -36,6 +36,7 @@ from django.conf import settings
 
 from utils.telbot.variables import home_menu
 import traceback
+from functools import partial
 
 def get_tunnel_password():
     try:
@@ -131,8 +132,12 @@ def validate_username(username):
     
     return True, "این نام کاربری خوبه"
     
-    
-    
+
+
+
+# 🚀 ذخیره تعداد برای هر کاربر
+user_counts = {}
+  
 def send_product_message(app, product, current_site, message=None, buttons=True, channel_id=None):
     try:
         if message:
@@ -218,14 +223,26 @@ def send_product_message(app, product, current_site, message=None, buttons=True,
                     if response.status_code == 200:
                         # دریافت URL بازگشتی برای خرید
                         redirect_url = response.json().get("redirect_url")
-                        markup = types.InlineKeyboardMarkup()
-                        buy_button = types.InlineKeyboardButton(text="💰 خرید", url=redirect_url)
-                        markup.add(buy_button)
-                        app.send_message(
-                            chat_id,
-                            "برای خرید یا افزودن کالا به سبد خرید کلیک کنید 👇👇👇",
-                            reply_markup=markup
+                        buttons = {
+                            f"افزودن  به 🛒 ": ("increase", 1),
+                            "نظرات 💭": ("increase", 0),
+                        }
+                        
+                        context = {"product": product}
+
+                        markup = SendMarkup(
+                            bot=app,
+                            chat_id=message.chat.id,
+                            text="می توانید قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:",
+                            buttons=buttons,
+                            button_layout=[2],
+                            handlers={
+                                "increase": handle_buttons,
+                                "decrease": handle_buttons,
+                            },
                         )
+                        
+                        markup.send()
                     else:
                         app.send_message(chat_id, "مشکلی در پردازش درخواست خرید به وجود آمد.")
                 except Exception as e:
@@ -236,8 +253,120 @@ def send_product_message(app, product, current_site, message=None, buttons=True,
 
     except Exception as e:
         print(f"your error is: {e}")
+    
+def handle_buttons(call):
+    try:
+        chat_id = call.message.chat.id
+        message_id = call.message.message_id
+
+        if chat_id not in user_counts:
+            user_counts[chat_id] = 0
+
+        if call.data == "increase":
+            # if user_counts[chat_id] < product.stock:  # محدود کردن به تعداد موجودی
+            user_counts[chat_id] += 1
+        elif call.data == "decrease":
+            if user_counts[chat_id] > 1:
+                user_counts[chat_id] -= 1
+            else:
+                user_counts.pop(chat_id)
+
+        count = user_counts.get(chat_id, 0)
+
+        buttons = {
+            "➕": ("increase", 2),
+            "➖": ("decrease", 0),
+            "نهایی کردن سفارش": ("finalize", 4),
+        } if count > 0 else {
+            "افزودن  به 🛒 ": ("increase", 1),
+            "نظرات 💭": ("increase", 0),
+        }
+
+        button_layout = [3, 1] if count > 0 else [2]
+
+        text = f"به هر تعداد در انبار موجود باشه میتونی سفارش بدی! (موجودی انبار: )" if count > 0 else "می توانی قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:"
+
+        if count > 0:
+            buttons[str(count)] = ("count", 1)
+
+        markup = SendMarkup(
+            bot=app,
+            chat_id=chat_id,
+            text=text,
+            buttons=buttons,
+            button_layout=button_layout,
+            handlers={
+                "increase": handle_buttons, 
+                "decrease": handle_buttons, 
+            }
+        )
+
+        markup.edit(message_id)
+    except Exception as e:
+        print("Error in handle buttons:", e)
 
 
+
+
+
+############################  SEND MARKUP  ############################
+
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot import types
+
+class SendMarkup:
+    def __init__(self, bot, chat_id, text=None, buttons=None, button_layout=None, handlers=None):
+        from products.models import Product
+        self.bot = bot
+        self.chat_id = chat_id
+        self.text = text
+        self.buttons = buttons or {}
+        self.button_layout = button_layout or []
+        self.handlers = handlers or {}
+
+
+
+    def generate_keyboard(self):
+        """ 📌 ساخت کیبورد داینامیک بر اساس دکمه‌ها و چیدمان تعیین‌شده """
+        markup = types.InlineKeyboardMarkup()
+        button_list = []
+
+        sorted_buttons = sorted(self.buttons.items(), key=lambda item: item[1][1])
+        for text, (callback_data, index) in sorted_buttons:
+            button_list.append(types.InlineKeyboardButton(text, callback_data=callback_data))
+
+        index = 0
+        for row_size in self.button_layout:
+            markup.row(*button_list[index:index + row_size])
+            index += row_size
+
+        return markup
+
+    def send(self):
+        """ 📌 ارسال پیام با دکمه‌ها """
+        markup = self.generate_keyboard()
+        self.bot.send_message(self.chat_id, self.text, reply_markup=markup)
+
+    def edit(self, message_id):
+        """ 📌 ویرایش پیام و به‌روزرسانی دکمه‌ها و متن """
+        markup = self.generate_keyboard()
+        self.bot.edit_message_text(
+            chat_id=self.chat_id,
+            message_id=message_id,
+            text=self.text,
+            reply_markup=markup
+        )
+
+    
+
+    def handle_callback(self, call):
+        """ 📌 تابع مدیریت کلیک روی دکمه‌ها """
+        callback_data = call.data  # مقدار دریافتی از دکمه کلیک شده
+        if callback_data in self.handlers:
+            self.handlers[callback_data](call)  # اجرای تابع مرتبط با دکمه
+
+
+        
 ############################  CHECK SUBSCRIPTION  ############################
 
 import logging
@@ -314,9 +443,10 @@ class SubscriptionClass:
             self.bot.send_message(message.chat.id, "❌ برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
             return False
         return True
-       
-############################  SEND MENU  ############################
+        
 subscription = SubscriptionClass(app)
+
+############################  SEND MENU  ############################
 
 # Helper function to send menu
 def send_menu(message, options, current_menu, extra_buttons=None):
@@ -336,6 +466,7 @@ def send_menu(message, options, current_menu, extra_buttons=None):
                 markup.row(*extra_row)
         # Send the menu
         return markup
+
 
 ############################  SEE PRODUCTS  ############################
 

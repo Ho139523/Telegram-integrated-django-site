@@ -223,10 +223,12 @@ def send_product_message(app, product, current_site, message=None, buttons=True,
                     if response.status_code == 200:
                         # دریافت URL بازگشتی برای خرید
                         redirect_url = response.json().get("redirect_url")
+                        product_code = product.code
                         buttons = {
-                            f"افزودن  به 🛒 ": ("increase", 1),
+                            f"افزودن  به 🛒 ": (f"increase_{product_code}", 1),
                             "نظرات 💭": ("increase", 0),
                         }
+                        
                         
                         context = {"product": product}
 
@@ -237,8 +239,8 @@ def send_product_message(app, product, current_site, message=None, buttons=True,
                             buttons=buttons,
                             button_layout=[2],
                             handlers={
-                                "increase": handle_buttons,
-                                "decrease": handle_buttons,
+                                f"increase_{product_code}": handle_buttons,
+                                f"decrease_{product_code}": handle_buttons,
                             },
                         )
                         
@@ -256,35 +258,48 @@ def send_product_message(app, product, current_site, message=None, buttons=True,
     
 def handle_buttons(call):
     try:
+        print(call.data)
+        data = call.data.split("_")  # تفکیک داده‌های دریافتی
+        action = data[0]  # increase یا decrease
+        product_code = str(data[1]) if len(data) > 1 else None
+        print(product_code)
+        product = Product.objects.get(code=product_code)
+
         chat_id = call.message.chat.id
         message_id = call.message.message_id
+        
+        if product_code is None:
+            return  # اگر product_code نداشت، عملیات متوقف شود
 
         if chat_id not in user_counts:
-            user_counts[chat_id] = 0
+            user_counts[chat_id] = {}
 
-        if call.data == "increase":
-            # if user_counts[chat_id] < product.stock:  # محدود کردن به تعداد موجودی
-            user_counts[chat_id] += 1
-        elif call.data == "decrease":
-            if user_counts[chat_id] > 1:
-                user_counts[chat_id] -= 1
+        if product_code not in user_counts[chat_id]:
+            user_counts[chat_id][product_code] = 0
+            
+        if "increase" in call.data:
+            if user_counts[chat_id][product_code] < product.stock:  # محدود کردن به تعداد موجودی
+                user_counts[chat_id][product_code] += 1
+        elif "decrease" in call.data:
+            if user_counts[chat_id][product_code] > 1:
+                user_counts[chat_id][product_code] -= 1
             else:
-                user_counts.pop(chat_id)
+                del user_counts[chat_id][product_code]  # حذف محصول از سبد خرید
 
-        count = user_counts.get(chat_id, 0)
+        count = sum(user_counts[chat_id].values()) if chat_id in user_counts else 0  # 🔹 اصلاح مقدار count
 
         buttons = {
-            "➕": ("increase", 2),
-            "➖": ("decrease", 0),
+            "➕": (f"increase_{product_code}", 2),
+            "➖": (f"decrease_{product_code}", 0),
             "نهایی کردن سفارش": ("finalize", 4),
         } if count > 0 else {
-            "افزودن  به 🛒 ": ("increase", 1),
-            "نظرات 💭": ("increase", 0),
+            "افزودن  به 🛒 ": (f"increase_{product_code}", 1),
+            "نظرات 💭": (f"reviews_{product_code}", 0),
         }
 
         button_layout = [3, 1] if count > 0 else [2]
 
-        text = f"به هر تعداد در انبار موجود باشه میتونی سفارش بدی! (موجودی انبار: )" if count > 0 else "می توانی قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:"
+        text = f"به هر تعداد در انبار موجود باشه میتونی سفارش بدی! (موجودی انبار: {product.stock})" if count > 0 else "می توانی قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:"
 
         if count > 0:
             buttons[str(count)] = ("count", 1)
@@ -296,14 +311,15 @@ def handle_buttons(call):
             buttons=buttons,
             button_layout=button_layout,
             handlers={
-                "increase": handle_buttons, 
-                "decrease": handle_buttons, 
-            }
+                f"increase_{product_code}": handle_buttons,
+                f"decrease_{product_code}": handle_buttons,
+            },
         )
 
         markup.edit(message_id)
     except Exception as e:
         print("Error in handle buttons:", e)
+
 
 
 

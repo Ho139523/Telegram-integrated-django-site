@@ -596,9 +596,9 @@ def sale_statistics(message):
 
 
 
-@app.callback_query_handler(func=lambda call: call.data in ["increase", "decrease"])
+@app.callback_query_handler(func=lambda call: "increase" in call.data or "decrease" in call.data)
 def handle_callback(call):
-
+    
     handle_buttons(call)
 
 

@@ -1185,6 +1185,7 @@ class SendCart:
                         if key == currently_open and key != product_title:
                             # **دکمه‌ای که قبلاً باز بود را ببندیم**
                             closed_title = key.replace("▲", "▼")
+                            print(closed_title)
                             new_buttons[closed_title] = (value[0], idx)
                             new_layout.append(1)
 

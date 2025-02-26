@@ -1191,7 +1191,7 @@ class SendCart:
                         elif idx == product_index:
                             # **دکمه کلیک‌شده را تغییر وضعیت بدهیم**
                             new_buttons[new_title] = (value[0], product_index)
-                            new_layout.append(3)
+                            new_layout.append(1)
 
                             if not expanded:
                                 # **دکمه‌های جدید را اضافه کنیم**

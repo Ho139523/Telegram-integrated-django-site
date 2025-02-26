@@ -1182,28 +1182,17 @@ class SendCart:
                     currently_open = next((key for key in stored_buttons if key.endswith("▲")), None)
 
                     for idx, (key, value) in enumerate(stored_buttons.items()):
-                        if key == currently_open and key != product_title:
-                            # بستن دکمه‌ای که قبلاً باز بوده است
-                            closed_title = key.replace("▲", "▼")
-                            new_buttons[closed_title] = (value[0], idx)
+                        if idx == product_index:
+                            new_buttons[new_title] = value
                             new_layout.append(1)
-
-                        elif key == product_title:
-                            # تغییر وضعیت دکمه کلیک‌شده
-                            new_buttons[new_title] = (value[0], product_index)
-                            new_layout.append(1)
-
                             if not expanded:
-                                # **دکمه‌های جدید را اضافه کنیم**
-                                new_buttons["❌"] = (f"remove_{product_code}_cart", product_index + 1)
-                                new_buttons["➖"] = (f"decrease_{product_code}_cart", product_index + 1)
-                                new_buttons["➕"] = (f"increase_{product_code}_cart", product_index + 1)
+                                new_buttons["❌"] = (f"remove_{product_code}_cart", idx + 1)
+                                new_buttons["-"] = (f"decrease_{product_code}_cart", idx + 1)
+                                new_buttons["+"] = (f"increase_{product_code}_cart", idx + 1)
                                 new_layout.append(3)
-
-                        elif key not in ["❌", "➖", "➕"]:
-                            # سایر دکمه‌ها بدون تغییر اضافه شوند
+                        elif not expanded or key not in ["-", "+", "❌"]:
                             new_buttons[key] = value
-                            new_layout.append(3)
+                            new_layout.append(1)
 
 
                     # **🔹 مرتب‌سازی بر اساس جایگاه**

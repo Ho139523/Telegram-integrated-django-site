@@ -1218,7 +1218,7 @@ class SendCart:
                     # **ویرایش دکمه‌ها**
                     self.markup.text = self.text
                     self.markup.buttons = sorted_buttons
-                    self.markup.button_layout = new_layout
+                    self.markup.button_layout = [1 if "remove" not in v[0] else 3 for v in sorted_buttons.values()]
                     self.markup.edit(call.message.message_id)
 
                     self.app.answer_callback_query(call.id, f"وضعیت {item.product.name} تغییر یافت.")

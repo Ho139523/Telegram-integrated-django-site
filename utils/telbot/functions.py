@@ -1182,18 +1182,28 @@ class SendCart:
                     currently_open = next((key for key in stored_buttons if key.endswith("▲")), None)
 
                     for idx, (key, value) in enumerate(stored_buttons.items()):
-                        if idx == product_index:
-                            new_buttons[new_title] = value
-                            new_layout.append(1)
-                            if not expanded:
-                                new_buttons["❌"] = (f"remove_{product_code}_cart", idx + 1)
-                                new_buttons["-"] = (f"decrease_{product_code}_cart", idx + 1)
-                                new_buttons["+"] = (f"increase_{product_code}_cart", idx + 1)
-                                new_layout.append(3)
-                        elif not expanded or key not in ["-", "+", "❌"]:
-                            new_buttons[key] = value
+                        if key == currently_open and key != product_title:
+                            # **دکمه‌ای که قبلاً باز بود را ببندیم**
+                            closed_title = key.replace("▲", "▼")
+                            new_buttons[closed_title] = (value[0], idx)
                             new_layout.append(1)
 
+                        elif idx == product_index:
+                            # **دکمه کلیک‌شده را تغییر وضعیت بدهیم**
+                            new_buttons[new_title] = (value[0], product_index)
+                            new_layout.append(1)
+
+                            if not expanded:
+                                # **دکمه‌های جدید را اضافه کنیم**
+                                new_buttons["❌"] = (f"remove_{product_code}_cart", product_index + 1)
+                                new_buttons["➖"] = (f"decrease_{product_code}_cart", product_index + 1)
+                                new_buttons["➕"] = (f"increase_{product_code}_cart", product_index + 1)
+                                new_layout.append(3)
+
+                        elif key not in ["❌", "➖", "➕"]:
+                            # **سایر دکمه‌ها را بدون تغییر اضافه کنیم**
+                            new_buttons[key] = value
+                            new_layout.append(3)
 
                     # **🔹 مرتب‌سازی بر اساس جایگاه**
                     sorted_buttons = OrderedDict(sorted(new_buttons.items(), key=lambda x: x[1][1]))

@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from products.models import Product, Store  # Ensure you have a Product model
 import uuid
 from accounts.models import ProfileModel
+from django.core.validators import MinValueValidator
+
 
 User = get_user_model()
 
@@ -62,3 +64,27 @@ class Sale(models.Model):
 
     def __str__(self):
         return f"Sale: {self.product.name} - {self.seller.name} - {self.amount} تومان"
+
+
+
+from products.models import Product
+
+class Cart(models.Model):
+    profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="carts", null=True, blank=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True)  # برای کاربران غیر لاگین
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cart {self.id} - {self.profile if self.profile else 'Guest'}"
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+
+    def total_price(self):
+        return self.quantity * self.product.price  # فرض کنید محصول قیمت دارد
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name} in Cart {self.cart.id}"

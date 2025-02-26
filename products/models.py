@@ -98,7 +98,6 @@ class ArticleModel(models.Model):
 #
 
 
-from django.db import models
 
 class Category(models.Model):
     title = models.CharField(max_length=50, unique=True, verbose_name='Category Title')

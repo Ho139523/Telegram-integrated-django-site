@@ -7,6 +7,7 @@ from telebot.types import Message
 from telebot.storage import StateMemoryStorage
 from accounts.models import ProfileModel
 from products.models import Product, Category, ProductImage, ProductAttribute, Store
+from payment.models import Transaction, Sale, Cart, CartItem
 import os
 from django.conf import settings
 import requests
@@ -24,6 +25,7 @@ app = TeleBot(token=TOKEN, state_storage=state_storage)
 
 
 from telbot.sessions import session_manager
+from telbot.sessions import CartSessionManager
 
 # Access shared user_sessions
 user_sessions = session_manager.user_sessions
@@ -134,196 +136,32 @@ def validate_username(username):
     
 
 
+############################  SEND PRODUCT MESSAGE  ############################
 
-# 🚀 ذخیره تعداد برای هر کاربر
-user_counts = {}
-  
-def send_product_message(app, product, current_site, message=None, buttons=True, channel_id=None):
-    try:
-        if message:
-            chat_id = message.chat.id
-            message_data = {
-                "chat_id": chat_id,
-                "username": message.from_user.username,
-                "first_name": message.from_user.first_name
-            }
+class UserOrderManager:
+    """مدیریت تعداد سفارش‌های هر کاربر"""
+    def __init__(self):
+        self.user_counts = {}
+
+    def increase(self, chat_id):
+        self.user_counts[chat_id] = self.user_counts.get(chat_id, 0) + 1
+
+    def decrease(self, chat_id):
+        if self.user_counts.get(chat_id, 0) > 1:
+            self.user_counts[chat_id] -= 1
         else:
-            chat_id = channel_id
-        formatted_price = "{:,.0f}".format(float(product.price))
-        formatted_final_price = "{:,.0f}".format(float(product.final_price))
-        
-        if product.discount > 0:
-            price_text = (
-                f"🏃 {product.discount} % تخفیف\n"
-                f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
-            )
-        else:
-            price_text = f"💵 قیمت: {formatted_price} تومان"
-            
-        # for att in product.
-        
-        attributes = product.attributes.filter(product=product)
+            self.user_counts.pop(chat_id, None)
 
-        # تولید متن ویژگی‌ها
-        if attributes.exists():
-            attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in attributes])
-            attribute_text = f"✅ {attribute_text}\n\n"  # اضافه کردن تیک سبز فقط در صورت وجود ویژگی‌ها
-        else:
-            attribute_text = ""  # در صورت نبود ویژگی، متن ویژگی‌ها خالی باشد
-        
-        brand_text = f"🔖 برند کالا: {product.brand}\n" if product.brand else ""
-        description_text = f"{product.description}\n" if product.description else ""
-        caption = (
-            f"\n⭕️ نام کالا: {product.name}\n"
-            f"{brand_text}"
-            f"کد کالا: {product.code}\n\n"
-            f"{description_text}\n"
-            f"{attribute_text}"
-            f"🔘 فروش با ضمانت ارویجینال💯\n"
-            f"📫 ارسال به تمام نقاط کشور\n\n"
-            f"{price_text}\n"
-        )
-
-        # Prepare photos
-        photos = [
-            types.InputMediaPhoto(open(product.main_image.path, 'rb'), caption=caption, parse_mode='HTML')
-        ] + [
-            types.InputMediaPhoto(open(i.image.path, 'rb')) for i in product.image_set.all()
-        ]
-        
-        if len(photos) > 10:
-            photos = photos[:10]  # Limit to 10 photos
-        
-        # Send product photos and message
-        app.send_media_group(chat_id, media=photos)
-        
-        # Create inline keyboard markup
-        if buttons:
-            url = current_site + "/buy/"
-
-            # درخواست برای دریافت اطلاعات محصول
-            product_response = requests.get(current_site + "/api/products/", params={"code": product.code})
-
-            # بررسی وضعیت پاسخ
-            # print("Product Response Status Code:", product_response.status_code)
-            # print("Product Response Content:", product_response.text)
-
-            if product_response.status_code == 200:
-                try:
-                    # داده‌های محصول را از پاسخ دریافت کنید
-                    product_data = product_response.json()
-                    # print("Product Data:", product_data)
-                    
-                    # ارسال اطلاعات محصول به تابع خرید
-                    
-                    response = requests.post(url, json={"data": product_data, "message": message_data})
-                    # print("Buy Response Status Code:", response.status_code)
-                    # print("Buy Response Content:", response.text)
-
-                    if response.status_code == 200:
-                        # دریافت URL بازگشتی برای خرید
-                        redirect_url = response.json().get("redirect_url")
-                        product_code = product.code
-                        buttons = {
-                            f"افزودن  به 🛒 ": (f"increase_{product_code}", 1),
-                            "نظرات 💭": ("increase", 0),
-                        }
-                        
-                        
-                        context = {"product": product}
-
-                        markup = SendMarkup(
-                            bot=app,
-                            chat_id=message.chat.id,
-                            text="می توانید قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:",
-                            buttons=buttons,
-                            button_layout=[2],
-                            handlers={
-                                f"increase_{product_code}": handle_buttons,
-                                f"decrease_{product_code}": handle_buttons,
-                            },
-                        )
-                        
-                        markup.send()
-                    else:
-                        app.send_message(chat_id, "مشکلی در پردازش درخواست خرید به وجود آمد.")
-                except Exception as e:
-                    print("Error while processing product data:", e)
-                    app.send_message(chat_id, "خطایی در پردازش اطلاعات محصول رخ داد.")
-            else:
-                app.send_message(chat_id, "مشکلی در دریافت اطلاعات کالا به وجود آمد.")
-
-    except Exception as e:
-        print(f"your error is: {e}")
-    
-def handle_buttons(call):
-    try:
-        print(call.data)
-        data = call.data.split("_")  # تفکیک داده‌های دریافتی
-        action = data[0]  # increase یا decrease
-        product_code = str(data[1]) if len(data) > 1 else None
-        print(product_code)
-        product = Product.objects.get(code=product_code)
-
-        chat_id = call.message.chat.id
-        message_id = call.message.message_id
-        
-        if product_code is None:
-            return  # اگر product_code نداشت، عملیات متوقف شود
-
-        if chat_id not in user_counts:
-            user_counts[chat_id] = {}
-
-        if product_code not in user_counts[chat_id]:
-            user_counts[chat_id][product_code] = 0
-            
-        if "increase" in call.data:
-            if user_counts[chat_id][product_code] < product.stock:  # محدود کردن به تعداد موجودی
-                user_counts[chat_id][product_code] += 1
-        elif "decrease" in call.data:
-            if user_counts[chat_id][product_code] > 1:
-                user_counts[chat_id][product_code] -= 1
-            else:
-                del user_counts[chat_id][product_code]  # حذف محصول از سبد خرید
-
-        count = sum(user_counts[chat_id].values()) if chat_id in user_counts else 0  # 🔹 اصلاح مقدار count
-
-        buttons = {
-            "➕": (f"increase_{product_code}", 2),
-            "➖": (f"decrease_{product_code}", 0),
-            "نهایی کردن سفارش": ("finalize", 4),
-        } if count > 0 else {
-            "افزودن  به 🛒 ": (f"increase_{product_code}", 1),
-            "نظرات 💭": (f"reviews_{product_code}", 0),
-        }
-
-        button_layout = [3, 1] if count > 0 else [2]
-
-        text = f"به هر تعداد در انبار موجود باشه میتونی سفارش بدی! (موجودی انبار: {product.stock})" if count > 0 else "می توانی قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:"
-
-        if count > 0:
-            buttons[str(count)] = ("count", 1)
-
-        markup = SendMarkup(
-            bot=app,
-            chat_id=chat_id,
-            text=text,
-            buttons=buttons,
-            button_layout=button_layout,
-            handlers={
-                f"increase_{product_code}": handle_buttons,
-                f"decrease_{product_code}": handle_buttons,
-            },
-        )
-
-        markup.edit(message_id)
-    except Exception as e:
-        print("Error in handle buttons:", e)
+    def get_count(self, chat_id):
+        return self.user_counts.get(chat_id, 0)
 
 
 
 
 
+# نحوه استفاده:
+# product_handler = ProductHandler(app, product, current_site)
+# product_handler.send_product_message(chat_id)
 
 ############################  SEND MARKUP  ############################
 
@@ -380,7 +218,6 @@ class SendMarkup:
         callback_data = call.data  # مقدار دریافتی از دکمه کلیک شده
         if callback_data in self.handlers:
             self.handlers[callback_data](call)  # اجرای تابع مرتبط با دکمه
-
 
         
 ############################  CHECK SUBSCRIPTION  ############################
@@ -1071,7 +908,9 @@ class ProductBot:
             self.reset_state(message.chat.id)
             return
             
-            
+
+############################  SEND PAYMENT LINK  ############################
+
 def send_payment_link(app, context):
     chat_id = update.message.chat_id
     email = "example@test.com"  # ایمیل کاربر
@@ -1083,3 +922,373 @@ def send_payment_link(app, context):
     payment_url = f"http://intelleum.ir/buy/{amount}/{description}/?email={email}&mobile={mobile}"
 
     return payment_url
+
+############################  SEND PRODUCT MESSAGE  ############################
+
+class ProductHandler:
+    """مدیریت ارسال پیام و اطلاعات محصول"""
+    def __init__(self, app, product, current_site):
+        self.app = app
+        self.product = product
+        self.current_site = current_site
+        self.user_manager = UserOrderManager()
+
+    def format_price(self):
+        formatted_price = "{:,.0f}".format(float(self.product.price))
+        formatted_final_price = "{:,.0f}".format(float(self.product.final_price))
+
+        if self.product.discount > 0:
+            return (
+                f"🏃 {self.product.discount} % تخفیف\n"
+                f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
+            )
+        return f"💵 قیمت: {formatted_price} تومان"
+
+    def generate_caption(self):
+        brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
+        description_text = f"{self.product.description}\n" if self.product.description else ""
+        attributes = self.product.attributes.filter(product=self.product)
+
+        attribute_text = ""
+        if attributes.exists():
+            attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in attributes])
+            attribute_text = f"✅ {attribute_text}\n\n"
+
+        return (
+            f"\n⭕️ نام کالا: {self.product.name}\n"
+            f"{brand_text}"
+            f"کد کالا: {self.product.code}\n\n"
+            f"{description_text}\n"
+            f"{attribute_text}"
+            f"🔘 فروش با ضمانت ارویجینال💯\n"
+            f"📫 ارسال به تمام نقاط کشور\n\n"
+            f"{self.format_price()}\n"
+        )
+
+    def send_product_message(self, chat_id):
+        """ارسال پیام و عکس محصول"""
+        try:
+            photos = [
+                types.InputMediaPhoto(open(self.product.main_image.path, 'rb'), caption=self.generate_caption(), parse_mode='HTML')
+            ] + [
+                types.InputMediaPhoto(open(i.image.path, 'rb')) for i in self.product.image_set.all()
+            ]
+
+            if len(photos) > 10:
+                photos = photos[:10]  # محدود کردن به 10 عکس
+
+            self.app.send_media_group(chat_id, media=photos)
+            self.send_buttons(chat_id)
+        except Exception as e:
+            print(f"Error in send_product_message: {e}")
+
+    def send_buttons(self, chat_id):
+        try:
+            """ارسال دکمه‌های محصول"""
+            
+            profile = ProfileModel.objects.get(tel_id=chat_id)
+            cart, _ = Cart.objects.get_or_create(profile=profile)
+            print(cart)
+
+            # بررسی اینکه آیا محصول از قبل در سبد خرید هست یا نه
+            cart_item, created = CartItem.objects.get_or_create(cart=cart, product=self.product)
+            print(cart_item)
+            buttons = {
+                "➕": (f"increase_{self.product.code}", 2),
+                f"{cart_item.quantity}": ("count", 1),
+                "➖": (f"decrease_{self.product.code}", 0),
+                "نهایی کردن سفارش": ("finalize", 4),
+            } if cart_item.quantity > 0 else {
+                "افزودن  به 🛒 ": (f"increase_{self.product.code}", 1),
+                "نظرات 💭": (f"decrease_{self.product.code}", 0),
+            }
+            print(buttons)
+
+            button_layout = [3, 1] if cart_item.quantity > 0 else [2]
+
+            text = (
+                f"انگار شما در سبد خرید خود قبلا {cart_item.quantity} تا از این کالا اضافه کرده بودید و سفارش خود را تکمیل نکرده اید.\n\nبه هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی انبار: {self.product.stock})"
+                if cart_item.quantity > 0 else "می توانی قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:"
+            )
+
+            markup = SendMarkup(
+                bot=self.app,
+                chat_id=chat_id,
+                text=text,
+                buttons=buttons,
+                button_layout=button_layout,
+                handlers={
+                    f"increase_{self.product.code}": self.handle_buttons,
+                    f"decrease_{self.product.code}": self.handle_buttons,
+                }
+            )
+            markup.send()
+            
+        except Exception as e:
+            error_message = traceback.format_exc()  # دریافت Traceback کامل
+            print(f"Error in handle_buttons: {e}\n{error_message}")
+    
+
+    def handle_buttons(self, call):
+        """مدیریت دکمه‌های افزایش و کاهش سفارش و ثبت در مدل سبد خرید"""
+        try:
+            data = call.data.split("_")  # تفکیک داده‌های دریافتی
+            action = data[0]  # increase یا decrease
+            product_code = str(data[1]) if len(data) > 1 else None
+            chat_id = call.message.chat.id
+            message_id = call.message.message_id
+            
+            if not product_code:
+                return  # اگر product_code نداشت، عملیات متوقف شود
+
+            product = Product.objects.get(code=product_code)
+
+            # چک کردن آیا کاربر لاگین است یا مهمان (با session_key)
+            profile = ProfileModel.objects.get(tel_id=chat_id)
+            cart, _ = Cart.objects.get_or_create(profile=profile)
+
+            # بررسی اینکه آیا محصول از قبل در سبد خرید هست یا نه
+            cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+            
+            print(cart_item.quantity)
+            if action == "increase":
+                if cart_item.quantity < product.stock:  # جلوگیری از سفارش بیش از موجودی
+                    cart_item.quantity += 1
+                    cart_item.save()
+                else:
+                    return
+            elif action == "decrease":
+                if cart_item.quantity > 0:
+                    cart_item.quantity -= 1
+                    cart_item.save()
+                else:
+                    cart_item.delete()
+
+            
+
+            buttons = {
+                "➕": (f"increase_{product_code}", 2),
+                "➖": (f"decrease_{product_code}", 0),
+                "نهایی کردن سفارش": ("finalize", 4),
+            } if cart_item.quantity > 0 else {
+                "افزودن  به 🛒 ": (f"increase_{product_code}", 1),
+                "نظرات 💭": (f"decrease_{product_code}", 0),
+            }
+
+            button_layout = [3, 1] if cart_item.quantity > 0 else [2]
+
+            text = (
+                f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی انبار: {product.stock})"
+                if cart_item.quantity > 0 else "می توانی قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:"
+            )
+            print(text)
+
+            if cart_item.quantity > 0:
+                buttons[str(cart_item.quantity)] = ("count", 1)
+
+            markup = SendMarkup(
+                bot=self.app,
+                chat_id=chat_id,
+                text=text,
+                buttons=buttons,
+                button_layout=button_layout,
+                handlers={
+                    f"increase_{product_code}": self.handle_buttons,
+                    f"decrease_{product_code}": self.handle_buttons,
+                }
+            )
+            # print(f"cart is : {cart}\n cart items are: {cart_item}")
+            markup.edit(message_id)
+        except Exception as e:
+            error_message = traceback.format_exc()  # دریافت Traceback کامل
+            print(f"Error in handle_buttons: {e}\n{error_message}")
+
+
+############################  SEND CART  ############################    
+from collections import OrderedDict
+import traceback
+
+class SendCart:
+    
+    def __init__(self, app, message):
+        try:
+            self.app = app
+            self.chat_id = message.chat.id
+            self.session = CartSessionManager(self.chat_id)  # اضافه کردن CartSessionManager
+            self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
+            self.cart = Cart.objects.filter(profile=self.profile).first()
+
+            if not self.cart or not self.cart.items.exists():
+                self.app.send_message(self.chat_id, "سبد خرید شما خالی است 🛒")
+                self.cart = None
+                return
+
+            self.total_price = sum(item.total_price() for item in self.cart.items.all())
+            self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
+
+            # بازیابی دکمه‌های قبلی اگر وجود داشته باشند
+            stored_buttons = self.session.get_buttons()
+            self.buttons = OrderedDict(stored_buttons) if stored_buttons else OrderedDict()
+            self.session.update_buttons(self.buttons)
+            
+            # اگر دکمه‌ها قبلاً تنظیم نشده باشند، آن‌ها را مقداردهی اولیه می‌کنیم
+            if not self.buttons:
+                for index, item in enumerate(self.cart.items.all(), start=1):
+                    title = f"{item.product.name} × {item.quantity} ▼"
+                    self.buttons[title] = (f"product_show_{item.product.code}", index)
+
+                self.buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(self.buttons) + 1)
+                
+            self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
+
+            self.markup = SendMarkup(
+                bot=self.app,
+                chat_id=self.chat_id,
+                text=self.text,
+                buttons=self.buttons,
+                button_layout=[1] * len(self.buttons),
+                handlers={
+                    "pay": self.handle_buttons,
+                    **{f"product_show_{item.product.code}": self.handle_buttons for item in self.cart.items.all()}
+                }
+            )
+        except Exception as e:
+            print(f"Error in __init__: {e}\n{traceback.format_exc()}")
+            
+            
+    def handle_buttons(self, call):
+        try:
+            if call.data.startswith("product_show_"):
+                product_code = call.data.split("_")[-1]
+                item = self.cart.items.get(product__code=product_code)
+
+                if item:
+                    stored_buttons = self.session.get_buttons()  # دریافت دکمه‌های ذخیره‌شده
+                    product_title = next((key for key in stored_buttons if stored_buttons[key][0] == call.data), None)
+
+                    if not product_title:
+                        print(f"Error: {call.data} not found in buttons!")
+                        return
+
+                    product_index = list(stored_buttons.keys()).index(product_title)
+                    new_buttons = {}
+                    new_layout = []
+                    expanded = product_title.endswith("▲")  # آیا دکمه کلیک‌شده باز است؟
+                    new_title = product_title.replace("▲", "▼") if expanded else product_title.replace("▼", "▲")
+
+                    # **🔹 بررسی اینکه آیا دکمه دیگری باز است؟**
+                    currently_open = next((key for key in stored_buttons if key.endswith("▲")), None)
+
+                    for idx, (key, value) in enumerate(stored_buttons.items()):
+                        if key == currently_open and key != product_title:
+                            # **دکمه‌ای که قبلاً باز بود را ببندیم**
+                            closed_title = key.replace("▲", "▼")
+                            new_buttons[closed_title] = (value[0], idx)
+                            new_layout.append(1)
+
+                        elif idx == product_index:
+                            # **دکمه کلیک‌شده را تغییر وضعیت بدهیم**
+                            new_buttons[new_title] = (value[0], product_index)
+                            new_layout.append(3)
+
+                            if not expanded:
+                                # **دکمه‌های جدید را اضافه کنیم**
+                                new_buttons["❌"] = (f"remove_{product_code}_cart", product_index + 1)
+                                new_buttons["➖"] = (f"decrease_{product_code}_cart", product_index + 1)
+                                new_buttons["➕"] = (f"increase_{product_code}_cart", product_index + 1)
+                                new_layout.append(3)
+
+                        elif key not in ["❌", "➖", "➕"]:
+                            # **سایر دکمه‌ها را بدون تغییر اضافه کنیم**
+                            new_buttons[key] = value
+                            new_layout.append(3)
+
+                    # **🔹 مرتب‌سازی بر اساس جایگاه**
+                    sorted_buttons = OrderedDict(sorted(new_buttons.items(), key=lambda x: x[1][1]))
+                    
+                    # **اضافه کردن دکمه پرداخت در انتها**
+                    sorted_buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(sorted_buttons) + 1)
+
+                    
+                    # **ذخیره وضعیت جدید در سشن**
+                    self.session.set_buttons(sorted_buttons)  
+
+                    # **ویرایش دکمه‌ها**
+                    self.markup.text = self.text
+                    self.markup.buttons = sorted_buttons
+                    self.markup.button_layout = [1 if "remove" not in v[0] else 3 for v in sorted_buttons.values()]
+                    self.markup.edit(call.message.message_id)
+
+                    self.app.answer_callback_query(call.id, f"وضعیت {item.product.name} تغییر یافت.")
+
+            elif call.data == "pay":
+                self.app.answer_callback_query(call.id, "✅ درگاه پرداخت باز شد.")
+
+        except Exception as e:
+            print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
+
+    def send(self, message):
+        try:
+            self.markup.send()
+        except Exception as e:
+            print(f"Error in send: {e}\n{traceback.format_exc()}")
+            
+    
+    def add(self, call):
+        
+        data = call.data.split("_")  # تفکیک داده‌های دریافتی
+        action = data[0]  # increase یا decrease
+        product_code = str(data[1]) if len(data) > 1 else None
+        product = Product.objects.get(code=product_code)
+        profile=ProfileModel.objects.get(tel_id=call.message.chat.id)
+        cart = Cart.objects.get(profile=profile)
+        cart_item = CartItem.objects.get(cart=cart, product=product)
+        
+        
+        
+        if action == "increase" and cart_item.quantity < product.stock:  
+            cart_item.quantity += 1
+            cart_item.save()
+        elif action == "decrease" and cart_item.quantity > 1:
+            cart_item.quantity -= 1
+            cart_item.save()
+        elif action == "remove":
+            # حذف دکمه مرتبط از سشن
+            stored_buttons = self.session.get_buttons()
+            new_buttons = OrderedDict((k, v) for k, v in stored_buttons.items() if f"product_show_{product_code}" not in v[0])
+            # بروزرسانی دکمه‌ها در سشن
+            self.session.update_buttons(new_buttons)
+            # ویرایش پیام
+            self.markup.buttons = new_buttons            
+            
+
+        self.markup.edit(call.message.message_id)
+
+        
+        self.total_price = sum(item.total_price() for item in self.cart.items.all())
+        self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
+        
+        app.send_message(call.message.chat.id, f"code: {product_code}")
+        app.send_message(call.message.chat.id, f"quantity: {cart_item.quantity}")
+        
+        
+    def remove_item(self, call):
+        try:
+            product_code = call.data.split("_")[-2]
+            profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
+            cart = Cart.objects.get(profile=profile)
+            cart.items.filter(product__code=product_code).delete()
+
+            # حذف دکمه مرتبط از سشن
+            stored_buttons = self.session.get_buttons()
+            new_buttons = OrderedDict((k, v) for k, v in stored_buttons.items() if f"product_show_{product_code}" not in v[0])
+
+            # بروزرسانی دکمه‌ها در سشن
+            self.session.update_buttons(new_buttons)
+
+            # ویرایش پیام
+            self.markup.buttons = new_buttons
+            self.markup.edit(call.message.message_id)
+
+        except Exception as e:
+            print(f"Error in remove_item: {e}\n{traceback.format_exc()}")

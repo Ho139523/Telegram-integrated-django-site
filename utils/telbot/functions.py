@@ -1129,7 +1129,7 @@ class SendCart:
             # بازیابی دکمه‌های قبلی اگر وجود داشته باشند
             stored_buttons = self.session.get_buttons()
             self.buttons = OrderedDict(stored_buttons) if stored_buttons else OrderedDict()
-            self.session.update_buttons(self.buttons)
+            # self.session.update_buttons(self.buttons)
             
             # اگر دکمه‌ها قبلاً تنظیم نشده باشند، آن‌ها را مقداردهی اولیه می‌کنیم
             if not self.buttons:

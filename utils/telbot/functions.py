@@ -1139,7 +1139,7 @@ class SendCart:
 
                 self.buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(self.buttons) + 1)
                 
-            self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
+            # self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
 
             self.markup = SendMarkup(
                 bot=self.app,

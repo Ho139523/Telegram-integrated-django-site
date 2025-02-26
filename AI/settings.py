@@ -227,3 +227,6 @@ ZARINPAL = {
 
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
 CSRF_TRUSTED_ORIGINS = ['https://intelleum.ir']
+
+
+

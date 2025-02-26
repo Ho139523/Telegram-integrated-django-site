@@ -28,6 +28,7 @@ from telebot import custom_filters
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
+from utils.telbot.functions import ProductHandler, SendCart
 from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu, home_menu
 from bs4 import BeautifulSoup
 
@@ -598,35 +599,53 @@ def sale_statistics(message):
 
 @app.callback_query_handler(func=lambda call: "increase" in call.data or "decrease" in call.data)
 def handle_callback(call):
-    
-    handle_buttons(call)
+    try:
+        data = call.data.split("_")  # تفکیک داده‌های دریافتی
+        action = data[0]  # increase یا decrease
+        product_code = str(data[1]) if len(data) > 1 else None
+        product = Product.objects.get(code=product_code)
+        cart, _ = Cart.objects.get_or_create(profile=ProfileModel.objects.get(tel_id=call.message.chat.id))
+        cart_item, _ = CartItem.objects.get_or_create(cart=cart, product=product)
+        
+        if action == "increase":
+            if cart_item.quantity < product.stock:  # جلوگیری از سفارش بیش از موجودی
+                app.answer_callback_query(call.id)
+            else:
+                app.answer_callback_query(call.id, f"بیشتر از {product.stock} تا از این کالا نمی تونی سفارش بدی چون بیشتر از این تو انبار ندارم.", show_alert=True)
+        if action == "decrease":
+            app.answer_callback_query(call.id)
+        
+        if "cart" in call.data:
+            send_cart = SendCart(app, call.message)
+            send_cart.add(call, )
+            
+            return
+        product_handler = ProductHandler(app, product, current_site)
+        product_handler.handle_buttons(call)
+        
+    except Exception as e:
+        error_message = traceback.format_exc()  # دریافت Traceback کامل
+        print(f"Error in handle_buttons: {e}\n{error_message}")
 
 
 
-# def handle_check_subscription(self, call):
-        # """✅ بررسی عضویت هنگام کلیک روی دکمه 'عضو شدم'"""
-        # chat_id = call.message.chat.id
-        # user_id = call.from_user.id
+@app.message_handler(func=lambda message: message.text == "سبد خرید")
+@app.callback_query_handler(func=lambda call: call.data.startswith("product_show_") or call.data == "pay")
+@app.callback_query_handler(func=lambda call: call.data == "finalize")
+def cart_CallBack(data):
+    if isinstance(data, types.Message):
+        cart = SendCart(app, data)
+        if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
+            cart.send(data)
+    elif isinstance(data, types.CallbackQuery):
+        cart = SendCart(app, data.message)
+        if cart.cart:
+            if data.data=="finalize":
+                print("gigili")
+                cart.send(data)
+            else:
+                cart.handle_buttons(data)
 
-        # # ✅ پاسخ اولیه به Callback Query
-        # app.answer_callback_query(call.id, "🔄 در حال بررسی عضویت شما...", show_alert=False)
-        # logger.info(f"📢 بررسی عضویت برای کاربر {user_id}")
-
-        # # بررسی عضویت
-        # is_member = self.check_subscription(user_id)  
-
-        # if is_member:
-            # app.edit_message_text("🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.",
-                                  # chat_id=chat_id, message_id=call.message.message_id)
-
-            # profile = ProfileModel.objects.get(tel_id=user_id)
-            # main_menu = profile.tel_menu
-            # extra_buttons = profile.extra_button_menu
-            # markup = send_menu(call.message, main_menu, "main_menu", extra_buttons)
-
-            # app.send_message(user_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
-        # else:
-            # app.answer_callback_query(call.id, "❌ شما هنوز در کانال عضو نشده‌اید.", show_alert=True)
 
 
 
@@ -736,7 +755,8 @@ def handle_ten_products(message):
         
         for product in products:
             try:
-                send_product_message(app, message=message, product=product, current_site=current_site)
+                product_handler = ProductHandler(app, product, current_site)
+                product_handler.send_product_message(message.chat.id)            
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
 

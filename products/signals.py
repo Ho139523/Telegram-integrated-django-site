@@ -20,7 +20,7 @@ import requests
 from products.models import Product, ProductAttribute, ProductImage
 from utils.variables.TOKEN import TOKEN  # توکن ربات تلگرام شما
 from telebot import TeleBot
-from utils.telbot.functions import send_product_message  # ایمپورت تابع ارسال محصول
+from utils.telbot.functions import ProductHandler  # ایمپورت تابع ارسال محصول
 
 
 app = TeleBot(token=TOKEN)  # ایجاد شیء ربات تلگرام
@@ -34,7 +34,9 @@ def send_product_to_channel(sender, instance, created, **kwargs):
     if created:  # فقط وقتی محصول جدید اضافه شد اجرا شود
         try:
             current_site = f"https://intelleum.ir"  # دریافت دامنه سایت
-            send_product_message(app, message=None, product=instance, current_site=current_site, buttons=False, channel_id=-1002299397356)
+            # send_product_message(app, message=None, product=instance, current_site=current_site, buttons=False, channel_id=-1002299397356)
+            product_handler = ProductHandler(app, instance, current_site)
+            product_handler.send_product_message(chat_id)
         except Exception as e:
             print(f"⚠ خطا در ارسال محصول به کانال: {e}")
 

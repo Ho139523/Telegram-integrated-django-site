@@ -1127,8 +1127,8 @@ class SendCart:
             self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
 
             # بازیابی دکمه‌های قبلی اگر وجود داشته باشند
-            stored_buttons = self.session.get_buttons()
-            self.buttons = OrderedDict(stored_buttons) if stored_buttons else OrderedDict()
+            # stored_buttons = self.session.get_buttons()
+            self.buttons = OrderedDict()
             # self.session.update_buttons(self.buttons)
             
             # اگر دکمه‌ها قبلاً تنظیم نشده باشند، آن‌ها را مقداردهی اولیه می‌کنیم

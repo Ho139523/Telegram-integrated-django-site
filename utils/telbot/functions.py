@@ -1183,13 +1183,13 @@ class SendCart:
 
                     for idx, (key, value) in enumerate(stored_buttons.items()):
                         if key == currently_open and key != product_title:
-                            # **دکمه‌ای که قبلاً باز بود را ببندیم**
+                            # بستن دکمه‌ای که قبلاً باز بوده است
                             closed_title = key.replace("▲", "▼")
                             new_buttons[closed_title] = (value[0], idx)
                             new_layout.append(1)
 
-                        elif idx == product_index:
-                            # **دکمه کلیک‌شده را تغییر وضعیت بدهیم**
+                        elif key == product_title:
+                            # تغییر وضعیت دکمه کلیک‌شده
                             new_buttons[new_title] = (value[0], product_index)
                             new_layout.append(1)
 
@@ -1201,9 +1201,10 @@ class SendCart:
                                 new_layout.append(3)
 
                         elif key not in ["❌", "➖", "➕"]:
-                            # **سایر دکمه‌ها را بدون تغییر اضافه کنیم**
+                            # سایر دکمه‌ها بدون تغییر اضافه شوند
                             new_buttons[key] = value
                             new_layout.append(3)
+
 
                     # **🔹 مرتب‌سازی بر اساس جایگاه**
                     sorted_buttons = OrderedDict(sorted(new_buttons.items(), key=lambda x: x[1][1]))

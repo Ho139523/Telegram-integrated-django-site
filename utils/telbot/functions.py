@@ -1128,8 +1128,8 @@ class SendCart:
 
             # بازیابی دکمه‌های قبلی اگر وجود داشته باشند
             stored_buttons = self.session.get_buttons()
-            self.session.update_buttons(self.buttons)
-            self.buttons = OrderedDict(stored_buttons) if stored_buttons else OrderedDict()
+            
+            self.buttons = OrderedDict()
             
             
             # اگر دکمه‌ها قبلاً تنظیم نشده باشند، آن‌ها را مقداردهی اولیه می‌کنیم
@@ -1141,7 +1141,7 @@ class SendCart:
                 self.buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(self.buttons) + 1)
                 
             self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
-            # self.session.clear_buttons()
+            self.session.update_buttons(self.buttons)
 
             self.markup = SendMarkup(
                 bot=self.app,

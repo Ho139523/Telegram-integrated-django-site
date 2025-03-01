@@ -84,7 +84,7 @@ class CartItem(models.Model):
     quantity = models.IntegerField(default=0, validators=[MinValueValidator(0)])
 
     def total_price(self):
-        return self.quantity * self.product.price  # فرض کنید محصول قیمت دارد
+        return self.quantity * self.product.final_price  # فرض کنید محصول قیمت دارد
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name} in Cart {self.cart.id}"

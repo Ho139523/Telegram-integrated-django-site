@@ -432,9 +432,6 @@ def download_and_save_image(file_id, bot):
 
 
 
-
-
-
 class ProductBot:
     def __init__(self, bot: TeleBot):
         self.bot = bot
@@ -1056,6 +1053,7 @@ class ProductHandler:
                     cart_item.quantity += 1
                     cart_item.save()
                 else:
+                    self.app.answer_callback_query(call.id, f"متاسفانه، بیشتر از {product.stock} عدد در انبار فروشگاه موجود نیست!", show_alert=True)
                     return
             elif action == "decrease":
                 if cart_item.quantity > 0:
@@ -1117,9 +1115,16 @@ class SendCart:
             self.session = CartSessionManager(self.chat_id)  # اضافه کردن CartSessionManager
             self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
             self.cart = Cart.objects.filter(profile=self.profile).first()
+            self.cart.items.filter(quantity=0).delete()
+            
 
             if not self.cart or not self.cart.items.exists():
-                self.app.send_message(self.chat_id, "سبد خرید شما خالی است 🛒")
+                self.app.edit_message_text(
+                    chat_id=message.chat.id,
+                    message_id=message.message_id,
+                    text="سبد خرید شما خالی است 🛒",
+                    reply_markup=None
+                )
                 self.cart = None
                 return
 
@@ -1135,13 +1140,12 @@ class SendCart:
             # اگر دکمه‌ها قبلاً تنظیم نشده باشند، آن‌ها را مقداردهی اولیه می‌کنیم
             if not self.buttons:
                 for index, item in enumerate(self.cart.items.all(), start=1):
-                    title = f"{item.product.name} × {item.quantity} ▼"
+                    title = f"{item.product.name} × {item.quantity} \t\t\t\t▼"
                     self.buttons[title] = (f"product_show_{item.product.code}", index)
 
                 self.buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(self.buttons) + 1)
                 
-            self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
-            self.session.update_buttons(self.buttons)
+           
 
             self.markup = SendMarkup(
                 bot=self.app,
@@ -1179,42 +1183,40 @@ class SendCart:
                     new_title = product_title.replace("▲", "▼") if expanded else product_title.replace("▼", "▲")
 
                     # **🔹 بررسی اینکه آیا دکمه دیگری باز است؟**
-                    currently_open = next((key for key in stored_buttons if key.endswith("▲")), None)
+                    stored_buttons = self.session.get_buttons()
+                    currently_open = next((key for key in stored_buttons.keys() if key.endswith("▲")), None)
 
                     for idx, (key, value) in enumerate(stored_buttons.items()):
                         if key == currently_open and key != product_title:
-                            # **دکمه‌ای که قبلاً باز بود را ببندیم**
-                            closed_title = key.replace("▲", "▼")
-                            print(closed_title)
-                            new_buttons[closed_title] = (value[0], idx)
+                            new_buttons[currently_open.replace("▲", "▼")] = tuple(value)  # بستن دکمه قبلی
                             new_layout.append(1)
 
+
                         elif idx == product_index:
-                            # **دکمه کلیک‌شده را تغییر وضعیت بدهیم**
-                            new_buttons[new_title] = (value[0], product_index)
+                            new_buttons[new_title] = (value[0], product_index)  # اینجا مقدار جدید به‌درستی تاپل است
                             new_layout.append(1)
 
                             if not expanded:
-                                # **دکمه‌های جدید را اضافه کنیم**
                                 new_buttons["❌"] = (f"remove_{product_code}_cart", product_index + 1)
                                 new_buttons["➖"] = (f"decrease_{product_code}_cart", product_index + 1)
                                 new_buttons["➕"] = (f"increase_{product_code}_cart", product_index + 1)
                                 new_layout.append(3)
 
                         elif key not in ["❌", "➖", "➕"]:
-                            # **سایر دکمه‌ها را بدون تغییر اضافه کنیم**
-                            new_buttons[key] = value
+                            new_buttons[key] = tuple(value)  # همیشه مقدار را به تاپل تبدیل کنید
                             new_layout.append(3)
 
+                            
+                    
+                    
                     # **🔹 مرتب‌سازی بر اساس جایگاه**
                     sorted_buttons = OrderedDict(sorted(new_buttons.items(), key=lambda x: x[1][1]))
                     
                     # **اضافه کردن دکمه پرداخت در انتها**
                     sorted_buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(sorted_buttons) + 1)
-
                     
                     # **ذخیره وضعیت جدید در سشن**
-                    self.session.set_buttons(sorted_buttons)  
+                    self.session.update_buttons(sorted_buttons)
 
                     # **ویرایش دکمه‌ها**
                     self.markup.text = self.text
@@ -1232,47 +1234,106 @@ class SendCart:
 
     def send(self, message):
         try:
+            # حذف آیتم‌هایی که تعدادشان صفر شده است
+            self.cart.items.filter(quantity=0).delete()
+
+            if not self.cart or not self.cart.items.exists():
+                self.app.send_message(
+                    chat_id=message.chat.id,
+                    text="سبد خرید شما خالی است 🛒",
+                )
+                self.cart = None
+                return
+
+            self.total_price = sum(item.total_price() for item in self.cart.items.all())
+            self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
+
+            # به‌روزرسانی دکمه‌ها پس از حذف آیتم‌های صفر شده
+            self.buttons = OrderedDict()
+            for index, item in enumerate(self.cart.items.all(), start=1):
+                title = f"{item.product.name} × {item.quantity} \t\t\t\t▼"
+                self.buttons[title] = (f"product_show_{item.product.code}", index)
+
+            self.buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(self.buttons) + 1)
+
+            self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
+            self.session.update_buttons(self.buttons)
             self.markup.send()
+
         except Exception as e:
             print(f"Error in send: {e}\n{traceback.format_exc()}")
-            
+       
     
     def add(self, call):
-        
-        data = call.data.split("_")  # تفکیک داده‌های دریافتی
-        action = data[0]  # increase یا decrease
-        product_code = str(data[1]) if len(data) > 1 else None
-        product = Product.objects.get(code=product_code)
-        profile=ProfileModel.objects.get(tel_id=call.message.chat.id)
-        cart = Cart.objects.get(profile=profile)
-        cart_item = CartItem.objects.get(cart=cart, product=product)
-        
-        
-        
-        if action == "increase" and cart_item.quantity < product.stock:  
-            cart_item.quantity += 1
-            cart_item.save()
-        elif action == "decrease" and cart_item.quantity > 1:
-            cart_item.quantity -= 1
-            cart_item.save()
-        elif action == "remove":
-            # حذف دکمه مرتبط از سشن
-            stored_buttons = self.session.get_buttons()
-            new_buttons = OrderedDict((k, v) for k, v in stored_buttons.items() if f"product_show_{product_code}" not in v[0])
-            # بروزرسانی دکمه‌ها در سشن
-            self.session.update_buttons(new_buttons)
-            # ویرایش پیام
-            self.markup.buttons = new_buttons            
+        try:
+            data = call.data.split("_")
+            action = data[0]  # increase یا decrease
+            product_code = str(data[1]) if len(data) > 1 else None
+            product = Product.objects.get(code=product_code)
+            profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
+            cart = Cart.objects.get(profile=profile)
+            
+            try:
+                cart_item = CartItem.objects.get(cart=cart, product=product)
+            except CartItem.DoesNotExist:
+                self.app.answer_callback_query(call.id, "این محصول دیگر در سبد خرید شما نیست!", show_alert=True)
+                return  # ادامه اجرای تابع متوقف شود
             
 
-        self.markup.edit(call.message.message_id)
+            if action == "increase":
+                if cart_item.quantity < product.stock:  # جلوگیری از سفارش بیش از موجودی
+                    cart_item.quantity += 1
+                else:
+                    self.app.answer_callback_query(call.id, f"متاسفانه، بیشتر از {product.stock} عدد در انبار فروشگاه موجود نیست!", show_alert=True)
+            elif action == "decrease" and cart_item.quantity > 1:
+                cart_item.quantity -= 1
+            cart_item.save()
+
+            # دریافت دکمه‌های ذخیره‌شده از سشن
+            stored_buttons = self.session.get_buttons()
+            
+            # بررسی اینکه کدام دکمه باز است (فلش بالا `▲` دارد)
+            currently_open = next((key for key in stored_buttons.keys() if key.endswith("▲")), None)
+
+            # ساخت دکمه‌های جدید
+            new_buttons = OrderedDict()
+            new_layout = []
+
+            for key, value in stored_buttons.items():
+                if key == currently_open:
+                    # به‌روزرسانی تعداد محصول در دکمه باز
+                    new_title = f"{product.name} × {cart_item.quantity} \t\t\t\t▲"
+                    new_buttons[new_title] = value
+                    new_layout.append(1)
+
+                    # دکمه‌های افزایش، کاهش و حذف را حفظ می‌کنیم
+                    new_buttons["❌"] = (f"remove_{product_code}_cart", value[1] + 1)
+                    new_buttons["➖"] = (f"decrease_{product_code}_cart", value[1] + 1)
+                    new_buttons["➕"] = (f"increase_{product_code}_cart", value[1] + 1)
+                    new_layout.append(3)
+
+                elif key not in ["❌", "➖", "➕"]:  
+                    # سایر دکمه‌ها را بدون تغییر نگه می‌داریم
+                    new_buttons[key] = value
+                    new_layout.append(1)
+
+            # به‌روزرسانی مجموع قیمت
+            self.total_price = sum(item.total_price() for item in self.cart.items.all())
+            self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
+
+            # ذخیره دکمه‌های جدید در سشن
+            self.session.update_buttons(new_buttons)
+
+            # ویرایش پیام و دکمه‌ها
+            self.markup.text = self.text
+            self.markup.buttons = new_buttons
+            self.markup.button_layout = new_layout
+            self.markup.edit(call.message.message_id)
+
+        except Exception as e:
+            print(f"Error in add: {e}\n{traceback.format_exc()}")
 
         
-        self.total_price = sum(item.total_price() for item in self.cart.items.all())
-        self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
-        
-        app.send_message(call.message.chat.id, f"code: {product_code}")
-        app.send_message(call.message.chat.id, f"quantity: {cart_item.quantity}")
         
         
     def remove_item(self, call):
@@ -1280,17 +1341,43 @@ class SendCart:
             product_code = call.data.split("_")[-2]
             profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
             cart = Cart.objects.get(profile=profile)
+
+            # حذف کامل آیتم از سبد خرید
             cart.items.filter(product__code=product_code).delete()
 
-            # حذف دکمه مرتبط از سشن
+            # دریافت دکمه‌های ذخیره‌شده از سشن
             stored_buttons = self.session.get_buttons()
-            new_buttons = OrderedDict((k, v) for k, v in stored_buttons.items() if f"product_show_{product_code}" not in v[0])
 
-            # بروزرسانی دکمه‌ها در سشن
+            # حذف دکمه محصول و دکمه‌های مرتبط (`❌`، `➖`، `➕`)
+            new_buttons = OrderedDict()
+            new_layout = []
+
+            for key, value in stored_buttons.items():
+                # بررسی اینکه آیا دکمه مربوط به این محصول است یا یکی از دکمه‌های کنترل آن
+                if product_code in value[0]:
+                    continue  # دکمه حذف شود
+
+                new_buttons[key] = value
+                new_layout.append(1) 
+            
+            
+
+            # به‌روزرسانی مجموع مبلغ قابل پرداخت
+            self.total_price = sum(item.total_price() for item in cart.items.all())
+
+            if cart.items.exists():
+                self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
+            else:
+                self.text = "سبد خرید شما خالی است 🛒"
+                new_buttons = OrderedDict()  # تمام دکمه‌ها حذف شوند
+
+            # ذخیره دکمه‌های جدید در سشن
             self.session.update_buttons(new_buttons)
 
-            # ویرایش پیام
+            # ویرایش پیام و دکمه‌ها
+            self.markup.text = self.text
             self.markup.buttons = new_buttons
+            self.markup.button_layout = [1] * len(new_buttons)
             self.markup.edit(call.message.message_id)
 
         except Exception as e:

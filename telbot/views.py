@@ -597,35 +597,44 @@ def sale_statistics(message):
 
 
 
-@app.callback_query_handler(func=lambda call: "increase" in call.data or "decrease" in call.data)
+@app.callback_query_handler(func=lambda call: "increase" in call.data or "decrease" in call.data or "remove" in call.data)
 def handle_callback(call):
     try:
         data = call.data.split("_")  # تفکیک داده‌های دریافتی
-        action = data[0]  # increase یا decrease
+        action = data[0]  # increase, decrease یا remove
         product_code = str(data[1]) if len(data) > 1 else None
         product = Product.objects.get(code=product_code)
         cart, _ = Cart.objects.get_or_create(profile=ProfileModel.objects.get(tel_id=call.message.chat.id))
-        cart_item, _ = CartItem.objects.get_or_create(cart=cart, product=product)
         
-        if action == "increase":
-            if cart_item.quantity < product.stock:  # جلوگیری از سفارش بیش از موجودی
-                app.answer_callback_query(call.id)
-            else:
-                app.answer_callback_query(call.id, f"بیشتر از {product.stock} تا از این کالا نمی تونی سفارش بدی چون بیشتر از این تو انبار ندارم.", show_alert=True)
-        if action == "decrease":
-            app.answer_callback_query(call.id)
+        # if not cart or not cart.items.exists():
+            # call.edit_message_text(
+                # chat_id=call.message.chat.id,
+                # message_id=call.message.message_id,
+                # text="سبد خرید شما خالی است 🛒",
+                # reply_markup=None
+            # )
+            # cart = None
+            # return
         
-        if "cart" in call.data:
-            send_cart = SendCart(app, call.message)
-            send_cart.add(call, )
+        send_cart = SendCart(app, call.message)
+
+        if action == "remove":
             
+            send_cart.remove_item(call)
+                
             return
+
+        if "cart" in call.data:
+            send_cart.add(call)
+            return
+
         product_handler = ProductHandler(app, product, current_site)
         product_handler.handle_buttons(call)
-        
+
     except Exception as e:
-        error_message = traceback.format_exc()  # دریافت Traceback کامل
-        print(f"Error in handle_buttons: {e}\n{error_message}")
+        error_message = traceback.format_exc()
+        print(f"Error in handle_callback: {e}\n{error_message}")
+
 
 
 
@@ -641,7 +650,6 @@ def cart_CallBack(data):
         cart = SendCart(app, data.message)
         if cart.cart:
             if data.data=="finalize":
-                print("gigili")
                 cart.send(data)
             else:
                 cart.handle_buttons(data)

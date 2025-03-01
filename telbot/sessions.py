@@ -18,8 +18,8 @@ class SessionManager:
 session_manager = SessionManager()
 
 
-import json
 import redis
+import json
 from collections import OrderedDict
 
 class CartSessionManager:
@@ -28,14 +28,14 @@ class CartSessionManager:
         self.chat_id = chat_id
 
     def set_buttons(self, buttons):
-        """ذخیره دکمه‌ها در سشن به‌صورت لیست مرتب‌شده"""
-        buttons_list = list(buttons.items())  # تبدیل OrderedDict به لیست از تاپل‌ها
+        """ذخیره دکمه‌ها در سشن بدون تبدیل تاپل‌ها به لیست"""
+        buttons_list = [(key, tuple(value)) for key, value in buttons.items()]  # اطمینان از حفظ تاپل‌ها
         self.redis.set(f"buttons:{self.chat_id}", json.dumps(buttons_list))  # ذخیره در Redis
 
     def get_buttons(self):
-        """بازیابی دکمه‌های ذخیره‌شده و تبدیل به OrderedDict"""
+        """بازیابی دکمه‌های ذخیره‌شده و اطمینان از تبدیل مقدارها به تاپل"""
         buttons = self.redis.get(f"buttons:{self.chat_id}")
-        return OrderedDict(json.loads(buttons)) if buttons else OrderedDict()  # بازسازی OrderedDict
+        return OrderedDict((key, tuple(value)) for key, value in json.loads(buttons)) if buttons else OrderedDict()
 
     def clear_buttons(self):
         """پاک کردن دکمه‌های ذخیره‌شده"""
@@ -43,8 +43,9 @@ class CartSessionManager:
 
     def update_buttons(self, new_buttons):
         """بروزرسانی دکمه‌ها بدون حذف کامل آنها"""
-        current_buttons = self.get_buttons()  # دکمه‌های فعلی را دریافت کن
-        if current_buttons != new_buttons:  # فقط در صورتی که تغییر کنند، ذخیره شود
-            self.set_buttons(new_buttons)
+        self.clear_buttons()  # پاک کردن دکمه‌های قبلی از سشن
+        self.set_buttons(new_buttons)  # ذخیره مقدار جدید
+
+
 
 

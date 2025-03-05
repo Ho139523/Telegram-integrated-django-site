@@ -40,6 +40,11 @@ from utils.telbot.variables import home_menu
 import traceback
 from functools import partial
 
+from PIL import Image, ImageDraw, ImageFont
+from django.utils import timezone  
+
+from django.conf import settings as sett
+
 def get_tunnel_password():
     try:
         result = subprocess.run(
@@ -416,7 +421,7 @@ def download_and_save_image(file_id, bot):
         downloaded_file = bot.download_file(file_info.file_path)
 
         # مسیر ذخیره‌سازی
-        save_dir = os.path.join(settings.MEDIA_ROOT, "product_images")
+        save_dir = os.path.join(sett.MEDIA_ROOT, "product_images")
         os.makedirs(save_dir, exist_ok=True)  # ایجاد مسیر در صورت عدم وجود
         
         file_path = os.path.join(save_dir, file_info.file_path.split('/')[-1])
@@ -821,19 +826,23 @@ class ProductBot:
                 user_data = self.user_data.get(message.chat.id, {})
                 slug = generate_unique_slug(Product, user_data["name"])
                 # ایجاد و ذخیره محصول
-                product = Product.objects.create(
-                    profile=ProfileModel.objects.get(tel_id=message.from_user.id),
-                    name=user_data["name"],
-                    slug=slug,
-                    brand=user_data["brand"],
-                    price=user_data["price"],
-                    discount=user_data["discount"],
-                    stock=user_data["stock"],
-                    status=user_data["status"],
-                    category=user_data["category"],
-                    description=user_data["description"],
-                    main_image=user_data["main_image"],
-                )
+                try:
+                    product = Product.objects.create(
+                        profile=ProfileModel.objects.get(tel_id=message.from_user.id),
+                        name=user_data["name"],
+                        slug=slug,
+                        brand=user_data["brand"],
+                        price=user_data["price"],
+                        discount=user_data["discount"],
+                        stock=user_data["stock"],
+                        status=user_data["status"],
+                        category=user_data["category"],
+                        description=user_data["description"],
+                        main_image=user_data["main_image"],
+                        store=Store.objects.get(profile=ProfileModel.objects.get(tel_id=message.from_user.id)),
+                    )
+                except Exception as e:
+                    print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
                 
                 for key, value in user_data["product_attributes"].items():
                     ProductAttribute.objects.create(
@@ -853,10 +862,10 @@ class ProductBot:
                 self.reset_state(message.chat.id)
             else:
                 self.bot.send_message(message.chat.id, f"لطفاً {3 - len(additional_images)} تصویر دیگر ارسال کنید:")
+        
         except Exception as e:
-            error_message = traceback.format_exc()
             self.bot.send_message(message.chat.id, f"خطایی رخ داده است: {e}\nجزئیات:\n{error_message}")
-            print(error_message)
+            print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
             
 
     def delete(self, message: Message):
@@ -1143,7 +1152,7 @@ class SendCart:
                     title = f"{item.product.name} × {item.quantity} \t\t\t\t▼"
                     self.buttons[title] = (f"product_show_{item.product.code}", index)
 
-                self.buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(self.buttons) + 1)
+                self.buttons["✅ تکمیل خرید و پرداخت"] = ("confirm order", len(self.buttons) + 1)
                 
            
 
@@ -1154,7 +1163,7 @@ class SendCart:
                 buttons=self.buttons,
                 button_layout=[1] * len(self.buttons),
                 handlers={
-                    "pay": self.handle_buttons,
+                    "confirm order": self.handle_buttons,
                     **{f"product_show_{item.product.code}": self.handle_buttons for item in self.cart.items.all()}
                 }
             )
@@ -1213,7 +1222,7 @@ class SendCart:
                     sorted_buttons = OrderedDict(sorted(new_buttons.items(), key=lambda x: x[1][1]))
                     
                     # **اضافه کردن دکمه پرداخت در انتها**
-                    sorted_buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(sorted_buttons) + 1)
+                    sorted_buttons["✅ تکمیل خرید و پرداخت"] = ("confirm order", len(sorted_buttons) + 1)
                     
                     # **ذخیره وضعیت جدید در سشن**
                     self.session.update_buttons(sorted_buttons)
@@ -1225,9 +1234,8 @@ class SendCart:
                     self.markup.edit(call.message.message_id)
 
                     self.app.answer_callback_query(call.id, f"وضعیت {item.product.name} تغییر یافت.")
-
-            elif call.data == "pay":
-                self.app.answer_callback_query(call.id, "✅ درگاه پرداخت باز شد.")
+                
+                
 
         except Exception as e:
             print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
@@ -1254,7 +1262,7 @@ class SendCart:
                 title = f"{item.product.name} × {item.quantity} \t\t\t\t▼"
                 self.buttons[title] = (f"product_show_{item.product.code}", index)
 
-            self.buttons["✅ تکمیل خرید و پرداخت"] = ("pay", len(self.buttons) + 1)
+            self.buttons["✅ تکمیل خرید و پرداخت"] = ("confirm order", len(self.buttons) + 1)
 
             self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
             self.session.update_buttons(self.buttons)
@@ -1382,3 +1390,35 @@ class SendCart:
 
         except Exception as e:
             print(f"Error in remove_item: {e}\n{traceback.format_exc()}")
+
+
+class ConfirmOrder:
+    
+    def __init__(self, app):
+        self.app = app
+    
+    def invoice(self, call):
+        try:
+            self.app.answer_callback_query(call.id, "✅ لیست نهایی سفارشات.")
+            
+            profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
+            cart = Cart.objects.get(profile=profile)
+            cart_items = CartItem.objects.filter(cart=cart)
+
+            # محاسبه مجموع قیمت کل
+            total_price = sum(item.total_price() for item in cart_items)
+
+            # ساخت متن فاکتور
+            invoice_text = "🛒 **فاکتور سفارش شما**\n\n"
+            
+            for index, item in enumerate(cart_items, start=1):
+                invoice_text += f"{index}) 🍽 {item.product.name}\n"
+                invoice_text += f"{item.product.final_price} تومان x {item.quantity}\n\n"
+
+            invoice_text += f"💰 **مجموع کل:** {total_price} UZS"
+
+            # ارسال پیام متنی فاکتور
+            self.app.send_message(call.message.chat.id, invoice_text, parse_mode="Markdown")
+
+        except Exception as e:
+            print(f"Error in invoice: {e}\n{traceback.format_exc()}")

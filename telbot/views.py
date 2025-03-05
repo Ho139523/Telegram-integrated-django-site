@@ -348,6 +348,8 @@ def become_a_seller(message):
         profile.save()
         profile.save()
         
+        Store.objects.get_or_create(profile=ProfileModel.objects.get(tel_id=message.from_user.id), address="...", city="...", province="...",)
+        
         
         
         markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
@@ -606,15 +608,6 @@ def handle_callback(call):
         product = Product.objects.get(code=product_code)
         cart, _ = Cart.objects.get_or_create(profile=ProfileModel.objects.get(tel_id=call.message.chat.id))
         
-        # if not cart or not cart.items.exists():
-            # call.edit_message_text(
-                # chat_id=call.message.chat.id,
-                # message_id=call.message.message_id,
-                # text="سبد خرید شما خالی است 🛒",
-                # reply_markup=None
-            # )
-            # cart = None
-            # return
         
         send_cart = SendCart(app, call.message)
 
@@ -655,7 +648,10 @@ def cart_CallBack(data):
                 cart.handle_buttons(data)
 
 
-
+@app.callback_query_handler(func=lambda call: call.data == "confirm order")
+def confirm_order_CallBack(data):
+    order = ConfirmOrder(app)
+    order.invoice(data)
 
 
 # Back to Previous Menu

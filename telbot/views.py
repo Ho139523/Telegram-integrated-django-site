@@ -650,8 +650,9 @@ def cart_CallBack(data):
 
 @app.callback_query_handler(func=lambda call: call.data == "confirm order")
 def confirm_order_CallBack(data):
-    order = ConfirmOrder(app)
-    order.invoice(data)
+    cart = SendCart(app, data.message)
+    if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
+        cart.invoice(data)
 
 
 # Back to Previous Menu

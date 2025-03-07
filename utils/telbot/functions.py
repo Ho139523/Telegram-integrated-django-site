@@ -204,7 +204,7 @@ class SendMarkup:
     def send(self):
         """ 📌 ارسال پیام با دکمه‌ها """
         markup = self.generate_keyboard()
-        self.bot.send_message(self.chat_id, self.text, reply_markup=markup)
+        self.bot.send_message(self.chat_id, self.text, reply_markup=markup, parse_mode="HTML")
 
     def edit(self, message_id):
         """ 📌 ویرایش پیام و به‌روزرسانی دکمه‌ها و متن """
@@ -213,7 +213,8 @@ class SendMarkup:
             chat_id=self.chat_id,
             message_id=message_id,
             text=self.text,
-            reply_markup=markup
+            reply_markup=markup, 
+            parse_mode="HTML"
         )
 
     
@@ -1163,7 +1164,7 @@ class SendCart:
                 buttons=self.buttons,
                 button_layout=[1] * len(self.buttons),
                 handlers={
-                    "confirm order": self.handle_buttons,
+                    "confirm order": self.invoice,
                     **{f"product_show_{item.product.code}": self.handle_buttons for item in self.cart.items.all()}
                 }
             )
@@ -1390,16 +1391,13 @@ class SendCart:
 
         except Exception as e:
             print(f"Error in remove_item: {e}\n{traceback.format_exc()}")
-
-
-class ConfirmOrder:
-    
-    def __init__(self, app):
-        self.app = app
-    
+            
+            
     def invoice(self, call):
         try:
-            self.app.answer_callback_query(call.id, "✅ لیست نهایی سفارشات.")
+            
+            self.app.answer_callback_query(call.id, "✅ در حال پردازش پرداخت ...")
+            
             
             profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
             cart = Cart.objects.get(profile=profile)
@@ -1409,18 +1407,36 @@ class ConfirmOrder:
             total_price = sum(item.total_price() for item in cart_items)
 
             # ساخت متن فاکتور
-            invoice_text = "🛒 **فاکتور سفارش شما**\n\n"
+            invoice_text = "🛒 <b>فاکتور سفارش شما</b>\n\n"
             
             for index, item in enumerate(cart_items, start=1):
-                invoice_text += f"{index}) 🍽 {item.product.name}\n"
-                invoice_text += f"{item.product.final_price} تومان x {item.quantity}\n\n"
+                invoice_text += f"{index}) {item.product.name}  -  "
+                invoice_text += f"{item.product.final_price:,.0f} x {item.quantity}\n\n"
 
-            invoice_text += f"💰 **مجموع کل:** {total_price} UZS"
+            invoice_text += f"💰 <b>مجموع کل:</b> {total_price:,.0f} تومان"
+            
+            
+            buttons = {
+                "آدرس: ": ("handeler", 1), 
+                "شماره تماس: ": ("handeler", 2), 
+            }
+            
 
             # ارسال پیام متنی فاکتور
-            self.app.send_message(call.message.chat.id, invoice_text, parse_mode="Markdown")
+            self.markup = SendMarkup(
+                bot=self.app,
+                chat_id=call.message.chat.id,
+                text=invoice_text,
+                buttons=buttons,
+                button_layout=[1, 1],
+                handlers={
+                  "handeler": self.handle_buttons,
+                    #**{f"": self.handle_buttons}
+                }
+            )
+            self.markup.edit(call.message.message_id)
 
         except Exception as e:
             print(f"Error in invoice: {e}\n{traceback.format_exc()}")
+            
 
-#hello

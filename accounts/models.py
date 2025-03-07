@@ -74,13 +74,9 @@ class ProfileModel(models.Model):
     seller_mode = models.BooleanField(default=False, blank=False, null=False)
     settings_menu = models.JSONField(default=default_settings_menu, blank=True, null=False)
     
-    shipping_line1 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 1")
-    shipping_line2 = models.CharField(max_length=40, blank=True, null=True, verbose_name="Address Line 2")
-    shipping_country = models.CharField(max_length=10, choices=countries, blank=True, null=True, verbose_name="Country")
-    shipping_city = models.CharField(max_length=10, blank=True, null=True, verbose_name="City")
-    shipping_province = models.CharField(max_length=30, blank=True, null=True, verbose_name="Province")
-    shipping_zip = models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
-    shipping_home_phone = models.CharField(max_length=8, blank=True, null=True, verbose_name="Residential Phone Number")
+    def get_active_address(self):
+        """برگرداندن آدرس فعال کاربر"""
+        return self.addresses.filter(is_active=True).first()
 
     class UserLevel(models.TextChoices):
         BLUE = 'blue', 'Blue User'
@@ -160,3 +156,29 @@ class ProfileModel(models.Model):
                 self.settings_menu = self.LEVEL_MENUS[self.user_level][2]
                 
         super().save(*args, **kwargs)
+        
+        
+class Address(models.Model):
+    profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="addresses")
+    line1 = models.CharField(max_length=100, verbose_name="Address Line 1")
+    line2 = models.CharField(max_length=100, blank=True, null=True, verbose_name="Address Line 2")
+    
+    country = models.CharField(max_length=50, choices=countries, verbose_name="Country")
+    province = models.CharField(max_length=50, blank=True, null=True, verbose_name="Province")
+    city = models.CharField(max_length=50, blank=True, null=True, verbose_name="City")
+    
+    zip_code = models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
+    home_phone = models.CharField(max_length=15, blank=True, null=True, verbose_name="Residential Phone Number")
+    
+    is_active = models.BooleanField(default=False, verbose_name="Active Address")
+
+    def save(self, *args, **kwargs):
+        if self.is_active:
+            # اگر این آدرس فعال است، سایر آدرس‌های کاربر را غیرفعال کن
+            Address.objects.filter(profile=self.profile, is_active=True).update(is_active=False)
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.profile.user.username} - {self.line1} ({'Active' if self.is_active else 'Inactive'})"
+

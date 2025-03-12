@@ -6,10 +6,10 @@ from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import User
-from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm, ShippingAddressForm
+from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm#, ShippingAddressForm
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
 from django.urls import reverse_lazy, reverse
-from .models import ProfileModel
+from .models import ProfileModel, Address
 from django.forms import inlineformset_factory
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -144,24 +144,28 @@ class PasswordResetConfirm(PasswordResetConfirmView):
 def profile(request, username):
    
     profile=ProfileModel.objects.get(user__username=username)
+    address=Address.objects.get(profile=profile, shipping_is_active=True)
     header_form = HeaderImageForm()
     avatar_form = AvatarImageForm()
     update_form = ProfileUpdateForm(initial={
-                                            "fname": profile.fname,
-                                            "lname": profile.lname,
-                                            "Phone": profile.Phone,
-                                            "about_me": profile.about_me,
-                                            "birthday": profile.birthday,
-                                            "tweeter": profile.tweeter,
-                                            "instagram": profile.instagram,
-                                            "shipping_line1": profile.shipping_line1,
-                                            "shipping_line2": profile.shipping_line2,
-                                            "shipping_city": profile.shipping_city,
-                                            "shipping_country": profile.shipping_country,
-                                            "shipping_province": profile.shipping_province,
-                                            "shipping_zip": profile.shipping_zip,
-                                            "shipping_home_phone": profile.shipping_home_phone,
-                                            })
+        "fname": profile.fname,
+        "lname": profile.lname,
+        "Phone": profile.Phone,
+        "about_me": profile.about_me,
+        "birthday": profile.birthday,
+        "tweeter": profile.tweeter,
+        "instagram": profile.instagram,
+    })
+                                            
+    updated_address = ShippingAddressForm(initial={
+        "shipping_line1": address.shipping_line1,
+        "shipping_line2": address.shipping_line2,
+        "shipping_city": address.shipping_city,
+        "shipping_country": address.shipping_country,
+        "shipping_province": address.shipping_province,
+        "shipping_zip": address.shipping_zip,
+        "shipping_home_phone": address.shipping_home_phone,
+    })
     
     
     context={
@@ -170,6 +174,7 @@ def profile(request, username):
         "header_form": header_form,
         "avatar_form": avatar_form,
         "update_form": update_form,
+        "updated_address": updated_address,
 
     }
     return render(request, "registration/dashboard/profile.html", context=context)
@@ -313,12 +318,69 @@ def profile_update_view(request):
     return render(request, 'registration/dashboard/profile.html', context)
 
 
+
+
+from django.http import JsonResponse
+import pycountry
+import requests
+
+GEONAMES_USERNAME = "Hussein2079"  # نام کاربری Geonames شما
+
 def get_provinces(request):
-    country_code = request.GET.get('country_code')
-    
-    if country_code:
-        provinces = [(subdivision.code, subdivision.name) for subdivision in pycountry.subdivisions if subdivision.country_code == country_code]
-        # Return both the code and the name in a JSON response
-        return JsonResponse(provinces, safe=False)
-    
-    return JsonResponse({"error": "No country code provided"}, status=400)
+    """ دریافت لیست استان‌ها از GeoNames بر اساس کشور انتخاب‌شده """
+    country_code = request.GET.get("country")
+
+    if not country_code:
+        return JsonResponse({"error": "Country code is missing"}, status=400)
+
+    url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&username={GEONAMES_USERNAME}"
+
+    try:
+        response = requests.get(url)
+        if response.status_code != 200:
+            return JsonResponse({"error": "Failed to fetch provinces!"}, status=500)
+
+        data = response.json()
+        provinces = [
+            {"code": prov["adminCode1"], "name": prov["name"]}
+            for prov in data.get("geonames", [])
+        ]
+
+        if not provinces:
+            return JsonResponse({"error": "No provinces found"}, status=404)
+
+        return JsonResponse({"provinces": provinces})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+        
+        
+
+def get_cities(request):
+    """ دریافت لیست شهرها بر اساس کشور و استان انتخاب‌شده از GeoNames """
+    country_code = request.GET.get("country")  # کد کشور
+    province_code = request.GET.get("province")  # کد استان (adminCode1)
+
+    if not country_code or not province_code:
+        return JsonResponse({"error": "Country and Province codes are required!"}, status=400)
+
+    url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&username={GEONAMES_USERNAME}"
+
+    try:
+        response = requests.get(url)
+        if response.status_code != 200:
+            return JsonResponse({"error": "Failed to fetch cities!"}, status=500)
+
+        data = response.json()
+        cities = [
+            {"code": city["geonameId"], "name": city["name"]}
+            for city in data.get("geonames", [])
+        ]
+
+        if not cities:
+            return JsonResponse({"error": "No cities found"}, status=404)
+
+        return JsonResponse({"cities": cities})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

@@ -141,7 +141,9 @@ STATIC_URL = config('STATIC_URL')
 STATIC_ROOT = BASE_DIR / config('STATIC_ROOT') 
 STATICFILES_DIRS = [ 
     BASE_DIR / "static", 
-] 
+]
+
+
  
 MEDIA_URL = config('MEDIA_URL') 
 MEDIA_ROOT = BASE_DIR / config('MEDIA_ROOT') 
@@ -227,6 +229,4 @@ ZARINPAL = {
 
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
 CSRF_TRUSTED_ORIGINS = ['https://intelleum.ir']
-
-
 

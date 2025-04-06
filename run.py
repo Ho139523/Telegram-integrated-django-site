@@ -34,3 +34,18 @@ if __name__ == "__main__":
     
 # python run.py --sub 68164854bca01acd9751cb28007ceb4a
 # ssh -R 80:127.0.0.1:8000 serveo.net
+
+# sudo kill -9 nginx
+# sudo kill $(sudo lsof -t -i :8443)
+
+# # قطع تمام فرآیندهای xrdp کاربر جاری
+# pkill -u $(whoami) xrdp
+# pkill -u $(whoami) Xorg
+
+# sudo ss -tulnp | grep ':80'
+
+# gunicorn --bind 127.0.0.1:8000 AI.wsgi:application --access-logfile -
+
+# proot-distro login ubuntu
+
+# cloudflared tunnel run intelleum

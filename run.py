@@ -32,20 +32,28 @@ if __name__ == "__main__":
 
     
     
-# python run.py --sub 68164854bca01acd9751cb28007ceb4a
-# ssh -R 80:127.0.0.1:8000 serveo.net
+python run.py --sub 68164854bca01acd9751cb28007ceb4a
+ssh -R 80:127.0.0.1:8000 serveo.net
 
-# sudo kill -9 nginx
-# sudo kill $(sudo lsof -t -i :8443)
+sudo pkill -9 python
+sudo kill $(sudo lsof -t -i :8000)
 
-# # قطع تمام فرآیندهای xrdp کاربر جاری
-# pkill -u $(whoami) xrdp
-# pkill -u $(whoami) Xorg
+# قطع تمام فرآیندهای xrdp کاربر جاری
+pkill -u $(whoami) xrdp
+pkill -u $(whoami) Xorg
 
-# sudo ss -tulnp | grep ':80'
+sudo ss -tulnp | grep ':8000'
 
-# gunicorn --bind 127.0.0.1:8000 AI.wsgi:application --access-logfile -
+gunicorn --bind 127.0.0.1:8000 AI.wsgi:application --access-logfile -
 
-# proot-distro login ubuntu
+proot-distro login ubuntu
 
-# cloudflared tunnel run intelleum
+cloudflared tunnel run intelleum
+
+cd ./Desktop/intelleum
+
+source myenv/bin/activate
+
+sudo systemctl daemon-reload
+sudo systemctl restart uwsgi
+tail -n 50 /var/log/uwsgi/ai.log

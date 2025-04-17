@@ -72,3 +72,4 @@ wheel==0.45.1
 yarl==1.18.3
 zarinpal==1.0.0
 zeep==4.3.1
+uwsgi

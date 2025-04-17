@@ -1,3 +1,4 @@
+from decouple import config, Csv
 from pathlib import Path 
 from decouple import config
 import os
@@ -17,7 +18,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = True 
  
 # ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=[], cast=lambda v: [s.strip() for s in v.split(',')]) 
-ALLOWED_HOSTS = ['https://*.ngrok-free.app', 'https://*.serveo.net', 'https://*.loca.lt', 'https://*.trycloudflare.com', 'https://intelleum.ir', '*']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']#config('ALLOWED_HOSTS', cast=Csv())
 CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'https://*.serveo.net', 'https://*.loca.lt', 'https://*.trycloudflare.com', 'https://intelleum.ir']
  
  
@@ -55,7 +56,14 @@ INSTALLED_APPS = [
     "products",
     "telbot",
     "payment",
-] 
+]
+
+
+if DEBUG:
+    import mimetypes
+    mimetypes.add_type("text/css", ".css", True)
+    mimetypes.add_type("application/javascript", ".js", True)
+
  
 MIDDLEWARE = [ 
     'django.middleware.security.SecurityMiddleware', 
@@ -66,9 +74,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware', 
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     # Disable CSRF temporarily (only for testing)
     # 'django.middleware.csrf.CsrfViewMiddleware',
 ]
+
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
  
 ROOT_URLCONF = 'AI.urls' 
@@ -137,11 +150,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images) 
 # https://docs.djangoproject.com/en/4.2/howto/static-files/ 
  
-STATIC_URL = config('STATIC_URL') 
-STATIC_ROOT = BASE_DIR / config('STATIC_ROOT') 
-STATICFILES_DIRS = [ 
-    BASE_DIR / "static", 
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),  # Your main static directory
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
  
@@ -204,20 +217,20 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+#SECURE_SSL_REDIRECT = True
+#SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+#CSRF_COOKIE_SECURE = True
+#SESSION_COOKIE_SECURE = True
+#SECURE_HSTS_SECONDS = 31536000
+#SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+#SECURE_HSTS_PRELOAD = True
 
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+# DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
+# FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+# DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
+# FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
 
 
 ZARINPAL = {

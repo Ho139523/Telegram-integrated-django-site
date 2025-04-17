@@ -146,7 +146,7 @@ import pycountry
 
 from .models import Address
 
-class AddressForm(forms.ModelForm):
+class ShippingAddressForm(forms.ModelForm):
     class Meta:
         model = Address
         fields = ["province", "city"]

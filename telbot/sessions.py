@@ -1,21 +1,27 @@
-from collections import defaultdict
+############################################## SEE PRODUCTS, CATEGORY MENU, Home, Back to Previous Menu, 10 products ##############################################
+
+import redis
+import json
 
 class SessionManager:
-    _instance = None
+    def __init__(self, host='localhost', port=6379, db=0):
+        self.redis_client = redis.StrictRedis(host=host, port=port, db=db, decode_responses=True)
 
-    def __new__(cls):
-        if not cls._instance:
-            cls._instance = super(SessionManager, cls).__new__(cls)
-            cls._instance.user_sessions = defaultdict(lambda: {"current_menu": None})
-        return cls._instance
+    def get_user_session(self, user_id):
+        """بازیابی اطلاعات جلسه کاربر از Redis"""
+        session_data = self.redis_client.get(f"user_session:{user_id}")
+        return json.loads(session_data) if session_data else {"current_menu": None}
+
+    def set_user_session(self, user_id, session_data):
+        """ذخیره اطلاعات جلسه کاربر در Redis"""
+        self.redis_client.set(f"user_session:{user_id}", json.dumps(session_data))
 
     def reset_user_session(self, user_id):
-        """Reset a specific user's session."""
-        if user_id in self.user_sessions:
-            self.user_sessions[user_id] = {"current_menu": None}
+        """حذف جلسه کاربر از Redis"""
+        self.redis_client.delete(f"user_session:{user_id}")
 
-# ایجاد نمونه Singleton
-session_manager = SessionManager()
+
+############################################## SEND CART ##############################################
 
 
 import redis
@@ -45,6 +51,38 @@ class CartSessionManager:
         """بروزرسانی دکمه‌ها بدون حذف کامل آنها"""
         self.clear_buttons()  # پاک کردن دکمه‌های قبلی از سشن
         self.set_buttons(new_buttons)  # ذخیره مقدار جدید
+
+
+############################################## ADD PRODUCT ##############################################
+
+import redis
+import json
+
+class RedisStateManager:
+    def __init__(self, chat_id):
+        self.redis = redis.StrictRedis(host='localhost', port=6379, db=1, decode_responses=True)
+        self.chat_id = chat_id
+        self.prefix = f"user_data:{chat_id}"
+
+    def set_state(self, state):
+        self.redis.hset(self.prefix, "state", state)
+
+    def get_state(self):
+        return self.redis.hget(self.prefix, "state")
+
+    def save_user_data(self, key, value):
+        self.redis.hset(self.prefix, key, json.dumps(value))
+
+    def get_user_data(self, key):
+        value = self.redis.hget(self.prefix, key)
+        return json.loads(value) if value else None
+
+    def get_all_user_data(self):
+        data = self.redis.hgetall(self.prefix)
+        return {k: json.loads(v) for k, v in data.items()}
+
+    def delete_state(self):
+        self.redis.delete(self.prefix)
 
 
 

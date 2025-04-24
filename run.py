@@ -57,3 +57,6 @@ source myenv/bin/activate
 sudo systemctl daemon-reload
 sudo systemctl restart uwsgi
 tail -n 50 /var/log/uwsgi/ai.log
+
+
+setxkbmap -layout us,ir -option grp:alt_shift_toggle

@@ -342,7 +342,10 @@ def get_provinces(request):
 
         data = response.json()
         provinces = [
-            {"code": prov["adminCode1"], "name": prov["name"]}
+            {
+                "code": prov["adminCode1"],  # ✅ Use actual code for internal use
+                "name": prov["name"]         # ✅ Display this in the dropdown
+            }
             for prov in data.get("geonames", [])
         ]
 
@@ -353,17 +356,17 @@ def get_provinces(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-        
-        
+
 
 def get_cities(request):
     """ دریافت لیست شهرها بر اساس کشور و استان انتخاب‌شده از GeoNames """
-    country_code = request.GET.get("country")  # کد کشور
-    province_code = request.GET.get("province")  # کد استان (adminCode1)
+    country_code = request.GET.get("country")
+    province_code = request.GET.get("province")
 
     if not country_code or not province_code:
         return JsonResponse({"error": "Country and Province codes are required!"}, status=400)
 
+    # province_code is actually province name now — but that’s okay, GeoNames still understands it
     url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&username={GEONAMES_USERNAME}"
 
     try:
@@ -373,7 +376,7 @@ def get_cities(request):
 
         data = response.json()
         cities = [
-            {"code": city["geonameId"], "name": city["name"]}
+            {"code": city["name"], "name": city["name"]}  # ✅ Name only
             for city in data.get("geonames", [])
         ]
 

@@ -180,4 +180,5 @@ class Address(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.profile.user.username} - {self.shipping_line1} ({'Active' if self.shipping_is_active else 'Inactive'})"
+        user_info = self.profile.user.username if hasattr(self.profile, 'user') and self.profile.user else self.profile.tel_id
+        return f"{user_info} - {self.shipping_line1} ({'Active' if self.shipping_is_active else 'Inactive'})"

@@ -5,6 +5,19 @@ from django import forms
 import pycountry
 
 
+import requests
+from django import forms
+from .models import Address
+import pycountry
+
+
+
+import requests
+from django import forms
+from .models import Address
+import pycountry
+
+
 class AddressAdminForm(forms.ModelForm):
     class Meta:
         model = Address
@@ -29,11 +42,14 @@ class AddressAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        country_code = self.data.get("shipping_country") or getattr(self.instance, "shipping_country", None)
-        province_code = self.data.get("shipping_province") or getattr(self.instance, "shipping_province", None)
-        city_code = self.data.get("shipping_city") or getattr(self.instance, "shipping_city", None)
+        self.province_code_to_name = {}
+        self.city_code_to_name = {}
 
-        # Set province choices
+        country_code = self.data.get("shipping_country") or getattr(self.instance, "shipping_country", None)
+        selected_province = self.data.get("shipping_province") or getattr(self.instance, "shipping_province", None)
+        selected_city = self.data.get("shipping_city") or getattr(self.instance, "shipping_city", None)
+
+        # ----- Province Setup -----
         province_choices = [("", "---------")]
         if country_code:
             try:
@@ -41,37 +57,59 @@ class AddressAdminForm(forms.ModelForm):
                 response = requests.get(url)
                 if response.status_code == 200:
                     data = response.json()
-                    province_choices += [(p["adminCode1"], p["name"]) for p in data.get("geonames", [])]
+                    for p in data.get("geonames", []):
+                        code = p["adminCode1"]
+                        name = p["name"]
+                        province_choices.append((code, name))
+                        self.province_code_to_name[code] = name
             except:
                 pass
 
-        # If instance/provided province is not in choices, inject it manually
-        if province_code and all(p[0] != province_code for p in province_choices):
-            province_choices.append((province_code, f"{province_code} (Unknown)"))
+        if selected_province and all(p[0] != selected_province for p in province_choices):
+            province_choices.append((selected_province, f"{selected_province} (Unknown)"))
 
         self.fields["shipping_province"].choices = province_choices
 
-        # Set city choices
+        # ----- City Setup -----
         city_choices = [("", "---------")]
-        if country_code and province_code:
+        if country_code and selected_province:
+            province_code = selected_province
             try:
                 url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&username=Hussein2079"
                 response = requests.get(url)
                 if response.status_code == 200:
                     data = response.json()
-                    city_choices += [(str(c["geonameId"]), c["name"]) for c in data.get("geonames", [])]
+                    for c in data.get("geonames", []):
+                        code = str(c["geonameId"])
+                        name = c["name"]
+                        city_choices.append((code, name))
+                        self.city_code_to_name[code] = name
             except:
                 pass
 
-        # If instance/provided city is not in choices, inject it manually
-        if city_code and all(c[0] != str(city_code) for c in city_choices):
-            city_choices.append((str(city_code), f"{city_code} (Unknown)"))
+        if selected_city and all(c[0] != selected_city for c in city_choices):
+            city_choices.append((selected_city, f"{selected_city} (Unknown)"))
 
         self.fields["shipping_city"].choices = city_choices
 
+    def clean(self):
+        cleaned_data = super().clean()
+
+        province_code = cleaned_data.get("shipping_province")
+        city_code = cleaned_data.get("shipping_city")
+
+        # Replace province code with name
+        if province_code in self.province_code_to_name:
+            cleaned_data["shipping_province"] = self.province_code_to_name[province_code]
+
+        # Replace city code with name
+        if city_code in self.city_code_to_name:
+            cleaned_data["shipping_city"] = self.city_code_to_name[city_code]
+
+        return cleaned_data
+
     class Media:
         js = ('admin/js/address_admin.js',)
-
 
 
 class AddressAdmin(admin.ModelAdmin):

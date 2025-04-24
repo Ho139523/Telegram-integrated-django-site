@@ -86,10 +86,10 @@ subscription= SubscriptionClass(app)
 subscription.register_handlers()
 
 # Tracking user menu history
-from telbot.sessions import session_manager
+from telbot.sessions import SessionManager
 
 # Access shared user_sessions
-user_sessions = session_manager.user_sessions
+session_manager = SessionManager()
 
 # support class
 chat_ids=[]
@@ -310,15 +310,15 @@ def start(message):
 
 
 
-# Home
-@app.message_handler(func=lambda message: message.text=="🏡")
+# HOME
+@app.message_handler(func=lambda message: message.text == "🏡")
 def home(message):
     if subscription.subscription_offer(message):
-        user_sessions["current_menu"] = None
-        main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
-        extra_buttons = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
-        markup = send_menu(message, main_menu, "main_menu", extra_buttons)
+        session_manager.reset_user_session(message.chat.id)
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        markup = send_menu(message, profile.tel_menu, "main_menu", profile.extra_button_menu)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+
     
 
 # Visit website
@@ -661,31 +661,20 @@ def confirm_order_CallBack(data):
 def handle_back(message):
     if subscription.subscription_offer(message):
         try:
-            session = user_sessions[message.chat.id]
-            
-            # Get the previous category's title
+            session = session_manager.get_user_session(message.chat.id)
             try:
                 previous_category_title = Category.objects.get(
                     title__iexact=session["current_menu"], status=True
                 ).get_parents()[0].title
-                
-                # Manually trigger the handler by simulating a message
-                fake_message = message  # Clone the current message
-                fake_message.text = previous_category_title  # Change the text to previous category
-                
-                # Call the subcategory handler directly
+
+                fake_message = message
+                fake_message.text = previous_category_title
                 subcategory(fake_message)
-            
             except IndexError as e:
                 if "list index out of range" in str(e):
-                    previous_category_title = "🗂 دسته بندی ها"
-                    
-                    fake_message = message  # Clone the current message
-                    fake_message.text = previous_category_title  # Change the text to previous category
-                    
-                    # Call the subcategory handler directly
+                    fake_message = message
+                    fake_message.text = "🗂 دسته بندی ها"
                     category(fake_message)
-             
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")
 
@@ -734,37 +723,40 @@ def subcategory(message):
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
     if subscription.subscription_offer(message):
-        if message.text == "پر تخفیف ها":
-            if Product.objects.annotate(lower_title=Lower('category__title')).filter(lower_title=user_sessions[message.chat.id]["current_menu"].lower(), discount__gt=0).exists():
-                
-                
-                products = Product.objects.annotate(lower_title=Lower('category__title')).filter(lower_title=user_sessions[message.chat.id]["current_menu"].lower(), discount__gt=0, status=True, category__status=True).order_by("discount")[:10]
-            else:
-                products = []
+        session = session_manager.get_user_session(message.chat.id)
+        current_menu = session["current_menu"]
 
-        elif message.text=="پر فروش ترین ها":
-            app.send_message(message.chat.id, f"🚧 با عرض پوزش هنوز این قابلیت فعال نشده است. 🚧")
-            
-        elif message.text=="ارزان ترین ها":
-            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(lower_title=user_sessions[message.chat.id]["current_menu"].lower(), status=True, category__status=True).order_by("-price")[:10]
-            
-        elif message.text=="گران ترین ها":
-            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(lower_title=user_sessions[message.chat.id]["current_menu"].lower(), status=True, category__status=True).order_by("price")[:10]
-        
-        if products==[]:
+        if message.text == "پر تخفیف ها":
+            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
+                lower_title=current_menu.lower(), discount__gt=0, status=True, category__status=True
+            ).order_by("discount")[:10]
+        elif message.text == "پر فروش ترین ها":
+            app.send_message(message.chat.id, "🚧 با عرض پوزش هنوز این قابلیت فعال نشده است. 🚧")
+            return
+        elif message.text == "ارزان ترین ها":
+            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
+                lower_title=current_menu.lower(), status=True, category__status=True
+            ).order_by("-price")[:10]
+        elif message.text == "گران ترین ها":
+            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
+                lower_title=current_menu.lower(), status=True, category__status=True
+            ).order_by("price")[:10]
+
+        if not products:
             app.send_message(message.chat.id, "متاسفانه این محصول شامل تخفیف نشده است")
             return
-        
-        elif not products.exists():
+
+        if not products.exists():
             app.send_message(message.chat.id, "🚧 محصولی در این دسته بندی یافت نشد.🚧")
             return
-        
+
         for product in products:
             try:
                 product_handler = ProductHandler(app, product, current_site)
-                product_handler.send_product_message(message.chat.id)            
+                product_handler.send_product_message(message.chat.id)
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
+
 
 ##################################
 

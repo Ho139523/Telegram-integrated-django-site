@@ -1535,7 +1535,7 @@ class SendCart:
 			if not address or not profile.Phone:
 
 				buttons = {
-				    f"آدرس: {address_text}": ("handeler", 1),
+				    f"آدرس: {address_text}": ("address", 1),
 				    f"شماره تماس: {phone_text}": ("handeler", 2), 
 				}
 
@@ -1564,3 +1564,45 @@ class SendCart:
 			print(f"Error in invoice: {e}\n{traceback.format_exc()}")
 			
 
+############################  SEND LOCATION  ############################
+
+class SendLocation:
+	
+	def __init__(self, app, message):
+		try:
+			self.app = app
+			self.chat_id = message.chat.id
+			self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
+			self.user_address = Address.objects.get(profile=self.profile, shipping_is_active=True)
+			print(self.user_address)
+			self.user_addresses = Address.objects.filter(profile=self.profile)
+			try:
+				self.cart = Cart.objects.get(profile=self.profile)
+			except (Cart.DoesNotExist, Cart.MultipleObjectsReturned):
+				self.cart = None  # یا مدیریت مناسب دیگر
+		except Exception as e:
+			error_details = traceback.format_exc()
+			custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+			print(custom_message)
+			app.send_message(message.chat.id, f"{custom_message}")
+
+	def show_current_address(self, message):
+		try:
+			print("yes")
+			from telebot import types
+			# پیام نمایش آدرس فعال
+			text = f"آدرس شما:\n{self.user_address}"
+			print("jjj")
+			# ساخت دکمه‌ها
+			markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+			markup.add(types.KeyboardButton("+ افزودن آدرس جدید"))
+			markup.row("بازگشت", "آدرس‌های من")
+			
+			# ارسال پیام با دکمه‌ها
+			app.send_message(message.chat.id, text, reply_markup=markup)
+
+		except Exception as e:
+			error_details = traceback.format_exc()
+			custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+			print(custom_message)
+			app.send_message(message.chat.id, f"{custom_message}")

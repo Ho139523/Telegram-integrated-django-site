@@ -1532,18 +1532,13 @@ class SendCart:
 			
 			phone_text = (f"{profile.Phone}" if profile.Phone else ' --- ')
 
-			if not address or not profile.Phone:
+			
 
-				buttons = {
-				    f"آدرس: {address_text}": ("address", 1),
-				    f"شماره تماس: {phone_text}": ("handeler", 2), 
-				}
-
-			else:
-
-				buttons = {
-				    f"پرداخت": ("handeler", 1),
-				}
+			buttons = {
+			    f"آدرس: {address_text}": ("address", 1),
+			    f"شماره تماس: {phone_text}": ("handeler", 2), 
+			    f"پرداخت": ("handeler", 3),
+			}
 			
 
 			# ارسال پیام متنی فاکتور
@@ -1552,7 +1547,7 @@ class SendCart:
 				chat_id=call.message.chat.id,
 				text=invoice_text,
 				buttons=buttons,
-				button_layout=[1, 1],
+				button_layout=[1, 1, 1],
 				handlers={
 				  "handeler": self.handle_buttons,
 					#**{f"": self.handle_buttons}

@@ -1606,3 +1606,4 @@ class SendLocation:
 			custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
 			print(custom_message)
 			app.send_message(message.chat.id, f"{custom_message}")
+			

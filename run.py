@@ -60,3 +60,6 @@ tail -n 50 /var/log/uwsgi/ai.log
 
 
 setxkbmap -layout us,ir -option grp:alt_shift_toggle
+
+sudo cat /var/log/uwsgi/django.log
+sudo cat /var/log/uwsgi/ai-error.log

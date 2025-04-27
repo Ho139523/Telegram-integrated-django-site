@@ -1532,11 +1532,10 @@ class SendCart:
 			
 			phone_text = (f"{profile.Phone}" if profile.Phone else ' --- ')
 
-			
 
 			buttons = {
 			    f"آدرس: {address_text}": ("address", 1),
-			    f"شماره تماس: {phone_text}": ("handeler", 2), 
+			    f"شماره تماس: {phone_text}": ("phone", 2), 
 			    f"پرداخت": ("handeler", 3),
 			}
 			
@@ -1549,8 +1548,9 @@ class SendCart:
 				buttons=buttons,
 				button_layout=[1, 1, 1],
 				handlers={
-				  "handeler": self.handle_buttons,
-					#**{f"": self.handle_buttons}
+				    "handeler": self.handle_buttons,
+				    "address": lambda call: SendLocation(self.app, call.message).show_current_address(call.message),
+				    #"phone": ,
 				}
 			)
 			self.markup.edit(call.message.message_id)
@@ -1593,7 +1593,7 @@ class SendLocation:
 			markup.row("بازگشت", "آدرس‌های من")
 			
 			# ارسال پیام با دکمه‌ها
-			app.send_message(message.chat.id, text, reply_markup=markup)
+			self.app.send_message(message.chat.id, text, reply_markup=markup)
 
 		except Exception as e:
 			error_details = traceback.format_exc()

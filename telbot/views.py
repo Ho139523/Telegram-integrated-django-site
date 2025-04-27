@@ -29,7 +29,7 @@ from telebot import custom_filters
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.functions import ProductHandler, SendCart
+from utils.telbot.functions import ProductHandler, SendCart, SendLocation
 from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu, home_menu
 from bs4 import BeautifulSoup
 
@@ -54,7 +54,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from accounts.tokens import generate_token  # Update this with your token import
 from django.utils import timezone  
 from datetime import timedelta
-from accounts.models import ProfileModel
+from accounts.models import ProfileModel, Address
 from accounts.models import User
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
@@ -654,6 +654,25 @@ def confirm_order_CallBack(data):
     cart = SendCart(app, data.message)
     if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
         cart.invoice(data)
+
+
+
+@app.message_handler(func=lambda message: message.text == "آدرس پستی")
+@app.callback_query_handler(func=lambda call: call.data == "address")
+def address_CallBack(data):
+    # if subscription.subscription_offer(data.message):
+        print("No")
+        if isinstance(data, types.Message):
+            loc = SendLocation(app, data)
+            loc.show_current_address(data)
+        elif isinstance(data, types.CallbackQuery):
+            loc = SendLocation(app, data.message,)
+            # if data.data=="address":
+            loc.show_current_address(data)
+            # else:
+            #     cart.handle_buttons(data)
+
+
 
 
 # Back to Previous Menu

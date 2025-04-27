@@ -38,9 +38,13 @@ ssh -R 80:127.0.0.1:8000 serveo.net
 sudo pkill -9 python
 sudo kill $(sudo lsof -t -i :8000)
 
+###########################
+
 # قطع تمام فرآیندهای xrdp کاربر جاری
 pkill -u $(whoami) xrdp
 pkill -u $(whoami) Xorg
+
+###########################
 
 sudo ss -tulnp | grep ':8000'
 
@@ -50,16 +54,36 @@ proot-distro login ubuntu
 
 cloudflared tunnel run intelleum
 
-cd ./Desktop/intelleum
+############################
 
+ssh -p 45677 hussein2079@37.148.9.135
+clear
+cd ./Desktop/intelleum
 source myenv/bin/activate
+
+############################
+
+cd /storage/emulated/0/fonts
+pipenv shell
+git pull origin master
+clear
+
+############################
+
+git commit -a -m "update"
+git push origin master
+
+############################
 
 sudo systemctl daemon-reload
 sudo systemctl restart uwsgi
 tail -n 50 /var/log/uwsgi/ai.log
 
+############################
 
 setxkbmap -layout us,ir -option grp:alt_shift_toggle
+
+############################
 
 sudo cat /var/log/uwsgi/django.log
 sudo cat /var/log/uwsgi/ai-error.log

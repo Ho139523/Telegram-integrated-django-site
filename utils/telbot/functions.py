@@ -1591,8 +1591,7 @@ class SendLocation:
 			print("yes")
 			from telebot import types
 			# پیام نمایش آدرس فعال
-			text = f"آدرس شما:\n{self.user_address}"
-			print("jjj")
+			text = f"آدرس شما:\n{self.user_address.shipping_line1}"
 			# ساخت دکمه‌ها
 			markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 			markup.add(types.KeyboardButton("+ افزودن آدرس جدید"))

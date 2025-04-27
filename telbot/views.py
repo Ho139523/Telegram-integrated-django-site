@@ -283,7 +283,7 @@ def start(message):
             print("why")
             app.send_message(
                 message.chat.id,
-                f"{tel_first_name} عزیزممممممم شما قبلا در ربات ثبت نام کرده‌اید.",
+                f"{tel_first_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
             )
         
         profile, created = ProfileModel.objects.get_or_create(tel_id=tel_id, telegram=tel_username, fname=tel_first_name, lname=tel_last_name)

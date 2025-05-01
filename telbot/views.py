@@ -657,26 +657,54 @@ def confirm_order_CallBack(data):
 
 
 
+# @app.message_handler(func=lambda message: message.text == "آدرس پستی")
+# @app.callback_query_handler(func=lambda call: call.data == "address")
+# def address_CallBack(data):
+    # try:
+        # if isinstance(data, types.Message):
+            # loc = SendLocation(app, data)
+            # loc.show_current_address(data)
+        # elif isinstance(data, types.CallbackQuery):
+            # loc = SendLocation(app, data.message)
+            # loc.show_current_address(data)
+    # except ConnectionError as e:
+        # print(f"Connection Error: {e}")
+        # # ارسال پیام به کاربر در صورت خطای اتصال
+        # try:
+            # app.send_message(data.message.chat.id, "مشکلی در ارتباط با سرور پیش آمده. لطفاً بعداً تلاش کنید.")
+        # except:
+            # print("Failed to send error message to user.")
+    # except Exception as e:
+        # error_details = traceback.format_exc()
+        # print(f"Error: {e}\nDetails:\n{error_details}")
+        
 @app.message_handler(func=lambda message: message.text == "آدرس پستی")
 @app.callback_query_handler(func=lambda call: call.data == "address")
 def address_CallBack(data):
     try:
+        # تعیین نوع ورودی
         if isinstance(data, types.Message):
-            loc = SendLocation(app, data)
-            loc.show_current_address(data)
-        elif isinstance(data, types.CallbackQuery):
-            loc = SendLocation(app, data.message)
-            loc.show_current_address(data)
-    except ConnectionError as e:
-        print(f"Connection Error: {e}")
-        # ارسال پیام به کاربر در صورت خطای اتصال
-        try:
-            app.send_message(data.message.chat.id, "مشکلی در ارتباط با سرور پیش آمده. لطفاً بعداً تلاش کنید.")
-        except:
-            print("Failed to send error message to user.")
+            message = data
+            is_callback = False
+        else:  # CallbackQuery
+            message = data.message
+            is_callback = True
+            self.app.answer_callback_query(data.id)  # پاسخ به callback
+
+        # ایجاد نمونه SendLocation
+        loc = SendLocation(self.app, message)
+        
+        # نمایش آدرس‌ها
+        if is_callback:
+            loc.show_addresses(data)  # برای callback از message_id موجود استفاده می‌کند
+        else:
+            loc.show_addresses()  # برای پیام جدید یک پیام تازه ایجاد می‌کند
+
     except Exception as e:
         error_details = traceback.format_exc()
         print(f"Error: {e}\nDetails:\n{error_details}")
+        chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
+        self.app.send_message(chat_id, "خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید.")
 
 
 

@@ -1562,42 +1562,62 @@ class SendCart:
 ############################  SEND LOCATION  ############################
 
 class SendLocation:
-	
-	def __init__(self, app, message):
-		try:
-			self.app = app
-			self.chat_id = message.chat.id
-			self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
-			self.user_address = Address.objects.get(profile=self.profile, shipping_is_active=True)
-			print(self.user_address)
-			self.user_addresses = Address.objects.filter(profile=self.profile)
-			try:
-				self.cart = Cart.objects.get(profile=self.profile)
-			except (Cart.DoesNotExist, Cart.MultipleObjectsReturned):
-				self.cart = None  # یا مدیریت مناسب دیگر
-		except Exception as e:
-			error_details = traceback.format_exc()
-			custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
-			print(custom_message)
-			app.send_message(message.chat.id, f"{custom_message}")
+    def __init__(self, app, message):
+        try:
+            self.app = app
+            self.chat_id = message.chat.id
+            self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
+            self.user_address = Address.objects.get(profile=self.profile, shipping_is_active=True)
+            self.user_addresses = Address.objects.filter(profile=self.profile)
+            try:
+                self.cart = Cart.objects.get(profile=self.profile)
+            except (Cart.DoesNotExist, Cart.MultipleObjectsReturned):
+                self.cart = None
+        except Exception as e:
+            error_details = traceback.format_exc()
+            custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+            print(custom_message)
+            app.send_message(message.chat.id, f"{custom_message}")
 
-	def show_current_address(self, call):
-		try:
-			print("yes")
-			from telebot import types
-			# پیام نمایش آدرس فعال
-			text = f"آدرس شما:\n{self.user_address.shipping_line1}, {self.user_address.shipping_city}, {self.user_address.shipping_province}, {self.user_address.shipping_country}"
-			# ساخت دکمه‌ها
-			markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-			markup.add(types.KeyboardButton("+ افزودن آدرس جدید"))
-			markup.row("بازگشت", "آدرس‌های من")
-			
-			# ارسال پیام با دکمه‌ها
-			self.app.send_message(call.message.chat.id, text, reply_markup=markup)
+    def show_current_address(self, call):
+        try:
+            from telebot import types
+            
+            # متن آدرس
+            text = f"📍 آدرس فعلی شما:\n{self.user_address.shipping_line1}, {self.user_address.shipping_city}, {self.user_address.shipping_province}, {self.user_address.shipping_country}"
+            
+            # ساخت دکمه‌های اینلاین
+            buttons = {
+                "✏️ ویرایش آدرس": ("edit_address", 1),
+                "🔙 بازگشت": ("back_to_cart", 2)
+            }
+            
+            # ارسال/ویرایش پیام
+            markup = SendMarkup(
+                bot=self.app,
+                chat_id=call.message.chat.id,
+                text=text,
+                buttons=buttons,
+                button_layout=[1, 1],
+                handlers={
+                    "edit_address": self.handle_edit_address,
+                    "back_to_cart": self.handle_back_to_cart
+                }
+            )
+            
+            # ویرایش پیام قبلی به جای ارسال پیام جدید
+            markup.edit(call.message.message_id)
+            
+        except Exception as e:
+            error_details = traceback.format_exc()
+            custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+            print(custom_message)
+            self.app.send_message(call.message.chat.id, f"{custom_message}")
 
-		except Exception as e:
-			error_details = traceback.format_exc()
-			custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
-			print(custom_message)
-			app.send_message(call.message.chat.id, f"{custom_message}")
-			
+    def handle_edit_address(self, call):
+        # کد مربوط به ویرایش آدرس
+        pass
+
+    def handle_back_to_cart(self, call):
+        # کد مربوط به بازگشت به سبد خرید
+        pass

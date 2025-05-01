@@ -689,10 +689,10 @@ def address_CallBack(data):
         else:  # CallbackQuery
             message = data.message
             is_callback = True
-            self.app.answer_callback_query(data.id)  # پاسخ به callback
+            app.answer_callback_query(data.id)  # پاسخ به callback
 
         # ایجاد نمونه SendLocation
-        loc = SendLocation(self.app, message)
+        loc = SendLocation(app, message)
         
         # نمایش آدرس‌ها
         if is_callback:
@@ -704,7 +704,7 @@ def address_CallBack(data):
         error_details = traceback.format_exc()
         print(f"Error: {e}\nDetails:\n{error_details}")
         chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
-        self.app.send_message(chat_id, "خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید.")
+        app.send_message(chat_id, "خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید.")
 
 
 

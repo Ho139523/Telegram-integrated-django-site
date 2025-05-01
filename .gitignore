@@ -1,4 +1,4 @@
-$myenv/
+myenv/
 *.md
 .git
 __pycache__/
@@ -8,5 +8,6 @@ venv/
 Pipfile
 Pipfile.lock
 untitled.sublime-workspace
- 
+nginx/logs/access.log
+nginx/logs/error.log
  

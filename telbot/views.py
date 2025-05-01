@@ -660,6 +660,7 @@ def confirm_order_CallBack(data):
 @app.message_handler(func=lambda message: message.text == "آدرس پستی")
 @app.callback_query_handler(func=lambda call: call.data == "address")
 def address_CallBack(data):
+    try:
     # if subscription.subscription_offer(data.message):
         print(call.data)
         if isinstance(data, types.Message):
@@ -671,6 +672,12 @@ def address_CallBack(data):
             loc.show_current_address(data)
             # else:
             #     cart.handle_buttons(data)
+    
+    except Exception as e:
+        error_details = traceback.format_exc()
+        custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+        print(custom_message)
+        app.send_message(message.chat.id, f"{custom_message}")
 
 
 

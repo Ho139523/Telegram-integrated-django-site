@@ -661,7 +661,7 @@ def confirm_order_CallBack(data):
 @app.callback_query_handler(func=lambda call: call.data == "address")
 def address_CallBack(data):
     # if subscription.subscription_offer(data.message):
-        print("No")
+        print(call.data)
         if isinstance(data, types.Message):
             loc = SendLocation(app, data)
             loc.show_current_address(data)

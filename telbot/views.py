@@ -661,24 +661,22 @@ def confirm_order_CallBack(data):
 @app.callback_query_handler(func=lambda call: call.data == "address")
 def address_CallBack(data):
     try:
-    # if subscription.subscription_offer(data.message):
-        print(data)
         if isinstance(data, types.Message):
             loc = SendLocation(app, data)
             loc.show_current_address(data)
         elif isinstance(data, types.CallbackQuery):
-            loc = SendLocation(app, data.message,)
-            # if data.data=="address":
+            loc = SendLocation(app, data.message)
             loc.show_current_address(data)
-            # else:
-            #     cart.handle_buttons(data)
-    
+    except ConnectionError as e:
+        print(f"Connection Error: {e}")
+        # ارسال پیام به کاربر در صورت خطای اتصال
+        try:
+            app.send_message(data.message.chat.id, "مشکلی در ارتباط با سرور پیش آمده. لطفاً بعداً تلاش کنید.")
+        except:
+            print("Failed to send error message to user.")
     except Exception as e:
         error_details = traceback.format_exc()
-        custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
-        print(custom_message)
-        app.send_message(message.chat.id, f"{custom_message}")
-
+        print(f"Error: {e}\nDetails:\n{error_details}")
 
 
 

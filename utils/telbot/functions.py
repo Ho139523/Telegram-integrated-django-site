@@ -1593,11 +1593,11 @@ class SendLocation:
 			markup.row("بازگشت", "آدرس‌های من")
 			
 			# ارسال پیام با دکمه‌ها
-			self.app.send_message(call.message.chat.id, text, reply_markup=markup)
+			self.app.send_message(call.chat.id, text, reply_markup=markup)
 
 		except Exception as e:
 			error_details = traceback.format_exc()
 			custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
 			print(custom_message)
-			app.send_message(call.message.chat.id, f"{custom_message}")
+			app.send_message(call.chat.id, f"{custom_message}")
 			

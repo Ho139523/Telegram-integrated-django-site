@@ -1561,63 +1561,198 @@ class SendCart:
 
 ############################  SEND LOCATION  ############################
 
+# class SendLocation:
+    # def __init__(self, app, message):
+        # try:
+            # self.app = app
+            # self.chat_id = message.chat.id
+            # self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
+            # self.user_address = Address.objects.get(profile=self.profile, shipping_is_active=True)
+            # self.user_addresses = Address.objects.filter(profile=self.profile)
+            # try:
+                # self.cart = Cart.objects.get(profile=self.profile)
+            # except (Cart.DoesNotExist, Cart.MultipleObjectsReturned):
+                # self.cart = None
+        # except Exception as e:
+            # error_details = traceback.format_exc()
+            # custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+            # print(custom_message)
+            # app.send_message(message.chat.id, f"{custom_message}")
+
+    # def show_current_address(self, call):
+        # try:
+            # from telebot import types
+            
+            # # متن آدرس
+            # text = f"📍 آدرس فعلی شما:\n{self.user_address.shipping_line1}, {self.user_address.shipping_city}, {self.user_address.shipping_province}, {self.user_address.shipping_country}"
+            
+            # # ساخت دکمه‌های اینلاین
+            # buttons = {
+                # "✏️ ویرایش آدرس": ("edit_address", 1),
+                # "🔙 بازگشت": ("back_to_cart", 2)
+            # }
+            
+            # # ارسال/ویرایش پیام
+            # markup = SendMarkup(
+                # bot=self.app,
+                # chat_id=call.message.chat.id,
+                # text=text,
+                # buttons=buttons,
+                # button_layout=[1, 1],
+                # handlers={
+                    # "edit_address": self.handle_edit_address,
+                    # "back_to_cart": self.handle_back_to_cart
+                # }
+            # )
+            
+            # # ویرایش پیام قبلی به جای ارسال پیام جدید
+            # markup.edit(call.message.message_id)
+            
+        # except Exception as e:
+            # error_details = traceback.format_exc()
+            # custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+            # print(custom_message)
+            # self.app.send_message(call.message.chat.id, f"{custom_message}")
+
+    # def handle_edit_address(self, call):
+        # # کد مربوط به ویرایش آدرس
+        # pass
+
+    # def handle_back_to_cart(self, call):
+        # # کد مربوط به بازگشت به سبد خرید
+        # pass
+        
+from telebot import types
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 class SendLocation:
-    def __init__(self, app, message):
+    def __init__(self, app, message_or_call):
         try:
             self.app = app
-            self.chat_id = message.chat.id
+            self.chat_id = message_or_call.chat.id if hasattr(message_or_call, 'chat') else message_or_call.message.chat.id
             self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
-            self.user_address = Address.objects.get(profile=self.profile, shipping_is_active=True)
             self.user_addresses = Address.objects.filter(profile=self.profile)
-            try:
-                self.cart = Cart.objects.get(profile=self.profile)
-            except (Cart.DoesNotExist, Cart.MultipleObjectsReturned):
-                self.cart = None
+            self.active_address = Address.objects.filter(profile=self.profile, shipping_is_active=True).first()
         except Exception as e:
             error_details = traceback.format_exc()
-            custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+            custom_message = f"Error in SendLocation init: {e}\nDetails:\n{error_details}"
             print(custom_message)
-            app.send_message(message.chat.id, f"{custom_message}")
+            self.app.send_message(self.chat_id, f"خطایی رخ داد: {str(e)}")
 
-    def show_current_address(self, call):
+    def show_addresses(self, call_or_message=None):
         try:
             from telebot import types
             
-            # متن آدرس
-            text = f"📍 آدرس فعلی شما:\n{self.user_address.shipping_line1}, {self.user_address.shipping_city}, {self.user_address.shipping_province}, {self.user_address.shipping_country}"
+            # تعیین chat_id بر اساس نوع ورودی
+            if call_or_message:
+                chat_id = call_or_message.message.chat.id if hasattr(call_or_message, 'message') else call_or_message.chat.id
+            else:
+                chat_id = self.chat_id
             
-            # ساخت دکمه‌های اینلاین
+            # متن اصلی
+            text = "📍 آدرس‌های شما:\n\n"
+            
+            # ساخت دکمه‌های آدرس‌ها
+            buttons = {}
+            
+            # اضافه کردن آدرس‌های کاربر
+            for i, address in enumerate(self.user_addresses, start=1):
+                address_text = f"{i}. {address.shipping_line1[:20]}..."
+                if address == self.active_address:
+                    address_text += " ★"  # نشانگر آدرس فعال
+                buttons[address_text] = (f"show_address_{address.id}", i)
+            
+            # دکمه‌های پایه
+            buttons["➕ افزودن آدرس جدید"] = ("add_new_address", len(self.user_addresses)+1)
+            buttons["❌ بستن"] = ("close_addresses", len(self.user_addresses)+2)
+            
+            # ارسال یا ویرایش پیام
+            markup = SendMarkup(
+                bot=self.app,
+                chat_id=chat_id,
+                text=text,
+                buttons=buttons,
+                button_layout=[1]*len(self.user_addresses) + [2],  # هر آدرس در یک خط + دکمه‌های پایین
+                handlers={
+                    "add_new_address": self.handle_add_address,
+                    "close_addresses": self.handle_close,
+                    **{f"show_address_{addr.id}": lambda call, addr=addr: self.show_single_address(call, addr) 
+                       for addr in self.user_addresses}
+                }
+            )
+            
+            if call_or_message and hasattr(call_or_message, 'message_id'):
+                markup.edit(call_or_message.message.message_id)
+            else:
+                markup.send()
+                
+        except Exception as e:
+            error_details = traceback.format_exc()
+            custom_message = f"Error in show_addresses: {e}\nDetails:\n{error_details}"
+            print(custom_message)
+            self.app.send_message(chat_id, f"خطایی رخ داد: {str(e)}")
+
+    def show_single_address(self, call, address):
+        try:
+            # متن آدرس کامل
+            text = f"📍 آدرس انتخابی:\n\n{address.shipping_line1}\n"
+            text += f"🏙 شهر: {address.shipping_city}\n"
+            text += f"🏛 استان: {address.shipping_province}\n"
+            text += f"📮 کد پستی: {address.shipping_postal_code or 'ثبت نشده'}"
+            
+            # دکمه‌های مدیریت آدرس
             buttons = {
-                "✏️ ویرایش آدرس": ("edit_address", 1),
-                "🔙 بازگشت": ("back_to_cart", 2)
+                "🗺 تغییر موقعیت مکانی": (f"change_location_{address.id}", 1),
+                "✏️ تغییر آدرس": (f"change_address_{address.id}", 2),
+                "📝 تغییر کد پستی": (f"change_postal_{address.id}", 3),
+                "🔙 بازگشت": ("back_to_addresses", 4),
+                "🗑 حذف آدرس": (f"delete_address_{address.id}", 5)
             }
             
-            # ارسال/ویرایش پیام
             markup = SendMarkup(
                 bot=self.app,
                 chat_id=call.message.chat.id,
                 text=text,
                 buttons=buttons,
-                button_layout=[1, 1],
+                button_layout=[1, 1, 1, 2],
                 handlers={
-                    "edit_address": self.handle_edit_address,
-                    "back_to_cart": self.handle_back_to_cart
+                    f"change_location_{address.id}": lambda c: self.handle_change_location(c, address),
+                    f"change_address_{address.id}": lambda c: self.handle_change_address(c, address),
+                    f"change_postal_{address.id}": lambda c: self.handle_change_postal(c, address),
+                    "back_to_addresses": self.show_addresses,
+                    f"delete_address_{address.id}": lambda c: self.handle_delete_address(c, address)
                 }
             )
             
-            # ویرایش پیام قبلی به جای ارسال پیام جدید
             markup.edit(call.message.message_id)
             
         except Exception as e:
             error_details = traceback.format_exc()
-            custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
+            custom_message = f"Error in show_single_address: {e}\nDetails:\n{error_details}"
             print(custom_message)
-            self.app.send_message(call.message.chat.id, f"{custom_message}")
+            self.app.send_message(call.message.chat.id, f"خطایی رخ داد: {str(e)}")
 
-    def handle_edit_address(self, call):
-        # کد مربوط به ویرایش آدرس
+    # متدهای هندلرها
+    def handle_add_address(self, call):
+        # کد افزودن آدرس جدید
         pass
 
-    def handle_back_to_cart(self, call):
-        # کد مربوط به بازگشت به سبد خرید
+    def handle_close(self, call):
+        # کد بستن پنجره آدرس‌ها
+        self.app.delete_message(call.message.chat.id, call.message.message_id)
+
+    def handle_change_location(self, call, address):
+        # کد تغییر موقعیت مکانی
+        pass
+
+    def handle_change_address(self, call, address):
+        # کد تغییر آدرس
+        pass
+
+    def handle_change_postal(self, call, address):
+        # کد تغییر کد پستی
+        pass
+
+    def handle_delete_address(self, call, address):
+        # کد حذف آدرس
         pass

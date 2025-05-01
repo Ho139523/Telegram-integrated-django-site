@@ -662,7 +662,7 @@ def confirm_order_CallBack(data):
 def address_CallBack(data):
     try:
     # if subscription.subscription_offer(data.message):
-        # print(call.data)
+        print(data)
         if isinstance(data, types.Message):
             loc = SendLocation(app, data)
             loc.show_current_address(data)

@@ -1549,7 +1549,7 @@ class SendCart:
 				button_layout=[1, 1, 1],
 				handlers={
 				    "handeler": self.handle_buttons,
-				    "address": lambda call: SendLocation(self.app, call.message).show_current_address(call.message),
+				    "address": lambda call: SendLocation(self.app, message).show_addresses(),
 				    #"phone": ,
 				}
 			)

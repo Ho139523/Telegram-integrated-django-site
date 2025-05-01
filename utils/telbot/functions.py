@@ -1581,7 +1581,7 @@ class SendLocation:
 			print(custom_message)
 			app.send_message(message.chat.id, f"{custom_message}")
 
-	def show_current_address(self, message):
+	def show_current_address(self, call):
 		try:
 			print("yes")
 			from telebot import types

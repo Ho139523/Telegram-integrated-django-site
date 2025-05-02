@@ -707,6 +707,19 @@ def address_CallBack(data):
         app.send_message(chat_id, "خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید.")
 
 
+@app.callback_query_handler(func=lambda call: call.data.startswith('address_'))
+def test_address_callback(call):
+  print(f"Received callback: {call.data}")
+  address_id = call.data.split('_')[1]
+  try:
+   address = Address.objects.get(id=address_id)
+   loc = SendLocation(app, call)
+   loc.show_single_address(call, address)
+  except Exception as e:
+   print(f"Error: {str(e)}")
+
+
+
 
 # Back to Previous Menu
 @app.message_handler(func=lambda message: message.text == "🔙")

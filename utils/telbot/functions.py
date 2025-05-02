@@ -1622,12 +1622,6 @@ class SendCart:
         # # کد مربوط به بازگشت به سبد خرید
         # pass
         
-from telebot import types
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-from telebot import types
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import traceback
 
 class SendLocation:
     def __init__(self, app, message_or_call):
@@ -1671,6 +1665,15 @@ class SendLocation:
             buttons["➕ افزودن آدرس جدید"] = ("add_new_address", len(buttons)+1)
             buttons["❌ بستن"] = ("close_addresses", len(buttons)+2)
             
+            handlers = {
+                "add_address": self.handle_add_address,
+                "close_address": self.handle_close,
+            }
+            
+            # اضافه کردن هندلرهای آدرس‌ها
+            for address in self.user_addresses:
+                handlers[f"address_{address.id}"] = lambda c, addr=address: self.show_single_address(c, addr)
+            
             # ایجاد کیبورد
             markup = SendMarkup(
                 bot=self.app,
@@ -1678,12 +1681,7 @@ class SendLocation:
                 text=text,
                 buttons=buttons,
                 button_layout=[1]*len(self.user_addresses) + [2],
-                handlers={
-                    "add_new_address": self.handle_add_address,
-                    "close_addresses": self.handle_close,
-                    **{f"show_address_{addr.id}": lambda c, addr=addr: self.show_single_address(c, addr) 
-                       for addr in self.user_addresses}
-                }
+                handlers=handlers
             )
             
             # ارسال یا ویرایش پیام

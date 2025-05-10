@@ -656,67 +656,54 @@ def confirm_order_CallBack(data):
         cart.invoice(data)
 
 
-
-# @app.message_handler(func=lambda message: message.text == "آدرس پستی")
-# @app.callback_query_handler(func=lambda call: call.data == "address")
-# def address_CallBack(data):
-    # try:
-        # if isinstance(data, types.Message):
-            # loc = SendLocation(app, data)
-            # loc.show_current_address(data)
-        # elif isinstance(data, types.CallbackQuery):
-            # loc = SendLocation(app, data.message)
-            # loc.show_current_address(data)
-    # except ConnectionError as e:
-        # print(f"Connection Error: {e}")
-        # # ارسال پیام به کاربر در صورت خطای اتصال
-        # try:
-            # app.send_message(data.message.chat.id, "مشکلی در ارتباط با سرور پیش آمده. لطفاً بعداً تلاش کنید.")
-        # except:
-            # print("Failed to send error message to user.")
-    # except Exception as e:
-        # error_details = traceback.format_exc()
-        # print(f"Error: {e}\nDetails:\n{error_details}")
         
-@app.message_handler(func=lambda message: message.text == "آدرس پستی")
-@app.callback_query_handler(func=lambda call: call.data == "address")
-def address_CallBack(data):
+@app.message_handler(func=lambda message: message.text == "آدرس پستی من")
+@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_')))
+def unified_address_handler(data):
     try:
-        # تعیین نوع ورودی
+        # تشخیص نوع داده
         if isinstance(data, types.Message):
             message = data
+            call_data = None
             is_callback = False
-        else:  # CallbackQuery
-            message = data.message
-            is_callback = True
-            app.answer_callback_query(data.id)  # پاسخ به callback
-
-        # ایجاد نمونه SendLocation
-        loc = SendLocation(app, message)
-        
-        # نمایش آدرس‌ها
-        if is_callback:
-            loc.show_addresses(data)  # برای callback از message_id موجود استفاده می‌کند
         else:
-            loc.show_addresses()  # برای پیام جدید یک پیام تازه ایجاد می‌کند
+            message = data.message
+            call_data = data.data
+            is_callback = True
+            app.answer_callback_query(data.id)
 
+        loc = SendLocation(app, message)
+
+        if not is_callback:
+            # پیام متنی: "آدرس پستی من"
+            loc.show_addresses()
+        elif call_data == "address":
+            # کلیک روی دکمه‌ی "آدرس‌ها"
+            loc.show_addresses(data)
+        elif call_data.startswith("show_address_"):
+            # نمایش یک آدرس خاص
+            address_id = int(call_data.split("_")[-1])
+            address = Address.objects.get(id=address_id)
+            loc.show_single_address(data, address)
+        elif call_data.startswith("address_"):
+            # حالت تستی یا عمومی‌تر
+            address_id = int(call_data.split("_")[-1])
+            address = Address.objects.get(id=address_id)
+            loc.show_single_address(data, address)
+        elif call_data.startswith('close_address'):
+            loc.handle_close(data)
+        elif call_data.startswith('delete_address_'):
+            address_id = int(call_data.split("_")[-1])
+            address = Address.objects.get(id=address_id)
+            loc.delete_address(data, address)
+        else:
+            app.send_message(message.chat.id, "دستور نامعتبر است.")
+    except Address.DoesNotExist:
+        app.send_message(message.chat.id, "آدرس مورد نظر پیدا نشد.")
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"Error: {e}\nDetails:\n{error_details}")
+        print(f"Error in unified_address_handler: {e}\n{traceback.format_exc()}")
         chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
-        app.send_message(chat_id, "خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید.")
-
-
-@app.callback_query_handler(func=lambda call: call.data.startswith('address_'))
-def test_address_callback(call):
-  print(f"Received callback: {call.data}")
-  address_id = call.data.split('_')[1]
-  try:
-   address = Address.objects.get(id=address_id)
-   loc = SendLocation(app, call)
-   loc.show_single_address(call, address)
-  except Exception as e:
-   print(f"Error: {str(e)}")
+        app.send_message(chat_id, f"خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
 
 
 

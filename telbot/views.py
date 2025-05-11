@@ -677,6 +677,7 @@ def unified_address_handler(data):
         if not is_callback:
             # پیام متنی: "آدرس پستی من"
             loc.show_addresses()
+            app.send_message(chat_id, f"heyyy {message.text}")
         elif call_data == "address":
             # کلیک روی دکمه‌ی "آدرس‌ها"
             loc.show_addresses(data)

@@ -1800,3 +1800,11 @@ class SendLocation:
 		except Exception as e:
 			print(f"Error in delete_address: {e}")
 			self.app.answer_callback_query(call.id, "خطا در حذف آدرس")
+			
+	def add_new_address(self, call):
+		try:
+			markup = send_menu(call.message, ["ارسال موقعیت مکانی", "وارد کردن دستی"], call.message.text, ["🔙 بازگشت"])
+			app.send_message(call.message.chat.id, "نحوه وارد کردن آدرس را انتخاب کنید", reply_markup=markup)
+		except Exception as e:
+			print(f"Error in add new address: {e}")
+			self.app.send_message(call.message.chat.id, "")

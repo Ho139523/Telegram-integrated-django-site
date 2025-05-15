@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 from .models import User, ProfileModel, Address
 from django import forms
 import pycountry
@@ -16,6 +17,18 @@ import requests
 from django import forms
 from .models import Address
 import pycountry
+
+
+
+class CustomUserAdmin(UserAdmin):
+    UserAdmin.fieldsets[2][1]['fields'] = ("is_active", "is_staff", "is_superuser", "special_user", "is_special_user_manual", "groups", "user_permissions")
+    UserAdmin.fieldsets[1][1]['fields'] = ("first_name", "last_name", "email", "lang")
+
+    list_display = UserAdmin.list_display + ('lang', 'is_special_user')
+
+    search_fields = UserAdmin.search_fields + ('lang',)
+    list_filter = UserAdmin.list_filter + ('lang',)  # فقط lang چون فیلد است
+
 
 
 class AddressAdminForm(forms.ModelForm):
@@ -53,7 +66,7 @@ class AddressAdminForm(forms.ModelForm):
         province_choices = [("", "---------")]
         if country_code:
             try:
-                url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&username=Hussein2079"
+                url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&lan=fa&username=Hussein2079"
                 response = requests.get(url)
                 if response.status_code == 200:
                     data = response.json()
@@ -75,7 +88,7 @@ class AddressAdminForm(forms.ModelForm):
         if country_code and selected_province:
             province_code = selected_province
             try:
-                url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&username=Hussein2079"
+                url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&lan=fa&username=Hussein2079"
                 response = requests.get(url)
                 if response.status_code == 200:
                     data = response.json()
@@ -116,6 +129,13 @@ class AddressAdmin(admin.ModelAdmin):
     form = AddressAdminForm
 
 
-admin.site.register(User, UserAdmin)
-admin.site.register(ProfileModel)
+
+class ProfileModelAdmin(admin.ModelAdmin):
+    list_display = ('user', 'lang')       # نمایش در جدول
+    list_filter = ('lang',)   
+
+
+
+admin.site.register(User, CustomUserAdmin)
+admin.site.register(ProfileModel, ProfileModelAdmin)
 admin.site.register(Address, AddressAdmin)

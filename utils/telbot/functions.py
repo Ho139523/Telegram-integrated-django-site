@@ -1803,8 +1803,14 @@ class SendLocation:
 			
 	def add_new_address(self, call):
 		try:
+
+			self.handle_close(call)
 			markup = send_menu(call.message, ["ارسال موقعیت مکانی", "وارد کردن دستی"], call.message.text, ["🔙 بازگشت"])
-			app.send_message(call.message.chat.id, "نحوه وارد کردن آدرس را انتخاب کنید", reply_markup=markup)
+			self.app.send_message(
+				call.message.chat.id, 
+				"نحوه وارد کردن آدرس را انتخاب کنید", 
+				reply_markup=markup
+			)
 		except Exception as e:
 			print(f"Error in add new address: {e}")
-			self.app.send_message(call.message.chat.id, "")
+			self.app.send_message(call.message.chat.id, f"خطا: {e}")

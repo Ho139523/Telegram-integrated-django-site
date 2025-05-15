@@ -326,6 +326,10 @@ import requests
 
 GEONAMES_USERNAME = "Hussein2079"  # نام کاربری Geonames شما
 
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json
+
 def get_provinces(request):
     """ دریافت لیست استان‌ها از GeoNames بر اساس کشور انتخاب‌شده """
     country_code = request.GET.get("country")

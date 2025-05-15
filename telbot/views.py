@@ -658,7 +658,7 @@ def confirm_order_CallBack(data):
 
         
 @app.message_handler(func=lambda message: message.text == "آدرس پستی من")
-@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_')))
+@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address')))
 def unified_address_handler(data):
     try:
         # تشخیص نوع داده
@@ -672,14 +672,14 @@ def unified_address_handler(data):
             is_callback = True
             app.answer_callback_query(data.id)
 
+        print(call_data)
+
         loc = SendLocation(app, message)
 
         if not is_callback:
             # پیام متنی: "آدرس پستی من"
             if message.text=="آدرس پستی من":
                 loc.show_addresses()
-            elif message.text=="➕ افزودن آدرس جدید":
-            	pass
             
         elif call_data == "address":
             # کلیک روی دکمه‌ی "آدرس‌ها"
@@ -700,6 +700,8 @@ def unified_address_handler(data):
             address_id = int(call_data.split("_")[-1])
             address = Address.objects.get(id=address_id)
             loc.delete_address(data, address)
+        elif call_data.startswith("add_new_address"):
+                loc.add_new_address(data)
         else:
             app.send_message(message.chat.id, "دستور نامعتبر است.")
     except Address.DoesNotExist:

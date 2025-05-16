@@ -32,6 +32,12 @@ class CustomUserAdmin(UserAdmin):
 
 
 class AddressAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request", None)
+        self.lang = getattr(self.request.user, "lang", "en") if self.request else "en"
+        super().__init__(*args, **kwargs)
+
+
     class Meta:
         model = Address
         fields = "__all__"
@@ -127,6 +133,14 @@ class AddressAdminForm(forms.ModelForm):
 
 class AddressAdmin(admin.ModelAdmin):
     form = AddressAdminForm
+
+    def get_form(self, request, obj=None, **kwargs):
+        Form = super().get_form(request, obj, **kwargs)
+        class FormWithRequest(Form):
+            def __init__(self2, *args, **kw):
+                kw['request'] = request
+                super().__init__(*args, **kw)
+                return FormWithRequest
 
 
 

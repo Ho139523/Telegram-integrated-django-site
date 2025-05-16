@@ -330,14 +330,27 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 import json
 
+@csrf_exempt
+@require_POST
 def get_provinces(request):
-    """ دریافت لیست استان‌ها از GeoNames بر اساس کشور انتخاب‌شده """
-    country_code = request.GET.get("country")
+    try:
+        data = json.loads(request.body)
+        country_code = data.get("country")
+    except Exception as e:
+        return JsonResponse({"error": "Invalid request body"}, status=400)
 
     if not country_code:
         return JsonResponse({"error": "Country code is missing"}, status=400)
 
-    url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&username={GEONAMES_USERNAME}"
+    try:
+        if request.user.is_authenticated:
+            lang = request.user.lang
+        else:
+            lang = 'en'
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+    url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&lang={lang}&username={GEONAMES_USERNAME}"
 
     try:
         response = requests.get(url)
@@ -347,8 +360,8 @@ def get_provinces(request):
         data = response.json()
         provinces = [
             {
-                "code": prov["adminCode1"],  # ✅ Use actual code for internal use
-                "name": prov["name"]         # ✅ Display this in the dropdown
+                "code": prov["adminCode1"],
+                "name": prov["name"]
             }
             for prov in data.get("geonames", [])
         ]
@@ -362,16 +375,28 @@ def get_provinces(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@csrf_exempt
+@require_POST
 def get_cities(request):
-    """ دریافت لیست شهرها بر اساس کشور و استان انتخاب‌شده از GeoNames """
-    country_code = request.GET.get("country")
-    province_code = request.GET.get("province")
+    try:
+        data = json.loads(request.body)
+        country_code = data.get("country")
+        province_code = data.get("province")
+    except Exception as e:
+        return JsonResponse({"error": "Invalid request body"}, status=400)
 
     if not country_code or not province_code:
         return JsonResponse({"error": "Country and Province codes are required!"}, status=400)
 
-    # province_code is actually province name now — but that’s okay, GeoNames still understands it
-    url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&username={GEONAMES_USERNAME}"
+    try:
+        if request.user.is_authenticated:
+            lang = request.user.lang
+        else:
+            lang = 'en'
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+    url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&lang={lang}&username={GEONAMES_USERNAME}"
 
     try:
         response = requests.get(url)
@@ -380,7 +405,7 @@ def get_cities(request):
 
         data = response.json()
         cities = [
-            {"code": city["name"], "name": city["name"]}  # ✅ Name only
+            {"code": city["name"], "name": city["name"]}
             for city in data.get("geonames", [])
         ]
 

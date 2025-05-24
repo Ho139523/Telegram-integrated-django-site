@@ -164,7 +164,10 @@ class ProfileModel(models.Model):
 	}
 
 	def __str__(self):
-		return self.user.username if self.user else self.tel_id
+		if self.user:
+			return self.user.username
+		elif self.tel_id:
+			return self.tel_id
 
 	@property
 	def age(self):
@@ -214,21 +217,20 @@ class Address(models.Model):
 	profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="addresses")
 	shipping_line1 = models.CharField(max_length=100, verbose_name="Address Line 1")
 	shipping_line2 = models.CharField(max_length=100, blank=True, null=True, verbose_name="Address Line 2")
-	
-	shipping_country = models.CharField(max_length=50, choices=[(country.alpha_2, country.name) for country in pycountry.countries if country != "IL"], verbose_name="Country")
+
+	# فقط CharField بدون choices
+	shipping_country = models.CharField(max_length=50, verbose_name="Country")
 	shipping_province = models.CharField(max_length=50, blank=True, null=True, verbose_name="Province")
 	shipping_city = models.CharField(max_length=50, blank=True, null=True, verbose_name="City")
-	
+
 	shipping_zip_code = models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
 	shipping_home_phone = models.CharField(max_length=15, blank=True, null=True, verbose_name="Residential Phone Number")
-	
+
 	shipping_is_active = models.BooleanField(default=False, verbose_name="Active Address")
 
 	def save(self, *args, **kwargs):
 		if self.shipping_is_active:
-			# اگر این آدرس فعال است، سایر آدرس‌های کاربر را غیرفعال کن
 			Address.objects.filter(profile=self.profile, shipping_is_active=True).update(shipping_is_active=False)
-		
 		super().save(*args, **kwargs)
 
 	def __str__(self):

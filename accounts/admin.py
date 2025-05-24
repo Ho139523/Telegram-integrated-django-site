@@ -4,6 +4,8 @@ from django.contrib.auth.models import Group
 from .models import User, ProfileModel, Address
 from django import forms
 import pycountry
+from utils.funcs.geonames_address import get_country_choices
+
 
 
 import requests
@@ -27,7 +29,7 @@ class CustomUserAdmin(UserAdmin):
     list_display = UserAdmin.list_display + ('lang', 'is_special_user')
 
     search_fields = UserAdmin.search_fields + ('lang',)
-    list_filter = UserAdmin.list_filter + ('lang',)  # فقط lang چون فیلد است
+    list_filter = UserAdmin.list_filter + ('lang',)
 
 
 
@@ -42,11 +44,12 @@ class AddressAdminForm(forms.ModelForm):
         model = Address
         fields = "__all__"
 
+    
     shipping_country = forms.ChoiceField(
-        choices=[("", "---------")] + [(c.alpha_2, c.name) for c in pycountry.countries if c.alpha_2 != "IL"],
         required=False,
         widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_country'})
     )
+
 
     shipping_province = forms.ChoiceField(
         required=False,
@@ -59,7 +62,11 @@ class AddressAdminForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request", None)
+        self.lang = getattr(self.request.user, "lang", "en") if self.request else "en"
         super().__init__(*args, **kwargs)
+
+        self.fields["shipping_country"].choices = [("", "---------")] + get_country_choices(self.lang)
 
         self.province_code_to_name = {}
         self.city_code_to_name = {}
@@ -68,11 +75,11 @@ class AddressAdminForm(forms.ModelForm):
         selected_province = self.data.get("shipping_province") or getattr(self.instance, "shipping_province", None)
         selected_city = self.data.get("shipping_city") or getattr(self.instance, "shipping_city", None)
 
-        # ----- Province Setup -----
+        # Province Setup
         province_choices = [("", "---------")]
         if country_code:
             try:
-                url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&lan=fa&username=Hussein2079"
+                url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&lang={self.lang}&username=Hussein2079"
                 response = requests.get(url)
                 if response.status_code == 200:
                     data = response.json()
@@ -89,12 +96,11 @@ class AddressAdminForm(forms.ModelForm):
 
         self.fields["shipping_province"].choices = province_choices
 
-        # ----- City Setup -----
+        # City Setup
         city_choices = [("", "---------")]
         if country_code and selected_province:
-            province_code = selected_province
             try:
-                url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&lan=fa&username=Hussein2079"
+                url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={selected_province}&featureClass=P&maxRows=1000&lang={self.lang}&username=Hussein2079"
                 response = requests.get(url)
                 if response.status_code == 200:
                     data = response.json()
@@ -117,18 +123,21 @@ class AddressAdminForm(forms.ModelForm):
         province_code = cleaned_data.get("shipping_province")
         city_code = cleaned_data.get("shipping_city")
 
-        # Replace province code with name
         if province_code in self.province_code_to_name:
             cleaned_data["shipping_province"] = self.province_code_to_name[province_code]
 
-        # Replace city code with name
         if city_code in self.city_code_to_name:
             cleaned_data["shipping_city"] = self.city_code_to_name[city_code]
 
         return cleaned_data
 
+    class Meta:
+        model = Address
+        fields = "__all__"
+
     class Media:
         js = ('admin/js/address_admin.js',)
+
 
 
 class AddressAdmin(admin.ModelAdmin):
@@ -140,13 +149,22 @@ class AddressAdmin(admin.ModelAdmin):
             def __init__(self2, *args, **kw):
                 kw['request'] = request
                 super().__init__(*args, **kw)
-                return FormWithRequest
+        return FormWithRequest
 
 
 
 class ProfileModelAdmin(admin.ModelAdmin):
-    list_display = ('user', 'lang')       # نمایش در جدول
-    list_filter = ('lang',)   
+    list_display = ('display_name', 'lang')
+    list_filter = ('lang',)
+
+    def display_name(self, obj):
+        if obj.user:
+            return obj.user.username
+        elif obj.tel_id:
+            return obj.tel_id
+        return "-"
+
+    display_name.short_description = "Telegram ID / Username"
 
 
 

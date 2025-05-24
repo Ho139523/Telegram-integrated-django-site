@@ -88,3 +88,7 @@ setxkbmap -layout us,ir -option grp:alt_shift_toggle
 sudo -n 50 cat /var/log/uwsgi/django.log
 sudo cat /var/log/uwsgi/ai-error.log
 sudo journalctl -u pull.service -f
+
+############################
+
+uvicorn AI.asgi:application --host 0.0.0.0 --port 8000 --reload

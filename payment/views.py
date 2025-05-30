@@ -8,6 +8,7 @@ from payment.models import Transaction, Sale
 import requests
 from utils.variables.TOKEN import TOKEN
 from django.shortcuts import render
+import base64
 
 pay = ZarinPal()
 
@@ -17,20 +18,26 @@ def send_request(request):
         if request.method == "POST":
             try:
                 # دریافت داده‌های JSON از body
-                data = json.loads(request.body)
-
+                # data = json.loads(request.body)
+                encoded_data = request.GET.get('data')
+                decoded_data = base64.b64decode(encoded_data).decode()
+                data = json.loads(decoded_data)
+                tel_id = data['tel_id']
                 # استخراج اطلاعات محصول و کاربر
-                product_data = data.get("data", {})
-                message_data = data.get("message", {})
-                chat_id = message_data.get("chat_id")
-                product_code = product_data.get("code")
+                # tel_id = data.get("tel_id", {})
+                # message_data = data.get("message", {})
+                # chat_id = message_data.get("chat_id")
+                # product_code = product_data.get("code")
+                # return JsonResponse({"error": f"tel_id is : {tel_id}"}, status=400)
+                profile = ProfileModel.objects.get(tel_id=tel_id)
+                cart = Cart.objects.get(profile=profile)
+                cart_items = CartItem.objects.filter(cart=cart)
 
-                if not product_code:
-                    return JsonResponse({"error": "Product code is required"}, status=400)
+                # محاسبه مجموع قیمت کل
+                amount = sum(item.total_price() for item in cart_items)
 
                 # دریافت اطلاعات کالا
-                amount = int(float(product_data.get("final_price", "0"))) * 10  # تبدیل به ریال
-                description = f"{product_data.get('name')} - {product_data.get('description')}"  # توضیحات
+                description = f"salam"  # توضیحات
 
                 # ارسال درخواست پرداخت به زرین‌پال
                 response = pay.send_request(

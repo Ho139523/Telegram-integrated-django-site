@@ -656,6 +656,17 @@ def confirm_order_CallBack(data):
         cart.invoice(data)
 
 
+@app.callback_query_handler(func=lambda call: call.data == "payment")
+def payment_CallBack(data):
+    try:
+        cart = SendCart(app, data.message)
+        if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
+            cart.pay(data)
+    except Exception as e:
+        print(f"Error in unified_address_handler: {e}\n{traceback.format_exc()}")
+        chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
+        app.send_message(chat_id, f"خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
+
         
 @app.message_handler(func=lambda message: message.text == "آدرس پستی من")
 @app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address')))

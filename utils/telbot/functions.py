@@ -12,6 +12,9 @@ import os
 from django.conf import settings
 import requests
 from django.core.files.base import ContentFile
+import json
+import urllib.parse
+import base64
 
 
 # send_product_message function
@@ -1235,6 +1238,7 @@ class SendCart:
 			self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
 			self.cart = Cart.objects.filter(profile=self.profile).first()
 			self.cart.items.filter(quantity=0).delete()
+			self.current_site = 'https://intelleum.ir'
 			
 
 			if not self.cart or not self.cart.items.exists():
@@ -1450,9 +1454,7 @@ class SendCart:
 
 		except Exception as e:
 			print(f"Error in add: {e}\n{traceback.format_exc()}")
-
-		
-		
+	
 		
 	def remove_item(self, call):
 		try:
@@ -1536,7 +1538,7 @@ class SendCart:
 			buttons = {
 				f"آدرس: {address_text}": ("address", 1),
 				f"شماره تماس: {phone_text}": ("phone", 2), 
-				f"پرداخت": ("handeler", 3),
+				f"پرداخت": ("payment", 3),
 			}
 			
 
@@ -1551,13 +1553,69 @@ class SendCart:
 					"handeler": self.handle_buttons,
 					"address": lambda call: SendLocation(self.app, message).show_addresses(),
 					#"phone": ,
+					"payment": self.pay,
 				}
 			)
 			self.markup.edit(call.message.message_id)
 
 		except Exception as e:
 			print(f"Error in invoice: {e}\n{traceback.format_exc()}")
-			
+
+	def pay(self, call):
+
+		tel_id = call.message.chat.id
+
+		data = {'tel_id': tel_id,}
+		json_data = json.dumps(data)
+		encoded_data = base64.b64encode(json_data.encode()).decode()
+		payment_link = f"{self.current_site}/buy?data={encoded_data}"
+
+		self.app.send_message(
+			chat_id=call.message.chat.id,
+			text=f"لینک پرداخت شما:\n{payment_link}"
+		)
+
+
+		# ارسال درخواست به سرور شما
+		# try:
+		# 	response = requests.post(
+		# 		f"{self.current_site}/buy",
+		# 		headers={"Content-Type": "application/json"},
+		# 		data=json.dumps({'tel_id': tel_id}),
+		# 		verify=False
+		# 	)
+		# 	if response.status_code == 400:
+		# 		self.app.send_message(
+		# 				chat_id=call.message.chat.id,
+		# 				text=f"roror:\n{response.error}"
+		# 			)
+		# 	# بررسی پاسخ سرور
+		# 	if response.status_code == 200:
+		# 		payment_data = response.json()
+		# 		payment_link = payment_data.get("redirect_url")
+				
+		# 		if payment_link:
+		# 			# ارسال لینک به کاربر در تلگرام
+		# 			self.app.send_message(
+		# 				chat_id=call.message.chat.id,
+		# 				text=f"لینک پرداخت شما:\n{payment_link}"
+		# 			)
+		# 		else:
+		# 			self.app.send_message(
+		# 				chat_id=call.message.chat.id,
+		# 				text="خطا در دریافت لینک پرداخت"
+		# 			)
+		# 	else:
+		# 		self.app.send_message(
+		# 			chat_id=call.message.chat.id,
+		# 			text=f"خطا در ارتباط با سرور پرداخت: {response.status_code}"
+		# 		)
+				
+		# except requests.exceptions.RequestException as e:
+		# 	self.app.send_message(
+		# 		chat_id=call.message.chat.id,
+		# 		text=f"خطا در ارسال درخواست پرداخت: {str(e)}"
+		# 	)
 
 ############################  SEND LOCATION  ############################
 

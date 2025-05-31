@@ -8,26 +8,48 @@ from django.core.validators import MinValueValidator
 
 User = get_user_model()
 
+
+from products.models import Product
+
+class Cart(models.Model):
+    profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="carts", null=True, blank=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True)  # برای کاربران غیر لاگین
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cart {self.id} - {self.profile if self.profile else 'Guest'}"
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+
+    def total_price(self):
+        return self.quantity * self.product.final_price  # فرض کنید محصول قیمت دارد
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name} in Cart {self.cart.id}"
+
+
 class Transaction(models.Model):
     STATUS_CHOICES = [
-        ("pending", "Pending"),       # درخواست ارسال شده، منتظر پرداخت
-        ("paid", "Paid"),             # پرداخت انجام شده
-        ("failed", "Failed"),         # پرداخت ناموفق
-        ("canceled", "Canceled"),     # کاربر پرداخت را لغو کرده
-        ("refunded", "Refunded"),     # بازگشت وجه
+        ("pending", "Pending"),
+        ("paid", "Paid"),
+        ("failed", "Failed"),
+        ("canceled", "Canceled"),
+        ("refunded", "Refunded"),
     ]
 
-    # Unique identifier for tracking payments
     transaction_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="transactions")
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name="transactions")
-    
-    authority = models.CharField(max_length=50, unique=True, null=True, blank=True)  # Unique authority from ZarinPal
-    amount = models.PositiveIntegerField()  # Amount in Tomans (stored in smallest unit)
+    cart = models.ForeignKey(Cart, on_delete=models.SET_NULL, null=True, blank=True)  # تغییر از Product به Cart
+    authority = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    amount = models.PositiveIntegerField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
-    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
 
     def mark_as_paid(self):
         """Mark transaction as paid."""
@@ -56,35 +78,13 @@ class Transaction(models.Model):
 
 
 class Sale(models.Model):
-    seller = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="sales", verbose_name="Seller")
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="sales", verbose_name="Product")
-    transaction = models.OneToOneField(Transaction, on_delete=models.CASCADE, related_name="sale", verbose_name="Transaction")
-    amount = models.PositiveIntegerField(verbose_name="Amount")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Sale Date")
-
-    def __str__(self):
-        return f"Sale: {self.product.name} - {self.seller.name} - {self.amount} تومان"
-
-
-
-from products.models import Product
-
-class Cart(models.Model):
-    profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="carts", null=True, blank=True)
-    session_key = models.CharField(max_length=40, null=True, blank=True)  # برای کاربران غیر لاگین
+    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, related_name="sales")  # تغییر از OneToOne به ForeignKey
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    seller = models.ForeignKey(Store, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(null=True, blank=True)
+    unit_price = models.PositiveIntegerField(null=True, blank=True)  # قیمت واحد در زمان خرید
+    total_price = models.PositiveIntegerField(null=True, blank=True)  # قیمت کل (quantity * unit_price)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Cart {self.id} - {self.profile if self.profile else 'Guest'}"
-
-
-class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField(default=0, validators=[MinValueValidator(0)])
-
-    def total_price(self):
-        return self.quantity * self.product.final_price  # فرض کنید محصول قیمت دارد
-
-    def __str__(self):
-        return f"{self.quantity} x {self.product.name} in Cart {self.cart.id}"
+        return f"Sale: {self.product.name} - {self.quantity} x {self.unit_price}"

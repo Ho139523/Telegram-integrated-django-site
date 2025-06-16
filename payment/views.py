@@ -11,25 +11,29 @@ from django.shortcuts import render
 import base64
 import traceback
 from django.http import HttpResponseRedirect
+from django.core.cache import cache
 
 pay = ZarinPal()
 
 @csrf_exempt
 def send_request(request):
-    if request.method == "GET":
+    if request.method == 'GET':
         try:
-            # دریافت داده‌های JSON از body
-            # data = json.loads(request.body)
-            encoded_data = request.GET.get('data')
-            decoded_data = base64.b64decode(encoded_data).decode()
-            data = json.loads(decoded_data)
-            tel_id = data['tel_id']
-            # استخراج اطلاعات محصول و کاربر
-            # tel_id = data.get("tel_id", {})
-            # message_data = data.get("message", {})
-            # chat_id = message_data.get("chat_id")
-            # product_code = product_data.get("code")
-            # return JsonResponse({"error": f"tel_id is : {tel_id}"}, status=400)
+            # 1. دریافت شناسه پرداخت
+            payment_id = request.GET.get('pid')
+            print(payment_id)
+            
+            # 2. بازیابی داده از کش
+            payment_data = cache.get(f'payment_{payment_id}')
+            print(payment_data)
+            
+            if not payment_data:
+                return JsonResponse({'error': 'لینک پرداخت منقضی شده است'}, status=400)
+            
+            # 3. پردازش پرداخت
+            tel_id = payment_data['tel_id']
+
+
             profile = ProfileModel.objects.get(tel_id=tel_id)
             cart = Cart.objects.get(profile=profile)
             cart_items = CartItem.objects.filter(cart=cart)
@@ -37,7 +41,7 @@ def send_request(request):
             if not cart_items.exists():
                 return JsonResponse({"error": "سبد خرید خالی است"}, status=400)
             
-            amount = sum(item.total_price() for item in cart_items)
+            amount = sum(item.total_price() for item in cart_items)*10
             description = f"پرداخت سبد خرید شامل {cart_items.count()} کالا"
             
             response = pay.send_request(
@@ -60,6 +64,8 @@ def send_request(request):
                 status="pending"
             )
             
+            cache.delete(f'payment_{payment_id}')
+
             return HttpResponseRedirect(response["url"])
             
         except Exception as e:

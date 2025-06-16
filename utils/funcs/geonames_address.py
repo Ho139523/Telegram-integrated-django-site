@@ -1,12 +1,57 @@
 import requests
 
+# def get_country_choices(lang="en"):
+#     try:
+#         url = f"https://secure.geonames.org/countryInfoJSON?lang={lang}&username=Hussein2079"
+#         response = requests.get(url)
+#         data = response.json()
+#         countries = data.get("geonames", [])
+#         return [(c["countryCode"], c["countryName"]) for c in countries if c["countryCode"] != "IL"]
+#     except Exception as e:
+#         print("Error fetching country list:", e)
+#         return []
+
+
+
+# def get_country_choices(lang="en"):
+
+
+#     en_country_choices = [('AD', 'Andorra'), ('AE', 'United Arab Emirates'), ('AF', 'Afghanistan'), ('AG', 'Antigua and Barbuda'), ('AI', 'Anguilla'), ('AL', 'Albania'), ('AM', 'Armenia'), ('AO', 'Angola'), ('AQ', 'Antarctica'), ('AR', 'Argentina'), ('AS', 'American Samoa'), ('AT', 'Austria'), ('AU', 'Australia'), ('AW', 'Aruba'), ('AX', 'Åland'), ('AZ', 'Azerbaijan'), ('BA', 'Bosnia and Herzegovina'), ('BB', 'Barbados'), ('BD', 'Bangladesh'), ('BE', 'Belgium'), ('BF', 'Burkina Faso'), ('BG', 'Bulgaria'), ('BH', 'Bahrain'), ('BI', 'Burundi'), ('BJ', 'Benin'), ('BL', 'Saint Barthélemy'), ('BM', 'Bermuda'), ('BN', 'Brunei'), ('BO', 'Bolivia'), ('BQ', 'Bonaire, Sint Eustatius, and Saba'), ('BR', 'Brazil'), ('BS', 'Bahamas'), ('BT', 'Bhutan'), ('BV', 'Bouvet Island'), ('BW', 'Botswana'), ('BY', 'Belarus'), ('BZ', 'Belize'), ('CA', 'Canada'), ('CC', 'Cocos (Keeling) Islands'), ('CD', 'DR Congo'), ('CF', 'Central African Republic'), ('CG', 'Congo Republic'), ('CH', 'Switzerland'), ('CI', 'Ivory Coast'), ('CK', 'Cook Islands'), ('CL', 'Chile'), ('CM', 'Cameroon'), ('CN', 'China'), ('CO', 'Colombia'), ('CR', 'Costa Rica'), ('CU', 'Cuba'), ('CV', 'Cabo Verde'), ('CW', 'Curaçao'), ('CX', 'Christmas Island'), ('CY', 'Cyprus'), ('CZ', 'Czechia'), ('DE', 'Germany'), ('DJ', 'Djibouti'), ('DK', 'Denmark'), ('DM', 'Dominica'), ('DO', 'Dominican Republic'), ('DZ', 'Algeria'), ('EC', 'Ecuador'), ('EE', 'Estonia'), ('EG', 'Egypt'), ('EH', 'Western Sahara'), ('ER', 'Eritrea'), ('ES', 'Spain'), ('ET', 'Ethiopia'), ('FI', 'Finland'), ('FJ', 'Fiji'), ('FK', 'Falkland Islands'), ('FM', 'Micronesia'), ('FO', 'Faroe Islands'), ('FR', 'France'), ('GA', 'Gabon'), ('GB', 'United Kingdom'), ('GD', 'Grenada'), ('GE', 'Georgia'), ('GF', 'French Guiana'), ('GG', 'Guernsey'), ('GH', 'Ghana'), ('GI', 'Gibraltar'), ('GL', 'Greenland'), ('GM', 'The Gambia'), ('GN', 'Guinea'), ('GP', 'Guadeloupe'), ('GQ', 'Equatorial Guinea'), ('GR', 'Greece'), ('GS', 'South Georgia and South Sandwich Islands'), ('GT', 'Guatemala'), ('GU', 'Guam'), ('GW', 'Guinea-Bissau'), ('GY', 'Guyana'), ('HK', 'Hong Kong'), ('HM', 'Heard and McDonald Islands'), ('HN', 'Honduras'), ('HR', 'Croatia'), ('HT', 'Haiti'), ('HU', 'Hungary'), ('ID', 'Indonesia'), ('IE', 'Ireland'), ('IM', 'Isle of Man'), ('IN', 'India'), ('IO', 'British Indian Ocean Territory'), ('IQ', 'Iraq'), ('IR', 'Iran'), ('IS', 'Iceland'), ('IT', 'Italy'), ('JE', 'Jersey'), ('JM', 'Jamaica'), ('JO', 'Jordan'), ('JP', 'Japan'), ('KE', 'Kenya'), ('KG', 'Kyrgyzstan'), ('KH', 'Cambodia'), ('KI', 'Kiribati'), ('KM', 'Comoros'), ('KN', 'St Kitts and Nevis'), ('KP', 'North Korea'), ('KR', 'South Korea'), ('KW', 'Kuwait'), ('KY', 'Cayman Islands'), ('KZ', 'Kazakhstan'), ('LA', 'Laos'), ('LB', 'Lebanon'), ('LC', 'Saint Lucia'), ('LI', 'Liechtenstein'), ('LK', 'Sri Lanka'), ('LR', 'Liberia'), ('LS', 'Lesotho'), ('LT', 'Lithuania'), ('LU', 'Luxembourg'), ('LV', 'Latvia'), ('LY', 'Libya'), ('MA', 'Morocco'), ('MC', 'Monaco'), ('MD', 'Moldova'), ('ME', 'Montenegro'), ('MF', 'Saint Martin'), ('MG', 'Madagascar'), ('MH', 'Marshall Islands'), ('MK', 'North Macedonia'), ('ML', 'Mali'), ('MM', 'Myanmar'), ('MN', 'Mongolia'), ('MO', 'Macao'), ('MP', 'Northern Mariana Islands'), ('MQ', 'Martinique'), ('MR', 'Mauritania'), ('MS', 'Montserrat'), ('MT', 'Malta'), ('MU', 'Mauritius'), ('MV', 'Maldives'), ('MW', 'Malawi'), ('MX', 'Mexico'), ('MY', 'Malaysia'), ('MZ', 'Mozambique'), ('NA', 'Namibia'), ('NC', 'New Caledonia'), ('NE', 'Niger'), ('NF', 'Norfolk Island'), ('NG', 'Nigeria'), ('NI', 'Nicaragua'), ('NL', 'The Netherlands'), ('NO', 'Norway'), ('NP', 'Nepal'), ('NR', 'Nauru'), ('NU', 'Niue'), ('NZ', 'New Zealand'), ('OM', 'Oman'), ('PA', 'Panama'), ('PE', 'Peru'), ('PF', 'French Polynesia'), ('PG', 'Papua New Guinea'), ('PH', 'Philippines'), ('PK', 'Pakistan'), ('PL', 'Poland'), ('PM', 'Saint Pierre and Miquelon'), ('PN', 'Pitcairn Islands'), ('PR', 'Puerto Rico'), ('PS', 'Palestine'), ('PT', 'Portugal'), ('PW', 'Palau'), ('PY', 'Paraguay'), ('QA', 'Qatar'), ('RE', 'Réunion'), ('RO', 'Romania'), ('RS', 'Serbia'), ('RU', 'Russia'), ('RW', 'Rwanda'), ('SA', 'Saudi Arabia'), ('SB', 'Solomon Islands'), ('SC', 'Seychelles'), ('SD', 'Sudan'), ('SE', 'Sweden'), ('SG', 'Singapore'), ('SH', 'Saint Helena'), ('SI', 'Slovenia'), ('SJ', 'Svalbard and Jan Mayen'), ('SK', 'Slovakia'), ('SL', 'Sierra Leone'), ('SM', 'San Marino'), ('SN', 'Senegal'), ('SO', 'Somalia'), ('SR', 'Suriname'), ('SS', 'South Sudan'), ('ST', 'São Tomé and Príncipe'), ('SV', 'El Salvador'), ('SX', 'Sint Maarten'), ('SY', 'Syria'), ('SZ', 'Eswatini'), ('TC', 'Turks and Caicos Islands'), ('TD', 'Chad'), ('TF', 'French Southern Territories'), ('TG', 'Togo'), ('TH', 'Thailand'), ('TJ', 'Tajikistan'), ('TK', 'Tokelau'), ('TL', 'Timor-Leste'), ('TM', 'Turkmenistan'), ('TN', 'Tunisia'), ('TO', 'Tonga'), ('TR', 'Türkiye'), ('TT', 'Trinidad and Tobago'), ('TV', 'Tuvalu'), ('TW', 'Taiwan'), ('TZ', 'Tanzania'), ('UA', 'Ukraine'), ('UG', 'Uganda'), ('UM', 'U.S. Outlying Islands'), ('US', 'United States'), ('UY', 'Uruguay'), ('UZ', 'Uzbekistan'), ('VA', 'Vatican City'), ('VC', 'St Vincent and Grenadines'), ('VE', 'Venezuela'), ('VG', 'British Virgin Islands'), ('VI', 'U.S. Virgin Islands'), ('VN', 'Vietnam'), ('VU', 'Vanuatu'), ('WF', 'Wallis and Futuna'), ('WS', 'Samoa'), ('XK', 'Kosovo'), ('YE', 'Yemen'), ('YT', 'Mayotte'), ('ZA', 'South Africa'), ('ZM', 'Zambia'), ('ZW', 'Zimbabwe')]
+#     fa_country_choices = [('AD', 'آندورا'), ('AE', 'امارات متحدهٔ عربی'), ('AF', 'افغانستان'), ('AG', 'آنتیگوا و باربودا'), ('AI', 'آنگیل'), ('AL', 'آلبانی'), ('AM', 'ارمنستان'), ('AO', 'آنگولا'), ('AQ', 'جنوبگان'), ('AR', 'آرژانتین'), ('AS', 'ساموای امریکا'), ('AT', 'اتریش'), ('AU', 'استرالیا'), ('AW', 'آروبا'), ('AX', 'جزایر آلاند'), ('AZ', 'جمهوری آذربایجان'), ('BA', 'بوسنی و هرزگوین'), ('BB', 'باربادوس'), ('BD', 'بنگلادش'), ('BE', 'بلژیک'), ('BF', 'بورکینافاسو'), ('BG', 'بلغارستان'), ('BH', 'بحرین'), ('BI', 'بوروندی'), ('BJ', 'بنین'), ('BL', 'سن بارتلمی'), ('BM', 'برمودا'), ('BN', 'برونئی'), ('BO', 'بولیوی'), ('BQ', 'جزایر کارائیب هلند'), ('BR', 'برزیل'), ('BS', 'باهاما'), ('BT', 'بوتان'), ('BV', 'جزیره بووت'), ('BW', 'بوتسوانا'), ('BY', 'بلاروس'), ('BZ', 'بلیز'), ('CA', 'کانادا'), ('CC', 'جزایر کوکوس'), ('CD', 'کنگو - کینشاسا'), ('CF', 'جمهوری افریقای مرکزی'), ('CG', 'کنگو (جمهوری)'), ('CH', 'سوئیس'), ('CI', 'ساحل\u200cعاج'), ('CK', 'جزایر کوک'), ('CL', 'شیلی'), ('CM', 'کامرون'), ('CN', 'چین'), ('CO', 'کلمبیا'), ('CR', 'کاستاریکا'), ('CU', 'کوبا'), ('CV', 'کیپ\u200cورد'), ('CW', 'کوراسائو'), ('CX', 'جزیرهٔ کریسمس'), ('CY', 'قبرس'), ('CZ', 'چک'), ('DE', 'آلمان'), ('DJ', 'جیبوتی'), ('DK', 'دانمارک'), ('DM', 'دومینیک'), ('DO', 'جمهوری دومینیکن'), ('DZ', 'الجزایر'), ('EC', 'اکوادور'), ('EE', 'استونی'), ('EG', 'مصر'), ('EH', 'صحرای غربی'), ('ER', 'اریتره'), ('ES', 'اسپانیا'), ('ET', 'اتیوپی'), ('FI', 'فنلاند'), ('FJ', 'فیجی'), ('FK', 'جزایر فالکلند'), ('FM', 'میکرونزی'), ('FO', 'جزایر فارو'), ('FR', 'فرانسه'), ('GA', 'گابن'), ('GB', 'بریتانیا'), ('GD', 'گرنادا'), ('GE', 'گرجستان'), ('GF', 'گویان فرانسه'), ('GG', 'گرنزی'), ('GH', 'غنا'), ('GI', 'جبل\u200cالطارق'), ('GL', 'گرینلاند'), ('GM', 'گامبیا'), ('GN', 'گینه'), ('GP', 'گوادلوپ'), ('GQ', 'گینهٔ استوایی'), ('GR', 'یونان'), ('GS', 'جورجیای جنوبی و جزایر ساندویچ جنوبی'), ('GT', 'گواتمالا'), ('GU', 'گوام'), ('GW', 'گینهٔ بیسائو'), ('GY', 'گویان'), ('HK', 'هنگ\u200cکنگ'), ('HM', 'هرد و جزایر مک\u200cدونالد'), ('HN', 'هندوراس'), ('HR', 'کرواسی'), ('HT', 'هائیتی'), ('HU', 'مجارستان'), ('ID', 'اندونزی'), ('IE', 'ایرلند'), ('IM', 'جزیرهٔ من'), ('IN', 'هند'), ('IO', 'مستعمره\u200cهای بریتانیا در اقیانوس هند'), ('IQ', 'عراق'), ('IR', 'ایران'), ('IS', 'ایسلند'), ('IT', 'ایتالیا'), ('JE', 'جرزی'), ('JM', 'جامائیکا'), ('JO', 'اردن'), ('JP', 'ژاپن'), ('KE', 'کنیا'), ('KG', 'قرقیزستان'), ('KH', 'کامبوج'), ('KI', 'کیریباتی'), ('KM', 'کومور'), ('KN', 'سنت کیتس و نویس'), ('KP', 'کرهٔ شمالی'), ('KR', 'کرهٔ جنوبی'), ('KW', 'کویت'), ('KY', 'جزایر کِیمن'), ('KZ', 'قزاقستان'), ('LA', 'لائوس'), ('LB', 'لبنان'), ('LC', 'سنت لوسیا'), ('LI', 'لیختن\u200cاشتاین'), ('LK', 'سری\u200cلانکا'), ('LR', 'لیبریا'), ('LS', 'لسوتو'), ('LT', 'لیتوانی'), ('LU', 'لوکزامبورگ'), ('LV', 'لتونی'), ('LY', 'لیبی'), ('MA', 'مراکش'), ('MC', 'موناکو'), ('MD', 'مولداوی'), ('ME', 'مونته\u200cنگرو'), ('MF', 'سنت مارتین'), ('MG', 'ماداگاسکار'), ('MH', 'جزایر مارشال'), ('MK', 'مکدونیا'), ('ML', 'مالی'), ('MM', 'مایانمار'), ('MN', 'مغولستان'), ('MO', 'ماکائو'), ('MP', 'جزایر ماریانای شمالی'), ('MQ', 'مارتینیک'), ('MR', 'موریتانی'), ('MS', 'مونت\u200cسرات'), ('MT', 'مالت'), ('MU', 'موریس'), ('MV', 'مالدیو'), ('MW', 'مالاوی'), ('MX', 'مکزیک'), ('MY', 'مالزی'), ('MZ', 'موزامبیک'), ('NA', 'نامیبیا'), ('NC', 'کالدونیای جدید'), ('NE', 'نیجر'), ('NF', 'جزیرهٔ نورفولک'), ('NG', 'نیجریه'), ('NI', 'نیکاراگوئه'), ('NL', 'هلند'), ('NO', 'نروژ'), ('NP', 'نپال'), ('NR', 'نائورو'), ('NU', 'نیوئه'), ('NZ', 'زیلاند جدید'), ('OM', 'عمان'), ('PA', 'پاناما'), ('PE', 'پرو'), ('PF', 'پلی\u200cنزی فرانسه'), ('PG', 'پاپوا گینهٔ نو'), ('PH', 'فیلیپین'), ('PK', 'پاکستان'), ('PL', 'لهستان'), ('PM', 'سن پیر و میکلن'), ('PN', 'جزایر پیت\u200cکرن'), ('PR', 'پورتوریکو'), ('PS', 'فلسطین'), ('PT', 'پرتغال'), ('PW', 'پالائو'), ('PY', 'پاراگوئه'), ('QA', 'قطر'), ('RE', 'رئونیون'), ('RO', 'رومانی'), ('RS', 'صربستان'), ('RU', 'روسیه'), ('RW', 'رواندا'), ('SA', 'عربستان'), ('SB', 'جزایر سلیمان'), ('SC', 'سیشل'), ('SD', 'سودان'), ('SE', 'سوئد'), ('SG', 'سنگاپور'), ('SH', 'سنت هلن'), ('SI', 'اسلوونی'), ('SJ', 'سوالبارد و یان ماین'), ('SK', 'اسلواکی'), ('SL', 'سیرالئون'), ('SM', 'سان\u200cمارینو'), ('SN', 'سنگال'), ('SO', 'سومالی'), ('SR', 'سورینام'), ('SS', 'سودان جنوبی'), ('ST', 'سائوتومه و پرینسیپه'), ('SV', 'السالوادور'), ('SX', 'سنت مارتن'), ('SY', 'سوریه'), ('SZ', 'سوازیلند'), ('TC', 'جزایر تورکس و کایکوس'), ('TD', 'چاد'), ('TF', 'سرزمین\u200cهای جنوب فرانسه'), ('TG', 'توگو'), ('TH', 'تایلند'), ('TJ', 'تاجیکستان'), ('TK', 'توکلائو'), ('TL', 'تیمور شرقی'), ('TM', 'ترکمنستان'), ('TN', 'تونس'), ('TO', 'تونگا'), ('TR', 'ترکیه'), ('TT', 'ترینیداد و توباگو'), ('TV', 'تووالو'), ('TW', 'تایوان'), ('TZ', 'تانزانیا'), ('UA', 'اوکراین'), ('UG', 'اوگاندا'), ('UM', 'جزایر دورافتادهٔ ایالات متحده'), ('US', 'ایالات متحده'), ('UY', 'اروگوئه'), ('UZ', 'ازبکستان'), ('VA', 'واتیکان'), ('VC', 'سنت وینسنت و گرنادین'), ('VE', 'ونزوئلا'), ('VG', 'جزایر ویرجین بریتانیا'), ('VI', 'جزایر ویرجین ایالات متحده'), ('VN', 'ویتنام'), ('VU', 'وانواتو'), ('WF', 'والیس و فوتونا'), ('WS', 'ساموآ'), ('XK', 'کوزوو'), ('YE', 'یمن'), ('YT', 'مایوت'), ('ZA', 'افریقای جنوبی'), ('ZM', 'زامبیا'), ('ZW', 'زیمبابوه')]
+
+
+#     if lang=="en":
+#         country_choices = en_country_choices
+
+#     if lang=="fa":
+#         country_choices = fa_country_choices
+
+#     return country_choices
+
+
+
+
+import os
+import json
+from pathlib import Path 
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent 
+JSON_DATA_PATH = os.path.join(BASE_DIR, "Data/countries_full_multilang.json")
+
+
+def load_geodata():
+    with open(JSON_DATA_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def get_country_choices(lang="en"):
-    try:
-        url = f"https://secure.geonames.org/countryInfoJSON?lang={lang}&username=Hussein2079"
-        response = requests.get(url)
-        data = response.json()
-        countries = data.get("geonames", [])
-        return [(c["countryCode"], c["countryName"]) for c in countries if c["countryCode"] != "IL"]
-    except Exception as e:
-        print("Error fetching country list:", e)
-        return []
+    EXCLUDED_COUNTRIES = {"IL"}
+    data = load_geodata()
+    choices = []
+    for country_code, info in data.items():
+        if country_code in EXCLUDED_COUNTRIES:
+            continue
+        name = info.get("names", {}).get(lang) or info.get("names", {}).get("en") or country_code
+        choices.append([country_code, name])
+    return sorted(choices, key=lambda x: x[1])

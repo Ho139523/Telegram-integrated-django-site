@@ -4,21 +4,13 @@ from django.contrib.auth.models import Group
 from .models import User, ProfileModel, Address
 from django import forms
 import pycountry
-from utils.funcs.geonames_address import get_country_choices
+from utils.funcs.geonames_address import get_country_choices, load_geodata
 
 
 
 import requests
-from django import forms
-from .models import Address
-import pycountry
 
 
-
-import requests
-from django import forms
-from .models import Address
-import pycountry
 
 
 
@@ -39,10 +31,6 @@ class AddressAdminForm(forms.ModelForm):
         self.lang = getattr(self.request.user, "lang", "en") if self.request else "en"
         super().__init__(*args, **kwargs)
 
-
-    class Meta:
-        model = Address
-        fields = "__all__"
 
     
     shipping_country = forms.ChoiceField(
@@ -66,55 +54,42 @@ class AddressAdminForm(forms.ModelForm):
         self.lang = getattr(self.request.user, "lang", "en") if self.request else "en"
         super().__init__(*args, **kwargs)
 
-        self.fields["shipping_country"].choices = [("", "---------")] + get_country_choices(self.lang)
-
         self.province_code_to_name = {}
         self.city_code_to_name = {}
 
+        self.fields["shipping_country"].choices = [("", "---------")] + get_country_choices(self.lang)
+
+        # آماده‌سازی انتخاب‌های اولیه
         country_code = self.data.get("shipping_country") or getattr(self.instance, "shipping_country", None)
         selected_province = self.data.get("shipping_province") or getattr(self.instance, "shipping_province", None)
         selected_city = self.data.get("shipping_city") or getattr(self.instance, "shipping_city", None)
 
-        # Province Setup
         province_choices = [("", "---------")]
-        if country_code:
-            try:
-                url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&lang={self.lang}&username=Hussein2079"
-                response = requests.get(url)
-                if response.status_code == 200:
-                    data = response.json()
-                    for p in data.get("geonames", []):
-                        code = p["adminCode1"]
-                        name = p["name"]
-                        province_choices.append((code, name))
-                        self.province_code_to_name[code] = name
-            except:
-                pass
+        city_choices = [("", "---------")]
+
+        all_data = load_geodata()
+
+        if country_code in all_data:
+            provinces = all_data[country_code].get("provinces", {})
+            for prov_code, prov_data in provinces.items():
+                name = prov_data["names"].get(self.lang) or prov_data["names"].get("en") or prov_code
+                province_choices.append((prov_code, name))
+                self.province_code_to_name[prov_code] = name
+
+            if selected_province in provinces:
+                cities = provinces[selected_province].get("cities", {})
+                for city_code, city_data in cities.items():
+                    name = city_data["names"].get(self.lang) or city_data["names"].get("en") or city_code
+                    city_choices.append((city_code, name))
+                    self.city_code_to_name[city_code] = name
 
         if selected_province and all(p[0] != selected_province for p in province_choices):
             province_choices.append((selected_province, f"{selected_province} (Unknown)"))
 
-        self.fields["shipping_province"].choices = province_choices
-
-        # City Setup
-        city_choices = [("", "---------")]
-        if country_code and selected_province:
-            try:
-                url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={selected_province}&featureClass=P&maxRows=1000&lang={self.lang}&username=Hussein2079"
-                response = requests.get(url)
-                if response.status_code == 200:
-                    data = response.json()
-                    for c in data.get("geonames", []):
-                        code = str(c["geonameId"])
-                        name = c["name"]
-                        city_choices.append((code, name))
-                        self.city_code_to_name[code] = name
-            except:
-                pass
-
         if selected_city and all(c[0] != selected_city for c in city_choices):
             city_choices.append((selected_city, f"{selected_city} (Unknown)"))
 
+        self.fields["shipping_province"].choices = province_choices
         self.fields["shipping_city"].choices = city_choices
 
     def clean(self):

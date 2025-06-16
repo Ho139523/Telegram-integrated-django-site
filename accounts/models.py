@@ -113,7 +113,7 @@ class ProfileModel(models.Model):
 	extra_button_menu = models.JSONField(default=default_extra_button_menu, blank=True, null=False)
 	seller_mode = models.BooleanField(default=False, blank=False, null=False)
 	settings_menu = models.JSONField(default=default_settings_menu, blank=True, null=False)
-	lang = models.CharField(max_length=10, choices=get_language_choices(), default='fa', unique=True, null=False, blank=True)
+	lang = models.CharField(max_length=10, choices=get_language_choices(), default='fa', unique=False, null=False, blank=True)
 
 	def get_active_address(self):
 		"""برگرداندن آدرس فعال کاربر"""

@@ -343,19 +343,17 @@ def settings(message):
 @app.message_handler(func=lambda message: message.text=="فروشنده شو")
 def become_a_seller(message):
     if subscription.subscription_offer(message):
-        profile=ProfileModel.objects.get(tel_id=message.from_user.id)
-        profile.seller_mode = True
-        profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
-        profile.save()
-        profile.save()
-        
-        Store.objects.get_or_create(profile=ProfileModel.objects.get(tel_id=message.from_user.id), address="...", city="...", province="...",)
-        
-        
-        
-        markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
-        app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
-        
+        try:
+            profile=ProfileModel.objects.get(tel_id=message.from_user.id)
+            Store.objects.get(profile=ProfileModel.objects.get(tel_id=message.from_user.id), address="...", city="...", province="...",)
+            profile.seller_mode = True
+            profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
+            profile.save()
+            profile.save()
+            markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
+            app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+        except Store.DoesNotExist:
+            app.send_message(message.chat.id, "شما هنوز فروشگاه خود را ثبت نکرده اید")
         
 # back to buyer mode handler# become a seller handler
 @app.message_handler(func=lambda message: message.text=="بازگشت به حالت خریدار")
@@ -657,19 +655,14 @@ def confirm_order_CallBack(data):
 
 
 @app.callback_query_handler(func=lambda call: call.data == "payment")
-def payment_CallBack(data):
-    try:
-        cart = SendCart(app, data.message)
-        if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
-            cart.pay(data)
-    except Exception as e:
-        print(f"Error in unified_address_handler: {e}\n{traceback.format_exc()}")
-        chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
-        app.send_message(chat_id, f"خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
-
-        
+def payment_order_CallBack(data):
+    cart = SendCart(app, data.message)
+    if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
+        cart.invoice(data)
+  
+      
 @app.message_handler(func=lambda message: message.text == "آدرس پستی من")
-@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address')))
+@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address')))
 def unified_address_handler(data):
     try:
         # تشخیص نوع داده
@@ -712,7 +705,9 @@ def unified_address_handler(data):
             address = Address.objects.get(id=address_id)
             loc.delete_address(data, address)
         elif call_data.startswith("add_new_address"):
-                loc.add_new_address(data)
+            loc.add_new_address(data)
+        elif call_data.startswith("manual_add_address"):
+            loc.manual_add_address(data)
         else:
             app.send_message(message.chat.id, "دستور نامعتبر است.")
     except Address.DoesNotExist:

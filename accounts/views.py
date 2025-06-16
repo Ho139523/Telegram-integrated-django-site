@@ -321,14 +321,28 @@ def profile_update_view(request):
 
 
 from django.http import JsonResponse
-import pycountry
-import requests
-
-GEONAMES_USERNAME = "Hussein2079"  # نام کاربری Geonames شما
-
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 import json
+
+
+
+
+import os
+from pathlib import Path 
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent 
+JSON_DATA_PATH = os.path.join(BASE_DIR, "utils/Data/countries_full_multilang.json")
+
+
+
+
+
+def load_geodata():
+    with open(JSON_DATA_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 
 @csrf_exempt
 @require_POST
@@ -336,43 +350,26 @@ def get_provinces(request):
     try:
         data = json.loads(request.body)
         country_code = data.get("country")
-    except Exception as e:
+    except Exception:
         return JsonResponse({"error": "Invalid request body"}, status=400)
 
     if not country_code:
         return JsonResponse({"error": "Country code is missing"}, status=400)
 
-    try:
-        if request.user.is_authenticated:
-            lang = request.user.lang
-        else:
-            lang = 'en'
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+    lang = getattr(request.user, "lang", "en")
 
-    url = f"http://api.geonames.org/searchJSON?country={country_code}&featureClass=A&featureCode=ADM1&maxRows=1000&lang={lang}&username={GEONAMES_USERNAME}"
+    geodata = load_geodata()
+    country_info = geodata.get(country_code)
 
-    try:
-        response = requests.get(url)
-        if response.status_code != 200:
-            return JsonResponse({"error": "Failed to fetch provinces!"}, status=500)
+    if not country_info:
+        return JsonResponse({"error": "Country not found"}, status=404)
 
-        data = response.json()
-        provinces = [
-            {
-                "code": prov["adminCode1"],
-                "name": prov["name"]
-            }
-            for prov in data.get("geonames", [])
-        ]
+    provinces = []
+    for code, province_data in country_info.get("provinces", {}).items():
+        name = province_data.get("names", {}).get(lang) or province_data.get("names", {}).get("en") or code
+        provinces.append({"code": code, "name": name})
 
-        if not provinces:
-            return JsonResponse({"error": "No provinces found"}, status=404)
-
-        return JsonResponse({"provinces": provinces})
-
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"provinces": provinces})
 
 
 @csrf_exempt
@@ -382,37 +379,28 @@ def get_cities(request):
         data = json.loads(request.body)
         country_code = data.get("country")
         province_code = data.get("province")
-    except Exception as e:
+    except Exception:
         return JsonResponse({"error": "Invalid request body"}, status=400)
 
     if not country_code or not province_code:
-        return JsonResponse({"error": "Country and Province codes are required!"}, status=400)
+        return JsonResponse({"error": "Country and Province codes are required"}, status=400)
 
-    try:
-        if request.user.is_authenticated:
-            lang = request.user.lang
-        else:
-            lang = 'en'
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+    lang = getattr(request.user, "lang", "en")
 
-    url = f"http://api.geonames.org/searchJSON?country={country_code}&adminCode1={province_code}&featureClass=P&maxRows=1000&lang={lang}&username={GEONAMES_USERNAME}"
+    geodata = load_geodata()
+    country_info = geodata.get(country_code)
 
-    try:
-        response = requests.get(url)
-        if response.status_code != 200:
-            return JsonResponse({"error": "Failed to fetch cities!"}, status=500)
+    if not country_info:
+        return JsonResponse({"error": "Country not found"}, status=404)
 
-        data = response.json()
-        cities = [
-            {"code": city["name"], "name": city["name"]}
-            for city in data.get("geonames", [])
-        ]
+    province_info = country_info.get("provinces", {}).get(province_code)
+    if not province_info:
+        return JsonResponse({"error": "Province not found"}, status=404)
 
-        if not cities:
-            return JsonResponse({"error": "No cities found"}, status=404)
+    cities = []
+    for code, city_data in province_info.get("cities", {}).items():
+        name = city_data.get("names", {}).get(lang) or city_data.get("names", {}).get("en") or code
+        cities.append({"code": code, "name": name})
 
-        return JsonResponse({"cities": cities})
+    return JsonResponse({"cities": cities})
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)

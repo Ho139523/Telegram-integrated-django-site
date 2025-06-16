@@ -15,6 +15,8 @@ from django.core.files.base import ContentFile
 import json
 import urllib.parse
 import base64
+import uuid
+from django.core.cache import cache
 
 
 # send_product_message function
@@ -192,16 +194,38 @@ class SendMarkup:
 		markup = types.InlineKeyboardMarkup()
 		button_list = []
 
-		sorted_buttons = sorted(self.buttons.items(), key=lambda item: item[1][1])
-		for text, (callback_data, index) in sorted_buttons:
-			button_list.append(types.InlineKeyboardButton(text, callback_data=callback_data))
+		# مرتب‌سازی دکمه‌ها بر اساس ایندکس
+		sorted_buttons = sorted(self.buttons.items(), key=lambda item: item[1]['index'] if isinstance(item[1], dict) else item[1][1])
+		
+		for text, button_data in sorted_buttons:
+			# اگر دکمه به صورت دیکشنری تعریف شده باشد (برای پشتیبانی از لینک)
+			if isinstance(button_data, dict):
+				if 'url' in button_data:
+					# ایجاد دکمه لینک
+					button_list.append(types.InlineKeyboardButton(
+						text, 
+						url=button_data['url']
+					))
+				else:
+					# ایجاد دکمه معمولی با callback_data
+					button_list.append(types.InlineKeyboardButton(
+						text, 
+						callback_data=button_data.get('callback_data')
+					))
+			else:
+				# حالت قدیمی برای سازگاری با کدهای موجود
+				callback_data, index = button_data
+				button_list.append(types.InlineKeyboardButton(text, callback_data=callback_data))
 
+		# چیدمان دکمه‌ها بر اساس طرح‌بندی
 		index = 0
 		for row_size in self.button_layout:
 			markup.row(*button_list[index:index + row_size])
 			index += row_size
 
 		return markup
+
+
 
 	def send(self):
 		""" 📌 ارسال پیام با دکمه‌ها """
@@ -1506,9 +1530,7 @@ class SendCart:
 			
 	def invoice(self, call):
 		try:
-			
 			self.app.answer_callback_query(call.id, "✅ در حال پردازش پرداخت ...")
-			
 			
 			profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
 			cart = Cart.objects.get(profile=profile)
@@ -1526,21 +1548,21 @@ class SendCart:
 
 			invoice_text += f"💰 <b>مجموع کل:</b> {total_price:,.0f} تومان"
 			
-			
 			address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
 			address_text = (f"{address.shipping_line1[:10]}, {address.shipping_province}, {address.shipping_country}" 
 						   if address else ' --- ')
 
-			
 			phone_text = (f"{profile.Phone}" if profile.Phone else ' --- ')
 
+			# دریافت لینک پرداخت از متد pay
+			payment_link = self.pay(call)  # این متد لینک پرداخت را برمی‌گرداند
 
+			# تعریف دکمه‌ها با ساختار جدید (دکمه پرداخت به صورت لینک)
 			buttons = {
-				f"آدرس: {address_text}": ("address", 1),
-				f"شماره تماس: {phone_text}": ("phone", 2), 
-				f"پرداخت": ("payment", 3),
+				f"آدرس: {address_text}": {"callback_data": "address", "index": 1},
+				f"شماره تماس: {phone_text}": {"callback_data": "phone", "index": 2}, 
+				"پرداخت": {"url": payment_link, "index": 3} if address and profile.Phone else {"callback_data": "phone_address_required", "index": 3},
 			}
-			
 
 			# ارسال پیام متنی فاکتور
 			self.markup = SendMarkup(
@@ -1550,10 +1572,9 @@ class SendCart:
 				buttons=buttons,
 				button_layout=[1, 1, 1],
 				handlers={
-					"handeler": self.handle_buttons,
-					"address": lambda call: SendLocation(self.app, message).show_addresses(),
-					#"phone": ,
-					"payment": self.pay,
+					"address": lambda call: SendLocation(self.app, call.message).show_addresses(),
+					# "phone": ... (اگر نیاز دارید)
+					"phone_address_required": lambda call: print("Callback received!") or self.app.answer_callback_query(call.id, "⚠️ لطفاً ابتدا آدرس و شماره تماس را تکمیل کنید.")
 				}
 			)
 			self.markup.edit(call.message.message_id)
@@ -1565,15 +1586,20 @@ class SendCart:
 
 		tel_id = call.message.chat.id
 
-		data = {'tel_id': tel_id,}
-		json_data = json.dumps(data)
-		encoded_data = base64.b64encode(json_data.encode()).decode()
-		payment_link = f"{self.current_site}/buy?data={encoded_data}"
-
-		self.app.send_message(
-			chat_id=call.message.chat.id,
-			text=f"لینک پرداخت شما:\n{payment_link}"
+		# 2. ایجاد شناسه یکتا برای پرداخت
+		payment_id = str(uuid.uuid4())
+		
+		# 3. ذخیره داده در کش
+		cache.set(
+			f'payment_{payment_id}',
+			{'tel_id': tel_id},
+			timeout=settings.PAYMENT_LINK_TIMEOUT
 		)
+		
+		# 4. ساخت لینک پرداخت
+		payment_link = f"{self.current_site}/buy?pid={payment_id}"
+
+		return payment_link
 
 
 		# ارسال درخواست به سرور شما
@@ -1862,13 +1888,72 @@ class SendLocation:
 	def add_new_address(self, call):
 		try:
 
-			self.handle_close(call)
-			markup = send_menu(call.message, ["ارسال موقعیت مکانی", "وارد کردن دستی"], call.message.text, ["🔙 بازگشت"])
-			self.app.send_message(
-				call.message.chat.id, 
-				"نحوه وارد کردن آدرس را انتخاب کنید", 
-				reply_markup=markup
+			text = "نحوه وارد کردن آدرس را انتخاب کنید"
+			
+			
+			buttons = {
+				"وارد کردن دستی": (f"manual_add_address", 1), 
+				"ارسال موقعیت مکانی": (f"send_location_add_address", 2),
+			}
+
+			handlers = {
+				"manual_add_address": self.manual_add_address,
+				"send_location_add_address": self.send_location_add_address,
+			}
+			
+			
+			# ایجاد کیبورد
+			markup = SendMarkup(
+				bot=self.app,
+				chat_id=self.chat_id,
+				text=text,
+				buttons=buttons,
+				button_layout=[2],
+				handlers=handlers
 			)
+
+			markup.edit(call.message.message_id)
+
 		except Exception as e:
-			print(f"Error in add new address: {e}")
-			self.app.send_message(call.message.chat.id, f"خطا: {e}")
+			error_details = traceback.format_exc()
+			print(f"Error in show_addresses: {e}\n{error_details}")
+			self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+
+	def manual_add_address(self, call):
+		from utils.funcs.geonames_address import get_country_choices, load_geodata
+		
+		try:
+
+			text = "ساکن کدام کشور هستید؟"
+			
+			
+			buttons = {}
+			handlers = {}
+			button_layout = []
+			i=0
+			for country in 	get_country_choices(self.profile.lang):
+				i += 1
+				buttons[country[1]] = (f"country_id_{country[0]}", i)
+				handlers[f"country_id_{country[0]}"] = None
+				button_layout.append(1)	
+				print(country[1])
+			
+			# ایجاد کیبورد
+			markup = SendMarkup(
+				bot=self.app,
+				chat_id=self.chat_id,
+				text=text,
+				buttons=buttons,
+				button_layout=button_layout,
+				handlers=handlers
+			)
+
+			markup.edit(call.message.message_id)
+
+		except Exception as e:
+			error_details = traceback.format_exc()
+			print(f"Error in show_addresses: {e}\n{error_details}")
+			self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+
+	def send_location_add_address(self):
+		pass

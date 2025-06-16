@@ -315,3 +315,15 @@ ZARINPAL = {
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
 CSRF_TRUSTED_ORIGINS = ['https://intelleum.ir']
 
+
+# تنظیم کش
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+    }
+}
+
+# مدت زمان اعتبار لینک پرداخت (ثانیه)
+PAYMENT_LINK_TIMEOUT = 3600  # 1 ساعت
+

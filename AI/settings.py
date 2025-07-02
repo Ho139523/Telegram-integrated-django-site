@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     "social_django",
     'crispy_forms',
     'crispy_bootstrap5',
+    'tailwind',
+    'theme',
     
     # Apps
     'accounts', 
@@ -224,7 +226,8 @@ USE_TZ = True
  
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Your main static directory
+    BASE_DIR / "static",
+    BASE_DIR / "theme" / "static",
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -327,3 +330,5 @@ CACHES = {
 # مدت زمان اعتبار لینک پرداخت (ثانیه)
 PAYMENT_LINK_TIMEOUT = 3600  # 1 ساعت
 
+TAILWIND_APP_NAME = 'theme'
+INTERNAL_IPS = ["127.0.0.1"]

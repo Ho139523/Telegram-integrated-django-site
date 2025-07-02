@@ -765,7 +765,7 @@
 		<div class="carousel-inner relative overflow-hidden">
 			{% for user in users %}
 				<!-- Each Slide -->
-				<a href="" class="nav-link dropdown-toggle carousel-item {% if forloop.first %}active{% endif %} transition-transform duration-3 ease-in-out">
+				<a href="{% url 'cv:cv' user.username %}" class="nav-link dropdown-toggle carousel-item {% if forloop.first %}active{% endif %} transition-transform duration-3 ease-in-out">
 					<div class="flex flex-col items-center text-center p-8 bg-gray-100 rounded-lg shadow-lg">
 					<img src="{{ user.profilemodel.avatar.url }}" alt="{{ user.profilemodel.fname }} {{ user.profilemodel.lname }}" class="img-fluid rounded-circle mb-4" style="width: 196px; height: 200px; object-fit: cover;">
 						<h4 class="mt-4 text-lg font-bold text-gray-900">{{ user.profilemodel.fname }} {{ user.profilemodel.lname }}</h4>

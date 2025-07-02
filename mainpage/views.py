@@ -13,7 +13,7 @@ def home(request):
     
     context={
         "tutorials": TutorialModel.objects.filter(status=True),
-        "users": User.objects.filter(is_superuser=True),
+        "users": User.objects.filter(is_superuser=True, profilemodel__isnull=False),
         "articles": ArticleModel.objects.filter(status=True),
     }
     

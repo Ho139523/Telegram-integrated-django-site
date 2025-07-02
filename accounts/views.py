@@ -6,7 +6,7 @@ from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from .models import User
-from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm#, ShippingAddressForm
+from .form import SignUpForm, HeaderImageForm, AvatarImageForm, ProfileUpdateForm, ShippingAddressForm
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordChangeDoneView, PasswordResetView, PasswordResetConfirmView
 from django.urls import reverse_lazy, reverse
 from .models import ProfileModel, Address
@@ -163,7 +163,7 @@ def profile(request, username):
         "shipping_city": address.shipping_city,
         "shipping_country": address.shipping_country,
         "shipping_province": address.shipping_province,
-        "shipping_zip": address.shipping_zip,
+        "shipping_zip": address.shipping_zip_code,
         "shipping_home_phone": address.shipping_home_phone,
     })
     

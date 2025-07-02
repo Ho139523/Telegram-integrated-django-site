@@ -1,4 +1,4 @@
-{% load static %}
+{% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -26,6 +26,7 @@
   <link href="{% static 'cv/assets/vendor/aos/aos.css' %}" rel="stylesheet">
   <link href="{% static 'cv/assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
   <link href="{% static 'cv/assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+  {% tailwind_css %}
 
   <!-- Main CSS File -->
   <link href="{% static 'cv/assets/css/main.css' %}" rel="stylesheet">
@@ -42,7 +43,7 @@
 <body class="index-page">
 
 
-{% include 'cv/cv-nav.html'%}
+<!-- {% include 'cv/cv-nav.html'%} -->
 
 
   <main class="main">

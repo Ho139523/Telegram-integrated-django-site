@@ -471,6 +471,7 @@ class ProductBot:
 		ADDITIONAL_IMAGES = "additional_images"
 		ATTRIBUTES = "attributes"
 		DELETE = "delete"
+		DELETE_CONFIRM = "delete_confirm"
 		
 		def __init__(self):
 			self.user_menus = {}
@@ -498,6 +499,8 @@ class ProductBot:
 		self.bot.register_message_handler(self.get_main_image, func=self.is_state(self.ProductState.MAIN_IMAGE), content_types=["photo"])
 		self.bot.register_message_handler(self.get_additional_images, func=self.is_state(self.ProductState.ADDITIONAL_IMAGES), content_types=["photo"])
 		self.bot.register_message_handler(self.delete, func=self.is_state(self.ProductState.DELETE))
+		self.bot.register_message_handler(self.delete, func=self.is_state(self.ProductState.DELETE_CONFIRM))
+
 
 	def is_state(self, state):
 		def check(message: Message):
@@ -975,7 +978,8 @@ class ProductBot:
 				try:
 					product = Product.objects.get(code=code)
 					# ارسال پیام محصول به کاربر
-					send_product_message(self.bot, message=message, product=product, current_site='https://intelleum.ir', buttons=False)
+					producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir')
+					producthandler.send_product_message(chat_id=message.chat.id)#buttons=False)
 
 					# ذخیره اطلاعات محصول در Redis
 					state_manager = RedisStateManager(message.chat.id)
@@ -991,8 +995,8 @@ class ProductBot:
 					self.bot.send_message(message.chat.id, "کالایی با این کد وجود ندارد.")
 					return
 		except Exception as e:
-			self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-			print(f"Error: {e}")
+			error_message = traceback.format_exc()  # دریافت Traceback کامل
+			print(f"Error in handle_buttons: {e}\n{error_message}")
 
 
 		   
@@ -1123,7 +1127,8 @@ class ProductHandler:
 			self.app.send_media_group(chat_id, media=photos)
 			self.send_buttons(chat_id)
 		except Exception as e:
-			print(f"Error in send_product_message: {e}")
+			error_message = traceback.format_exc()  # دریافت Traceback کامل
+			print(f"Error in handle_buttons: {e}\n{error_message}")
 
 	def send_buttons(self, chat_id):
 		try:

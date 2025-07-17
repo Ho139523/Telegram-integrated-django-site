@@ -76,6 +76,9 @@ class ProfileModel(models.Model):
 	def default_settings_menu():
 		return ["فروشنده شو", "پروفایل"]
 
+	def default_profile_menu():
+		return ['زبان 🌐']
+
 	user = models.OneToOneField(User, unique=True, null=True, on_delete=models.SET_NULL, blank=True)
 	fname = models.CharField(max_length=100, blank=True, null=True, verbose_name="First Name")
 	lname = models.CharField(max_length=150, blank=True, null=True, verbose_name="Last Name")
@@ -113,6 +116,7 @@ class ProfileModel(models.Model):
 	extra_button_menu = models.JSONField(default=default_extra_button_menu, blank=True, null=False)
 	seller_mode = models.BooleanField(default=False, blank=False, null=False)
 	settings_menu = models.JSONField(default=default_settings_menu, blank=True, null=False)
+	profile_menu = models.JSONField(default=default_profile_menu, blank=True, null=False)
 	lang = models.CharField(max_length=10, choices=get_language_choices(), default='fa', unique=False, null=False, blank=True)
 
 	def get_active_address(self):
@@ -139,6 +143,7 @@ class ProfileModel(models.Model):
 		],
 		["🔐     ایجاد حساب کاربری    🛡️",],
 		["فروشنده شو", "آدرس پستی من", "پروفایل 👤"],
+		['زبان 🌐'], 
 		],
 		'green': [
 		[
@@ -147,12 +152,23 @@ class ProfileModel(models.Model):
 		],
 		[""],
 		["فروشنده شو", "آدرس پستی من", "پروفایل 👤"],
+		['زبان 🌐'],
 		],
 		'silver': [
+		[
 			"🧮 موجودی", "🛒 خرید سریع", "🖥 بازدید سایت", "💬 پیام به پشتیبان"
 		],
+		[""],
+		["فروشنده شو", "آدرس پستی من", "پروفایل 👤"],
+		['زبان 🌐'],
+		],
 		'gold': [
+		[
 			"💰 گزارش مالی", "🛒 خرید پیشرفته", "📊 تحلیل‌ها", "🖥 بازدید سایت"
+		],
+		[""],
+		["فروشنده شو", "آدرس پستی من", "پروفایل 👤"],
+		['زبان 🌐'],
 		],
 		'seller': [
 		[
@@ -160,6 +176,7 @@ class ProfileModel(models.Model):
 		],
 		["آمار فروش"],
 		["بازگشت به حالت خریدار", "تغییر آدرس انبار", "پروفایل 👤"],
+		['زبان 🌐'],
 		],
 	}
 
@@ -194,16 +211,19 @@ class ProfileModel(models.Model):
 				self.tel_menu = self.LEVEL_MENUS[self.user_level][0]
 				self.extra_button_menu = self.LEVEL_MENUS[self.user_level][1]
 				self.settings_menu = self.LEVEL_MENUS[self.user_level][2]
+				self.profile_menu = self.LEVEL_MENUS[self.user_level][3]
 
 			if old_instance.seller_mode:
 				self.tel_menu = self.LEVEL_MENUS["seller"][0]
 				self.extra_button_menu = self.LEVEL_MENUS["seller"][1]
 				self.settings_menu = self.LEVEL_MENUS["seller"][2]
+				self.profile_menu = self.LEVEL_MENUS[self.user_level][3]
 
 			if not old_instance.seller_mode:
 				self.tel_menu = self.LEVEL_MENUS[self.user_level][0]
 				self.extra_button_menu = self.LEVEL_MENUS[self.user_level][1]
 				self.settings_menu = self.LEVEL_MENUS[self.user_level][2]
+				self.profile_menu = self.LEVEL_MENUS[self.user_level][3]
 
 		# Sync language from user if it wasn't manually changed
 		elif self.user and self.lang != self.user.lang:

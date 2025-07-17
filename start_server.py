@@ -6,7 +6,7 @@ import time
 import os
 
 # فعال‌سازی محیط مجازی
-myenv_path = "C:/Users/asus/Desktop/petroleum/GUI/myenv/Scripts/activate"
+myenv_path = "C:/Users/asus/Desktop/petroleum/GUI/.venv/Scripts/activate"
 activate_env_command = f"{myenv_path} && "
 
 # توکن تلگرام

@@ -18,6 +18,7 @@ from django.http import HttpResponse
 from django.conf import settings as sett
 from datetime import datetime
 from decouple import config
+import pycountry
 
 
 # support imports
@@ -336,6 +337,40 @@ def settings(message):
         home_menue = ["🏡"]
         markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).settings_menu, "settings", home_menue)
         app.send_message(message.chat.id, "اینجا می تونی تنظیمات حسابت رو تغییر بدی:", reply_markup=markup)
+
+
+# profile settings handler
+@app.message_handler(func=lambda message: message.text=="پروفایل 👤")
+def profile_setting(message):
+    if subscription.subscription_offer(message):
+        home_menue = ["🏡"]
+        markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).profile_menu, "profile", home_menue)
+        app.send_message(message.chat.id, "اینجا می تونی پروفایل خودتون رو تغییر بدی:", reply_markup=markup)
+
+# language settings handler
+@app.message_handler(func=lambda message: message.text=="زبان 🌐")
+def language_setting(message):
+    if subscription.subscription_offer(message):
+        home_menue = ["🏡"]
+        def get_language_choices():
+            # Mapping of language names to their ISO 639-1 codes
+            language_map = [
+                'Persian',
+                'English',
+                'Chinese',
+                'Russian',
+                'Arabic',
+                'Spanish',
+            ]
+            
+            # You would typically use geonames webservice here, but since it's not a language-focused service,
+            # we'll just return our predefined mapping in the required format
+            languages = [(code, name) for name, code in language_map.items()]
+            
+            return sorted(languages, key=lambda x: x[1])
+        print(get_language_choices())
+        markup = send_menu(message, get_language_choices(), "language", retun_menue)
+        app.send_message(message.chat.id, "اینجا می تونی پروفایل خودتون رو تغییر بدی:", reply_markup=markup)
 
 
 

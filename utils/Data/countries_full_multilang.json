@@ -69,7 +69,8 @@
               "ar": "Tossalet i Vinyals1"
             }
           }
-        }
+        },
+        "done": true
       },
       "Canillo": {
         "geonameId": 3041203,
@@ -211,7 +212,8 @@
               "ar": "l'Aldosa de canillo"
             }
           }
-        }
+        },
+        "done": true
       },
       "Encamp": {
         "geonameId": 3040684,
@@ -263,7 +265,8 @@
               "ar": "Vila"
             }
           }
-        }
+        },
+        "done": true
       },
       "Escaldes-Engordany": {
         "geonameId": 3338529,
@@ -335,7 +338,8 @@
               "ar": "La Plana"
             }
           }
-        }
+        },
+        "done": true
       },
       "La Massana": {
         "geonameId": 3040131,
@@ -457,7 +461,8 @@
               "ar": "l'Aldosa"
             }
           }
-        }
+        },
+        "done": true
       },
       "Ordino": {
         "geonameId": 3039676,
@@ -569,7 +574,8 @@
               "ar": "Sornàs"
             }
           }
-        }
+        },
+        "done": true
       },
       "Sant Julià de Loria": {
         "geonameId": 3039162,
@@ -654,36 +660,58 @@
           "Fontaneda": {
             "geonameId": 3040437,
             "names": {
-              "en": "Fontaneda"
+              "en": "Fontaneda",
+              "ru": "Fontaneda",
+              "ch": "Fontaneda",
+              "fa": "Fontaneda",
+              "ar": "Fontaneda"
             }
           },
           "Juberri": {
             "geonameId": 3040200,
             "names": {
-              "en": "Juberri"
+              "en": "Juberri",
+              "ru": "Juberri",
+              "ch": "Juberri",
+              "fa": "Juberri",
+              "ar": "Juberri"
             }
           },
           "Llumeneres": {
             "geonameId": 3039959,
             "names": {
-              "en": "Llumeneres"
+              "en": "Llumeneres",
+              "ru": "Llumeneres",
+              "ch": "Llumeneres",
+              "fa": "Llumeneres",
+              "ar": "Llumeneres"
             }
           },
           "Mas d’Alins": {
             "geonameId": 3039901,
             "names": {
-              "en": "Mas d’Alins"
+              "en": "Mas d’Alins",
+              "ru": "Mas d’Alins",
+              "ch": "Mas d’Alins",
+              "fa": "Mas d’Alins",
+              "ar": "Mas d’Alins"
             }
           },
           "Nagol": {
             "geonameId": 3039757,
             "names": {
-              "en": "Nagol"
+              "en": "Nagol",
+              "ru": "Nagol",
+              "ch": "Nagol",
+              "fa": "Nagol",
+              "ar": "Nagol"
             }
           }
-        }
+        },
+        "done": true
       }
-    }
+    },
+    "done": true
   },
   "AE": {
     "geonameId": 290557,
@@ -735,7 +763,8 @@
               "ar": "منطقة الظفرة"
             }
           }
-        }
+        },
+        "done": true
       },
       "Ajman": {
         "geonameId": 292933,
@@ -777,7 +806,8 @@
               "ar": "Masfut"
             }
           }
-        }
+        },
+        "done": true
       },
       "Dubai": {
         "geonameId": 292224,
@@ -879,7 +909,8 @@
               "ar": "Sector 3"
             }
           }
-        }
+        },
+        "done": true
       },
       "Fujairah": {
         "geonameId": 292879,
@@ -911,7 +942,8 @@
               "ar": "Dibba Al Fujairah Municipality"
             }
           }
-        }
+        },
+        "done": true
       },
       "Imārat Ra’s al Khaymah": {
         "geonameId": 291075,
@@ -933,7 +965,8 @@
               "ar": "Ras Al Khaimah"
             }
           }
-        }
+        },
+        "done": true
       },
       "Imārat Umm al Qaywayn": {
         "geonameId": 290595,
@@ -955,7 +988,8 @@
               "ar": "Umm AL Quwain"
             }
           }
-        }
+        },
+        "done": true
       },
       "Sharjah": {
         "geonameId": 292673,
@@ -1057,9 +1091,11 @@
               "ar": "Sharjah"
             }
           }
-        }
+        },
+        "done": true
       }
-    }
+    },
+    "done": true
   },
   "AF": {
     "geonameId": 1149361,
@@ -1361,7 +1397,8 @@
               "ar": "Zaybāk"
             }
           }
-        }
+        },
+        "done": true
       },
       "Badghis": {
         "geonameId": 1147707,
@@ -1443,7 +1480,8 @@
               "ar": "Āb-e Kamarī"
             }
           }
-        }
+        },
+        "done": true
       },
       "Baghlan": {
         "geonameId": 1147537,
@@ -1605,7 +1643,8 @@
               "ar": "Tālah wa Barfak"
             }
           }
-        }
+        },
+        "done": true
       },
       "Balkh": {
         "geonameId": 1147288,
@@ -1767,7 +1806,8 @@
               "ar": "Zārī"
             }
           }
-        }
+        },
+        "done": true
       },
       "Bamyan": {
         "geonameId": 1147239,
@@ -1849,7 +1889,8 @@
               "ar": "Yakāwlang"
             }
           }
-        }
+        },
+        "done": true
       },
       "Daykundi": {
         "geonameId": 6957553,
@@ -1951,7 +1992,8 @@
               "ar": "Shahristān"
             }
           }
-        }
+        },
+        "done": true
       },
       "Farah": {
         "geonameId": 1142263,
@@ -2073,7 +2115,8 @@
               "ar": "Shayb Kōh"
             }
           }
-        }
+        },
+        "done": true
       },
       "Faryab": {
         "geonameId": 1142226,
@@ -2225,7 +2268,8 @@
               "ar": "Shīrīn Tagāb"
             }
           }
-        }
+        },
+        "done": true
       },
       "Ghazni": {
         "geonameId": 1141268,
@@ -2427,7 +2471,8 @@
               "ar": "Zanakhān"
             }
           }
-        }
+        },
+        "done": true
       },
       "Ghowr": {
         "geonameId": 1141103,
@@ -2539,7 +2584,8 @@
               "ar": "Tūlak"
             }
           }
-        }
+        },
+        "done": true
       },
       "Helmand": {
         "geonameId": 1140043,
@@ -2681,7 +2727,8 @@
               "ar": "Wāshēr"
             }
           }
-        }
+        },
+        "done": true
       },
       "Herat": {
         "geonameId": 1140025,
@@ -2853,7 +2900,8 @@
               "ar": "Zindah Jān"
             }
           }
-        }
+        },
+        "done": true
       },
       "Jowzjan": {
         "geonameId": 1139049,
@@ -2975,7 +3023,8 @@
               "ar": "Āqchah"
             }
           }
-        }
+        },
+        "done": true
       },
       "Kabul": {
         "geonameId": 1138957,
@@ -3137,7 +3186,8 @@
               "ar": "Surobi"
             }
           }
-        }
+        },
+        "done": true
       },
       "Kandahar": {
         "geonameId": 1138335,
@@ -3309,7 +3359,8 @@
               "ar": "Zhaṟêy"
             }
           }
-        }
+        },
+        "done": true
       },
       "Kapisa": {
         "geonameId": 1138255,
@@ -3391,7 +3442,8 @@
               "ar": "Ḩişah-ye Duwum-e Kōhistān"
             }
           }
-        }
+        },
+        "done": true
       },
       "Khost Province": {
         "geonameId": 1444362,
@@ -3533,7 +3585,8 @@
               "ar": "Têrayzaī"
             }
           }
-        }
+        },
+        "done": true
       },
       "Kunar": {
         "geonameId": 1135702,
@@ -3695,7 +3748,8 @@
               "ar": "Wuṯahpūr"
             }
           }
-        }
+        },
+        "done": true
       },
       "Kunduz": {
         "geonameId": 1135690,
@@ -3777,7 +3831,8 @@
               "ar": "Qal‘ah-ye Zāl"
             }
           }
-        }
+        },
+        "done": true
       },
       "Laghman": {
         "geonameId": 1135022,
@@ -3839,7 +3894,8 @@
               "ar": "Qarghah’ī"
             }
           }
-        }
+        },
+        "done": true
       },
       "Logar": {
         "geonameId": 1134561,
@@ -3921,7 +3977,8 @@
               "ar": "Pul-e ‘Alam"
             }
           }
-        }
+        },
+        "done": true
       },
       "Maidan Wardak Province": {
         "geonameId": 1121863,
@@ -4023,7 +4080,8 @@
               "ar": "Ḩişah-ye Awal-e Bihsūd"
             }
           }
-        }
+        },
+        "done": true
       },
       "Nangarhar": {
         "geonameId": 1132366,
@@ -4245,7 +4303,8 @@
               "ar": "Surkh Rōd"
             }
           }
-        }
+        },
+        "done": true
       },
       "Nimroz": {
         "geonameId": 1131821,
@@ -4307,7 +4366,8 @@
               "ar": "Zaranj"
             }
           }
-        }
+        },
+        "done": true
       },
       "Nuristan": {
         "geonameId": 1444363,
@@ -4399,7 +4459,8 @@
               "ar": "Wāygal"
             }
           }
-        }
+        },
+        "done": true
       },
       "Oruzgan": {
         "geonameId": 1131461,
@@ -4461,7 +4522,8 @@
               "ar": "Tarīn Kōṯ"
             }
           }
-        }
+        },
+        "done": true
       },
       "Paktia": {
         "geonameId": 1131257,
@@ -4583,7 +4645,8 @@
               "ar": "Ḏanḏ Paṯān"
             }
           }
-        }
+        },
+        "done": true
       },
       "Paktika": {
         "geonameId": 1131256,
@@ -4785,7 +4848,8 @@
               "ar": "Zīṟūk"
             }
           }
-        }
+        },
+        "done": true
       },
       "Panjshir": {
         "geonameId": 6957555,
@@ -4867,7 +4931,8 @@
               "ar": "Shutul"
             }
           }
-        }
+        },
+        "done": true
       },
       "Parwan": {
         "geonameId": 1131054,
@@ -4979,7 +5044,8 @@
               "ar": "Sālang"
             }
           }
-        }
+        },
+        "done": true
       },
       "Samangan": {
         "geonameId": 1127766,
@@ -5061,7 +5127,8 @@
               "ar": "Ḩaẕrat-e Sulţān"
             }
           }
-        }
+        },
+        "done": true
       },
       "Sar-e Pol Province": {
         "geonameId": 1127106,
@@ -5143,7 +5210,8 @@
               "ar": "Şayād"
             }
           }
-        }
+        },
+        "done": true
       },
       "Takhar": {
         "geonameId": 1123230,
@@ -5325,7 +5393,8 @@
               "ar": "Yangī Qal‘ah"
             }
           }
-        }
+        },
+        "done": true
       },
       "Zabul": {
         "geonameId": 1121143,
@@ -5447,9 +5516,11 @@
               "ar": "Tarnêk wa Jaldak"
             }
           }
-        }
+        },
+        "done": true
       }
-    }
+    },
+    "done": true
   },
   "AG": {
     "geonameId": 3576396,
@@ -5511,7 +5582,8 @@
               "ar": "The Caves"
             }
           }
-        }
+        },
+        "done": true
       },
       "Redonda": {
         "geonameId": 3576037,
@@ -5522,7 +5594,8 @@
           "fa": "Redonda",
           "ar": "ريدوندا"
         },
-        "cities": {}
+        "cities": {},
+        "done": true
       },
       "Saint George Parish": {
         "geonameId": 3576024,
@@ -5674,7 +5747,8 @@
               "ar": "North Sound"
             }
           }
-        }
+        },
+        "done": true
       },
       "Saint John Parish": {
         "geonameId": 3576023,
@@ -6096,7 +6170,8 @@
               "ar": "Tomlinson"
             }
           }
-        }
+        },
+        "done": true
       },
       "Saint Mary Parish": {
         "geonameId": 3576018,
@@ -6388,7 +6463,8 @@
               "ar": "Tramontania"
             }
           }
-        }
+        },
+        "done": true
       },
       "Saint Paul Parish": {
         "geonameId": 3576017,
@@ -6690,7 +6766,8 @@
               "ar": "Willis Freemans"
             }
           }
-        }
+        },
+        "done": true
       },
       "Saint Peter Parish": {
         "geonameId": 3576016,
@@ -6932,7 +7009,8 @@
               "ar": "The Garden"
             }
           }
-        }
+        },
+        "done": true
       },
       "Saint Philip Parish": {
         "geonameId": 3576015,
@@ -7234,9 +7312,11 @@
               "ar": "Spencers"
             }
           }
-        }
+        },
+        "done": true
       }
-    }
+    },
+    "done": true
   },
   "AI": {
     "geonameId": 3573511,

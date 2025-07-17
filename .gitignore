@@ -1,4 +1,6 @@
+.idea/
 myenv/
+.venv/
 *.md
 .git
 __pycache__/

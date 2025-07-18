@@ -499,7 +499,7 @@ class ProductBot:
 		self.bot.register_message_handler(self.get_main_image, func=self.is_state(self.ProductState.MAIN_IMAGE), content_types=["photo"])
 		self.bot.register_message_handler(self.get_additional_images, func=self.is_state(self.ProductState.ADDITIONAL_IMAGES), content_types=["photo"])
 		self.bot.register_message_handler(self.delete, func=self.is_state(self.ProductState.DELETE))
-		self.bot.register_message_handler(self.delete, func=self.is_state(self.ProductState.DELETE_CONFIRM))
+		self.bot.register_message_handler(self.delete_sure, func=self.is_state(self.ProductState.DELETE_CONFIRM))
 
 
 	def is_state(self, state):
@@ -988,7 +988,7 @@ class ProductBot:
 					menu = ["بله مطمئنم", "منصرف شدم"]
 					markup = send_menu(message, menu, "main menu", home_menu)
 					self.bot.send_message(message.chat.id, f"آیا از حذف این کالا اطمینان داری؟", reply_markup=markup)
-					self.bot.register_next_step_handler(message, self.delete_sure)
+					#self.bot.register_next_step_handler(message, self.delete_sure)
 					self.set_state(message.chat.id, self.ProductState.DELETE_CONFIRM)
 
 				except Product.DoesNotExist:
@@ -1013,6 +1013,7 @@ class ProductBot:
 					if message.text == "بله مطمئنم":
 						# حذف محصول از دیتابیس
 						product.delete()
+						print("yes")
 
 						# ارسال پیام موفقیت‌آمیز به کاربر
 						main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu

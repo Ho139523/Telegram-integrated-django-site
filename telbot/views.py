@@ -380,7 +380,7 @@ def become_a_seller(message):
     if subscription.subscription_offer(message):
         try:
             profile=ProfileModel.objects.get(tel_id=message.from_user.id)
-            Store.objects.get(profile=ProfileModel.objects.get(tel_id=message.from_user.id), address="...", city="...", province="...",)
+            Store.objects.get(profile=ProfileModel.objects.get(tel_id=message.from_user.id))
             profile.seller_mode = True
             profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
             profile.save()

@@ -988,8 +988,8 @@ class ProductBot:
 					menu = ["بله مطمئنم", "منصرف شدم"]
 					markup = send_menu(message, menu, "main menu", home_menu)
 					self.bot.send_message(message.chat.id, f"آیا از حذف این کالا اطمینان داری؟", reply_markup=markup)
-					#self.bot.register_next_step_handler(message, self.delete_sure)
 					self.set_state(message.chat.id, self.ProductState.DELETE_CONFIRM)
+					self.bot.register_next_step_handler(message, self.delete_sure)
 
 				except Product.DoesNotExist:
 					self.bot.send_message(message.chat.id, "کالایی با این کد وجود ندارد.")

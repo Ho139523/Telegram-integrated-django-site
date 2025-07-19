@@ -521,11 +521,6 @@ class ProductBot:
 		RedisStateManager(chat_id).delete_state()
 
 
-	# def start(self, message: Message):
-		# """Start the product addition process."""
-		# self.set_state(message.chat.id, self.ProductState.NAME)
-		# self.bot.send_message(message.chat.id, "لطفاً نام محصول را وارد کنید:")
-
 	def get_name(self, message: Message):
 		# ذخیره نام در Redis
 		state_manager = RedisStateManager(message.chat.id)

@@ -172,6 +172,96 @@ class UserOrderManager:
 # product_handler = ProductHandler(app, product, current_site)
 # product_handler.send_product_message(chat_id)
 
+############################  PAGINATION  ############################
+
+
+import math
+import redis
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+
+import math
+import redis
+
+
+class InlineKeyboardPaginator:
+    def __init__(self, user_id, items, per_page=10, redis_host="localhost", redis_port=6379):
+        """
+        :param user_id: آیدی کاربر برای ذخیره وضعیت صفحه در Redis
+        :param items: لیست آیتم‌ها (مثل کشورها)
+        :param per_page: تعداد آیتم در هر صفحه
+        :param redis_host: هاست Redis
+        :param redis_port: پورت Redis
+        """
+        self.user_id = user_id
+        self.items = items
+        self.per_page = per_page
+        self.total_pages = math.ceil(len(items) / per_page)
+        self.redis = redis.Redis(host=redis_host, port=redis_port, db=0, decode_responses=True)
+
+    def _get_page_key(self):
+        return f"paginator:{self.user_id}:page"
+
+    def get_current_page(self):
+        page = self.redis.get(self._get_page_key())
+        return int(page) if page else 1
+
+    def set_page(self, page: int):
+        page = max(1, min(self.total_pages, page))
+        self.redis.set(self._get_page_key(), page)
+
+    def next_page(self):
+        current = self.get_current_page()
+        if current < self.total_pages:
+            self.set_page(current + 1)
+
+    def prev_page(self):
+        current = self.get_current_page()
+        if current > 1:
+            self.set_page(current - 1)
+
+    def get_buttons_for_sendmarkup(self):
+        """
+        خروجی:
+        - buttons: یک دیکشنری به سبک SendMarkup
+        - button_layout: یک لیست از سایز ردیف‌ها
+        """
+        current_page = self.get_current_page()
+        start = (current_page - 1) * self.per_page
+        end = start + self.per_page
+        current_items = self.items[start:end]
+
+        buttons = {}
+        button_layout = []
+
+        # اضافه کردن دکمه‌ها (هر دکمه یک ردیف جداگانه)
+        for idx, item in enumerate(current_items, start=1):
+            buttons[item] = {"callback_data": item, "index": idx}
+            button_layout.append(1)  # هر آیتم در یک ردیف
+
+        # اضافه کردن دکمه کنترل‌ها
+        control_buttons = []
+        idx = len(buttons) + 1
+        if current_page > 1:
+            buttons["⬅️ قبلی"] = {"callback_data": "prev", "index": idx}
+            control_buttons.append("⬅️ قبلی")
+            idx += 1
+
+        buttons[f"{current_page}/{self.total_pages}"] = {"callback_data": "current", "index": idx}
+        control_buttons.append(f"{current_page}/{self.total_pages}")
+        idx += 1
+
+        if current_page < self.total_pages:
+            buttons["بعدی ➡️"] = {"callback_data": "next", "index": idx}
+            control_buttons.append("بعدی ➡️")
+
+        button_layout.append(len(control_buttons))  # کنترل‌ها در یک ردیف
+
+        return buttons, button_layout
+
+
+
+
 ############################  SEND MARKUP  ############################
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -984,9 +1074,9 @@ class ProductBot:
 					markup = send_menu(message, menu, "main menu", home_menu)
 					self.bot.send_message(message.chat.id, f"آیا از حذف این کالا اطمینان داری؟", reply_markup=markup)
 					self.set_state(message.chat.id, self.ProductState.DELETE_CONFIRM)
-                    print("befor")
-                    self.bot.register_next_step_handler(message, self.delete_sure)
-                    print("after")
+					print("befor")
+					self.bot.register_next_step_handler(message, self.delete_sure)
+					print("after")
 
 				except Product.DoesNotExist:
 					self.bot.send_message(message.chat.id, "کالایی با این کد وجود ندارد.")
@@ -1924,22 +2014,27 @@ class SendLocation:
 
 	def manual_add_address(self, call):
 		from utils.funcs.geonames_address import get_country_choices, load_geodata
+		from redis import Redis
 		
 		try:
-
+			redis_client = Redis(host='localhost', port=6379, db=0)
 			text = "ساکن کدام کشور هستید؟"
-			
-			
-			buttons = {}
-			handlers = {}
-			button_layout = []
-			i=0
-			for country in 	get_country_choices(self.profile.lang):
-				i += 1
-				buttons[country[1]] = (f"country_id_{country[0]}", i)
-				handlers[f"country_id_{country[0]}"] = None
-				button_layout.append(1)	
-				print(country[1])
+			items = [item[1] for item in get_country_choices(self.profile.lang)]
+
+			paginator = InlineKeyboardPaginator(user_id=call.message.from_user.id, items=items, per_page=10)
+
+			redis_client.set(
+				f"paginator:{call.message.from_user.id}",
+				json.dumps({"items": items, "page": paginator.get_current_page()})
+			)
+
+			buttons, layout = paginator.get_buttons_for_sendmarkup()
+
+			handlers = {
+				"prev": self.handle_prev,
+				"next": self.handle_next,
+			}
+
 			
 			# ایجاد کیبورد
 			markup = SendMarkup(
@@ -1947,7 +2042,7 @@ class SendLocation:
 				chat_id=self.chat_id,
 				text=text,
 				buttons=buttons,
-				button_layout=button_layout,
+				button_layout=layout,
 				handlers=handlers
 			)
 
@@ -1957,6 +2052,59 @@ class SendLocation:
 			error_details = traceback.format_exc()
 			print(f"Error in show_addresses: {e}\n{error_details}")
 			self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+
+	def handle_prev(self, call):
+		user_id = call.message.from_user.id
+		from utils.funcs.geonames_address import get_country_choices
+		from redis import Redis
+
+		redis_client = Redis(host='localhost', port=6379, db=0)
+		data = redis_client.get(f"paginator:{user_id}")
+		if not data:
+			# fallback: create a new paginator
+			items = [item[1] for item in get_country_choices('fa')]
+			return InlineKeyboardPaginator(user_id=user_id, items=items, per_page=10)
+
+		data = json.loads(data)
+		paginator = InlineKeyboardPaginator(user_id=user_id, items=data["items"], per_page=10)
+		paginator.set_page(data["page"])
+
+		paginator.prev_page()
+		redis_client.set(
+			f"paginator:{user_id}",
+			json.dumps({"items": paginator.items, "page": paginator.get_current_page()})
+		)
+
+		buttons, layout = paginator.get_buttons_for_sendmarkup()
+		send_markup = SendMarkup(self.app, call.message.chat.id, "ساکن کدام کشور هستید؟", buttons, layout)
+		send_markup.edit(call.message.message_id)
+
+	def handle_next(self, call):
+		user_id = call.message.from_user.id
+		from utils.funcs.geonames_address import get_country_choices
+		from redis import Redis
+
+		redis_client = Redis(host='localhost', port=6379, db=0)
+		data = redis_client.get(f"paginator:{user_id}")
+		if not data:
+			# fallback: create a new paginator
+			items = [item[1] for item in get_country_choices('fa')]
+			return InlineKeyboardPaginator(user_id=user_id, items=items, per_page=10)
+
+		data = json.loads(data)
+		paginator = InlineKeyboardPaginator(user_id=user_id, items=data["items"], per_page=10)
+		paginator.set_page(data["page"])
+
+		paginator.next_page()
+		redis_client.set(
+			f"paginator:{user_id}",
+			json.dumps({"items": paginator.items, "page": paginator.get_current_page()})
+		)
+
+		buttons, layout = paginator.get_buttons_for_sendmarkup()
+		send_markup = SendMarkup(self.app, call.message.chat.id, "ساکن کدام کشور هستید؟", buttons, layout)
+		send_markup.edit(call.message.message_id)
+
 
 	def send_location_add_address(self):
 		pass

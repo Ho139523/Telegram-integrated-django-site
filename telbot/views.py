@@ -697,7 +697,7 @@ def payment_order_CallBack(data):
   
       
 @app.message_handler(func=lambda message: message.text == "آدرس پستی من")
-@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address')))
+@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next', 'prev')))
 def unified_address_handler(data):
     try:
         # تشخیص نوع داده
@@ -710,8 +710,6 @@ def unified_address_handler(data):
             call_data = data.data
             is_callback = True
             app.answer_callback_query(data.id)
-
-        print(call_data)
 
         loc = SendLocation(app, message)
 
@@ -743,6 +741,10 @@ def unified_address_handler(data):
             loc.add_new_address(data)
         elif call_data.startswith("manual_add_address"):
             loc.manual_add_address(data)
+        elif call_data.startswith("next"):
+            loc.handle_next(data)
+        elif call_data.startswith("prev"):
+            loc.handle_prev(data)
         else:
             app.send_message(message.chat.id, "دستور نامعتبر است.")
     except Address.DoesNotExist:

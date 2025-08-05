@@ -256,3 +256,19 @@ class Address(models.Model):
 	def __str__(self):
 		user_info = self.profile.user.username if hasattr(self.profile, 'user') and self.profile.user else self.profile.tel_id
 		return f"{user_info} - {self.shipping_line1} ({'Active' if self.shipping_is_active else 'Inactive'})"
+
+
+
+
+
+
+
+class TelStatus(models.Model):
+	profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, unique=True, related_name="telstatus")
+	status = models.CharField(max_length=500, null=True, blank=True)
+
+	def __str__(self):
+		user_info = self.profile.user.username if hasattr(self.profile, 'user') and self.profile.user else self.profile.tel_id
+		return f"{user_info} - {self.status}"
+
+

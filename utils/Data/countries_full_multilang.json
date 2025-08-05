@@ -263958,7 +263958,7 @@
     "names": {
       "en": "Iran",
       "ru": "Иран",
-      "ch": "Islamic Republic of Iran",
+      "ch": "伊朗",
       "fa": "ایران",
       "ar": "إيران"
     },
@@ -305745,6 +305745,7 @@
       "en": "Comoros",
       "ru": "Коморские о-ва",
       "ch": "Union of the Comoros",
+      "fa": "کومور",
       "ar": "جزر القمر"
     },
     "provinces": {
@@ -317169,6 +317170,7 @@
       "en": "Laos",
       "ru": "Лаос",
       "ch": "Lao People’s Democratic Republic",
+      "fa": "لائوس",
       "ar": "لاوس"
     },
     "provinces": {
@@ -318168,7 +318170,9 @@
     "names": {
       "en": "Saint Lucia",
       "ru": "Сент-Люсия",
-      "ch": "Saint Lucia"
+      "ch": "圣卢西亚",
+      "fa": "سنت لوسیا",
+      "ar": "سانت لوسيا"
     },
     "provinces": {
       "Anse-la-Raye": {
@@ -474460,47 +474464,3442 @@
   },
   "PR": {
     "geonameId": 4566966,
-    "names": {},
+    "names": {
+      "en": "Puerto Rico",
+      "ru": "Пуэрто-Рико",
+      "ch": "波多黎各",
+      "fa": "پورتوریکو",
+      "ar": "بورتوريكو"
+    },
     "provinces": {}
   },
   "PS": {
     "geonameId": 6254930,
-    "names": {},
+    "names": {
+      "en": "Palestine",
+      "ru": "Палестина",
+      "ch": "巴勒斯坦",
+      "fa": "فلسطين",
+      "ar": "فلسطين"
+    },
     "provinces": {}
   },
   "PT": {
     "geonameId": 2264397,
-    "names": {},
-    "provinces": {}
+    "names": {
+      "en": "Portugal",
+      "ru": "Португалия",
+      "ch": "葡萄牙",
+      "fa": "پرتغال",
+      "ar": "برتغال"},
+    "provinces": {
+      "Aveiro": {
+        "geonameId": 2742610,
+        "names": {
+          "en": "Aveiro",
+          "ru": "Distrito de Aveiro",
+          "ch": "Distrito de Aveiro",
+          "fa": "Distrito de Aveiro",
+          "ar": "Distrito de Aveiro"
+        },
+        "cities": {
+          "Agueda Municipality": {
+            "geonameId": 8010413,
+            "names": {
+              "en": "Agueda Municipality",
+              "ru": "Águeda",
+              "ch": "Águeda",
+              "fa": "Águeda",
+              "ar": "Águeda"
+            }
+          },
+          "Albergaria-A-Velha Municipality": {
+            "geonameId": 8010414,
+            "names": {
+              "en": "Albergaria-A-Velha Municipality",
+              "ru": "Albergaria-A-Velha",
+              "ch": "Albergaria-A-Velha",
+              "fa": "Albergaria-A-Velha",
+              "ar": "Albergaria-A-Velha"
+            }
+          },
+          "Anadia Municipality": {
+            "geonameId": 8010415,
+            "names": {
+              "en": "Anadia Municipality",
+              "ru": "Anadia",
+              "ch": "Anadia",
+              "fa": "Anadia",
+              "ar": "Anadia"
+            }
+          },
+          "Arouca Municipality": {
+            "geonameId": 8010416,
+            "names": {
+              "en": "Arouca Municipality",
+              "ru": "Arouca",
+              "ch": "Arouca",
+              "fa": "Arouca",
+              "ar": "Arouca"
+            }
+          },
+          "Aveiro Municipality": {
+            "geonameId": 8010417,
+            "names": {
+              "en": "Aveiro Municipality",
+              "ru": "Авейру",
+              "ch": "Aveiro",
+              "fa": "آویرو",
+              "ar": "آويرو"
+            }
+          },
+          "Castelo de Paiva Municipality": {
+            "geonameId": 8010418,
+            "names": {
+              "en": "Castelo de Paiva Municipality",
+              "ru": "Каштелу-ди-Пайва",
+              "ch": "Castelo de Paiva",
+              "fa": "Castelo de Paiva",
+              "ar": "Castelo de Paiva"
+            }
+          },
+          "Espinho Municipality": {
+            "geonameId": 8010419,
+            "names": {
+              "en": "Espinho Municipality",
+              "ru": "Espinho",
+              "ch": "Espinho",
+              "fa": "Espinho",
+              "ar": "Espinho"
+            }
+          },
+          "Estarreja Municipality": {
+            "geonameId": 8010420,
+            "names": {
+              "en": "Estarreja Municipality",
+              "ru": "Estarreja",
+              "ch": "Estarreja",
+              "fa": "Estarreja",
+              "ar": "Estarreja"
+            }
+          },
+          "Mealhada Municipality": {
+            "geonameId": 8010423,
+            "names": {
+              "en": "Mealhada Municipality",
+              "ru": "Меальяда",
+              "ch": "Mealhada",
+              "fa": "میلادا",
+              "ar": "ميلادا"
+            }
+          },
+          "Murtosa Municipality": {
+            "geonameId": 8010424,
+            "names": {
+              "en": "Murtosa Municipality",
+              "ru": "Murtosa",
+              "ch": "Murtosa",
+              "fa": "Murtosa",
+              "ar": "Murtosa"
+            }
+          },
+          "Oliveira de Azeméis Municipality": {
+            "geonameId": 8010425,
+            "names": {
+              "en": "Oliveira de Azeméis Municipality",
+              "ru": "Oliveira de Azeméis",
+              "ch": "Oliveira de Azeméis",
+              "fa": "Oliveira de Azeméis",
+              "ar": "Oliveira de Azeméis"
+            }
+          },
+          "Oliveira do Bairro Municipality": {
+            "geonameId": 8010426,
+            "names": {
+              "en": "Oliveira do Bairro Municipality",
+              "ru": "Oliveira do Bairro",
+              "ch": "Oliveira do Bairro",
+              "fa": "Oliveira do Bairro",
+              "ar": "Oliveira do Bairro"
+            }
+          },
+          "Ovar Municipality": {
+            "geonameId": 8010427,
+            "names": {
+              "en": "Ovar Municipality",
+              "ru": "Ovar",
+              "ch": "Ovar",
+              "fa": "Ovar",
+              "ar": "Ovar"
+            }
+          },
+          "Santa Maria da Feira Municipality": {
+            "geonameId": 8010421,
+            "names": {
+              "en": "Santa Maria da Feira Municipality",
+              "ru": "Санта-Мария-да-Фейра",
+              "ch": "Santa Maria da Feira",
+              "fa": "Santa Maria da Feira",
+              "ar": "Santa Maria da Feira"
+            }
+          },
+          "Sever do Vouga Municipality": {
+            "geonameId": 8010429,
+            "names": {
+              "en": "Sever do Vouga Municipality",
+              "ru": "Север-ду-Вога",
+              "ch": "Sever do Vouga",
+              "fa": "Sever do Vouga",
+              "ar": "Sever do Vouga"
+            }
+          },
+          "São João da Madeira Municipality": {
+            "geonameId": 8010428,
+            "names": {
+              "en": "São João da Madeira Municipality",
+              "ru": "Сан-Жуан-да-Мадейра",
+              "ch": "São João da Madeira",
+              "fa": "ساو ژواو دا مادیرا",
+              "ar": "São João da Madeira"
+            }
+          },
+          "Vagos Municipality": {
+            "geonameId": 8010430,
+            "names": {
+              "en": "Vagos Municipality",
+              "ru": "Vagos",
+              "ch": "Vagos",
+              "fa": "Vagos",
+              "ar": "Vagos"
+            }
+          },
+          "Vale de Cambra Municipality": {
+            "geonameId": 8010431,
+            "names": {
+              "en": "Vale de Cambra Municipality",
+              "ru": "Вали-ди-Камбра",
+              "ch": "Vale de Cambra",
+              "fa": "واله د کامبرا",
+              "ar": "Vale de Cambra"
+            }
+          },
+          "Ílhavo Municipality": {
+            "geonameId": 8010422,
+            "names": {
+              "en": "Ílhavo Municipality",
+              "ru": "Ílhavo",
+              "ch": "Ílhavo",
+              "fa": "Ílhavo",
+              "ar": "Ílhavo"
+            }
+          }
+        },
+        "done": true
+      },
+      "Azores": {
+        "geonameId": 3411865,
+        "names": {
+          "en": "Azores",
+          "ru": "Azores",
+          "ch": "Azores",
+          "fa": "Azores",
+          "ar": "Azores"
+        },
+        "cities": {
+          "Angra do Heroísmo Municipality": {
+            "geonameId": 8010691,
+            "names": {
+              "en": "Angra do Heroísmo Municipality",
+              "ru": "Ангра-ду-Эроишму",
+              "ch": "Angra do Heroísmo",
+              "fa": "آنگرا دو هروئیسمو",
+              "ar": "Angra do Heroísmo"
+            }
+          },
+          "Calheta Municipality": {
+            "geonameId": 8010694,
+            "names": {
+              "en": "Calheta Municipality",
+              "ru": "Calheta de São Jorge",
+              "ch": "Calheta de São Jorge",
+              "fa": "Calheta de São Jorge",
+              "ar": "Calheta de São Jorge"
+            }
+          },
+          "Horta Municipality": {
+            "geonameId": 8010699,
+            "names": {
+              "en": "Horta Municipality",
+              "ru": "Орта",
+              "ch": "Horta",
+              "fa": "اورتا",
+              "ar": "Horta"
+            }
+          },
+          "Lagoa Municipality": {
+            "geonameId": 8010685,
+            "names": {
+              "en": "Lagoa Municipality",
+              "ru": "Lagoa",
+              "ch": "Lagoa",
+              "fa": "Lagoa",
+              "ar": "Lagoa"
+            }
+          },
+          "Lajes das Flores Municipality": {
+            "geonameId": 8010700,
+            "names": {
+              "en": "Lajes das Flores Municipality",
+              "ru": "Lajes Das Flores",
+              "ch": "Lajes Das Flores",
+              "fa": "Lajes Das Flores",
+              "ar": "Lajes Das Flores"
+            }
+          },
+          "Lajes do Pico Municipality": {
+            "geonameId": 8010696,
+            "names": {
+              "en": "Lajes do Pico Municipality",
+              "ru": "Лажеш-ду-Пику",
+              "ch": "Lajes do Pico",
+              "fa": "Lajes do Pico",
+              "ar": "Lajes do Pico"
+            }
+          },
+          "Madalena Municipality": {
+            "geonameId": 8010697,
+            "names": {
+              "en": "Madalena Municipality",
+              "ru": "Madalena",
+              "ch": "Madalena",
+              "fa": "Madalena",
+              "ar": "Madalena"
+            }
+          },
+          "Nordeste Municipality": {
+            "geonameId": 8010686,
+            "names": {
+              "en": "Nordeste Municipality",
+              "ru": "Nordeste",
+              "ch": "Nordeste",
+              "fa": "Nordeste",
+              "ar": "Nordeste"
+            }
+          },
+          "Ponta Delgada": {
+            "geonameId": 8010687,
+            "names": {
+              "en": "Ponta Delgada",
+              "ru": "Понта-Делгада",
+              "ch": "Ponta Delgada",
+              "fa": "پونتا دلگادا",
+              "ar": "بُنتة دِلغَادة"
+            }
+          },
+          "Povoação Municipality": {
+            "geonameId": 8010688,
+            "names": {
+              "en": "Povoação Municipality",
+              "ru": "Povoação",
+              "ch": "Povoação",
+              "fa": "Povoação",
+              "ar": "Povoação"
+            }
+          },
+          "Praia da Vitória Municipality": {
+            "geonameId": 8010692,
+            "names": {
+              "en": "Praia da Vitória Municipality",
+              "ru": "Вила-да-Прая-да-Витория",
+              "ch": "Praia da Vitória",
+              "fa": "پرایا دا ویتوریا",
+              "ar": "Praia da Vitória"
+            }
+          },
+          "Ribeira Grande Municipality": {
+            "geonameId": 8010689,
+            "names": {
+              "en": "Ribeira Grande Municipality",
+              "ru": "Рибейра-Гранде",
+              "ch": "Ribeira Grande",
+              "fa": "ریبیرا گرانده",
+              "ar": "Ribeira Grande"
+            }
+          },
+          "Santa Cruz da Graciosa Municipality": {
+            "geonameId": 8010693,
+            "names": {
+              "en": "Santa Cruz da Graciosa Municipality",
+              "ru": "Санта-Круш-да-Грасиоза",
+              "ch": "Santa Cruz da Graciosa",
+              "fa": "Santa Cruz da Graciosa",
+              "ar": "Santa Cruz da Graciosa"
+            }
+          },
+          "Santa Cruz das Flores Municipality": {
+            "geonameId": 8010701,
+            "names": {
+              "en": "Santa Cruz das Flores Municipality",
+              "ru": "Santa Cruz Das Flores",
+              "ch": "Santa Cruz Das Flores",
+              "fa": "Santa Cruz Das Flores",
+              "ar": "Santa Cruz Das Flores"
+            }
+          },
+          "São Roque do Pico Municipality": {
+            "geonameId": 8010698,
+            "names": {
+              "en": "São Roque do Pico Municipality",
+              "ru": "São Roque do Pico",
+              "ch": "São Roque do Pico",
+              "fa": "São Roque do Pico",
+              "ar": "São Roque do Pico"
+            }
+          },
+          "Velas Municipality": {
+            "geonameId": 8010695,
+            "names": {
+              "en": "Velas Municipality",
+              "ru": "Velas",
+              "ch": "Velas",
+              "fa": "Velas",
+              "ar": "Velas"
+            }
+          },
+          "Vila Franca do Campo Municipality": {
+            "geonameId": 8010690,
+            "names": {
+              "en": "Vila Franca do Campo Municipality",
+              "ru": "Vila Franca do Campo",
+              "ch": "Vila Franca do Campo",
+              "fa": "Vila Franca do Campo",
+              "ar": "Vila Franca do Campo"
+            }
+          },
+          "Vila do Corvo Municipality": {
+            "geonameId": 8010702,
+            "names": {
+              "en": "Vila do Corvo Municipality",
+              "ru": "Corvo",
+              "ch": "Corvo",
+              "fa": "Corvo",
+              "ar": "Corvo"
+            }
+          },
+          "Vila do Porto Municipality": {
+            "geonameId": 8010684,
+            "names": {
+              "en": "Vila do Porto Municipality",
+              "ru": "Vila do Porto",
+              "ch": "Vila do Porto",
+              "fa": "Vila do Porto",
+              "ar": "Vila do Porto"
+            }
+          }
+        },
+        "done": true
+      },
+      "Beja": {
+        "geonameId": 2270984,
+        "names": {
+          "en": "Beja",
+          "ru": "Бежа",
+          "ch": "Distrito de Beja",
+          "fa": "بجا",
+          "ar": "باجة"
+        },
+        "cities": {
+          "Aljustrel Municipality": {
+            "geonameId": 8010432,
+            "names": {
+              "en": "Aljustrel Municipality",
+              "ru": "Aljustrel",
+              "ch": "Aljustrel",
+              "fa": "Aljustrel",
+              "ar": "Aljustrel"
+            }
+          },
+          "Almodôvar Municipality": {
+            "geonameId": 8010433,
+            "names": {
+              "en": "Almodôvar Municipality",
+              "ru": "Almodôvar",
+              "ch": "Almodôvar",
+              "fa": "Almodôvar",
+              "ar": "Almodôvar"
+            }
+          },
+          "Alvito Municipality": {
+            "geonameId": 8010434,
+            "names": {
+              "en": "Alvito Municipality",
+              "ru": "Alvito",
+              "ch": "Alvito",
+              "fa": "Alvito",
+              "ar": "Alvito"
+            }
+          },
+          "Barrancos Municipality": {
+            "geonameId": 8010435,
+            "names": {
+              "en": "Barrancos Municipality",
+              "ru": "Barrancos",
+              "ch": "Barrancos",
+              "fa": "Barrancos",
+              "ar": "Barrancos"
+            }
+          },
+          "Beja Municipality": {
+            "geonameId": 8010436,
+            "names": {
+              "en": "Beja Municipality",
+              "ru": "Бежа",
+              "ch": "Beja",
+              "fa": "بژا",
+              "ar": "باجة"
+            }
+          },
+          "Castro Verde Municipality": {
+            "geonameId": 8010437,
+            "names": {
+              "en": "Castro Verde Municipality",
+              "ru": "Castro Verde",
+              "ch": "Castro Verde",
+              "fa": "Castro Verde",
+              "ar": "Castro Verde"
+            }
+          },
+          "Cuba Municipality": {
+            "geonameId": 8010438,
+            "names": {
+              "en": "Cuba Municipality",
+              "ru": "Cuba",
+              "ch": "Cuba",
+              "fa": "Cuba",
+              "ar": "Cuba"
+            }
+          },
+          "Ferreira do Alentejo Municipality": {
+            "geonameId": 8010439,
+            "names": {
+              "en": "Ferreira do Alentejo Municipality",
+              "ru": "Ferreira do Alentejo",
+              "ch": "Ferreira do Alentejo",
+              "fa": "Ferreira do Alentejo",
+              "ar": "Ferreira do Alentejo"
+            }
+          },
+          "Moura Municipality": {
+            "geonameId": 8010441,
+            "names": {
+              "en": "Moura Municipality",
+              "ru": "Moura",
+              "ch": "Moura",
+              "fa": "Moura",
+              "ar": "Moura"
+            }
+          },
+          "Mértola Municipality": {
+            "geonameId": 8010440,
+            "names": {
+              "en": "Mértola Municipality",
+              "ru": "Мертола",
+              "ch": "Mértola",
+              "fa": "Mértola",
+              "ar": "مارتلة"
+            }
+          },
+          "Odemira": {
+            "geonameId": 8010442,
+            "names": {
+              "en": "Odemira",
+              "ru": "Одемира",
+              "ch": "Odemira",
+              "fa": "Odemira",
+              "ar": "وادي ميرة"
+            }
+          },
+          "Ourique Municipality": {
+            "geonameId": 8010443,
+            "names": {
+              "en": "Ourique Municipality",
+              "ru": "Ourique",
+              "ch": "Ourique",
+              "fa": "Ourique",
+              "ar": "Ourique"
+            }
+          },
+          "Serpa Municipality": {
+            "geonameId": 8010444,
+            "names": {
+              "en": "Serpa Municipality",
+              "ru": "Серпа",
+              "ch": "Serpa",
+              "fa": "سرپا",
+              "ar": "شربة"
+            }
+          },
+          "Vidigueira Municipality": {
+            "geonameId": 8010445,
+            "names": {
+              "en": "Vidigueira Municipality",
+              "ru": "Vidigueira",
+              "ch": "Vidigueira",
+              "fa": "Vidigueira",
+              "ar": "Vidigueira"
+            }
+          }
+        },
+        "done": true
+      },
+      "Braga": {
+        "geonameId": 2742031,
+        "names": {
+          "en": "Braga",
+          "ru": "Брага",
+          "ch": "Distrito de Braga",
+          "fa": "براگا",
+          "ar": "براقرة"
+        },
+        "cities": {
+          "Amares Municipality": {
+            "geonameId": 8010446,
+            "names": {
+              "en": "Amares Municipality",
+              "ru": "Amares",
+              "ch": "Amares",
+              "fa": "Amares",
+              "ar": "Amares"
+            }
+          },
+          "Barcelos Municipality": {
+            "geonameId": 8010447,
+            "names": {
+              "en": "Barcelos Municipality",
+              "ru": "Barcelos",
+              "ch": "Barcelos",
+              "fa": "Barcelos",
+              "ar": "Barcelos"
+            }
+          },
+          "Braga Municipality": {
+            "geonameId": 8010448,
+            "names": {
+              "en": "Braga Municipality",
+              "ru": "Брага",
+              "ch": "Braga",
+              "fa": "براگا",
+              "ar": "براغا"
+            }
+          },
+          "Cabeceiras de Basto Municipality": {
+            "geonameId": 8010449,
+            "names": {
+              "en": "Cabeceiras de Basto Municipality",
+              "ru": "Cabeceiras de Basto",
+              "ch": "Cabeceiras de Basto",
+              "fa": "Cabeceiras de Basto",
+              "ar": "Cabeceiras de Basto"
+            }
+          },
+          "Celorico de Basto Municipality": {
+            "geonameId": 8010450,
+            "names": {
+              "en": "Celorico de Basto Municipality",
+              "ru": "Селорику-ди-Башту",
+              "ch": "Celorico de Basto",
+              "fa": "Celorico de Basto",
+              "ar": "Celorico de Basto"
+            }
+          },
+          "Esposende Municipality": {
+            "geonameId": 8010451,
+            "names": {
+              "en": "Esposende Municipality",
+              "ru": "Эшпозенди",
+              "ch": "Esposende",
+              "fa": "اسپوسنده",
+              "ar": "Esposende"
+            }
+          },
+          "Fafe Municipality": {
+            "geonameId": 8010452,
+            "names": {
+              "en": "Fafe Municipality",
+              "ru": "Fafe",
+              "ch": "Fafe",
+              "fa": "Fafe",
+              "ar": "Fafe"
+            }
+          },
+          "Guimarães Municipality": {
+            "geonameId": 8010453,
+            "names": {
+              "en": "Guimarães Municipality",
+              "ru": "Гимарайнш",
+              "ch": "Guimarães",
+              "fa": "گویمارائس",
+              "ar": "غيمارايس"
+            }
+          },
+          "Póvoa de Lanhoso Municipality": {
+            "geonameId": 8010454,
+            "names": {
+              "en": "Póvoa de Lanhoso Municipality",
+              "ru": "Повуа-ди-Ланьозу",
+              "ch": "Póvoa de Lanhoso",
+              "fa": "Póvoa de Lanhoso",
+              "ar": "Póvoa de Lanhoso"
+            }
+          },
+          "Terras de Bouro Municipality": {
+            "geonameId": 8010455,
+            "names": {
+              "en": "Terras de Bouro Municipality",
+              "ru": "Терраш-ди-Бору",
+              "ch": "Terras de Bouro",
+              "fa": "Terras de Bouro",
+              "ar": "Terras de Bouro"
+            }
+          },
+          "Vieira do Minho Municipality": {
+            "geonameId": 8010456,
+            "names": {
+              "en": "Vieira do Minho Municipality",
+              "ru": "Виейра-ду-Минью",
+              "ch": "Vieira do Minho",
+              "fa": "Vieira do Minho",
+              "ar": "Vieira do Minho"
+            }
+          },
+          "Vila Nova de Famalicão Municipality": {
+            "geonameId": 8010457,
+            "names": {
+              "en": "Vila Nova de Famalicão Municipality",
+              "ru": "Вила-Нова-ди-Фамаликан",
+              "ch": "Vila Nova de Famalicão",
+              "fa": "ویلا نوا د فامالیساو",
+              "ar": "Vila Nova de Famalicão"
+            }
+          },
+          "Vila Verde Municipality": {
+            "geonameId": 8010458,
+            "names": {
+              "en": "Vila Verde Municipality",
+              "ru": "Вила-Верди",
+              "ch": "Vila Verde",
+              "fa": "Vila Verde",
+              "ar": "Vila Verde"
+            }
+          },
+          "Vizela": {
+            "geonameId": 8010459,
+            "names": {
+              "en": "Vizela",
+              "ru": "Визела",
+              "ch": "Vizela",
+              "fa": "ویزلا",
+              "ar": "فيزيلا"
+            }
+          }
+        },
+        "done": true
+      },
+      "Bragança": {
+        "geonameId": 2742026,
+        "names": {
+          "en": "Bragança",
+          "ru": "Браганса",
+          "ch": "Distrito de Bragança",
+          "fa": "Distrito de Bragança",
+          "ar": "بَرغَنْسَة"
+        },
+        "cities": {
+          "Alfândega da Fé Municipality": {
+            "geonameId": 8010460,
+            "names": {
+              "en": "Alfândega da Fé Municipality",
+              "ru": "Alfândega da Fé",
+              "ch": "Alfândega da Fé",
+              "fa": "Alfândega da Fé",
+              "ar": "Alfândega da Fé"
+            }
+          },
+          "Bragança Municipality": {
+            "geonameId": 8010461,
+            "names": {
+              "en": "Bragança Municipality",
+              "ru": "Bragança Municipality",
+              "ch": "Bragança Municipality",
+              "fa": "Bragança Municipality",
+              "ar": "Bragança Municipality"
+            }
+          },
+          "Carrazeda de Ansiães Municipality": {
+            "geonameId": 8010462,
+            "names": {
+              "en": "Carrazeda de Ansiães Municipality",
+              "ru": "Carrazeda de Ansiães",
+              "ch": "Carrazeda de Ansiães",
+              "fa": "Carrazeda de Ansiães",
+              "ar": "Carrazeda de Ansiães"
+            }
+          },
+          "Freixo de Espada à Cinta Municipality": {
+            "geonameId": 8010463,
+            "names": {
+              "en": "Freixo de Espada à Cinta Municipality",
+              "ru": "Freixo de Espada À Cinta",
+              "ch": "Freixo de Espada À Cinta",
+              "fa": "Freixo de Espada À Cinta",
+              "ar": "Freixo de Espada À Cinta"
+            }
+          },
+          "Macedo de Cavaleiros Municipality": {
+            "geonameId": 8010464,
+            "names": {
+              "en": "Macedo de Cavaleiros Municipality",
+              "ru": "Macedo de Cavaleiros",
+              "ch": "Macedo de Cavaleiros",
+              "fa": "Macedo de Cavaleiros",
+              "ar": "Macedo de Cavaleiros"
+            }
+          },
+          "Miranda do Douro Municipality": {
+            "geonameId": 8010465,
+            "names": {
+              "en": "Miranda do Douro Municipality",
+              "ru": "Miranda do Douro",
+              "ch": "Miranda do Douro",
+              "fa": "Miranda do Douro",
+              "ar": "Miranda do Douro"
+            }
+          },
+          "Mirandela Municipality": {
+            "geonameId": 8010466,
+            "names": {
+              "en": "Mirandela Municipality",
+              "ru": "Мирандела",
+              "ch": "Mirandela",
+              "fa": "میراندلا",
+              "ar": "Mirandela"
+            }
+          },
+          "Mogadouro Municipality": {
+            "geonameId": 8010467,
+            "names": {
+              "en": "Mogadouro Municipality",
+              "ru": "Mogadouro",
+              "ch": "Mogadouro",
+              "fa": "Mogadouro",
+              "ar": "Mogadouro"
+            }
+          },
+          "Torre de Moncorvo Municipality": {
+            "geonameId": 8010468,
+            "names": {
+              "en": "Torre de Moncorvo Municipality",
+              "ru": "Torre de Moncorvo",
+              "ch": "Torre de Moncorvo",
+              "fa": "Torre de Moncorvo",
+              "ar": "Torre de Moncorvo"
+            }
+          },
+          "Vila Flor Municipality": {
+            "geonameId": 8010469,
+            "names": {
+              "en": "Vila Flor Municipality",
+              "ru": "Вила-Флор",
+              "ch": "Vila Flor",
+              "fa": "Vila Flor",
+              "ar": "Vila Flor"
+            }
+          },
+          "Vimioso Municipality": {
+            "geonameId": 8010470,
+            "names": {
+              "en": "Vimioso Municipality",
+              "ru": "Vimioso",
+              "ch": "Vimioso",
+              "fa": "Vimioso",
+              "ar": "Vimioso"
+            }
+          },
+          "Vinhais Municipality": {
+            "geonameId": 8010471,
+            "names": {
+              "en": "Vinhais Municipality",
+              "ru": "Vinhais",
+              "ch": "Vinhais",
+              "fa": "Vinhais",
+              "ar": "Vinhais"
+            }
+          }
+        },
+        "done": true
+      },
+      "Castelo Branco": {
+        "geonameId": 2269513,
+        "names": {
+          "en": "Castelo Branco",
+          "ru": "Каштелу-Бранку",
+          "ch": "Distrito de Castelo Branco",
+          "fa": "کاستلو برانکو",
+          "ar": "كاستيلو برانكو"
+        },
+        "cities": {
+          "Belmonte Municipality": {
+            "geonameId": 8010472,
+            "names": {
+              "en": "Belmonte Municipality",
+              "ru": "Белмонти",
+              "ch": "Belmonte",
+              "fa": "Belmonte",
+              "ar": "Belmonte"
+            }
+          },
+          "Castelo Branco Municipality": {
+            "geonameId": 8010473,
+            "names": {
+              "en": "Castelo Branco Municipality",
+              "ru": "Castelo Branco",
+              "ch": "Castelo Branco",
+              "fa": "Castelo Branco",
+              "ar": "Castelo Branco"
+            }
+          },
+          "Covilhã Municipality": {
+            "geonameId": 8010474,
+            "names": {
+              "en": "Covilhã Municipality",
+              "ru": "Ковильян",
+              "ch": "Covilhã",
+              "fa": "کوویلیا",
+              "ar": "Covilhã"
+            }
+          },
+          "Fundão Municipality": {
+            "geonameId": 2739186,
+            "names": {
+              "en": "Fundão Municipality",
+              "ru": "Фундан",
+              "ch": "Fundão",
+              "fa": "فونداو",
+              "ar": "Fundão"
+            }
+          },
+          "Idanha-a-Nova Municipality": {
+            "geonameId": 8010475,
+            "names": {
+              "en": "Idanha-a-Nova Municipality",
+              "ru": "Idanha-A-Nova",
+              "ch": "Idanha-A-Nova",
+              "fa": "Idanha-A-Nova",
+              "ar": "Idanha-A-Nova"
+            }
+          },
+          "Oleiros Municipality": {
+            "geonameId": 8010476,
+            "names": {
+              "en": "Oleiros Municipality",
+              "ru": "Oleiros",
+              "ch": "Oleiros",
+              "fa": "Oleiros",
+              "ar": "Oleiros"
+            }
+          },
+          "Penamacor Municipality": {
+            "geonameId": 8010477,
+            "names": {
+              "en": "Penamacor Municipality",
+              "ru": "Пенамакор",
+              "ch": "Penamacor",
+              "fa": "Penamacor",
+              "ar": "Penamacor"
+            }
+          },
+          "Proença-a-Nova Municipality": {
+            "geonameId": 8010478,
+            "names": {
+              "en": "Proença-a-Nova Municipality",
+              "ru": "Proença-A-Nova",
+              "ch": "Proença-A-Nova",
+              "fa": "Proença-A-Nova",
+              "ar": "Proença-A-Nova"
+            }
+          },
+          "Sertã Municipality": {
+            "geonameId": 8010479,
+            "names": {
+              "en": "Sertã Municipality",
+              "ru": "Sertã",
+              "ch": "Sertã",
+              "fa": "Sertã",
+              "ar": "Sertã"
+            }
+          },
+          "Vila Velha de Ródão Municipality": {
+            "geonameId": 6930622,
+            "names": {
+              "en": "Vila Velha de Ródão Municipality",
+              "ru": "Vila Velha de Ródão",
+              "ch": "Vila Velha de Ródão",
+              "fa": "Vila Velha de Ródão",
+              "ar": "Vila Velha de Ródão"
+            }
+          },
+          "Vila de Rei Municipality": {
+            "geonameId": 8010480,
+            "names": {
+              "en": "Vila de Rei Municipality",
+              "ru": "Vila de Rei",
+              "ch": "Vila de Rei",
+              "fa": "Vila de Rei",
+              "ar": "Vila de Rei"
+            }
+          }
+        },
+        "done": true
+      },
+      "Coimbra": {
+        "geonameId": 2740636,
+        "names": {
+          "en": "Coimbra",
+          "ru": "Коимбра",
+          "ch": "Distrito de Coimbra",
+          "fa": "کویمبرا",
+          "ar": "قلمرية"
+        },
+        "cities": {
+          "Arganil Municipality": {
+            "geonameId": 8010481,
+            "names": {
+              "en": "Arganil Municipality",
+              "ru": "Arganil",
+              "ch": "Arganil",
+              "fa": "Arganil",
+              "ar": "Arganil"
+            }
+          },
+          "Cantanhede Municipality": {
+            "geonameId": 8010482,
+            "names": {
+              "en": "Cantanhede Municipality",
+              "ru": "Кантаньеди",
+              "ch": "Cantanhede",
+              "fa": "کانتانیئده",
+              "ar": "Cantanhede"
+            }
+          },
+          "Coimbra Municipality": {
+            "geonameId": 8010483,
+            "names": {
+              "en": "Coimbra Municipality",
+              "ru": "Коимбра",
+              "ch": "Coimbra",
+              "fa": "کویمبرا",
+              "ar": "قلمرية"
+            }
+          },
+          "Condeixa-a-Nova Municipality": {
+            "geonameId": 8010484,
+            "names": {
+              "en": "Condeixa-a-Nova Municipality",
+              "ru": "Condeixa-A-Nova",
+              "ch": "Condeixa-A-Nova",
+              "fa": "Condeixa-A-Nova",
+              "ar": "Condeixa-A-Nova"
+            }
+          },
+          "Figueira da Foz Municipality": {
+            "geonameId": 8010485,
+            "names": {
+              "en": "Figueira da Foz Municipality",
+              "ru": "Figueira da Foz",
+              "ch": "Figueira da Foz",
+              "fa": "Figueira da Foz",
+              "ar": "Figueira da Foz"
+            }
+          },
+          "Góis Municipality": {
+            "geonameId": 8010486,
+            "names": {
+              "en": "Góis Municipality",
+              "ru": "Góis",
+              "ch": "Góis",
+              "fa": "Góis",
+              "ar": "Góis"
+            }
+          },
+          "Lousã Municipality": {
+            "geonameId": 8010487,
+            "names": {
+              "en": "Lousã Municipality",
+              "ru": "Lousã",
+              "ch": "Lousã",
+              "fa": "Lousã",
+              "ar": "Lousã"
+            }
+          },
+          "Mira Municipality": {
+            "geonameId": 8010488,
+            "names": {
+              "en": "Mira Municipality",
+              "ru": "Mira",
+              "ch": "Mira",
+              "fa": "Mira",
+              "ar": "Mira"
+            }
+          },
+          "Miranda do Corvo Municipality": {
+            "geonameId": 8010489,
+            "names": {
+              "en": "Miranda do Corvo Municipality",
+              "ru": "Miranda do Corvo",
+              "ch": "Miranda do Corvo",
+              "fa": "Miranda do Corvo",
+              "ar": "Miranda do Corvo"
+            }
+          },
+          "Montemor-o-Velho Municipality": {
+            "geonameId": 8010490,
+            "names": {
+              "en": "Montemor-o-Velho Municipality",
+              "ru": "Montemor-O-Velho",
+              "ch": "Montemor-O-Velho",
+              "fa": "Montemor-O-Velho",
+              "ar": "Montemor-O-Velho"
+            }
+          },
+          "Oliveira do Hospital Municipality": {
+            "geonameId": 8010491,
+            "names": {
+              "en": "Oliveira do Hospital Municipality",
+              "ru": "Оливейра-ду-Ошпитал",
+              "ch": "Oliveira do Hospital",
+              "fa": "اولیویرا دو هاسپیتال",
+              "ar": "Oliveira do Hospital"
+            }
+          },
+          "Pampilhosa da Serra Municipality": {
+            "geonameId": 8010492,
+            "names": {
+              "en": "Pampilhosa da Serra Municipality",
+              "ru": "Pampilhosa da Serra",
+              "ch": "Pampilhosa da Serra",
+              "fa": "Pampilhosa da Serra",
+              "ar": "Pampilhosa da Serra"
+            }
+          },
+          "Penacova Municipality": {
+            "geonameId": 8010493,
+            "names": {
+              "en": "Penacova Municipality",
+              "ru": "Penacova",
+              "ch": "Penacova",
+              "fa": "Penacova",
+              "ar": "Penacova"
+            }
+          },
+          "Penela Municipality": {
+            "geonameId": 8010494,
+            "names": {
+              "en": "Penela Municipality",
+              "ru": "Penela",
+              "ch": "Penela",
+              "fa": "Penela",
+              "ar": "Penela"
+            }
+          },
+          "Soure Municipality": {
+            "geonameId": 8010495,
+            "names": {
+              "en": "Soure Municipality",
+              "ru": "Soure",
+              "ch": "Soure",
+              "fa": "Soure",
+              "ar": "Soure"
+            }
+          },
+          "Tábua Municipality": {
+            "geonameId": 8010496,
+            "names": {
+              "en": "Tábua Municipality",
+              "ru": "Tábua",
+              "ch": "Tábua",
+              "fa": "Tábua",
+              "ar": "Tábua"
+            }
+          },
+          "Vila Nova de Poiares Municipality": {
+            "geonameId": 8010497,
+            "names": {
+              "en": "Vila Nova de Poiares Municipality",
+              "ru": "Вила-Нова-ди-Пояриш",
+              "ch": "Vila Nova de Poiares",
+              "fa": "Vila Nova de Poiares",
+              "ar": "Vila Nova de Poiares"
+            }
+          }
+        },
+        "done": true
+      },
+      "Faro": {
+        "geonameId": 2268337,
+        "names": {
+          "en": "Faro",
+          "ru": "Фару",
+          "ch": "Distrito de Faro",
+          "fa": "فارو",
+          "ar": "فارو"
+        },
+        "cities": {
+          "Albufeira Municipality": {
+            "geonameId": 8010512,
+            "names": {
+              "en": "Albufeira Municipality",
+              "ru": "Албуфейра",
+              "ch": "Albufeira",
+              "fa": "آلبوفیرا",
+              "ar": "البحيرة"
+            }
+          },
+          "Alcoutim Municipality": {
+            "geonameId": 8010513,
+            "names": {
+              "en": "Alcoutim Municipality",
+              "ru": "Alcoutim",
+              "ch": "Alcoutim",
+              "fa": "Alcoutim",
+              "ar": "Alcoutim"
+            }
+          },
+          "Aljezur Municipality": {
+            "geonameId": 8010514,
+            "names": {
+              "en": "Aljezur Municipality",
+              "ru": "Алжезур",
+              "ch": "Aljezur",
+              "fa": "Aljezur",
+              "ar": "Aljezur"
+            }
+          },
+          "Castro Marim Municipality": {
+            "geonameId": 8010515,
+            "names": {
+              "en": "Castro Marim Municipality",
+              "ru": "Castro Marim",
+              "ch": "Castro Marim",
+              "fa": "Castro Marim",
+              "ar": "Castro Marim"
+            }
+          },
+          "Faro": {
+            "geonameId": 8010516,
+            "names": {
+              "en": "Faro",
+              "ru": "Фару",
+              "ch": "Faro",
+              "fa": "فارو",
+              "ar": "فارو"
+            }
+          },
+          "Lagoa Municipality": {
+            "geonameId": 8010517,
+            "names": {
+              "en": "Lagoa Municipality",
+              "ru": "Lagoa",
+              "ch": "Lagoa",
+              "fa": "Lagoa",
+              "ar": "Lagoa"
+            }
+          },
+          "Lagos Municipality": {
+            "geonameId": 8010518,
+            "names": {
+              "en": "Lagos Municipality",
+              "ru": "Лагуш",
+              "ch": "Lagos",
+              "fa": "لاگوس",
+              "ar": "Lagos"
+            }
+          },
+          "Loulé Municipality": {
+            "geonameId": 8010519,
+            "names": {
+              "en": "Loulé Municipality",
+              "ru": "Loulé",
+              "ch": "Loulé",
+              "fa": "Loulé",
+              "ar": "Loulé"
+            }
+          },
+          "Monchique Municipality": {
+            "geonameId": 8010520,
+            "names": {
+              "en": "Monchique Municipality",
+              "ru": "Monchique",
+              "ch": "Monchique",
+              "fa": "Monchique",
+              "ar": "Monchique"
+            }
+          },
+          "Olhão Municipality": {
+            "geonameId": 8010521,
+            "names": {
+              "en": "Olhão Municipality",
+              "ru": "Ольян",
+              "ch": "Olhão",
+              "fa": "اولاو دا رستوراساو",
+              "ar": "Olhão"
+            }
+          },
+          "Portimão Municipality": {
+            "geonameId": 8010522,
+            "names": {
+              "en": "Portimão Municipality",
+              "ru": "Portimão",
+              "ch": "Portimão",
+              "fa": "Portimão",
+              "ar": "Portimão"
+            }
+          },
+          "Silves Municipality": {
+            "geonameId": 8010524,
+            "names": {
+              "en": "Silves Municipality",
+              "ru": "Silves",
+              "ch": "Silves",
+              "fa": "Silves",
+              "ar": "Silves"
+            }
+          },
+          "São Brás de Alportel Municipality": {
+            "geonameId": 8010523,
+            "names": {
+              "en": "São Brás de Alportel Municipality",
+              "ru": "São Brás de Alportel",
+              "ch": "São Brás de Alportel",
+              "fa": "São Brás de Alportel",
+              "ar": "São Brás de Alportel"
+            }
+          },
+          "Tavira Municipality": {
+            "geonameId": 8010525,
+            "names": {
+              "en": "Tavira Municipality",
+              "ru": "Tavira",
+              "ch": "Tavira",
+              "fa": "Tavira",
+              "ar": "Tavira"
+            }
+          },
+          "Vila Real de Santo António Municipality": {
+            "geonameId": 8010527,
+            "names": {
+              "en": "Vila Real de Santo António Municipality",
+              "ru": "Vila Real de Santo António",
+              "ch": "Vila Real de Santo António",
+              "fa": "Vila Real de Santo António",
+              "ar": "Vila Real de Santo António"
+            }
+          },
+          "Vila do Bispo Municipality": {
+            "geonameId": 8010526,
+            "names": {
+              "en": "Vila do Bispo Municipality",
+              "ru": "Vila do Bispo",
+              "ch": "Vila do Bispo",
+              "fa": "Vila do Bispo",
+              "ar": "Vila do Bispo"
+            }
+          }
+        },
+        "done": true
+      },
+      "Guarda": {
+        "geonameId": 2738782,
+        "names": {
+          "en": "Guarda",
+          "ru": "Гуарда",
+          "ch": "Distrito da Guarda",
+          "fa": "گاردا",
+          "ar": "غُوَردة"
+        },
+        "cities": {
+          "Aguiar da Beira Municipality": {
+            "geonameId": 8010528,
+            "names": {
+              "en": "Aguiar da Beira Municipality",
+              "ru": "Агиар-да-Бейра",
+              "ch": "Aguiar da Beira",
+              "fa": "Aguiar da Beira",
+              "ar": "Aguiar da Beira"
+            }
+          },
+          "Almeida": {
+            "geonameId": 8010529,
+            "names": {
+              "en": "Almeida",
+              "ru": "Алмейда",
+              "ch": "Almeida",
+              "fa": "شهر المیدا",
+              "ar": "المائدة"
+            }
+          },
+          "Celorico da Beira": {
+            "geonameId": 8010530,
+            "names": {
+              "en": "Celorico da Beira",
+              "ru": "Селорику-да-Бейра",
+              "ch": "Celorico da Beira",
+              "fa": "Celorico da Beira",
+              "ar": "سيلوريكو دابيرا"
+            }
+          },
+          "Figueira de Castelo Rodrigo Municipality": {
+            "geonameId": 8010531,
+            "names": {
+              "en": "Figueira de Castelo Rodrigo Municipality",
+              "ru": "Фигейра-ди-Каштелу-Родригу",
+              "ch": "Figueira de Castelo Rodrigo",
+              "fa": "Figueira de Castelo Rodrigo",
+              "ar": "Figueira de Castelo Rodrigo"
+            }
+          },
+          "Fornos de Algodres Municipality": {
+            "geonameId": 8010532,
+            "names": {
+              "en": "Fornos de Algodres Municipality",
+              "ru": "Форнуш-ди-Алгодриш",
+              "ch": "Fornos de Algodres",
+              "fa": "Fornos de Algodres",
+              "ar": "Fornos de Algodres"
+            }
+          },
+          "Gouveia Municipality": {
+            "geonameId": 2738888,
+            "names": {
+              "en": "Gouveia Municipality",
+              "ru": "Говея",
+              "ch": "Gouveia",
+              "fa": "گوویا",
+              "ar": "Gouveia"
+            }
+          },
+          "Guarda Municipality": {
+            "geonameId": 8010533,
+            "names": {
+              "en": "Guarda Municipality",
+              "ru": "Гуарда",
+              "ch": "Guarda",
+              "fa": "گوآردا",
+              "ar": "Guarda"
+            }
+          },
+          "Manteigas Municipality": {
+            "geonameId": 8010534,
+            "names": {
+              "en": "Manteigas Municipality",
+              "ru": "Manteigas",
+              "ch": "Manteigas",
+              "fa": "Manteigas",
+              "ar": "Manteigas"
+            }
+          },
+          "Mêda Municipality": {
+            "geonameId": 8010535,
+            "names": {
+              "en": "Mêda Municipality",
+              "ru": "Меда",
+              "ch": "Mêda",
+              "fa": "مدا",
+              "ar": "Mêda"
+            }
+          },
+          "Pinhel Municipality": {
+            "geonameId": 8010536,
+            "names": {
+              "en": "Pinhel Municipality",
+              "ru": "Пиньел",
+              "ch": "Pinhel",
+              "fa": "پینل",
+              "ar": "بينهل"
+            }
+          },
+          "Sabugal Municipality": {
+            "geonameId": 8010537,
+            "names": {
+              "en": "Sabugal Municipality",
+              "ru": "Сабугал",
+              "ch": "Sabugal",
+              "fa": "سابوگال",
+              "ar": "Sabugal"
+            }
+          },
+          "Seia Municipality": {
+            "geonameId": 8010538,
+            "names": {
+              "en": "Seia Municipality",
+              "ru": "Сейя",
+              "ch": "Seia",
+              "fa": "سئیا",
+              "ar": "Seia"
+            }
+          },
+          "Trancoso Municipality": {
+            "geonameId": 8010539,
+            "names": {
+              "en": "Trancoso Municipality",
+              "ru": "Транкозу",
+              "ch": "Trancoso",
+              "fa": "ترانکوسو، پرتغال",
+              "ar": "Trancoso"
+            }
+          },
+          "Vila Nova de Foz Côa Municipality": {
+            "geonameId": 8010540,
+            "names": {
+              "en": "Vila Nova de Foz Côa Municipality",
+              "ru": "Вила-Нова-ди-Фош-Коа",
+              "ch": "Vila Nova de Foz Côa",
+              "fa": "ویلا نوا د فوز کوا",
+              "ar": "Vila Nova de Foz Côa"
+            }
+          }
+        },
+        "done": true
+      },
+      "Leiria": {
+        "geonameId": 2267094,
+        "names": {
+          "en": "Leiria",
+          "ru": "Лейрия",
+          "ch": "Distrito de Leiria",
+          "fa": "لیریا",
+          "ar": "لَيْرِيَة"
+        },
+        "cities": {
+          "Alcobaça Municipality": {
+            "geonameId": 8010541,
+            "names": {
+              "en": "Alcobaça Municipality",
+              "ru": "Alcobaça",
+              "ch": "Alcobaça",
+              "fa": "Alcobaça",
+              "ar": "Alcobaça"
+            }
+          },
+          "Alvaiázere Municipality": {
+            "geonameId": 8010542,
+            "names": {
+              "en": "Alvaiázere Municipality",
+              "ru": "Alvaiázere",
+              "ch": "Alvaiázere",
+              "fa": "Alvaiázere",
+              "ar": "Alvaiázere"
+            }
+          },
+          "Ansião Municipality": {
+            "geonameId": 8010543,
+            "names": {
+              "en": "Ansião Municipality",
+              "ru": "Ansião",
+              "ch": "Ansião",
+              "fa": "Ansião",
+              "ar": "Ansião"
+            }
+          },
+          "Batalha Municipality": {
+            "geonameId": 8010544,
+            "names": {
+              "en": "Batalha Municipality",
+              "ru": "Batalha",
+              "ch": "Batalha",
+              "fa": "Batalha",
+              "ar": "Batalha"
+            }
+          },
+          "Bombarral Municipality": {
+            "geonameId": 8010545,
+            "names": {
+              "en": "Bombarral Municipality",
+              "ru": "Бомбаррал",
+              "ch": "Bombarral",
+              "fa": "Bombarral",
+              "ar": "Bombarral"
+            }
+          },
+          "Caldas da Rainha Municipality": {
+            "geonameId": 8010546,
+            "names": {
+              "en": "Caldas da Rainha Municipality",
+              "ru": "Caldas da Rainha",
+              "ch": "Caldas da Rainha",
+              "fa": "Caldas da Rainha",
+              "ar": "Caldas da Rainha"
+            }
+          },
+          "Castanheira de Pera Municipality": {
+            "geonameId": 8010547,
+            "names": {
+              "en": "Castanheira de Pera Municipality",
+              "ru": "Castanheira de Pera",
+              "ch": "Castanheira de Pera",
+              "fa": "Castanheira de Pera",
+              "ar": "Castanheira de Pera"
+            }
+          },
+          "Figueiró dos Vinhos Municipality": {
+            "geonameId": 8010548,
+            "names": {
+              "en": "Figueiró dos Vinhos Municipality",
+              "ru": "Figueiró Dos Vinhos",
+              "ch": "Figueiró Dos Vinhos",
+              "fa": "Figueiró Dos Vinhos",
+              "ar": "Figueiró Dos Vinhos"
+            }
+          },
+          "Leiria Municipality": {
+            "geonameId": 8010549,
+            "names": {
+              "en": "Leiria Municipality",
+              "ru": "Лейрия",
+              "ch": "Leiria",
+              "fa": "لیریا",
+              "ar": "لَيرِية"
+            }
+          },
+          "Marinha Grande Municipality": {
+            "geonameId": 8010550,
+            "names": {
+              "en": "Marinha Grande Municipality",
+              "ru": "Маринья-Гранди",
+              "ch": "Marinha Grande",
+              "fa": "مارینا گراند",
+              "ar": "مارينها جراندي"
+            }
+          },
+          "Nazaré Municipality": {
+            "geonameId": 8010551,
+            "names": {
+              "en": "Nazaré Municipality",
+              "ru": "Nazaré",
+              "ch": "Nazaré",
+              "fa": "Nazaré",
+              "ar": "Nazaré"
+            }
+          },
+          "Pedrógão Grande Municipality": {
+            "geonameId": 8010553,
+            "names": {
+              "en": "Pedrógão Grande Municipality",
+              "ru": "Pedrógão Grande",
+              "ch": "Pedrógão Grande",
+              "fa": "Pedrógão Grande",
+              "ar": "Pedrógão Grande"
+            }
+          },
+          "Peniche Municipality": {
+            "geonameId": 8010554,
+            "names": {
+              "en": "Peniche Municipality",
+              "ru": "Пениши",
+              "ch": "Peniche",
+              "fa": "پنیچه، پرتغال",
+              "ar": "Peniche"
+            }
+          },
+          "Pombal Municipality": {
+            "geonameId": 8010555,
+            "names": {
+              "en": "Pombal Municipality",
+              "ru": "Помбал",
+              "ch": "Pombal",
+              "fa": "Pombal",
+              "ar": "Pombal"
+            }
+          },
+          "Porto de Mós Municipality": {
+            "geonameId": 8010556,
+            "names": {
+              "en": "Porto de Mós Municipality",
+              "ru": "Porto de Mós",
+              "ch": "Porto de Mós",
+              "fa": "Porto de Mós",
+              "ar": "Porto de Mós"
+            }
+          },
+          "Óbidos Municipality": {
+            "geonameId": 8010552,
+            "names": {
+              "en": "Óbidos Municipality",
+              "ru": "Обидуш",
+              "ch": "Óbidos",
+              "fa": "Óbidos",
+              "ar": "Óbidos"
+            }
+          }
+        },
+        "done": true
+      },
+      "Lisbon": {
+        "geonameId": 2267056,
+        "names": {
+          "en": "Lisbon",
+          "ru": "Лиссабон",
+          "ch": "Distrito de Lisboa",
+          "fa": "ناحیه لیسبون",
+          "ar": "محافظة لشبونة"
+        },
+        "cities": {
+          "Alenquer Municipality": {
+            "geonameId": 8010557,
+            "names": {
+              "en": "Alenquer Municipality",
+              "ru": "Аленкер",
+              "ch": "Alenquer",
+              "fa": "شهر النکویر، پرتقال",
+              "ar": "Alenquer"
+            }
+          },
+          "Amadora Municipality": {
+            "geonameId": 8010569,
+            "names": {
+              "en": "Amadora Municipality",
+              "ru": "Амадора",
+              "ch": "Amadora",
+              "fa": "آمادورا",
+              "ar": "أمادورا"
+            }
+          },
+          "Arruda dos Vinhos Municipality": {
+            "geonameId": 8010558,
+            "names": {
+              "en": "Arruda dos Vinhos Municipality",
+              "ru": "Arruda Dos Vinhos",
+              "ch": "Arruda Dos Vinhos",
+              "fa": "Arruda Dos Vinhos",
+              "ar": "Arruda Dos Vinhos"
+            }
+          },
+          "Azambuja Municipality": {
+            "geonameId": 8010559,
+            "names": {
+              "en": "Azambuja Municipality",
+              "ru": "Azambuja",
+              "ch": "Azambuja",
+              "fa": "Azambuja",
+              "ar": "Azambuja"
+            }
+          },
+          "Cadaval Municipality": {
+            "geonameId": 8010560,
+            "names": {
+              "en": "Cadaval Municipality",
+              "ru": "Cadaval",
+              "ch": "Cadaval",
+              "fa": "Cadaval",
+              "ar": "Cadaval"
+            }
+          },
+          "Cascais Municipality": {
+            "geonameId": 8010561,
+            "names": {
+              "en": "Cascais Municipality",
+              "ru": "Cascais",
+              "ch": "Cascais",
+              "fa": "Cascais",
+              "ar": "Cascais"
+            }
+          },
+          "Lisbon": {
+            "geonameId": 6458923,
+            "names": {
+              "en": "Lisbon",
+              "ru": "Lisbon",
+              "ch": "Lisbon",
+              "fa": "Lisbon",
+              "ar": "Lisbon"
+            }
+          },
+          "Loures Municipality": {
+            "geonameId": 6930331,
+            "names": {
+              "en": "Loures Municipality",
+              "ru": "Лореш",
+              "ch": "Loures",
+              "fa": "لورس",
+              "ar": "لوريس"
+            }
+          },
+          "Lourinhã Municipality": {
+            "geonameId": 8010562,
+            "names": {
+              "en": "Lourinhã Municipality",
+              "ru": "Лориньян",
+              "ch": "Lourinhã",
+              "fa": "Lourinhã",
+              "ar": "Lourinhã"
+            }
+          },
+          "Mafra Municipality": {
+            "geonameId": 8010563,
+            "names": {
+              "en": "Mafra Municipality",
+              "ru": "Mafra",
+              "ch": "Mafra",
+              "fa": "Mafra",
+              "ar": "Mafra"
+            }
+          },
+          "Odivelas Municipality": {
+            "geonameId": 8010570,
+            "names": {
+              "en": "Odivelas Municipality",
+              "ru": "Odivelas",
+              "ch": "Odivelas",
+              "fa": "Odivelas",
+              "ar": "Odivelas"
+            }
+          },
+          "Oeiras Municipality": {
+            "geonameId": 8010564,
+            "names": {
+              "en": "Oeiras Municipality",
+              "ru": "Oeiras",
+              "ch": "Oeiras",
+              "fa": "Oeiras",
+              "ar": "Oeiras"
+            }
+          },
+          "Sintra Municipality": {
+            "geonameId": 8010565,
+            "names": {
+              "en": "Sintra Municipality",
+              "ru": "Sintra",
+              "ch": "Sintra",
+              "fa": "Sintra",
+              "ar": "Sintra"
+            }
+          },
+          "Sobral de Monte Agraço Municipality": {
+            "geonameId": 8010566,
+            "names": {
+              "en": "Sobral de Monte Agraço Municipality",
+              "ru": "Sobral de Monte Agraço",
+              "ch": "Sobral de Monte Agraço",
+              "fa": "Sobral de Monte Agraço",
+              "ar": "Sobral de Monte Agraço"
+            }
+          },
+          "Torres Vedras Municipality": {
+            "geonameId": 8010567,
+            "names": {
+              "en": "Torres Vedras Municipality",
+              "ru": "Torres Vedras",
+              "ch": "Torres Vedras",
+              "fa": "Torres Vedras",
+              "ar": "Torres Vedras"
+            }
+          },
+          "Vila Franca de Xira Municipality": {
+            "geonameId": 8010568,
+            "names": {
+              "en": "Vila Franca de Xira Municipality",
+              "ru": "Vila Franca de Xira",
+              "ch": "Vila Franca de Xira",
+              "fa": "Vila Franca de Xira",
+              "ar": "Vila Franca de Xira"
+            }
+          }
+        },
+        "done": true
+      },
+      "Madeira": {
+        "geonameId": 2593105,
+        "names": {
+          "en": "Madeira",
+          "ru": "Мадейра",
+          "ch": "Madeira",
+          "fa": "مادیرا",
+          "ar": "ماديرا"
+        },
+        "cities": {
+          "Calheta Municipality": {
+            "geonameId": 8010673,
+            "names": {
+              "en": "Calheta Municipality",
+              "ru": "Calheta",
+              "ch": "Calheta",
+              "fa": "Calheta",
+              "ar": "Calheta"
+            }
+          },
+          "Câmara de Lobos Municipality": {
+            "geonameId": 8010674,
+            "names": {
+              "en": "Câmara de Lobos Municipality",
+              "ru": "Câmara de Lobos",
+              "ch": "Câmara de Lobos",
+              "fa": "Câmara de Lobos",
+              "ar": "Câmara de Lobos"
+            }
+          },
+          "Funchal Municipality": {
+            "geonameId": 8010675,
+            "names": {
+              "en": "Funchal Municipality",
+              "ru": "Funchal",
+              "ch": "Funchal",
+              "fa": "Funchal",
+              "ar": "Funchal"
+            }
+          },
+          "Machico Municipality": {
+            "geonameId": 8010676,
+            "names": {
+              "en": "Machico Municipality",
+              "ru": "Machico",
+              "ch": "Machico",
+              "fa": "Machico",
+              "ar": "Machico"
+            }
+          },
+          "Ponta do Sol Municipality": {
+            "geonameId": 8010677,
+            "names": {
+              "en": "Ponta do Sol Municipality",
+              "ru": "Ponta do Sol",
+              "ch": "Ponta do Sol",
+              "fa": "Ponta do Sol",
+              "ar": "Ponta do Sol"
+            }
+          },
+          "Porto Moniz Municipality": {
+            "geonameId": 8010678,
+            "names": {
+              "en": "Porto Moniz Municipality",
+              "ru": "Порту-Мониш",
+              "ch": "Porto Moniz",
+              "fa": "Porto Moniz",
+              "ar": "Porto Moniz"
+            }
+          },
+          "Porto Santo": {
+            "geonameId": 8010683,
+            "names": {
+              "en": "Porto Santo",
+              "ru": "Porto Santo",
+              "ch": "Porto Santo",
+              "fa": "Porto Santo",
+              "ar": "Porto Santo"
+            }
+          },
+          "Ribeira Brava Municipality": {
+            "geonameId": 8010679,
+            "names": {
+              "en": "Ribeira Brava Municipality",
+              "ru": "Рибейра-Брава",
+              "ch": "Ribeira Brava",
+              "fa": "Ribeira Brava",
+              "ar": "Ribeira Brava"
+            }
+          },
+          "Santa Cruz Municipality": {
+            "geonameId": 8010680,
+            "names": {
+              "en": "Santa Cruz Municipality",
+              "ru": "Santa Cruz",
+              "ch": "Santa Cruz",
+              "fa": "Santa Cruz",
+              "ar": "Santa Cruz"
+            }
+          },
+          "Santana Municipality": {
+            "geonameId": 8010681,
+            "names": {
+              "en": "Santana Municipality",
+              "ru": "Сантана",
+              "ch": "Santana",
+              "fa": "سانتانا",
+              "ar": "سَنتانة"
+            }
+          },
+          "São Vicente Municipality": {
+            "geonameId": 8010682,
+            "names": {
+              "en": "São Vicente Municipality",
+              "ru": "São Vicente",
+              "ch": "São Vicente",
+              "fa": "São Vicente",
+              "ar": "São Vicente"
+            }
+          }
+        },
+        "done": true
+      },
+      "Portalegre": {
+        "geonameId": 2264507,
+        "names": {
+          "en": "Portalegre",
+          "ru": "Порталегри",
+          "ch": "Distrito de Portalegre",
+          "fa": "پرتالگره",
+          "ar": "بورتاليغري"
+        },
+        "cities": {
+          "Alter do Chão Municipality": {
+            "geonameId": 6930689,
+            "names": {
+              "en": "Alter do Chão Municipality",
+              "ru": "Alter do Chão",
+              "ch": "Alter do Chão",
+              "fa": "Alter do Chão",
+              "ar": "Alter do Chão"
+            }
+          },
+          "Arronches Municipality": {
+            "geonameId": 8010571,
+            "names": {
+              "en": "Arronches Municipality",
+              "ru": "Arronches",
+              "ch": "Arronches",
+              "fa": "Arronches",
+              "ar": "Arronches"
+            }
+          },
+          "Avis Municipality": {
+            "geonameId": 8010572,
+            "names": {
+              "en": "Avis Municipality",
+              "ru": "Авиш",
+              "ch": "Avis",
+              "fa": "Avis",
+              "ar": "Avis"
+            }
+          },
+          "Campo Maior Municipality": {
+            "geonameId": 8010573,
+            "names": {
+              "en": "Campo Maior Municipality",
+              "ru": "Кампу-Майор",
+              "ch": "Campo Maior",
+              "fa": "Campo Maior",
+              "ar": "Campo Maior"
+            }
+          },
+          "Castelo de Vide Municipality": {
+            "geonameId": 6930628,
+            "names": {
+              "en": "Castelo de Vide Municipality",
+              "ru": "Каштелу-ди-Види",
+              "ch": "Castelo de Vide",
+              "fa": "Castelo de Vide",
+              "ar": "Castelo de Vide"
+            }
+          },
+          "Crato Municipality": {
+            "geonameId": 2268835,
+            "names": {
+              "en": "Crato Municipality",
+              "ru": "Crato",
+              "ch": "Crato",
+              "fa": "Crato",
+              "ar": "Crato"
+            }
+          },
+          "Elvas Municipality": {
+            "geonameId": 8010574,
+            "names": {
+              "en": "Elvas Municipality",
+              "ru": "Элваш",
+              "ch": "Elvas",
+              "fa": "الواس",
+              "ar": "الواس"
+            }
+          },
+          "Fronteira Municipality": {
+            "geonameId": 8010575,
+            "names": {
+              "en": "Fronteira Municipality",
+              "ru": "Фронтейра",
+              "ch": "Fronteira",
+              "fa": "Fronteira",
+              "ar": "Fronteira"
+            }
+          },
+          "Gavião Municipality": {
+            "geonameId": 6930673,
+            "names": {
+              "en": "Gavião Municipality",
+              "ru": "Gavião",
+              "ch": "Gavião",
+              "fa": "Gavião",
+              "ar": "Gavião"
+            }
+          },
+          "Marvão Municipality": {
+            "geonameId": 6930631,
+            "names": {
+              "en": "Marvão Municipality",
+              "ru": "Marvão",
+              "ch": "Marvão",
+              "fa": "Marvão",
+              "ar": "Marvão"
+            }
+          },
+          "Monforte Municipality": {
+            "geonameId": 6930694,
+            "names": {
+              "en": "Monforte Municipality",
+              "ru": "Монфорти",
+              "ch": "Monforte",
+              "fa": "Monforte",
+              "ar": "Monforte"
+            }
+          },
+          "Nisa Municipality": {
+            "geonameId": 6930614,
+            "names": {
+              "en": "Nisa Municipality",
+              "ru": "Низа",
+              "ch": "Nisa",
+              "fa": "Nisa",
+              "ar": "Nisa"
+            }
+          },
+          "Ponte de Sor Municipality": {
+            "geonameId": 6930676,
+            "names": {
+              "en": "Ponte de Sor Municipality",
+              "ru": "Ponte de Sor",
+              "ch": "Ponte de Sor",
+              "fa": "Ponte de Sor",
+              "ar": "Ponte de Sor"
+            }
+          },
+          "Portalegre Municipality": {
+            "geonameId": 6930638,
+            "names": {
+              "en": "Portalegre Municipality",
+              "ru": "Порталегри",
+              "ch": "Portalegre",
+              "fa": "پرتالگره",
+              "ar": "بورتاليغري"
+            }
+          },
+          "Sousel Municipality": {
+            "geonameId": 8010576,
+            "names": {
+              "en": "Sousel Municipality",
+              "ru": "Sousel",
+              "ch": "Sousel",
+              "fa": "Sousel",
+              "ar": "Sousel"
+            }
+          }
+        },
+        "done": true
+      },
+      "Porto": {
+        "geonameId": 2735941,
+        "names": {
+          "en": "Porto",
+          "ru": "Порту",
+          "ch": "Distrito do Porto",
+          "fa": "پورتو",
+          "ar": "بورتو"
+        },
+        "cities": {
+          "Amarante Municipality": {
+            "geonameId": 8010577,
+            "names": {
+              "en": "Amarante Municipality",
+              "ru": "Amarante",
+              "ch": "Amarante",
+              "fa": "Amarante",
+              "ar": "Amarante"
+            }
+          },
+          "Baião Municipality": {
+            "geonameId": 8010578,
+            "names": {
+              "en": "Baião Municipality",
+              "ru": "Байан",
+              "ch": "Baião",
+              "fa": "Baião",
+              "ar": "Baião"
+            }
+          },
+          "Felgueiras Municipality": {
+            "geonameId": 8010579,
+            "names": {
+              "en": "Felgueiras Municipality",
+              "ru": "Фелгейраш",
+              "ch": "Felgueiras",
+              "fa": "فلگوئیراس",
+              "ar": "Felgueiras"
+            }
+          },
+          "Gondomar Municipality": {
+            "geonameId": 8010580,
+            "names": {
+              "en": "Gondomar Municipality",
+              "ru": "Гондомар",
+              "ch": "Gondomar",
+              "fa": "گوندومار",
+              "ar": "Gondomar"
+            }
+          },
+          "Lousada Municipality": {
+            "geonameId": 8010581,
+            "names": {
+              "en": "Lousada Municipality",
+              "ru": "Лозада",
+              "ch": "Lousada",
+              "fa": "Lousada",
+              "ar": "Lousada"
+            }
+          },
+          "Maia": {
+            "geonameId": 8010582,
+            "names": {
+              "en": "Maia",
+              "ru": "Maia",
+              "ch": "Maia",
+              "fa": "Maia",
+              "ar": "Maia"
+            }
+          },
+          "Marco de Canaveses Municipality": {
+            "geonameId": 8010583,
+            "names": {
+              "en": "Marco de Canaveses Municipality",
+              "ru": "Марку-ди-Канавезиш",
+              "ch": "Marco de Canaveses",
+              "fa": "مارکو دکاناوسس",
+              "ar": "Marco de Canaveses"
+            }
+          },
+          "Matosinhos": {
+            "geonameId": 8010584,
+            "names": {
+              "en": "Matosinhos",
+              "ru": "Матозиньюш",
+              "ch": "Matosinhos",
+              "fa": "ماتوسینوس",
+              "ar": "مَتُزِنيُش"
+            }
+          },
+          "Paredes Municipality": {
+            "geonameId": 8010586,
+            "names": {
+              "en": "Paredes Municipality",
+              "ru": "Paredes",
+              "ch": "Paredes",
+              "fa": "Paredes",
+              "ar": "Paredes"
+            }
+          },
+          "Paços de Ferreira Municipality": {
+            "geonameId": 8010585,
+            "names": {
+              "en": "Paços de Ferreira Municipality",
+              "ru": "Пасуш-ди-Феррейра",
+              "ch": "Paços de Ferreira",
+              "fa": "پاسوس د فریرا",
+              "ar": "Paços de Ferreira"
+            }
+          },
+          "Penafiel Municipality": {
+            "geonameId": 8010587,
+            "names": {
+              "en": "Penafiel Municipality",
+              "ru": "Penafiel",
+              "ch": "Penafiel",
+              "fa": "Penafiel",
+              "ar": "Penafiel"
+            }
+          },
+          "Porto": {
+            "geonameId": 6458924,
+            "names": {
+              "en": "Porto",
+              "ru": "Порту",
+              "ch": "Porto",
+              "fa": "پورتو",
+              "ar": "بورتو"
+            }
+          },
+          "Póvoa de Varzim Municipality": {
+            "geonameId": 8010588,
+            "names": {
+              "en": "Póvoa de Varzim Municipality",
+              "ru": "Póvoa de Varzim",
+              "ch": "Póvoa de Varzim",
+              "fa": "Póvoa de Varzim",
+              "ar": "Póvoa de Varzim"
+            }
+          },
+          "Santo Tirso Municipality": {
+            "geonameId": 8010589,
+            "names": {
+              "en": "Santo Tirso Municipality",
+              "ru": "Санту-Тирсу",
+              "ch": "Santo Tirso",
+              "fa": "Santo Tirso",
+              "ar": "Santo Tirso"
+            }
+          },
+          "Trofa Municipality": {
+            "geonameId": 8010593,
+            "names": {
+              "en": "Trofa Municipality",
+              "ru": "Trofa",
+              "ch": "Trofa",
+              "fa": "Trofa",
+              "ar": "Trofa"
+            }
+          },
+          "Valongo Municipality": {
+            "geonameId": 8010590,
+            "names": {
+              "en": "Valongo Municipality",
+              "ru": "Valongo",
+              "ch": "Valongo",
+              "fa": "Valongo",
+              "ar": "Valongo"
+            }
+          },
+          "Vila Nova de Gaia Municipality": {
+            "geonameId": 8010592,
+            "names": {
+              "en": "Vila Nova de Gaia Municipality",
+              "ru": "Вила-Нова-ди-Гая",
+              "ch": "Vila Nova de Gaia",
+              "fa": "ویلا نوا دگایا",
+              "ar": "فيلا نوا دغايا"
+            }
+          },
+          "Vila do Conde Municipality": {
+            "geonameId": 8010591,
+            "names": {
+              "en": "Vila do Conde Municipality",
+              "ru": "Вила-ду-Конди",
+              "ch": "Vila do Conde",
+              "fa": "ویلا دو کنده",
+              "ar": "Vila do Conde"
+            }
+          }
+        },
+        "done": true
+      },
+      "Santarém": {
+        "geonameId": 2263478,
+        "names": {
+          "en": "Santarém",
+          "ru": "Сантарен",
+          "ch": "Distrito de Santarém",
+          "fa": "سانتاری",
+          "ar": "شنترين"
+        },
+        "cities": {
+          "Abrantes Municipality": {
+            "geonameId": 8010594,
+            "names": {
+              "en": "Abrantes Municipality",
+              "ru": "Abrantes",
+              "ch": "Abrantes",
+              "fa": "Abrantes",
+              "ar": "Abrantes"
+            }
+          },
+          "Alcanena Municipality": {
+            "geonameId": 8010595,
+            "names": {
+              "en": "Alcanena Municipality",
+              "ru": "Alcanena",
+              "ch": "Alcanena",
+              "fa": "Alcanena",
+              "ar": "Alcanena"
+            }
+          },
+          "Almeirim Municipality": {
+            "geonameId": 8010596,
+            "names": {
+              "en": "Almeirim Municipality",
+              "ru": "Almeirim",
+              "ch": "Almeirim",
+              "fa": "Almeirim",
+              "ar": "Almeirim"
+            }
+          },
+          "Alpiarça Municipality": {
+            "geonameId": 8010597,
+            "names": {
+              "en": "Alpiarça Municipality",
+              "ru": "Alpiarça",
+              "ch": "Alpiarça",
+              "fa": "Alpiarça",
+              "ar": "Alpiarça"
+            }
+          },
+          "Benavente Municipality": {
+            "geonameId": 8010598,
+            "names": {
+              "en": "Benavente Municipality",
+              "ru": "Benavente",
+              "ch": "Benavente",
+              "fa": "Benavente",
+              "ar": "Benavente"
+            }
+          },
+          "Cartaxo Municipality": {
+            "geonameId": 8010599,
+            "names": {
+              "en": "Cartaxo Municipality",
+              "ru": "Cartaxo",
+              "ch": "Cartaxo",
+              "fa": "Cartaxo",
+              "ar": "Cartaxo"
+            }
+          },
+          "Chamusca Municipality": {
+            "geonameId": 8010600,
+            "names": {
+              "en": "Chamusca Municipality",
+              "ru": "Chamusca",
+              "ch": "Chamusca",
+              "fa": "Chamusca",
+              "ar": "Chamusca"
+            }
+          },
+          "Constância Municipality": {
+            "geonameId": 8010601,
+            "names": {
+              "en": "Constância Municipality",
+              "ru": "Constância",
+              "ch": "Constância",
+              "fa": "Constância",
+              "ar": "Constância"
+            }
+          },
+          "Coruche Municipality": {
+            "geonameId": 8010602,
+            "names": {
+              "en": "Coruche Municipality",
+              "ru": "Коруши",
+              "ch": "Coruche",
+              "fa": "Coruche",
+              "ar": "Coruche"
+            }
+          },
+          "Entroncamento Municipality": {
+            "geonameId": 8010603,
+            "names": {
+              "en": "Entroncamento Municipality",
+              "ru": "Энтронкаменту",
+              "ch": "Entroncamento",
+              "fa": "انترونکامنتو",
+              "ar": "انترونكامنتو"
+            }
+          },
+          "Ferreira do Zêzere Municipality": {
+            "geonameId": 8010604,
+            "names": {
+              "en": "Ferreira do Zêzere Municipality",
+              "ru": "Ferreira do Zêzere",
+              "ch": "Ferreira do Zêzere",
+              "fa": "Ferreira do Zêzere",
+              "ar": "Ferreira do Zêzere"
+            }
+          },
+          "Golegã Municipality": {
+            "geonameId": 8010605,
+            "names": {
+              "en": "Golegã Municipality",
+              "ru": "Golegã",
+              "ch": "Golegã",
+              "fa": "Golegã",
+              "ar": "Golegã"
+            }
+          },
+          "Mação Municipality": {
+            "geonameId": 8010606,
+            "names": {
+              "en": "Mação Municipality",
+              "ru": "Mação",
+              "ch": "Mação",
+              "fa": "Mação",
+              "ar": "Mação"
+            }
+          },
+          "Ourém Municipality": {
+            "geonameId": 8010614,
+            "names": {
+              "en": "Ourém Municipality",
+              "ru": "Орен",
+              "ch": "Ourém",
+              "fa": "اورم",
+              "ar": "أوريم"
+            }
+          },
+          "Rio Maior Municipality": {
+            "geonameId": 8010607,
+            "names": {
+              "en": "Rio Maior Municipality",
+              "ru": "Rio Maior",
+              "ch": "Rio Maior",
+              "fa": "Rio Maior",
+              "ar": "Rio Maior"
+            }
+          },
+          "Salvaterra de Magos Municipality": {
+            "geonameId": 8010608,
+            "names": {
+              "en": "Salvaterra de Magos Municipality",
+              "ru": "Salvaterra de Magos",
+              "ch": "Salvaterra de Magos",
+              "fa": "Salvaterra de Magos",
+              "ar": "Salvaterra de Magos"
+            }
+          },
+          "Santarém Municipality": {
+            "geonameId": 8010609,
+            "names": {
+              "en": "Santarém Municipality",
+              "ru": "Santarém",
+              "ch": "Santarém",
+              "fa": "Santarém",
+              "ar": "Santarém"
+            }
+          },
+          "Sardoal Municipality": {
+            "geonameId": 8010610,
+            "names": {
+              "en": "Sardoal Municipality",
+              "ru": "Sardoal",
+              "ch": "Sardoal",
+              "fa": "Sardoal",
+              "ar": "Sardoal"
+            }
+          },
+          "Tomar Municipality": {
+            "geonameId": 8010611,
+            "names": {
+              "en": "Tomar Municipality",
+              "ru": "Tomar",
+              "ch": "Tomar",
+              "fa": "Tomar",
+              "ar": "Tomar"
+            }
+          },
+          "Torres Novas Municipality": {
+            "geonameId": 8010612,
+            "names": {
+              "en": "Torres Novas Municipality",
+              "ru": "Торриш-Новаш",
+              "ch": "Torres Novas",
+              "fa": "تورس نواس",
+              "ar": "تورس نواس"
+            }
+          },
+          "Vila Nova da Barquinha Municipality": {
+            "geonameId": 8010613,
+            "names": {
+              "en": "Vila Nova da Barquinha Municipality",
+              "ru": "Vila Nova da Barquinha",
+              "ch": "Vila Nova da Barquinha",
+              "fa": "Vila Nova da Barquinha",
+              "ar": "Vila Nova da Barquinha"
+            }
+          }
+        },
+        "done": true
+      },
+      "Setúbal": {
+        "geonameId": 2262961,
+        "names": {
+          "en": "Setúbal",
+          "ru": "Сетубал",
+          "ch": "Distrito de Setúbal",
+          "fa": "Distrito de Setúbal",
+          "ar": "شطوبر"
+        },
+        "cities": {
+          "Alcochete Municipality": {
+            "geonameId": 8010616,
+            "names": {
+              "en": "Alcochete Municipality",
+              "ru": "Alcochete",
+              "ch": "Alcochete",
+              "fa": "Alcochete",
+              "ar": "Alcochete"
+            }
+          },
+          "Alcácer do Sal Municipality": {
+            "geonameId": 8010615,
+            "names": {
+              "en": "Alcácer do Sal Municipality",
+              "ru": "Alcácer do Sal",
+              "ch": "Alcácer do Sal",
+              "fa": "Alcácer do Sal",
+              "ar": "Alcácer do Sal"
+            }
+          },
+          "Almada Municipality": {
+            "geonameId": 8010617,
+            "names": {
+              "en": "Almada Municipality",
+              "ru": "Almada",
+              "ch": "Almada",
+              "fa": "Almada",
+              "ar": "Almada"
+            }
+          },
+          "Barreiro Municipality": {
+            "geonameId": 8010618,
+            "names": {
+              "en": "Barreiro Municipality",
+              "ru": "Barreiro",
+              "ch": "Barreiro",
+              "fa": "Barreiro",
+              "ar": "Barreiro"
+            }
+          },
+          "Grândola Municipality": {
+            "geonameId": 8010619,
+            "names": {
+              "en": "Grândola Municipality",
+              "ru": "Grândola",
+              "ch": "Grândola",
+              "fa": "Grândola",
+              "ar": "Grândola"
+            }
+          },
+          "Moita Municipality": {
+            "geonameId": 8010620,
+            "names": {
+              "en": "Moita Municipality",
+              "ru": "Moita",
+              "ch": "Moita",
+              "fa": "Moita",
+              "ar": "Moita"
+            }
+          },
+          "Montijo Municipality": {
+            "geonameId": 8010621,
+            "names": {
+              "en": "Montijo Municipality",
+              "ru": "Montijo",
+              "ch": "Montijo",
+              "fa": "Montijo",
+              "ar": "Montijo"
+            }
+          },
+          "Palmela Municipality": {
+            "geonameId": 8010622,
+            "names": {
+              "en": "Palmela Municipality",
+              "ru": "Палмела",
+              "ch": "Palmela",
+              "fa": "پالملا",
+              "ar": "بالملا"
+            }
+          },
+          "Santiago do Cacém Municipality": {
+            "geonameId": 8010623,
+            "names": {
+              "en": "Santiago do Cacém Municipality",
+              "ru": "Сантиагу-ду-Касен",
+              "ch": "Santiago do Cacém",
+              "fa": "سانتیاگو دو کاکم",
+              "ar": "Santiago do Cacém"
+            }
+          },
+          "Seixal Municipality": {
+            "geonameId": 7732032,
+            "names": {
+              "en": "Seixal Municipality",
+              "ru": "Seixal",
+              "ch": "Seixal",
+              "fa": "Seixal",
+              "ar": "Seixal"
+            }
+          },
+          "Sesimbra": {
+            "geonameId": 8010624,
+            "names": {
+              "en": "Sesimbra",
+              "ru": "Сезимбра",
+              "ch": "Sesimbra",
+              "fa": "Sesimbra",
+              "ar": "Sesimbra"
+            }
+          },
+          "Setúbal Municipality": {
+            "geonameId": 8010625,
+            "names": {
+              "en": "Setúbal Municipality",
+              "ru": "Сетубал",
+              "ch": "Setúbal",
+              "fa": "ستوبال",
+              "ar": "شطوبر"
+            }
+          },
+          "Sines Municipality": {
+            "geonameId": 8010626,
+            "names": {
+              "en": "Sines Municipality",
+              "ru": "Sines",
+              "ch": "Sines",
+              "fa": "Sines",
+              "ar": "Sines"
+            }
+          }
+        },
+        "done": true
+      },
+      "Viana do Castelo": {
+        "geonameId": 2732772,
+        "names": {
+          "en": "Viana do Castelo",
+          "ru": "Виана-ду-Каштелу",
+          "ch": "Distrito de Viana do Castelo",
+          "fa": "ویانا دو کاستلو",
+          "ar": "فيانادو كاستيلو"
+        },
+        "cities": {
+          "Arcos de Valdevez Municipality": {
+            "geonameId": 8010627,
+            "names": {
+              "en": "Arcos de Valdevez Municipality",
+              "ru": "Аркуш-ди-Валдевеш",
+              "ch": "Arcos de Valdevez",
+              "fa": "Arcos de Valdevez",
+              "ar": "Arcos de Valdevez"
+            }
+          },
+          "Caminha Municipality": {
+            "geonameId": 8010628,
+            "names": {
+              "en": "Caminha Municipality",
+              "ru": "Каминья",
+              "ch": "Caminha",
+              "fa": "Caminha",
+              "ar": "كامينيا"
+            }
+          },
+          "Melgaço Municipality": {
+            "geonameId": 8010629,
+            "names": {
+              "en": "Melgaço Municipality",
+              "ru": "Мелгасу",
+              "ch": "Melgaço",
+              "fa": "Melgaço",
+              "ar": "Melgaço"
+            }
+          },
+          "Monção Municipality": {
+            "geonameId": 8010630,
+            "names": {
+              "en": "Monção Municipality",
+              "ru": "Monção",
+              "ch": "Monção",
+              "fa": "Monção",
+              "ar": "Monção"
+            }
+          },
+          "Paredes de Coura Municipality": {
+            "geonameId": 8010631,
+            "names": {
+              "en": "Paredes de Coura Municipality",
+              "ru": "Paredes de Coura",
+              "ch": "Paredes de Coura",
+              "fa": "Paredes de Coura",
+              "ar": "Paredes de Coura"
+            }
+          },
+          "Ponte da Barca Municipality": {
+            "geonameId": 8010632,
+            "names": {
+              "en": "Ponte da Barca Municipality",
+              "ru": "Ponte da Barca",
+              "ch": "Ponte da Barca",
+              "fa": "Ponte da Barca",
+              "ar": "Ponte da Barca"
+            }
+          },
+          "Ponte de Lima Municipality": {
+            "geonameId": 8010633,
+            "names": {
+              "en": "Ponte de Lima Municipality",
+              "ru": "Ponte de Lima",
+              "ch": "Ponte de Lima",
+              "fa": "Ponte de Lima",
+              "ar": "Ponte de Lima"
+            }
+          },
+          "Valença Municipality": {
+            "geonameId": 8010634,
+            "names": {
+              "en": "Valença Municipality",
+              "ru": "Валенса",
+              "ch": "Valença",
+              "fa": "Valença",
+              "ar": "Valença"
+            }
+          },
+          "Viana do Castelo Municipality": {
+            "geonameId": 8010635,
+            "names": {
+              "en": "Viana do Castelo Municipality",
+              "ru": "Виана-ду-Каштелу",
+              "ch": "Viana do Castelo",
+              "fa": "ویانا دو کاستلو",
+              "ar": "فيانا دو كاستيلو"
+            }
+          },
+          "Vila Nova de Cerveira Municipality": {
+            "geonameId": 8010636,
+            "names": {
+              "en": "Vila Nova de Cerveira Municipality",
+              "ru": "Vila Nova de Cerveira",
+              "ch": "Vila Nova de Cerveira",
+              "fa": "Vila Nova de Cerveira",
+              "ar": "Vila Nova de Cerveira"
+            }
+          }
+        },
+        "done": true
+      },
+      "Vila Real": {
+        "geonameId": 2732437,
+        "names": {
+          "en": "Vila Real",
+          "ru": "Вила-Реал",
+          "ch": "Distrito de Vila Real",
+          "fa": "ویلا ریل",
+          "ar": "فيلا ريال"
+        },
+        "cities": {
+          "Alijó Municipality": {
+            "geonameId": 8010637,
+            "names": {
+              "en": "Alijó Municipality",
+              "ru": "Alijó",
+              "ch": "Alijó",
+              "fa": "Alijó",
+              "ar": "Alijó"
+            }
+          },
+          "Boticas Municipality": {
+            "geonameId": 8010638,
+            "names": {
+              "en": "Boticas Municipality",
+              "ru": "Boticas",
+              "ch": "Boticas",
+              "fa": "Boticas",
+              "ar": "Boticas"
+            }
+          },
+          "Chaves Municipality": {
+            "geonameId": 8010639,
+            "names": {
+              "en": "Chaves Municipality",
+              "ru": "Шавиш",
+              "ch": "Chaves",
+              "fa": "شاوس",
+              "ar": "Chaves"
+            }
+          },
+          "Mesão Frio Municipality": {
+            "geonameId": 8010640,
+            "names": {
+              "en": "Mesão Frio Municipality",
+              "ru": "Mesão Frio",
+              "ch": "Mesão Frio",
+              "fa": "Mesão Frio",
+              "ar": "Mesão Frio"
+            }
+          },
+          "Mondim de Basto Municipality": {
+            "geonameId": 8010641,
+            "names": {
+              "en": "Mondim de Basto Municipality",
+              "ru": "Мондин-ди-Башту",
+              "ch": "Mondim de Basto",
+              "fa": "Mondim de Basto",
+              "ar": "Mondim de Basto"
+            }
+          },
+          "Montalegre Municipality": {
+            "geonameId": 8010642,
+            "names": {
+              "en": "Montalegre Municipality",
+              "ru": "Montalegre",
+              "ch": "Montalegre",
+              "fa": "Montalegre",
+              "ar": "Montalegre"
+            }
+          },
+          "Murça Municipality": {
+            "geonameId": 8010643,
+            "names": {
+              "en": "Murça Municipality",
+              "ru": "Murça",
+              "ch": "Murça",
+              "fa": "Murça",
+              "ar": "Murça"
+            }
+          },
+          "Peso da Régua Municipality": {
+            "geonameId": 8010644,
+            "names": {
+              "en": "Peso da Régua Municipality",
+              "ru": "Peso da Régua",
+              "ch": "Peso da Régua",
+              "fa": "Peso da Régua",
+              "ar": "Peso da Régua"
+            }
+          },
+          "Ribeira de Pena Municipality": {
+            "geonameId": 8010645,
+            "names": {
+              "en": "Ribeira de Pena Municipality",
+              "ru": "Рибейра-ди-Пена",
+              "ch": "Ribeira de Pena",
+              "fa": "Ribeira de Pena",
+              "ar": "Ribeira de Pena"
+            }
+          },
+          "Sabrosa Municipality": {
+            "geonameId": 8010646,
+            "names": {
+              "en": "Sabrosa Municipality",
+              "ru": "Sabrosa",
+              "ch": "Sabrosa",
+              "fa": "Sabrosa",
+              "ar": "Sabrosa"
+            }
+          },
+          "Santa Marta de Penaguião Municipality": {
+            "geonameId": 8010647,
+            "names": {
+              "en": "Santa Marta de Penaguião Municipality",
+              "ru": "Санта-Марта-ди-Пенагиан",
+              "ch": "Santa Marta de Penaguião",
+              "fa": "Santa Marta de Penaguião",
+              "ar": "Santa Marta de Penaguião"
+            }
+          },
+          "Valpaços Municipality": {
+            "geonameId": 8010648,
+            "names": {
+              "en": "Valpaços Municipality",
+              "ru": "Валпасуш",
+              "ch": "Valpaços",
+              "fa": "والپاسوس",
+              "ar": "Valpaços"
+            }
+          },
+          "Vila Pouca de Aguiar Municipality": {
+            "geonameId": 8010649,
+            "names": {
+              "en": "Vila Pouca de Aguiar Municipality",
+              "ru": "Vila Pouca de Aguiar",
+              "ch": "Vila Pouca de Aguiar",
+              "fa": "Vila Pouca de Aguiar",
+              "ar": "Vila Pouca de Aguiar"
+            }
+          },
+          "Vila Real Municipality": {
+            "geonameId": 8010650,
+            "names": {
+              "en": "Vila Real Municipality",
+              "ru": "Vila Real",
+              "ch": "Vila Real",
+              "fa": "Vila Real",
+              "ar": "Vila Real"
+            }
+          }
+        },
+        "done": true
+      },
+      "Viseu": {
+        "geonameId": 2732264,
+        "names": {
+          "en": "Viseu",
+          "ru": "Визеу",
+          "ch": "Distrito de Viseu",
+          "fa": "ویسئو",
+          "ar": "بازو"
+        },
+        "cities": {
+          "Armamar Municipality": {
+            "geonameId": 8010651,
+            "names": {
+              "en": "Armamar Municipality",
+              "ru": "Armamar",
+              "ch": "Armamar",
+              "fa": "Armamar",
+              "ar": "Armamar"
+            }
+          },
+          "Carregal do Sal Municipality": {
+            "geonameId": 7116056,
+            "names": {
+              "en": "Carregal do Sal Municipality",
+              "ru": "Carregal do Sal",
+              "ch": "Carregal do Sal",
+              "fa": "Carregal do Sal",
+              "ar": "Carregal do Sal"
+            }
+          },
+          "Castro Daire Municipality": {
+            "geonameId": 8010652,
+            "names": {
+              "en": "Castro Daire Municipality",
+              "ru": "Castro Daire",
+              "ch": "Castro Daire",
+              "fa": "Castro Daire",
+              "ar": "Castro Daire"
+            }
+          },
+          "Cinfães Municipality": {
+            "geonameId": 8010653,
+            "names": {
+              "en": "Cinfães Municipality",
+              "ru": "Cinfães",
+              "ch": "Cinfães",
+              "fa": "Cinfães",
+              "ar": "Cinfães"
+            }
+          },
+          "Lamego Municipality": {
+            "geonameId": 8010654,
+            "names": {
+              "en": "Lamego Municipality",
+              "ru": "Ламегу",
+              "ch": "Lamego",
+              "fa": "لامگو",
+              "ar": "لاميغو"
+            }
+          },
+          "Mangualde Municipality": {
+            "geonameId": 8010655,
+            "names": {
+              "en": "Mangualde Municipality",
+              "ru": "Mangualde",
+              "ch": "Mangualde",
+              "fa": "Mangualde",
+              "ar": "Mangualde"
+            }
+          },
+          "Moimenta da Beira Municipality": {
+            "geonameId": 8010656,
+            "names": {
+              "en": "Moimenta da Beira Municipality",
+              "ru": "Moimenta da Beira",
+              "ch": "Moimenta da Beira",
+              "fa": "Moimenta da Beira",
+              "ar": "Moimenta da Beira"
+            }
+          },
+          "Mortágua Municipality": {
+            "geonameId": 8010657,
+            "names": {
+              "en": "Mortágua Municipality",
+              "ru": "Мортагуа",
+              "ch": "Mortágua",
+              "fa": "Mortágua",
+              "ar": "Mortágua"
+            }
+          },
+          "Nelas Municipality": {
+            "geonameId": 8010658,
+            "names": {
+              "en": "Nelas Municipality",
+              "ru": "Nelas",
+              "ch": "Nelas",
+              "fa": "Nelas",
+              "ar": "Nelas"
+            }
+          },
+          "Oliveira de Frades Municipality": {
+            "geonameId": 8010659,
+            "names": {
+              "en": "Oliveira de Frades Municipality",
+              "ru": "Oliveira de Frades",
+              "ch": "Oliveira de Frades",
+              "fa": "Oliveira de Frades",
+              "ar": "Oliveira de Frades"
+            }
+          },
+          "Penalva do Castelo Municipality": {
+            "geonameId": 8010660,
+            "names": {
+              "en": "Penalva do Castelo Municipality",
+              "ru": "Пеналва-ду-Каштелу",
+              "ch": "Penalva do Castelo",
+              "fa": "Penalva do Castelo",
+              "ar": "Penalva do Castelo"
+            }
+          },
+          "Penedono Municipality": {
+            "geonameId": 8010661,
+            "names": {
+              "en": "Penedono Municipality",
+              "ru": "Penedono",
+              "ch": "Penedono",
+              "fa": "Penedono",
+              "ar": "Penedono"
+            }
+          },
+          "Resende Municipality": {
+            "geonameId": 8010662,
+            "names": {
+              "en": "Resende Municipality",
+              "ru": "Resende",
+              "ch": "Resende",
+              "fa": "Resende",
+              "ar": "Resende"
+            }
+          },
+          "Santa Comba Dão Municipality": {
+            "geonameId": 8010663,
+            "names": {
+              "en": "Santa Comba Dão Municipality",
+              "ru": "Санта-Комба-Дан",
+              "ch": "Santa Comba Dão",
+              "fa": "سانتا کومبا داو",
+              "ar": "Santa Comba Dão"
+            }
+          },
+          "Sernancelhe Municipality": {
+            "geonameId": 8010667,
+            "names": {
+              "en": "Sernancelhe Municipality",
+              "ru": "Sernancelhe",
+              "ch": "Sernancelhe",
+              "fa": "Sernancelhe",
+              "ar": "Sernancelhe"
+            }
+          },
+          "Sátão Municipality": {
+            "geonameId": 8010666,
+            "names": {
+              "en": "Sátão Municipality",
+              "ru": "Sátão",
+              "ch": "Sátão",
+              "fa": "Sátão",
+              "ar": "Sátão"
+            }
+          },
+          "São João da Pesqueira Municipality": {
+            "geonameId": 8010664,
+            "names": {
+              "en": "São João da Pesqueira Municipality",
+              "ru": "São João da Pesqueira",
+              "ch": "São João da Pesqueira",
+              "fa": "São João da Pesqueira",
+              "ar": "São João da Pesqueira"
+            }
+          },
+          "São Pedro do Sul Municipality": {
+            "geonameId": 8010665,
+            "names": {
+              "en": "São Pedro do Sul Municipality",
+              "ru": "São Pedro do Sul",
+              "ch": "São Pedro do Sul",
+              "fa": "São Pedro do Sul",
+              "ar": "São Pedro do Sul"
+            }
+          },
+          "Tabuaço Municipality": {
+            "geonameId": 8010668,
+            "names": {
+              "en": "Tabuaço Municipality",
+              "ru": "Табуасу",
+              "ch": "Tabuaço",
+              "fa": "Tabuaço",
+              "ar": "Tabuaço"
+            }
+          },
+          "Tarouca Municipality": {
+            "geonameId": 8010669,
+            "names": {
+              "en": "Tarouca Municipality",
+              "ru": "Tarouca",
+              "ch": "Tarouca",
+              "fa": "Tarouca",
+              "ar": "Tarouca"
+            }
+          },
+          "Tondela Municipality": {
+            "geonameId": 2733531,
+            "names": {
+              "en": "Tondela Municipality",
+              "ru": "Тондела",
+              "ch": "Tondela",
+              "fa": "توندلا",
+              "ar": "توندلا"
+            }
+          },
+          "Vila Nova de Paiva Municipality": {
+            "geonameId": 8010670,
+            "names": {
+              "en": "Vila Nova de Paiva Municipality",
+              "ru": "Вила-Нова-ди-Пайва",
+              "ch": "Vila Nova de Paiva",
+              "fa": "Vila Nova de Paiva",
+              "ar": "Vila Nova de Paiva"
+            }
+          },
+          "Viseu Municipality": {
+            "geonameId": 8010671,
+            "names": {
+              "en": "Viseu Municipality",
+              "ru": "Визеу",
+              "ch": "Viseu",
+              "fa": "ویزئو",
+              "ar": "فيسيو"
+            }
+          },
+          "Vouzela Municipality": {
+            "geonameId": 8010672,
+            "names": {
+              "en": "Vouzela Municipality",
+              "ru": "Возела",
+              "ch": "Vouzela",
+              "fa": "Vouzela",
+              "ar": "Vouzela"
+            }
+          }
+        },
+        "done": true
+      },
+      "Évora": {
+        "geonameId": 2268404,
+        "names": {
+          "en": "Évora",
+          "ru": "Эвора",
+          "ch": "Distrito de Évora",
+          "fa": "اوورا",
+          "ar": "يابرة"
+        },
+        "cities": {
+          "Alandroal Municipality": {
+            "geonameId": 8010498,
+            "names": {
+              "en": "Alandroal Municipality",
+              "ru": "Аландроал",
+              "ch": "Alandroal",
+              "fa": "Alandroal",
+              "ar": "Alandroal"
+            }
+          },
+          "Arraiolos Municipality": {
+            "geonameId": 8010499,
+            "names": {
+              "en": "Arraiolos Municipality",
+              "ru": "Аррайолуш",
+              "ch": "Arraiolos",
+              "fa": "Arraiolos",
+              "ar": "أرَيُولُس"
+            }
+          },
+          "Borba Municipality": {
+            "geonameId": 8010500,
+            "names": {
+              "en": "Borba Municipality",
+              "ru": "Борба",
+              "ch": "Borba",
+              "fa": "Borba",
+              "ar": "Borba"
+            }
+          },
+          "Estremoz Municipality": {
+            "geonameId": 8010501,
+            "names": {
+              "en": "Estremoz Municipality",
+              "ru": "Эштремош",
+              "ch": "Estremoz",
+              "fa": "استرموز",
+              "ar": "إستريموز"
+            }
+          },
+          "Montemor-o-Novo Municipality": {
+            "geonameId": 8010503,
+            "names": {
+              "en": "Montemor-o-Novo Municipality",
+              "ru": "Монтемор-у-Нову",
+              "ch": "Montemor-O-Novo",
+              "fa": "مونتمورو نووو",
+              "ar": "مونتيمور نوفو"
+            }
+          },
+          "Mora Municipality": {
+            "geonameId": 8010504,
+            "names": {
+              "en": "Mora Municipality",
+              "ru": "Мора",
+              "ch": "Mora",
+              "fa": "Mora",
+              "ar": "مورا"
+            }
+          },
+          "Mourão Municipality": {
+            "geonameId": 8010505,
+            "names": {
+              "en": "Mourão Municipality",
+              "ru": "Моран",
+              "ch": "Mourão",
+              "fa": "Mourão",
+              "ar": "موراو"
+            }
+          },
+          "Portel Municipality": {
+            "geonameId": 8010506,
+            "names": {
+              "en": "Portel Municipality",
+              "ru": "Portel",
+              "ch": "Portel",
+              "fa": "Portel",
+              "ar": "Portel"
+            }
+          },
+          "Redondo Municipality": {
+            "geonameId": 8010507,
+            "names": {
+              "en": "Redondo Municipality",
+              "ru": "Redondo",
+              "ch": "Redondo",
+              "fa": "Redondo",
+              "ar": "Redondo"
+            }
+          },
+          "Reguengos de Monsaraz Municipality": {
+            "geonameId": 8010508,
+            "names": {
+              "en": "Reguengos de Monsaraz Municipality",
+              "ru": "Reguengos de Monsaraz",
+              "ch": "Reguengos de Monsaraz",
+              "fa": "Reguengos de Monsaraz",
+              "ar": "Reguengos de Monsaraz"
+            }
+          },
+          "Vendas Novas Municipality": {
+            "geonameId": 8010509,
+            "names": {
+              "en": "Vendas Novas Municipality",
+              "ru": "Vendas Novas",
+              "ch": "Vendas Novas",
+              "fa": "Vendas Novas",
+              "ar": "Vendas Novas"
+            }
+          },
+          "Viana do Alentejo Municipality": {
+            "geonameId": 8010510,
+            "names": {
+              "en": "Viana do Alentejo Municipality",
+              "ru": "Виана-ду-Алентежу",
+              "ch": "Viana do Alentejo",
+              "fa": "Viana do Alentejo",
+              "ar": "Viana do Alentejo"
+            }
+          },
+          "Vila Viçosa Municipality": {
+            "geonameId": 8010511,
+            "names": {
+              "en": "Vila Viçosa Municipality",
+              "ru": "Вила-Висоза",
+              "ch": "Vila Viçosa",
+              "fa": "Vila Viçosa",
+              "ar": "Vila Viçosa"
+            }
+          },
+          "Évora Municipality": {
+            "geonameId": 8010502,
+            "names": {
+              "en": "Évora Municipality",
+              "ru": "Эвора",
+              "ch": "Évora",
+              "fa": "اوورا",
+              "ar": "يابرة"
+            }
+          }
+        },
+        "done": true
+      }
+    },
+    "done": true
   },
   "PW": {
     "geonameId": 1559582,
-    "names": {},
+    "names": {
+      "en": "Palau",
+      "ru": "Палау",
+      "ch": "帕劳",
+      "fa": "پالائو",
+      "ar": "بالاو"
+    },
     "provinces": {}
   },
   "PY": {
     "geonameId": 3437598,
-    "names": {},
+    "names": {
+      "en": "Paraguay",
+      "ru": "Парагвай",
+      "ch": "巴拉圭",
+      "fa": "پاراگوئه",
+      "ar": "باراغواي"
+    },
     "provinces": {}
   },
   "QA": {
     "geonameId": 289688,
-    "names": {},
+    "names": {
+      "en": "Qatar",
+      "ru": "Катар",
+      "ch": "卡塔尔",
+      "fa": "قطر",
+      "ar": "قطر"
+    },
     "provinces": {}
   },
   "RE": {
     "geonameId": 935317,
-    "names": {},
+    "names": {
+      "en": "Réunion",
+      "ru": "Реюньон",
+      "ch": "留尼汪",
+      "fa": "رئونیون",
+      "ar": "ريونيون"
+    },
     "provinces": {}
   },
   "RO": {
     "geonameId": 798549,
-    "names": {},
+    "names": {
+      "en": "Romania",
+      "ru": "Румыния",
+      "ch": "罗马尼亚",
+      "fa": "رومانی",
+      "ar": "رومانيا"
+    },
     "provinces": {}
   },
   "RS": {
     "geonameId": 6290252,
-    "names": {},
+    "names": {
+      "en": "Serbia",
+      "ru": "Сербия",
+      "ch": "塞尔维亚",
+      "fa": "صربستان",
+      "ar": "صربيا"
+    },
     "provinces": {}
   },
   "RU": {
@@ -474508,7 +477907,8 @@
     "names": {
       "en": "Russia",
       "ru": "Россия",
-      "ch": "Russian Federation",
+      "ch": "俄罗斯",
+      "fa": "روسیه",
       "ar": "روسيا"
     },
     "provinces": {
@@ -555377,7 +558777,8 @@
     "names": {
       "en": "Syria",
       "ru": "Сирия",
-      "ch": "Syrian Arab Republic",
+      "ch": "叙利亚",
+      "fa": "سوریه",
       "ar": "سوريا"
     },
     "provinces": {
@@ -556347,6 +559748,7 @@
       "en": "Chad",
       "ru": "Чад",
       "ch": "Republic of Chad",
+      "fa": "چاد",
       "ar": "تشاد"
     },
     "provinces": {
@@ -558027,6 +561429,7 @@
       "en": "Tajikistan",
       "ru": "Таджикистан",
       "ch": "Republic of Tajikistan",
+      "fa": "تاجیکستان",
       "ar": "طاجيكستان"
     },
     "provinces": {
@@ -569308,17 +572711,35 @@
   },
   "TV": {
     "geonameId": 2110297,
-    "names": {},
+    "names": {
+      "en": "Tuvalu",
+      "ru": "Тувалу",
+      "ch": "图瓦卢",
+      "fa": "تووالو",
+      "ar": "توفالو"
+    },
     "provinces": {}
   },
   "TW": {
     "geonameId": 1668284,
-    "names": {},
+    "names": {
+      "en": "Taiwan",
+      "ru": "Тайвань",
+      "ch": "台湾",
+      "fa": "تایوان",
+      "ar": "تايوان"
+    },
     "provinces": {}
   },
   "TZ": {
     "geonameId": 149590,
-    "names": {},
+    "names": {
+      "en": "Tanzania",
+      "ru": "Танзания",
+      "ch": "坦桑尼亚",
+      "fa": "تانزانیا",
+      "ar": "تنزانيا"
+    },
     "provinces": {}
   },
   "UA": {
@@ -571849,12 +575270,24 @@
   },
   "UM": {
     "geonameId": 5854968,
-    "names": {},
+    "names": {
+      "en": "U.S. Minor Outlying Islands",
+      "ru": "Внешние малые острова",
+      "ch": "美国本土外小岛屿",
+      "fa": "جزایر کوچک حاشیه‌ای ایالات متحده",
+      "ar": "جزر الولايات المتحدة الصغيرة النائية"
+    },
     "provinces": {}
   },
   "US": {
     "geonameId": 6252001,
-    "names": {},
+    "names": {
+      "en": "United States",
+      "ru": "Соединённые Штаты",
+      "ch": "美国",
+      "fa": "ایالات متحده",
+      "ar": "الولايات المتحدة"
+    },
     "provinces": {
       "Alabama": {
         "geonameId": 4829764,
@@ -574022,7 +577455,13 @@
   },
   "UY": {
     "geonameId": 3439705,
-    "names": {},
+    "names": {
+      "en": "Uruguay",
+      "ru": "Уругвай",
+      "ch": "乌拉圭",
+      "fa": "اروگوئه",
+      "ar": "أوروغواي"
+    },
     "provinces": {
       "Artigas": {
         "geonameId": 3443756,
@@ -575516,7 +578955,13 @@
   },
   "UZ": {
     "geonameId": 1512440,
-    "names": {},
+    "names": {
+      "en": "Uzbekistan",
+      "ru": "Узбекистан",
+      "ch": "乌兹别克斯坦 ",
+      "fa": "ازبکستان",
+      "ar": "أوزبكستان"
+    },
     "provinces": {
       "Andijan Region": {
         "geonameId": 1484846,
@@ -577914,72 +581359,156 @@
   },
   "VA": {
     "geonameId": 3164670,
-    "names": {},
+    "names": {
+      "en": "Vatican City",
+      "ru": "Ватикан",
+      "ch": "梵蒂冈",
+      "fa": "واتیکان",
+      "ar": "الفاتيكان"
+    },
     "provinces": {}
   },
   "VC": {
     "geonameId": 3577815,
-    "names": {},
+    "names": {
+      "en": "Saint Vincent and the Grenadines",
+      "ru": "Сент-Винсент и Гренадины",
+      "ch": "圣文森特和格林纳丁斯",
+      "fa": "سنت وینسنت و گرنادین‌ها",
+      "ar": "سانت فنسنت والغرينادين"
+    },
     "provinces": {}
   },
   "VE": {
     "geonameId": 3625428,
-    "names": {},
+    "names": {
+      "en": "Venezuela",
+      "ru": "Венесуэла",
+      "ch": "委内瑞拉",
+      "fa": "ونزوئلا",
+      "ar": "فنزويلا"
+    },
     "provinces": {}
   },
   "VG": {
     "geonameId": 3577718,
-    "names": {},
+    "names": {
+      "en": "British Virgin Islands",
+      "ru": "Британские Виргинские острова",
+      "ch": "英属维尔京群岛",
+      "fa": "جزایر ویرجین بریتانیا",
+      "ar": "جزر العذراء البريطانية"
+    },
     "provinces": {}
   },
   "VI": {
     "geonameId": 4796775,
-    "names": {},
+    "names": {
+      "en": "U.S. Virgin Islands",
+      "ru": "Виргинские острова",
+      "ch": "美属维尔京群岛",
+      "fa": "جزایر ویرجین ایالات متحده",
+      "ar": "جزر العذراء الأمريكية"
+    },
     "provinces": {}
   },
   "VN": {
     "geonameId": 1562822,
-    "names": {},
+    "names": {
+      "en": "Vietnam",
+      "ru": "Вьетнам",
+      "ch": "越南",
+      "fa": "ویتنام",
+      "ar": "فيتنام"
+    },
     "provinces": {}
   },
   "VU": {
     "geonameId": 2134431,
-    "names": {},
+    "names": {
+      "en": "Vanuatu",
+      "ru": "Вануату",
+      "ch": "瓦努阿图",
+      "fa": "وانواتو",
+      "ar": "فانواتو"
+    },
     "provinces": {}
   },
   "WF": {
     "geonameId": 4034749,
-    "names": {},
+    "names": {
+      "en": "Wallis and Futuna",
+      "ru": "Уоллис и Футуна",
+      "ch": "瓦利斯和富图纳",
+      "fa": "والیس و فوتونا",
+      "ar": "واليس وفوتونا"
+    },
     "provinces": {}
   },
   "WS": {
     "geonameId": 4034894,
-    "names": {},
+    "names": {
+      "en": "Samoa",
+      "ru": "Самоа",
+      "ch": "萨摩亚",
+      "fa": "ساموآ",
+      "ar": "ساموا"
+    },
     "provinces": {}
   },
   "XK": {
     "geonameId": 831053,
-    "names": {},
+    "names": {
+      "en": "Kosovo",
+      "ru": "Косово",
+      "ch": "科索沃 ",
+      "fa": "کوزوو",
+      "ar": "كوسوفو"
+    },
     "provinces": {}
   },
   "YE": {
     "geonameId": 69543,
-    "names": {},
+    "names": {
+      "en": "Yemen",
+      "ru": "Йемен",
+      "ch": "也门",
+      "fa": "یمن",
+      "ar": "اليمن"
+    },
     "provinces": {}
   },
   "YT": {
     "geonameId": 1024031,
-    "names": {},
+    "names": {
+      "en": "Mayotte",
+      "ru": "Майотта",
+      "ch": "马约特",
+      "fa": "مایوت",
+      "ar": "مايوت"
+    },
     "provinces": {}
   },
   "ZA": {
     "geonameId": 953987,
-    "names": {},
+    "names": {
+      "en": "South Africa",
+      "ru": "Южная Африка",
+      "ch": "南非",
+      "fa": "آفریقای جنوبی",
+      "ar": "جنوب أفريقيا"
+    },
     "provinces": {}
   },
   "ZM": {
     "geonameId": 895949,
-    "names": {},
+    "names": {
+      "en": "Zambia",
+      "ru": "Замбия",
+      "ch": "赞比亚",
+      "fa": "زامبیا",
+      "ar": "زامبيا"
+    },
     "provinces": {
       "Central Province": {
         "geonameId": 921064,
@@ -578994,7 +582523,13 @@
   },
   "ZW": {
     "geonameId": 878675,
-    "names": {},
+    "names": {
+    "en": "Zimbabwe",
+    "ru": "Зимбабве",
+    "ch": "津巴布韦",
+    "fa": "زیمبابوه",
+    "ar": "زيمبابوي"
+    },
     "provinces": {
       "Bulawayo": {
         "geonameId": 1105843,

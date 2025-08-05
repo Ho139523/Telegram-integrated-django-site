@@ -314,9 +314,25 @@ def start(message):
 # HOME
 @app.message_handler(func=lambda message: message.text == "🏡")
 def home(message):
+    try:
+        if isinstance(message, types.Message):
+            message = message
+            call_data = None
+            is_callback = False
+            id = message.from_user.id 
+        else:
+            message = message.message
+            is_callback = True
+            id = message.chat.id
+    except Exception as e:
+        error_details = traceback.format_exc()
+        custom_message = f"An error occurred: {e}\nDetails:\n{error_details}"
+        print(f"{custom_message}")
+
     if subscription.subscription_offer(message):
-        session_manager.reset_user_session(message.chat.id)
-        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        session_manager.reset_user_session(message.chat.id, namespace="address")
+        session_manager.reset_user_session(message.chat.id, namespace="menu")
+        profile = ProfileModel.objects.get(tel_id=id)
         markup = send_menu(message, profile.tel_menu, "main_menu", profile.extra_button_menu)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 
@@ -402,32 +418,6 @@ def back_to_buyer(message):
         
         markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
-
-
-
-
-
-# @app.message_handler(func=lambda message: message.text.lower() == "test")
-# def send_buttons(message):
-    # chat_id = message.chat.id
-    # buttons = {
-        # f"{message.from_user.first_name} {message.from_user.last_name}": ("count", 0),
-        # "شماره تلفن": ("increase", 1),
-        # "ارز": ("decrease", 2),
-        # "بستن پنجره ❌": ("close", 3),
-    # }
-
-    # markup = SendMarkup(
-        # bot=app,
-        # chat_id=chat_id,
-        # text="🔹  نمایه شما :",
-        # buttons=buttons,
-        # button_layout=[1, 1, 1, 1]
-    # )
-
-    # markup.send()
-
-
 
 
 
@@ -696,11 +686,11 @@ def payment_order_CallBack(data):
         cart.invoice(data)
   
       
-@app.message_handler(func=lambda message: message.text == "آدرس پستی من")
-@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next', 'prev')))
+@app.message_handler(func=lambda message: message.text == "ﺁﺩﺮﺳ ﭗﺴﺘﯾ ﻢﻋﻦ" or (TelStatus.objects.filter(profile=ProfileModel.objects.get(tel_id=message.chat.id)).exists() and TelStatus.objects.get(profile=ProfileModel.objects.get(tel_id=message.chat.id)).status == "address_selection_street"))
+@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next', 'prev', 'country_', 'province_', 'city_')))
 def unified_address_handler(data):
     try:
-        # تشخیص نوع داده
+
         if isinstance(data, types.Message):
             message = data
             call_data = None
@@ -710,26 +700,33 @@ def unified_address_handler(data):
             call_data = data.data
             is_callback = True
             app.answer_callback_query(data.id)
-
         loc = SendLocation(app, message)
-
+        #print(session_manager.get_user_session(message.chat.id, namespace="address"))
         if not is_callback:
-            # پیام متنی: "آدرس پستی من"
+
             if message.text=="آدرس پستی من":
                 loc.show_addresses()
+            elif (TelStatus.objects.filter(profile=ProfileModel.objects.get(tel_id=message.chat.id)).exists() and TelStatus.objects.get(profile=ProfileModel.objects.get(tel_id=message.chat.id)).status == "address_selection_street"):
+                print("no")
+                loc.handle_picked_street(message)
+
             
+        elif call_data == "address_back":
+            loc.handle_previous(call)
+
+        elif call_data == "address_close":
+            session_manager.reset_user_session(data.message.from_user.id, namespace="address")
+            app.delete_message(data.message.chat.id, data.message.message_id)
+            data.message.text = "🏡"
+            home(data)
+
         elif call_data == "address":
-            # کلیک روی دکمه‌ی "آدرس‌ها"
             loc.show_addresses(data)
         elif call_data.startswith("show_address_"):
-            # نمایش یک آدرس خاص
             address_id = int(call_data.split("_")[-1])
             address = Address.objects.get(id=address_id)
             loc.show_single_address(data, address)
         elif call_data.startswith("address_"):
-            # حالت تستی یا عمومی‌تر
-            address_id = int(call_data.split("_")[-1])
-            address = Address.objects.get(id=address_id)
             loc.show_single_address(data, address)
         elif call_data.startswith('close_address'):
             loc.handle_close(data)
@@ -745,6 +742,12 @@ def unified_address_handler(data):
             loc.handle_next(data)
         elif call_data.startswith("prev"):
             loc.handle_prev(data)
+        elif call_data.startswith("country_"):
+            loc.handle_picked_country(data)
+        elif call_data.startswith("province_"):
+            loc.handle_picked_province(data)
+        elif call_data.startswith("city_"):
+            loc.handle_picked_city(data)
         else:
             app.send_message(message.chat.id, "دستور نامعتبر است.")
     except Address.DoesNotExist:
@@ -762,7 +765,7 @@ def unified_address_handler(data):
 def handle_back(message):
     if subscription.subscription_offer(message):
         try:
-            session = session_manager.get_user_session(message.chat.id)
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
             try:
                 previous_category_title = Category.objects.get(
                     title__iexact=session["current_menu"], status=True
@@ -824,7 +827,7 @@ def subcategory(message):
 @app.message_handler(func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
 def handle_ten_products(message):
     if subscription.subscription_offer(message):
-        session = session_manager.get_user_session(message.chat.id)
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
         current_menu = session["current_menu"]
 
         if message.text == "پر تخفیف ها":
@@ -1272,11 +1275,8 @@ def save_shipping_address(message, shipping_line1, shipping_line2, shipping_coun
         profile.shipping_province=shipping_province
         profile.shipping_zip=shipping_zip
         profile.shipping_home_phone=shipping_home_phone
-
-        # به‌روزرسانی پروفایل کاربر با آدرس جدید
-        #profile.address = shipping_address
         profile.save()
-        #profile.save()
+
 
         app.send_message(message.chat.id, "آدرس شما با موفقیت ثبت شد!")
     except Exception as e:

@@ -4,21 +4,30 @@ import redis
 import json
 
 class SessionManager:
-    def __init__(self, host='localhost', port=6379, db=0):
-        self.redis_client = redis.StrictRedis(host=host, port=port, db=db, decode_responses=True)
+    def __init__(self, redis_url="redis://localhost:6379/0"):
+        self.redis_client = redis.StrictRedis.from_url(redis_url)
 
-    def get_user_session(self, user_id):
-        """بازیابی اطلاعات جلسه کاربر از Redis"""
-        session_data = self.redis_client.get(f"user_session:{user_id}")
-        return json.loads(session_data) if session_data else {"current_menu": None}
+    def _make_key(self, user_id, namespace="default"):
+        return f"user_session:{namespace}:{user_id}"
 
-    def set_user_session(self, user_id, session_data):
-        """ذخیره اطلاعات جلسه کاربر در Redis"""
-        self.redis_client.set(f"user_session:{user_id}", json.dumps(session_data))
+    def get_user_session(self, user_id, namespace="default"):
+        key = self._make_key(user_id, namespace)
+        session_data = self.redis_client.get(key)
+        return json.loads(session_data) if session_data else {}
 
-    def reset_user_session(self, user_id):
-        """حذف جلسه کاربر از Redis"""
-        self.redis_client.delete(f"user_session:{user_id}")
+    def set_user_session(self, user_id, session_data, namespace="default"):
+        key = self._make_key(user_id, namespace)
+        self.redis_client.set(key, json.dumps(session_data))
+
+    def update_user_session(self, user_id, new_data, namespace="default"):
+        """Safely merge into existing session data."""
+        session = self.get_user_session(user_id, namespace)
+        session.update(new_data)
+        self.set_user_session(user_id, session, namespace)
+
+    def reset_user_session(self, user_id, namespace="default"):
+        key = self._make_key(user_id, namespace)
+        self.redis_client.delete(key)
 
 
 ############################################## SEND CART ##############################################

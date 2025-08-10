@@ -685,9 +685,9 @@ def payment_order_CallBack(data):
     if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
         cart.invoice(data)
   
-      
-@app.message_handler(func=lambda message: message.text == "ﺁﺩﺮﺳ ﭗﺴﺘﯾ ﻢﻋﻦ" or (TelStatus.objects.filter(profile=ProfileModel.objects.get(tel_id=message.chat.id)).exists() and TelStatus.objects.get(profile=ProfileModel.objects.get(tel_id=message.chat.id)).status == "address_selection_street"))
-@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next', 'prev', 'country_', 'province_', 'city_')))
+
+@app.message_handler(func=lambda message: message.text == "ﺁﺩﺮﺳ ﭗﺴﺘﯾ ﻢﻋﻦ" or (session_manager.get_user_session(message.chat.id, namespace="address") != {} and session_manager.get_user_session(message.chat.id, namespace="address")["state"] in ("address_selection_zipcode", "address_selection_street")))
+@app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next', 'prev', 'country_', 'province_', 'city_', '_back')))
 def unified_address_handler(data):
     try:
 
@@ -701,19 +701,36 @@ def unified_address_handler(data):
             is_callback = True
             app.answer_callback_query(data.id)
         loc = SendLocation(app, message)
-        #print(session_manager.get_user_session(message.chat.id, namespace="address"))
+        session = session_manager.get_user_session(message.chat.id, namespace="address")
+        print(session)
+        
+        if call_data == "_back":
+            state = [
+                "show_addresses",
+                "show_single_address",
+                "add_new_address",
+                "manual_add_address",
+                "address_selection_country",
+                "address_selection_province",
+                "address_selection_city",
+            ]
+
+            old_state = session["state"]
+            session["state"] = state[state.index(old_state)-1]
+            print(f"old state {old_state}")
+            print(f"new state {session['state']}")
+            session_manager.set_user_session(data.message.chat.id, session, namespace="address")
+
+
         if not is_callback:
 
             if message.text=="آدرس پستی من":
                 loc.show_addresses()
-            elif (TelStatus.objects.filter(profile=ProfileModel.objects.get(tel_id=message.chat.id)).exists() and TelStatus.objects.get(profile=ProfileModel.objects.get(tel_id=message.chat.id)).status == "address_selection_street"):
-                print("no")
+            elif session["state"] == "address_selection_street":
                 loc.handle_picked_street(message)
-
+            elif session["state"] == "address_selection_zipcode":
+                loc.handle_picked_zipcode(message)
             
-        elif call_data == "address_back":
-            loc.handle_previous(call)
-
         elif call_data == "address_close":
             session_manager.reset_user_session(data.message.from_user.id, namespace="address")
             app.delete_message(data.message.chat.id, data.message.message_id)
@@ -748,6 +765,20 @@ def unified_address_handler(data):
             loc.handle_picked_province(data)
         elif call_data.startswith("city_"):
             loc.handle_picked_city(data)
+        elif (session != {} and session["state"] == 'show_addresses'):
+            loc.show_addresses(data)
+        elif (session != {} and session["state"] == 'manual_add_address'):
+            print("manual_add_address")
+            loc.add_new_address(data)
+        elif (session != {} and session["state"] == 'address_selection_country'):
+            print("address_selection_country")
+            loc.manual_add_address(data)
+        elif (session != {} and session["state"] == 'address_selection_province'):
+            print("address_selection_province")
+            loc.handle_picked_country(data)
+        elif (session != {} and session["state"] == 'address_selection_city'):
+            print("address_selection_city")
+            loc.handle_picked_province(data)
         else:
             app.send_message(message.chat.id, "دستور نامعتبر است.")
     except Address.DoesNotExist:

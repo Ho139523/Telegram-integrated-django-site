@@ -1,13 +1,8 @@
-from aiogram import types
-from aiogram import Router
+# aiobot/handlers/start.py
+from aiogram import types, Router
 from aiogram.filters import Command
-from aiogram.utils.markdown import hbold
-import requests
-import traceback
-
 from accounts.models import ProfileModel
-# from ... import subscription  # فرض می‌کنیم ماژول subscription هم هست
-# from ...menu import send_menu  # تابعی که منو می‌سازه
+import traceback
 
 router = Router()
 
@@ -15,42 +10,31 @@ router = Router()
 async def start_handler(message: types.Message):
     try:
         tel_id = message.from_user.id
-        tel_username = message.from_user.username 
-        tel_first_name = message.from_user.first_name
-        tel_last_name = message.from_user.last_name
+        tel_username = message.from_user.username or ""
+        tel_first_name = message.from_user.first_name or ""
+        tel_last_name = message.from_user.last_name or ""
 
-        current_site = "https://intelium.ir"  # یا از settings بگیر
-        profile_exists = ProfileModel.objects.filter(tel_id=tel_id).exists()
-            
+        # بررسی وجود پروفایل به صورت async (Django 4.1+)
+        profile_exists = await ProfileModel.objects.filter(tel_id=tel_id).aexists()
+
         if profile_exists:
             print(f"User with tel_id {tel_id} exists.")
-        
+            # اگر خواستی پیام بدی:
+            # await message.answer(f"سلام دوباره {tel_first_name}!")
         else:
-            print(f"User with tel_id {tel_id} does not exist. Creating a new entry.")
-            
-        print(tel_last_name)
-    #     if response.status_code == 201:
-    #         await message.answer(
-    #             f"🏆 {tel_first_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n"
-    #         )
-    #     else:
-    #         await message.answer(
-    #             f"{tel_first_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید."
-    #         )
+            print(f"User with tel_id {tel_id} does not exist. Creating new profile.")
+            # ایجاد پروفایل به صورت async
+            await ProfileModel.objects.acreate(
+                tel_id=tel_id,
+                telegram=tel_username,
+                fname=tel_first_name,
+                lname=tel_last_name
+            )
+            # پیام خوش‌آمدگویی:
+            await message.answer(f"🏆 {tel_first_name} عزیز، ثبت نام شما با موفقیت انجام شد.")
 
-    #     profile, created = ProfileModel.objects.get_or_create(
-    #         tel_id=tel_id,
-    #         defaults={"telegram": tel_username, "fname": tel_first_name, "lname": tel_last_name}
-    #     )
-
-    #     if created:
-    #         print("پروفایل جدید ساخته شد")
-
-    #     # if subscription.subscription_offer(message):
-    #     #     main_menu = profile.tel_menu
-    #     #     extra_buttons = profile.extra_button_menu
-    #     #     markup = send_menu(message, main_menu, "main_menu", extra_buttons)
-    #     await message.answer("لطفاً یکی از گزینه‌ها را انتخاب کنید:")#, reply_markup=markup)
+        # پیام نهایی برای انتخاب گزینه‌ها
+        await message.reply("لطفاً یکی از گزینه‌ها را انتخاب کنید:")
 
     except Exception as e:
         error_details = traceback.format_exc()

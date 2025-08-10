@@ -5,7 +5,7 @@ import re
 from telebot import TeleBot
 from telebot.types import Message
 from telebot.storage import StateMemoryStorage
-from accounts.models import ProfileModel, Address
+from accounts.models import ProfileModel, Address, TelStatus
 from products.models import Product, Category, ProductImage, ProductAttribute, Store
 from payment.models import Transaction, Sale, Cart, CartItem
 import os
@@ -1674,83 +1674,63 @@ class SendCart:
             print(f"Error in remove_item: {e}\n{traceback.format_exc()}")
 
 
-    def invoice(self, update):
+    def invoice(self, call):
         try:
-            # تشخیص نوع ورودی
-            if isinstance(update, types.CallbackQuery):
-                chat_id = update.message.chat.id
-                message_id = update.message.message_id
-                is_callback = True
-            elif isinstance(update, types.Message):
-                chat_id = update.chat.id
-                message_id = update.message_id
-                is_callback = False
-            else:
-                print("❌ update type not supported in invoice()")
-                return
+            self.app.answer_callback_query(call.id, "✅ در حال پردازش پرداخت ...")
 
-            profile = ProfileModel.objects.get(tel_id=chat_id)
+            profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
             cart = Cart.objects.get(profile=profile)
             cart_items = CartItem.objects.filter(cart=cart)
 
+            # محاسبه مجموع قیمت کل
             total_price = sum(item.total_price() for item in cart_items)
 
-            invoice_text = " <b>فاکتور سفارش شما</b>\n\n"
+            # ساخت متن فاکتور
+            invoice_text = "🛒 <b>فاکتور سفارش شما</b>\n\n"
+
             for index, item in enumerate(cart_items, start=1):
                 invoice_text += f"{index}) {item.product.name}  -  "
                 invoice_text += f"{item.product.final_price:,.0f} x {item.quantity}\n\n"
-            invoice_text += f" <b>مجموع کل:</b> {total_price:,.0f} تومان"
+
+            invoice_text += f"💰 <b>مجموع کل:</b> {total_price:,.0f} تومان"
 
             address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
-            address_text = (f"{address.shipping_line1[:10]}, {address.shipping_city_name}, {address.shipping_province_name}, {address.shipping_country_name}"
+            address_text = (f"{address.shipping_line1[:10]}, {address.shipping_province}, {address.shipping_country}"
                             if address else ' --- ')
 
             phone_text = (f"{profile.Phone}" if profile.Phone else ' --- ')
 
-            payment_link = self.pay(update)
+            # دریافت لینک پرداخت از متد pay
+            payment_link = self.pay(call)  # این متد لینک پرداخت را برمی‌گرداند
 
+            # تعریف دکمه‌ها با ساختار جدید (دکمه پرداخت به صورت لینک)
             buttons = {
                 f"آدرس: {address_text}": {"callback_data": "address", "index": 1},
                 f"شماره تماس: {phone_text}": {"callback_data": "phone", "index": 2},
                 "پرداخت": {"url": payment_link, "index": 3} if address and profile.Phone else {"callback_data": "phone_address_required", "index": 3},
             }
 
+            # ارسال پیام متنی فاکتور
             self.markup = SendMarkup(
                 bot=self.app,
-                chat_id=chat_id,
+                chat_id=call.message.chat.id,
                 text=invoice_text,
                 buttons=buttons,
                 button_layout=[1, 1, 1],
                 handlers={
                     "address": lambda call: SendLocation(self.app, call.message).show_addresses(),
-                    "phone_address_required": lambda call: self.app.answer_callback_query(call.id, "⚠️ لطفاً ابتدا آدرس و شماره تماس را تکمیل کنید.")
+                    # "phone": ... (اگر نیاز دارید)
+                    "phone_address_required": lambda call: print("Callback received!") or self.app.answer_callback_query(call.id, "⚠️ لطفاً ابتدا آدرس و شماره تماس را تکمیل کنید.")
                 }
             )
-
-            self.markup.edit(message_id)
-
-            if is_callback:
-                self.app.answer_callback_query(update.id, "✅ در حال پردازش پرداخت ...")
+            self.markup.edit(call.message.message_id)
 
         except Exception as e:
             print(f"Error in invoice: {e}\n{traceback.format_exc()}")
-            self.app.send_message(chat_id, "❌ خطایی در نمایش فاکتور رخ داد.")
 
-    def pay(self, update):
+    def pay(self, call):
 
-        # تشخیص نوع ورودی
-        if isinstance(update, types.CallbackQuery):
-            chat_id = update.message.chat.id
-            message_id = update.message.message_id
-            is_callback = True
-        elif isinstance(update, types.Message):
-            chat_id = update.chat.id
-            message_id = update.message_id
-            is_callback = False
-        else:
-            print("❌ update type not supported in invoice()")
-            return
-
+        tel_id = call.message.chat.id
 
         # 2. ایجاد شناسه یکتا برای پرداخت
         payment_id = str(uuid.uuid4())
@@ -1758,7 +1738,7 @@ class SendCart:
         # 3. ذخیره داده در کش
         cache.set(
             f'payment_{payment_id}',
-            {'tel_id': chat_id},
+            {'tel_id': tel_id},
             timeout=settings.PAYMENT_LINK_TIMEOUT
         )
 
@@ -1908,10 +1888,7 @@ class SendLocation:
             buttons = {}
 
             for i, address in enumerate(self.user_addresses, start=1):
-                line1 = address.shipping_line1[:15] + '...' if len(address.shipping_line1)>15 else address.shipping_line1
-                btn_text = f"{i}. {line1}, {address.shipping_city_name}, {address.shipping_province_name}, {address.shipping_country_name}"
-                if len(btn_text)>40:
-                    btn_text = btn_text[:40] + "..."
+                btn_text = f"{i}. {address.shipping_line1[:20]}..."
                 if address == self.active_address:
                     btn_text += " ★"  # نشانگر آدرس فعال
                 buttons[btn_text] = (f"show_address_{address.id}", i)
@@ -1959,9 +1936,8 @@ class SendLocation:
         try:
             # متن پیام
             text = f"📍 آدرس انتخابی:\n\n{address.shipping_line1}\n"
-            text += f"🏙 شهر: {address.shipping_city_name}\n"
-            text += f"🏛 استان: {address.shipping_province_name}\n"
-            text += f"🌍 کشور: {address.shipping_country_name}\n"
+            text += f"🏙 شهر: {address.shipping_city}\n"
+            text += f"🏛 استان: {address.shipping_province}\n"
             text += f"📮 کد پستی: {address.shipping_zip_code or 'ثبت نشده'}"
 
             # دکمه‌های مدیریت
@@ -2010,7 +1986,6 @@ class SendLocation:
         """بستن پنجره آدرس‌ها"""
         try:
             self.app.delete_message(call.message.chat.id, call.message.message_id)
-            self.session_manager.reset_user_session(call.message.chat.id, namespace="address")
         except Exception as e:
             print(f"Error in handle_close: {e}")
 
@@ -2074,10 +2049,6 @@ class SendLocation:
                 "send_location_add_address": self.send_location_add_address,
             }
 
-            data = {"state": "add_new_address"}
-            self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
-
-
 
             # ایجاد کیبورد
             markup = SendMarkup(
@@ -2093,7 +2064,7 @@ class SendLocation:
 
         except Exception as e:
             error_details = traceback.format_exc()
-            print(f"Error in add_new_address: {e}\n{error_details}")
+            print(f"Error in show_addresses: {e}\n{error_details}")
             self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
 
     def manual_add_address(self, call):
@@ -2110,20 +2081,18 @@ class SendLocation:
             for code, country in items:
                 if country in buttons:
                     buttons[country]["callback_data"] = f"country_{code}"
-                    handlers[f'country_{code}'] = self.handle_picked_country
+                    handlers[f'country_{code}'] = lambda c: self.handle_picked_country(c)
 
-            buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
-            handlers["_back"] = self.handle_previous
+            buttons['🔙'] = {'callback_data': 'address_back', 'index': len(buttons)+1}
+            handlers["address_back"] = lambda c: self.handle_previous(c)
 
             buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
-            handlers["address_close"] = self.handle_close
+            handlers["address_close"] = lambda c: self.handle_close(c)
             layout.append(2)
 
 
-            data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-            data["state"] = "address_selection_country"
-            self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
-
+            data = {"state": "address_selection_country"}
+            self.session_manager.set_user_session(self.chat_id, data, namespace="address")
 
 
             # ایجاد کیبورد
@@ -2150,8 +2119,8 @@ class SendLocation:
 
     def handle_prev(self, call):
         try:
-            session = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-            print(self.session_manager.get_user_session(call.message.chat.id, namespace="address"))
+            session = self.session_manager.get_user_session(self.user_id, namespace="address")
+            #print(self.session_manager.get_user_session(self.user_id, namespace="address"))
 
             paginator = InlineKeyboardPaginator.load_from_redis(self.user_id)
             paginator.prev_page()
@@ -2163,7 +2132,7 @@ class SendLocation:
                 for code, country in items:
                     if country in buttons:
                         buttons[country]["callback_data"] = f"country_{code}"
-                        handlers[f'country_{code}'] = self.handle_picked_country
+                        handlers[f'country_{code}'] = lambda c: self.handle_picked_country(c)
 
             elif session['state'] == "address_selection_province":
                 text = "ساکن کدام استان هستید؟"
@@ -2172,7 +2141,7 @@ class SendLocation:
                 for code, province in items:
                     if province in buttons:
                         buttons[province]["callback_data"] = f"province_{code}"
-                        handlers[f'province_{code}'] = self.handle_picked_province
+                        handlers[f'province_{code}'] = lambda c: self.handle_picked_province(c)
 
             elif session['state'] == "address_selection_city":
                 text = "ساکن کدام شهر هستید؟"
@@ -2181,28 +2150,27 @@ class SendLocation:
                 for code, city in items:
                     if city in buttons:
                         buttons[city]["callback_data"] = f"city_{code}"
-                        handlers[f'city_{code}'] = self.handle_picked_city
+                        handlers[f'city_{code}'] = lambda c: self.handle_picked_city(c)
             
-            buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
-            handlers["_back"] = self.handle_previous
+            buttons['🔙'] = {'callback_data': 'address_back', 'index': len(buttons)+1}
+            handlers["address_back"] = lambda c: self.handle_previous(c)
 
             buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
-            handlers["address_close"] = self.handle_close
+            handlers["address_close"] = lambda c: self.handle_close(c)
             layout.append(2)
 
 
             SendMarkup(bot=self.app, chat_id=self.chat_id, text=text, buttons=buttons, button_layout=layout, handlers=handlers).edit(
                 call.message.message_id)
-            print(self.session_manager.get_user_session(call.message.chat.id, namespace="address"))
+            #data = self.session_manager.get_user_session(self.user_id, namespace="address")
 
         except Exception as e:
-            error_details = traceback.format_exc()
-            print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            print(f"Error in handle_prev: {e}")
+            self.app.send_message(self.chat_id, "خطایی در پیمایش رخ داد")
 
     def handle_next(self, call):
         try:
-            data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+            data = self.session_manager.get_user_session(self.user_id, namespace="address")
             paginator = InlineKeyboardPaginator.load_from_redis(self.user_id)
             paginator.next_page()
             handlers = {"prev": self.handle_prev, "next": self.handle_next}
@@ -2213,7 +2181,7 @@ class SendLocation:
                 for code, country in items:
                     if country in buttons:
                         buttons[country]["callback_data"] = f"country_{code}"
-                        handlers[f'country_{code}'] = self.handle_picked_country
+                        handlers[f'country_{code}'] = lambda c: self.handle_picked_country(c)
 
             elif data['state'] == "address_selection_province":
                 text = "ساکن کدام استان هستید؟"
@@ -2222,7 +2190,7 @@ class SendLocation:
                 for code, province in items:
                     if province in buttons:
                         buttons[province]["callback_data"] = f"province_{code}"
-                        handlers[f'province_{code}'] = self.handle_picked_province
+                        handlers[f'province_{code}'] = lambda c: self.handle_picked_province(c)
 
             elif data['state'] == "address_selection_city":
                 text = "ساکن کدام شهر هستید؟"
@@ -2231,39 +2199,34 @@ class SendLocation:
                 for code, city in items:
                     if city in buttons:
                         buttons[city]["callback_data"] = f"city_{code}"
-                        handlers[f'city_{code}'] = self.handle_picked_city
+                        handlers[f'city_{code}'] = lambda c: self.handle_picked_city(c)
             
-            buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
-            handlers["_back"] = self.handle_previous
+            buttons['🔙'] = {'callback_data': 'address_back', 'index': len(buttons)+1}
+            handlers["address_back"] = lambda c: self.handle_previous(c)
 
             buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
-            handlers["address_close"] = self.handle_close
+            handlers["address_close"] = lambda c: self.handle_close(c)
             layout.append(2)
 
 
             SendMarkup(bot=self.app, chat_id=call.message.chat.id, text=text, buttons=buttons, button_layout=layout, handlers=handlers).edit(call.message.message_id)
-            data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+            data = self.session_manager.get_user_session(self.user_id, namespace="address")
+            print(type(data))
             print(data)
 
         except Exception as e:
-            error_details = traceback.format_exc()
-            print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            print(f"Error in handle_next: {e}")
+            self.app.send_message(self.chat_id, "خطایی در پیمایش رخ داد")
 
     def handle_picked_country(self, call):
         import math
         per_page = 15
         row_size = 3
-        if call.data == '_back':
-            session = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-            country = session['selected_country']
-        else:
-            country = call.data.split("_")[-1]
-        data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-        print(self.session_manager.get_user_session(call.message.chat.id, namespace="address"))
-        data["state"] = "address_selection_province"
-        data["selected_country"] = f"{country}"
-        self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
+        country = call.data.split("_")[-1]
+        #print(self.session_manager.get_user_session(self.user_id, namespace="address"))
+        self.session_manager.get_user_session(self.user_id, namespace="address")["state"] = "address_selection_province"
+        self.session_manager.get_user_session(self.user_id, namespace="address")["selected_country"] = f"{country}"
+        self.session_manager.set_user_session(self.chat_id, self.session_manager.get_user_session(self.user_id, namespace="address"), namespace="address")
 
         try:
 
@@ -2281,7 +2244,7 @@ class SendLocation:
                 for code, province in items:
                     if province in buttons:
                         buttons[province]["callback_data"] = f"province_{code}"
-                    handlers[f'province_{code}'] = self.handle_picked_province
+                    handlers[f'province_{code}'] = lambda c: self.handle_picked_province(c)
 
 
             else:
@@ -2294,14 +2257,6 @@ class SendLocation:
                 if len(items)%row_size:
                     for i in range(len(items)%row_size):
                         layout.append(len(items)%row_size)
-
-
-            buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
-            handlers["_back"] = self.handle_previous
-
-            buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
-            handlers["address_close"] = self.handle_close
-            layout.append(2)
 
 
             markup = SendMarkup(
@@ -2317,9 +2272,7 @@ class SendLocation:
             markup.edit(call.message.message_id)
 
         except Exception as e:
-            error_details = traceback.format_exc()
-            print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            print(e)
   
 
 
@@ -2327,12 +2280,12 @@ class SendLocation:
         per_page = 15
         row_size = 3
         province = call.data.split("_")[-1]
-        data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+        data = self.session_manager.get_user_session(self.user_id, namespace="address")
 
         data["state"] = "address_selection_city"
         data["selected_province"] = f"{province}"
 
-        self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
+        self.session_manager.set_user_session(self.chat_id, data, namespace="address")
 
 
         try:
@@ -2351,7 +2304,7 @@ class SendLocation:
                 for code, city in items:
                     if city in buttons:
                         buttons[city]["callback_data"] = f"city_{code}"
-                    handlers[f'city_{code}'] = self.handle_picked_city
+                    handlers[f'city_{code}'] = lambda c: self.handle_picked_city(c)
 
 
             else:
@@ -2359,18 +2312,11 @@ class SendLocation:
                 for code, city in items:
                     counter +=1
                     buttons[f"{city}"] = {"callback_data": f"city_{code}", "index": counter}
-                    handlers[f'city_{code}'] = self.handle_picked_city
+                    handlers[f'city_{code}'] = lambda c: self.handle_picked_city(c)
                 layout = [row_size for i in range(math.floor(len(items)/row_size))]
                 if len(items)%row_size:
                     for i in range(len(items)%row_size):
                         layout.append(len(items)%row_size)
-
-            buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
-            handlers["_back"] = self.handle_previous
-
-            buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
-            handlers["address_close"] = self.handle_close
-            layout.append(2)
 
 
             markup = SendMarkup(
@@ -2385,24 +2331,22 @@ class SendLocation:
 
 
             markup.edit(call.message.message_id)
-            data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+            data = self.session_manager.get_user_session(self.user_id, namespace="address")
             print(data)
 
         except Exception as e:
-            error_details = traceback.format_exc()
-            print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            print(e)
 
 
     def handle_picked_city(self, call):
         city = call.data.split("_")[-1]
-        data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+        data = self.session_manager.get_user_session(self.user_id, namespace="address")
 
         data["state"] = "address_selection_street"
         data["selected_city"] = f"{city}"
         data["old_message"] = call.message.message_id
 
-        self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
+        self.session_manager.set_user_session(self.chat_id, data, namespace="address")
 
 
         text = "جزییات آدرس خود را وارد کنید. (خیابان، کوچه، پلاک)"
@@ -2418,72 +2362,36 @@ class SendLocation:
 
 
         markup.edit(call.message.message_id) 
-        data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+        status, created = TelStatus.objects.get_or_create(profile=self.profile)
+        status.status = "address_selection_street"
+        status.save()
+        data = self.session_manager.get_user_session(self.user_id, namespace="address")
         print(data)
 
         
 
     def handle_picked_street(self, message):
-        data = self.session_manager.get_user_session(message.chat.id, namespace="address")
-        print(data)
+        status, created = TelStatus.objects.get_or_create(profile=self.profile)
+        status.status = None
+        status.save()
 
+        
+        data = self.session_manager.get_user_session(self.user_id, namespace="address")
+        print(data)
         data["state"] = "address_selection_zipcode"
         data["selected_address_line1"] = f"{message.text}"
 
-        self.session_manager.set_user_session(message.chat.id, data, namespace="address")
+        self.session_manager.set_user_session(self.chat_id, data, namespace="address")
 
         text = "لطفا کد پستی آدرس خود را وارد کنید"
         
-        self.app.delete_message(message.chat.id, message.message_id)
-        self.app.delete_message(message.chat.id, data["old_message"])
+        self.app.delete_message(self.chat_id, message.message_id)
+        self.app.delete_message(self.chat_id, data["old_message"])
 
-        message = self.app.send_message(self.chat_id, text)
-        self.message = message
-        self.session_manager.set_user_session(message.chat.id, data, namespace="address")
+        self.app.send_message(self.chat_id, text)
 
 
-    def handle_picked_zipcode(self, message):
-        try:
-            data = self.session_manager.get_user_session(message.chat.id, namespace="address")
-            print(data)
-            data["state"] = "address_selection_zipcode"
-            data["selected_zipcode"] = f"{message.text}"
-
-            self.session_manager.set_user_session(message.chat.id, data, namespace="address")
-    	
-            data = self.session_manager.get_user_session(message.chat.id, namespace="address")
-
-            address = Address.objects.create(profile=self.profile, shipping_line1=data["selected_address_line1"], shipping_country=data["selected_country"], shipping_province=data["selected_province"], shipping_city=data["selected_city"], shipping_zip_code=data["selected_zipcode"], shipping_is_active=True) 
-            address.save()
-
-
-            # text = "آدرس شما با موفقیت ثبت شد."
-            
-            # self.app.delete_message(message.chat.id, message.message_id)
-
-            # markup = SendMarkup(
-            # bot=self.app,
-            # chat_id=self.chat_id,
-            # text=text,
-            # buttons=None,
-            # button_layout=None,
-            # handlers=None
-            # )
-            # markup.edit(data["old_message"])
-
-            self.app.delete_message(message.chat.id, message.message_id)
-            self.app.delete_message(message.chat.id, data["old_message"])
-            SendCart(self.app, self.message).invoice(self.message)
-            self.session_manager.reset_user_session(message.chat.id, namespace="address")
-
-        except Exception as e:
-            error_details = traceback.format_exc()
-            print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
-
-
-    def handle_previous(self, call):
-        pass
+        TelStatus.objects.get_or_create(profile=self.profile, status="address_selection_zipcode")
 
 
     def send_location_add_address(self):

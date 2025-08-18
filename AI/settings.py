@@ -13,10 +13,13 @@ SECRET_KEY = config('SECRET_KEY')
  
 # SECURITY WARNING: don't run with debug turned on in production! 
 DEBUG = True 
- 
+
+BASE_URL = config("BASE_URL")
+
+
 # ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=[], cast=lambda v: [s.strip() for s in v.split(',')]) 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']#config('ALLOWED_HOSTS', cast=Csv())
-CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'https://*.serveo.net', 'https://*.loca.lt', 'https://*.trycloudflare.com', 'https://intelleum.ir']
+CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'https://*.serveo.net', 'https://*.loca.lt', 'https://*.trycloudflare.com', BASE_URL]
  
  
 LOGIN_REDIRECT_URL='accounts:profile' 
@@ -54,6 +57,7 @@ INSTALLED_APPS = [
     "mainpage",
     "products",
     "telbot",
+    "aiobot",
     "payment",
 ]
 
@@ -307,20 +311,21 @@ SESSION_COOKIE_SECURE = True
 
 ZARINPAL = {
     'MERCHANT_ID': config('MECHANT_ID'),  # مرچنت کد شما
-    'CALLBACK_URL': 'https://intelleum.ir/verify/',  # آدرس بازگشت
+    'CALLBACK_URL': BASE_URL + '/verify/',  # آدرس بازگشت
     'SANDBOX': True,  # برای محیط تست (False برای محیط واقعی)
 }
 
 
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
-CSRF_TRUSTED_ORIGINS = ['https://intelleum.ir']
+CSRF_TRUSTED_ORIGINS = [BASE_URL]
 
 
 # تنظیم کش
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
 
@@ -329,3 +334,10 @@ PAYMENT_LINK_TIMEOUT = 3600  # 1 ساعت
 
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = ["127.0.0.1"]
+
+##################################### AIOGRAM Security
+
+BOT_SECRET_KEY = config("BOT_SECRET_KEY", default="please-change-me-in-prod")
+BOT_SIGNATURE_EXPIRES = config("BOT_SIGNATURE_EXPIRES", cast=int, default=60)
+BOT_NONCE_EXPIRES = config("BOT_NONCE_EXPIRES", cast=int, default=300)
+

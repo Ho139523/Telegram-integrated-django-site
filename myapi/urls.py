@@ -19,3 +19,13 @@ urlpatterns = [
     # path('check-registration/', CheckTelegramUserRegistrationView.as_view())
 
 ]
+
+# aiobot
+from .views import BotCreateProfileView, ProfileURDView
+
+
+urlpatterns += [
+    path("bot/create-profile/", BotCreateProfileView.as_view(), name="bot-create-profile"),
+    path("bot/urd-profile/<int:tel_id>/", ProfileURDView.as_view(), name="bot-urd-profile"),
+
+]

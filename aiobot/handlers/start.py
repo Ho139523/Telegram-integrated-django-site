@@ -1,41 +1,71 @@
-# aiobot/handlers/start.py
-from aiogram import types, Router
+# start.py
+from aiogram import Router, types
 from aiogram.filters import Command
-from accounts.models import ProfileModel
 import traceback
+from aiobot.fc.functions import send_create_profile, require_subscription
+from aiobot.fc.classes import MenuSender
+from aiobot.fc.bot_instance import bot
+from accounts.models import ProfileModel
+import httpx
+
+
 
 router = Router()
+menu_sender = MenuSender(bot)
+BASE_URL = "http://127.0.0.1:8000"
+
+def safe_json(resp: httpx.Response) -> dict:
+    """تبدیل پاسخ به JSON با مدیریت خطا"""
+    try:
+        return resp.json()
+    except Exception:
+        return {"detail": resp.text or "Non-JSON response"}
 
 @router.message(Command("start"))
+@require_subscription(bot)
 async def start_handler(message: types.Message):
+    tel_id = int(message.from_user.id)
+    tel_username = message.from_user.username or ""
+    tel_first_name = message.from_user.first_name or ""
+    tel_last_name = message.from_user.last_name or ""
+
     try:
-        tel_id = message.from_user.id
-        tel_username = message.from_user.username or ""
-        tel_first_name = message.from_user.first_name or ""
-        tel_last_name = message.from_user.last_name or ""
-
-        # بررسی وجود پروفایل به صورت async (Django 4.1+)
-        profile_exists = await ProfileModel.objects.filter(tel_id=tel_id).aexists()
-
-        if profile_exists:
-            print(f"User with tel_id {tel_id} exists.")
-            # اگر خواستی پیام بدی:
-            # await message.answer(f"سلام دوباره {tel_first_name}!")
-        else:
-            print(f"User with tel_id {tel_id} does not exist. Creating new profile.")
-            # ایجاد پروفایل به صورت async
-            await ProfileModel.objects.acreate(
-                tel_id=tel_id,
-                telegram=tel_username,
-                fname=tel_first_name,
-                lname=tel_last_name
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
+            # ایجاد یا بررسی پروفایل
+            create_resp = await send_create_profile(
+                tel_id, tel_username, tel_first_name, tel_last_name
             )
-            # پیام خوش‌آمدگویی:
-            await message.answer(f"🏆 {tel_first_name} عزیز، ثبت نام شما با موفقیت انجام شد.")
+            create_data = safe_json(create_resp)
+            status_code = create_resp.status_code
 
-        # پیام نهایی برای انتخاب گزینه‌ها
-        await message.reply("لطفاً یکی از گزینه‌ها را انتخاب کنید:")
+            # دریافت پروفایل کاربر
+            profile_resp = await client.get(f"/api/bot/urd-profile/{tel_id}/")
+            profile = safe_json(profile_resp)
+
+        # ساخت متن و ارسال منو بر اساس وضعیت ثبت‌نام
+        if status_code == 200 and create_data.get("created") is True:
+            text = f"🎉 {tel_first_name} عزیز، ثبت‌نامت با موفقیت انجام شد."
+        elif status_code == 409:
+            text = f"{tel_first_name} عزیز، شما قبلاً در ربات ثبت‌نام کرده‌اید."
+        elif status_code == 400:
+            return await message.answer(
+                f"⚠️ داده‌های ارسالی نامعتبر است: {create_data.get('details') or create_data.get('detail')}"
+            )
+        else:
+            return await message.answer(
+                f"⚠️ خطای سرور ({status_code}): {create_data.get('detail', 'مشکلی پیش آمد')}"
+            )
+
+        # ارسال منو به کاربر
+        await menu_sender.send_menu(
+            user_id=message.chat.id,
+            text=text,
+            options=profile.get('tel_menu', []),
+            extra_buttons=["⚙️ تنظیمات"],
+            current_menu="main_menu",
+            keyboard_type="reply"
+        )
 
     except Exception as e:
         error_details = traceback.format_exc()
-        await message.answer(f"⚠️ خطا: {e}\n{error_details}")
+        await message.answer(f"⚠️ خطا در اجرای دستور /start:\n{e}\n{error_details}")

@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.client.default import DefaultBotProperties
 
-from utils.variables.TOKEN import TOKEN  # مسیر رو با پروژه خودت تنظیم کن
+from utils.variables.TOKEN import TOKEN
 from .handlers import register_all_handlers
 
 # اتصال به Redis

@@ -1695,11 +1695,11 @@ class SendCart:
 
             total_price = sum(item.total_price() for item in cart_items)
 
-            invoice_text = " <b>فاکتور سفارش شما</b>\n\n"
+            invoice_text = "📜 <b>فاکتور سفارش شما</b>\n\n"
             for index, item in enumerate(cart_items, start=1):
                 invoice_text += f"{index}) {item.product.name}  -  "
                 invoice_text += f"{item.product.final_price:,.0f} x {item.quantity}\n\n"
-            invoice_text += f" <b>مجموع کل:</b> {total_price:,.0f} تومان"
+            invoice_text += f"🧮 <b>مجموع کل:</b> {total_price:,.0f} تومان"
 
             address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
             address_text = (f"{address.shipping_line1[:10]}, {address.shipping_city_name}, {address.shipping_province_name}, {address.shipping_country_name}"
@@ -1727,7 +1727,10 @@ class SendCart:
                 }
             )
 
-            self.markup.edit(message_id)
+            if isinstance(update, types.CallbackQuery):
+                self.markup.edit(message_id)
+            elif isinstance(update, types.Message):
+                self.markup.send()
 
             if is_callback:
                 self.app.answer_callback_query(update.id, "✅ در حال پردازش پرداخت ...")
@@ -1810,68 +1813,6 @@ class SendCart:
         # 	)
 
 ############################  SEND LOCATION  ############################
-
-# class SendLocation:
-# def __init__(self, app, message):
-# try:
-# self.app = app
-# self.chat_id = message.chat.id
-# self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
-# self.user_address = Address.objects.get(profile=self.profile, shipping_is_active=True)
-# self.user_addresses = Address.objects.filter(profile=self.profile)
-# try:
-# self.cart = Cart.objects.get(profile=self.profile)
-# except (Cart.DoesNotExist, Cart.MultipleObjectsReturned):
-# self.cart = None
-# except Exception as e:
-# error_details = traceback.format_exc()
-# custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
-# print(custom_message)
-# app.send_message(message.chat.id, f"{custom_message}")
-
-# def show_current_address(self, call):
-# try:
-# from telebot import types
-
-# # متن آدرس
-# text = f"📍 آدرس فعلی شما:\n{self.user_address.shipping_line1}, {self.user_address.shipping_city}, {self.user_address.shipping_province}, {self.user_address.shipping_country}"
-
-# # ساخت دکمه‌های اینلاین
-# buttons = {
-# "✏️ ویرایش آدرس": ("edit_address", 1),
-# "🔙 بازگشت": ("back_to_cart", 2)
-# }
-
-# # ارسال/ویرایش پیام
-# markup = SendMarkup(
-# bot=self.app,
-# chat_id=call.message.chat.id,
-# text=text,
-# buttons=buttons,
-# button_layout=[1, 1],
-# handlers={
-# "edit_address": self.handle_edit_address,
-# "back_to_cart": self.handle_back_to_cart
-# }
-# )
-
-# # ویرایش پیام قبلی به جای ارسال پیام جدید
-# markup.edit(call.message.message_id)
-
-# except Exception as e:
-# error_details = traceback.format_exc()
-# custom_message = f"Error in show_current_address: {e}\nDetails:\n{error_details}"
-# print(custom_message)
-# self.app.send_message(call.message.chat.id, f"{custom_message}")
-
-# def handle_edit_address(self, call):
-# # کد مربوط به ویرایش آدرس
-# pass
-
-# def handle_back_to_cart(self, call):
-# # کد مربوط به بازگشت به سبد خرید
-# pass
-
 
 class SendLocation:
     def __init__(self, app, message_or_call):
@@ -2425,7 +2366,6 @@ class SendLocation:
 
     def handle_picked_street(self, message):
         data = self.session_manager.get_user_session(message.chat.id, namespace="address")
-        print(data)
 
         data["state"] = "address_selection_zipcode"
         data["selected_address_line1"] = f"{message.text}"
@@ -2438,14 +2378,15 @@ class SendLocation:
         self.app.delete_message(message.chat.id, data["old_message"])
 
         message = self.app.send_message(self.chat_id, text)
-        self.message = message
+
+        data["old_message"] = message.message_id
+
         self.session_manager.set_user_session(message.chat.id, data, namespace="address")
 
 
     def handle_picked_zipcode(self, message):
         try:
             data = self.session_manager.get_user_session(message.chat.id, namespace="address")
-            print(data)
             data["state"] = "address_selection_zipcode"
             data["selected_zipcode"] = f"{message.text}"
 
@@ -2455,21 +2396,6 @@ class SendLocation:
 
             address = Address.objects.create(profile=self.profile, shipping_line1=data["selected_address_line1"], shipping_country=data["selected_country"], shipping_province=data["selected_province"], shipping_city=data["selected_city"], shipping_zip_code=data["selected_zipcode"], shipping_is_active=True) 
             address.save()
-
-
-            # text = "آدرس شما با موفقیت ثبت شد."
-            
-            # self.app.delete_message(message.chat.id, message.message_id)
-
-            # markup = SendMarkup(
-            # bot=self.app,
-            # chat_id=self.chat_id,
-            # text=text,
-            # buttons=None,
-            # button_layout=None,
-            # handlers=None
-            # )
-            # markup.edit(data["old_message"])
 
             self.app.delete_message(message.chat.id, message.message_id)
             self.app.delete_message(message.chat.id, data["old_message"])
@@ -2488,3 +2414,78 @@ class SendLocation:
 
     def send_location_add_address(self):
         pass
+
+
+class SendPhone:
+    def __init__(self, app, message_or_call):
+        """
+        مقداردهی اولیه کلاس
+        :param app: شیء بات
+        :param message_or_call: می‌تواند Message یا CallbackQuery باشد
+        """
+        try:
+            self.app = app
+            self.session_manager = SessionManager()
+            self.user_id = (message_or_call.from_user.id if hasattr(message_or_call, 'from_user') else message_or_call.message.from_user.id)
+            self.chat_id = message_or_call.chat.id if hasattr(message_or_call, 'chat') else message_or_call.message.chat.id
+            self.message = message_or_call if isinstance(message_or_call, types.Message) else message_or_call.message
+            self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
+            self.user_phone = self.profile.Phone
+        except Exception as e:
+            error_details = traceback.format_exc()
+            custom_message = f"Error in SendPhone init: {e}\nDetails:\n{error_details}"
+            print(custom_message)
+            self.app.send_message(self.chat_id, "خطایی در دریافت اطلاعات تماس رخ داد")
+
+    def take_phone(self, call):
+        try:
+            text = "لطفا شماره تماس خود را وارد کنید. \n\n"
+            text += "مثال: 09123456789"
+
+            markup = SendMarkup(
+                bot=self.app,
+                chat_id=self.chat_id,
+                text=text,
+                buttons=None,
+                button_layout=None,
+                handlers=None
+            )
+
+            data = {"state": "take_phone", "old_message": call.message.message_id}
+            self.session_manager.set_user_session(call.message.chat.id, data, namespace="phone")
+
+
+
+            # ارسال یا ویرایش پیام
+            if call:
+                markup.edit(call.message.message_id)  # ویرایش پیام موجود
+            else:
+                markup.send()  # ارسال پیام جدید
+
+
+        except Exception as e:
+            error_details = traceback.format_exc()
+            print(f"Error in show_addresses: {e}\n{error_details}")
+            self.app.send_message(self.chat_id, "خطایی در گرفتن شماره تماس تابع اول‌ها رخ داد")
+
+
+    def really_take_phone(self, message):
+        try:
+            print(message.text)
+            data = self.session_manager.get_user_session(message.chat.id, namespace="phone")
+            self.app.delete_message(self.chat_id, message.message_id)
+            self.app.delete_message(self.chat_id, data["old_message"])
+
+            num = int(message.text)
+            self.profile.Phone = num
+            self.profile.save()
+            SendCart(self.app, self.message).invoice(self.message)
+            self.session_manager.reset_user_session(message.chat.id, namespace="phone")
+
+
+        except Exception as e:
+            error_details = traceback.format_exc()
+            print(f"Error in show_addresses: {e}\n{error_details}")
+            self.app.send_message(self.chat_id, "خطایی در گرفتن شماره تماس تابع دوم‌ها رخ داد")
+
+

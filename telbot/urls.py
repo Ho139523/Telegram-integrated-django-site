@@ -1,6 +1,6 @@
 from django.urls import path
-from aiobot.webhook import TelegramBotWebhookView
-# from telbot.views import TelegramBotWebhookView
+#from aiobot.webhook import TelegramBotWebhookView
+from telbot.views import TelegramBotWebhookView
 from myapi.views import CheckTelegramUserRegistrationView
 
 app_name = 'telbot'

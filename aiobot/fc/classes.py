@@ -1,3 +1,5 @@
+# ================================================== SEND MENU ==================================================
+
 from aiogram import types
 import json
 import redis
@@ -78,3 +80,91 @@ class MenuSender:
         # ارسال پیام
         await self.bot.send_message(user_id, text, reply_markup=markup)
 
+
+
+# ================================================== CHECK SUBSCRIPTION ==================================================
+
+
+import logging
+from aiogram import types, Router
+from aiogram.filters import BaseFilter
+from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
+from telbot.menu_sender import send_menu
+
+logger = logging.getLogger(__name__)
+
+class SubscriptionMixin:
+    """Mixin برای بررسی عضویت کاربر در کانال‌ها و گروه‌ها"""
+    
+    my_channels_with_atsign = my_channels_with_atsign
+    my_channels_without_atsign = my_channels_without_atsign
+    current_site = 'https://intelleum.ir'
+
+    async def check_subscription(self, user_id: int, channels=None) -> bool:
+        """✅ بررسی عضویت کاربر در کانال‌ها"""
+        if channels is None:
+            channels = self.my_channels_with_atsign
+        
+        for channel in channels:
+            try:
+                member = await self.bot.get_chat_member(chat_id=channel, user_id=user_id)
+                if member.status in ["kicked", "left"]:
+                    return False
+            except Exception as e:
+                logger.error(f" خطا در بررسی عضویت {user_id} در {channel}: {e}")
+                return False
+        return True
+
+    async def subscription_offer(self, message: types.Message) -> bool:
+        """❌ نمایش دکمه‌های عضویت اگر کاربر عضو نیست"""
+        channel_markup = types.InlineKeyboardMarkup()
+        check_button = types.InlineKeyboardButton(text='✅ عضو شدم', callback_data='check_subscription2')
+        channel_subscription_button = types.InlineKeyboardButton(
+            text=' در کانال ما عضو شوید',
+            url=f"https://t.me/{self.my_channels_without_atsign[0]}"
+        )
+        group_subscription_button = types.InlineKeyboardButton(
+            text=' در گروه ما عضو شوید',
+            url=f"https://t.me/{self.my_channels_without_atsign[1]}"
+        )
+
+        channel_markup.add(channel_subscription_button, group_subscription_button)
+        channel_markup.add(check_button)
+
+        if not await self.check_subscription(user_id=message.from_user.id):
+            await message.answer(
+                "❌ برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.",
+                reply_markup=channel_markup
+            )
+            return False
+        return True
+
+    async def handle_check_subscription(self, call: types.CallbackQuery):
+        """✅ هندلر برای دکمه 'عضو شدم'"""
+        user_id = call.from_user.id
+        chat_id = call.message.chat.id
+
+        if await self.check_subscription(user_id):
+            try:
+                await call.answer(" در حال بررسی عضویت شما...", show_alert=False)
+                await call.message.edit_text(" عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.")
+
+                profile = ProfileModel.objects.get(tel_id=user_id)
+                markup = send_menu(call.message, profile.tel_menu, "main_menu", profile.extra_button_menu)
+
+                await call.message.answer("لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+            except Exception as e:
+                await call.message.answer(f"خطا در ارسال منو: {e}")
+        else:
+            await call.answer("❌ شما هنوز در کانال عضو نشده‌اید.", show_alert=True)
+
+    def register_subscription_handler(self, router: Router):
+        """ثبت هندلر دکمه عضویت"""
+        router.callback_query.register(self.handle_check_subscription, lambda c: c.data == "check_subscription2")
+
+
+def require_subscription(func):
+    async def wrapper(self, message: types.Message, *args, **kwargs):
+        if await self.subscription_offer(message):
+            return await func(self, message, *args, **kwargs)
+    return wrapper

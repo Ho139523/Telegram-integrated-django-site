@@ -293,8 +293,12 @@ class Store(models.Model):
     city = models.CharField(max_length=50, verbose_name='City')
     province = models.CharField(max_length=50, verbose_name='Province')
     logo = models.ImageField(upload_to="store_logos/", blank=True, null=True, verbose_name="Store Logo")
+    tel_group = models.CharField(max_length=20, null=True, blank=True, verbose_name="Telegram group ID")
+    tel_channel = models.CharField(max_length=20, null=True, blank=True, verbose_name="Telegram channel ID")
+
 
     def __str__(self):
+
         return self.name
 
     class Meta:

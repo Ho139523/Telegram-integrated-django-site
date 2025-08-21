@@ -1,11 +1,9 @@
-# start.py
 from aiogram import Router, types
 from aiogram.filters import Command
 import traceback
 from aiobot.fc.functions import send_create_profile, require_subscription
 from aiobot.fc.classes import MenuSender
 from aiobot.fc.bot_instance import bot
-from accounts.models import ProfileModel
 import httpx
 
 
@@ -23,7 +21,7 @@ def safe_json(resp: httpx.Response) -> dict:
 
 @router.message(Command("start"))
 @require_subscription(bot)
-async def start_handler(message: types.Message):
+async def start_handler(message: types.Message, **kwargs):
     tel_id = int(message.from_user.id)
     tel_username = message.from_user.username or ""
     tel_first_name = message.from_user.first_name or ""
@@ -61,7 +59,7 @@ async def start_handler(message: types.Message):
             user_id=message.chat.id,
             text=text,
             options=profile.get('tel_menu', []),
-            extra_buttons=["⚙️ تنظیمات"],
+            extra_buttons=profile.get('extra_button_menu', []),
             current_menu="main_menu",
             keyboard_type="reply"
         )

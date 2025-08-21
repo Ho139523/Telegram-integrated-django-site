@@ -299,7 +299,9 @@ def start(message):
             app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
         
     except Exception as e:
-        app.send_message(message.chat.id, f"the error is: {e}")
+        error_details = traceback.format_exc()
+        custom_message = f"An error occurred: {e}\nDetails:\n{error_details}"
+        app.send_message(message.chat.id, f"{custom_message}")
 
 
 
@@ -684,7 +686,39 @@ def payment_order_CallBack(data):
     cart = SendCart(app, data.message)
     if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
         cart.invoice(data)
-  
+ 
+
+
+@app.message_handler(func=lambda message: (session_manager.get_user_session(message.chat.id, namespace="phone") != {} and session_manager.get_user_session(message.chat.id, namespace="phone")["state"] in ("take_phone", )))
+@app.callback_query_handler(func=lambda call: call.data == "phone")
+def phone_handler(data):
+    try:
+
+        if isinstance(data, types.Message):
+            message = data
+            call_data = None
+            is_callback = False
+        else:
+            message = data.message
+            call_data = data.data
+            is_callback = True
+            app.answer_callback_query(data.id)
+        phone = SendPhone(app, message)
+
+        if not is_callback:
+
+            if session_manager.get_user_session(message.chat.id, namespace="phone")["state"] == "take_phone":
+                phone.really_take_phone(message)
+        else:
+            phone.take_phone(data)
+
+    except Exception as e:
+        print(f"Error in phone_handler: {e}\n{traceback.format_exc()}")
+        chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
+        app.send_message(chat_id, f"خطایی در گرفتن شماره تماس رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
+
+
+ 
 
 @app.message_handler(func=lambda message: message.text == "ﺁﺩﺮﺳ ﭗﺴﺘﯾ ﻢﻋﻦ" or (session_manager.get_user_session(message.chat.id, namespace="address") != {} and session_manager.get_user_session(message.chat.id, namespace="address")["state"] in ("address_selection_zipcode", "address_selection_street")))
 @app.callback_query_handler(func=lambda call: call.data.startswith(("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next', 'prev', 'country_', 'province_', 'city_', '_back')))

@@ -414,7 +414,7 @@ class SubscriptionClass:
         self.bot = bot
         self.my_channels_with_atsign = my_channels_with_atsign
         self.my_channels_without_atsign = my_channels_without_atsign
-        self.current_site = 'https://intelleum.ir'
+        self.current_site = 'https://intelleum.ir:8443'
 
     def handle_check_subscription(self, call: types.CallbackQuery):
         """✅ بررسی عضویت هنگام کلیک روی دکمه 'عضو شدم'"""
@@ -1123,8 +1123,8 @@ class ProductBot:
                 try:
                     product = Product.objects.get(code=code)
                     # ارسال پیام محصول به کاربر
-                    producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir')
-                    producthandler.send_product_message(chat_id=message.chat.id)#buttons=False)
+                    producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir:8443')
+                    producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
                     # ذخیره اطلاعات محصول در Redis
                     state_manager = RedisStateManager(message.chat.id)
@@ -1207,12 +1207,12 @@ class ProductBot:
 def send_payment_link(app, context):
     chat_id = update.message.chat_id
     email = "example@test.com"  # ایمیل کاربر
-    mobile = "09123456789"  # شماره موبایل کاربر
+    mobile = ProfileModel.objects.get(tel_id=chat_id).Phone  # شماره موبایل کاربر
     amount = 100000  # مبلغ پرداخت
     description = "توضیحات کالا"
 
     # ساخت لینک پرداخت
-    payment_url = f"http://intelleum.ir/buy/{amount}/{description}/?email={email}&mobile={mobile}"
+    payment_url = f"http://intelleum.ir:8443/buy/{amount}/{description}/?email={email}&mobile={mobile}"
 
     return payment_url
 
@@ -1258,7 +1258,7 @@ class ProductHandler:
             f"{self.format_price()}\n"
         )
 
-    def send_product_message(self, chat_id):
+    def send_product_message(self, chat_id, buttons=True):
         """ارسال پیام و عکس محصول"""
         try:
             photos = [
@@ -1271,7 +1271,8 @@ class ProductHandler:
                 photos = photos[:10]  # محدود کردن به 10 عکس
 
             self.app.send_media_group(chat_id, media=photos)
-            self.send_buttons(chat_id)
+            if buttons:
+                self.send_buttons(chat_id)
         except Exception as e:
             error_message = traceback.format_exc()  # دریافت Traceback کامل
             print(f"Error in handle_buttons: {e}\n{error_message}")
@@ -1408,7 +1409,7 @@ class SendCart:
             self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
             self.cart = Cart.objects.filter(profile=self.profile).first()
             self.cart.items.filter(quantity=0).delete()
-            self.current_site = 'https://intelleum.ir'
+            self.current_site = 'https://intelleum.ir:8443'
 
 
             if not self.cart or not self.cart.items.exists():
@@ -1702,9 +1703,12 @@ class SendCart:
             invoice_text += f"🧮 <b>مجموع کل:</b> {total_price:,.0f} تومان"
 
             address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
-            address_text = (f"{address.shipping_line1[:10]}, {address.shipping_city_name}, {address.shipping_province_name}, {address.shipping_country_name}"
+            line1 = address.shipping_line1[:10] + '...' if len(address.shipping_line1)>10 else address.shipping_line1
+            address_text = (f"{line1}, {address.shipping_city_name}, {address.shipping_province_name}, {address.shipping_country_name}"
                             if address else ' --- ')
-
+            if len(address_text)>40:
+                address_text = address_text[:40] + "..."
+                
             phone_text = (f"{profile.Phone}" if profile.Phone else ' --- ')
 
             payment_link = self.pay(update)
@@ -1854,7 +1858,7 @@ class SendLocation:
                 if len(btn_text)>40:
                     btn_text = btn_text[:40] + "..."
                 if address == self.active_address:
-                    btn_text += " ★"  # نشانگر آدرس فعال
+                    btn_text += " ⭐️"  # نشانگر آدرس فعال
                 buttons[btn_text] = (f"show_address_{address.id}", i)
 
             # دکمه‌های پایه

@@ -96,3 +96,4 @@ class RedisStateManager:
 
 
 
+session_manager = SessionManager()

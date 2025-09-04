@@ -29,7 +29,7 @@ from telebot import custom_filters
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.functions import ProductHandler, SendCart, SendLocation
+from utils.telbot.functions import ProductHandler, SendCart, SendLocation, SendMarkup, t
 from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu, home_menu
 from bs4 import BeautifulSoup
 
@@ -78,17 +78,14 @@ state_storage = StateMemoryStorage()
 
 # App setup
 app = TeleBot(token=TOKEN, state_storage=state_storage)
-current_site = 'https://intelleum.ir'
+current_site = 'https://intelleum.ir:8443'
 
 # subscription instance
 subscription = SubscriptionClass(app)
 subscription.register_handlers()
 
-# Tracking user menu history
-from telbot.sessions import SessionManager
-
 # Access shared user_sessions
-session_manager = SessionManager()
+from telbot.sessions import session_manager
 
 # support class
 chat_ids = []
@@ -267,23 +264,26 @@ def start(message):
         tel_username = message.from_user.username
         tel_first_name = message.from_user.first_name
         tel_last_name = message.from_user.last_name
+        
         response = requests.post(f"{current_site}/telbot/api/check-registration/", json={"tel_id": tel_id})
         print(response.status_code)
 
         if response.status_code == 201:
             app.send_message(
                 message.chat.id,
-                f"🏆 {tel_first_name} عزیز ثبت نامت با موفقیت انجام شد.\n\n",
+                f"🏆 Dear {tel_first_name}, you have successfully signed up.\n\n",
             )
         else:
             print("why")
             app.send_message(
                 message.chat.id,
-                f"{tel_first_name} عزیز شما قبلا در ربات ثبت نام کرده‌اید.",
+                t(message, "already_signedup", tel_first_name=tel_first_name),
             )
 
         profile, created = ProfileModel.objects.get_or_create(tel_id=tel_id, telegram=tel_username,
                                                               fname=tel_first_name, lname=tel_last_name)
+
+        
 
         if created:
             print("yes")
@@ -292,16 +292,16 @@ def start(message):
             main_menu = profile.tel_menu
             extra_buttons = profile.extra_button_menu
             markup = send_menu(message, main_menu, "main_menu", extra_buttons)
-            app.send_message(message.chat.id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+            app.send_message(message.chat.id, t(message, "choose_option"), reply_markup=markup)
 
     except Exception as e:
         error_details = traceback.format_exc()
-        custom_message = f"An error occurred: {e}\nDetails:\n{error_details}"
-        app.send_message(message.chat.id, f"{custom_message}")
+        custom_message = f"An error occurred in start handler: {e}\nDetails:\n{error_details}"
+        app.send_message(message.chat.id, t(message, "start_error"))
+        print(custom_message)
 
 
 #####################################################################################################
-
 
 # HOME
 @app.message_handler(func=lambda message: message.text == "🏡")
@@ -326,7 +326,7 @@ def home(message):
         session_manager.reset_user_session(message.chat.id, namespace="menu")
         profile = ProfileModel.objects.get(tel_id=id)
         markup = send_menu(message, profile.tel_menu, "main_menu", profile.extra_button_menu)
-        app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+        app.send_message(message.chat.id, t(message, "home_message"), reply_markup=markup)
 
 
 # Visit website
@@ -346,6 +346,32 @@ def settings(message):
         app.send_message(message.chat.id, "اینجا می تونی تنظیمات حسابت رو تغییر بدی:", reply_markup=markup)
 
 
+@app.message_handler(func=lambda message: message.text == "➕ افزودن")
+def add(message):
+    if subscription.subscription_offer(message):
+        home_menue = ["🏡"]
+        markup = send_menu(message, ["کالا", "دسته بندی"], "add",
+                           home_menue)
+        app.send_message(message.chat.id, "چی می خوای اضافه کنی؟", reply_markup=markup)
+
+
+@app.message_handler(func=lambda message: message.text == "✖️ حذف")
+def remove(message):
+    if subscription.subscription_offer(message):
+        home_menue = ["🏡"]
+        markup = send_menu(message, ["کالا", "دسته بندی"], "remove",
+                           home_menue)
+        app.send_message(message.chat.id, "چی می خوای حذف کنی؟", reply_markup=markup)
+
+@app.message_handler(func=lambda message: message.text == "🔄 فعال/غیرفعال سازی")
+def activate_or_deactivate(message):
+    if subscription.subscription_offer(message):
+        home_menue = ["🏡"]
+        markup = send_menu(message, ["کالا", "دسته بندی", "فروشگاه"], "activate_or_deactivate",
+                           home_menue)
+        app.send_message(message.chat.id, "چی رو می خوای فعال یا غیر فعال کنی؟", reply_markup=markup)
+
+
 # profile settings handler
 @app.message_handler(func=lambda message: message.text == "پروفایل 👤")
 def profile_setting(message):
@@ -355,37 +381,46 @@ def profile_setting(message):
                            home_menue)
         app.send_message(message.chat.id, "اینجا می تونی پروفایل خودتون رو تغییر بدی:", reply_markup=markup)
 
+# balance
+@app.message_handler(func=lambda message: message.text == "🧮 موجودی")
+def balance_menue(message):
+    if subscription.subscription_offer(message):
+        options = ["💰 موجودی من", "💳 افزایش موجودی"]
+        home_menue = ["🏡"]
+        markup = send_menu(message, options, "balance_category", home_menue)
+        app.send_message(message.chat.id, "می خوای موجودی بگیری یا موجودیت رو افزایش بدی؟", reply_markup=markup)
 
 # language settings handler
 @app.message_handler(func=lambda message: message.text == "زبان 🌐")
 def language_setting(message):
-    if subscription.subscription_offer(message):
-        home_menue = ["🏡"]
+    try:
+        if subscription.subscription_offer(message):
+            def get_language_choices():
+                language_map = {
+                    'fa': '🇮🇷 فارسی',
+                    'en': '🇬🇧  English',
+                    'zh': '🇨🇳  中国人',
+                    'ru': '🇷🇺  русский',
+                    'ar': '🇵🇸  عربیة',
+                }
+                return [name for code, name in language_map.items()]
 
-        def get_language_choices():
-            # Mapping of language names to their ISO 639-1 codes
-            language_map = [
-                'Persian',
-                'English',
-                'Chinese',
-                'Russian',
-                'Arabic',
-                'Spanish',
-            ]
+            markup = send_menu(message, get_language_choices(), "language_menu", retun_menue)
 
-            # You would typically use geonames webservice here, but since it's not a language-focused service,
-            # we'll just return our predefined mapping in the required format
-            languages = [(code, name) for name, code in language_map.items()]
+            app.send_message(
+                message.chat.id,
+                "زبان مورد نظر خود را انتخاب گنید:",
+                reply_markup=markup
+            )
 
-            return sorted(languages, key=lambda x: x[1])
 
-        print(get_language_choices())
-        markup = send_menu(message, get_language_choices(), "language", retun_menue)
-        app.send_message(message.chat.id, "اینجا می تونی پروفایل خودتون رو تغییر بدی:", reply_markup=markup)
 
+    except Exception as e:
+        error_details = traceback.format_exc()
+        print(f"{error_details}")
 
 # become a seller handler
-@app.message_handler(func=lambda message: message.text == "فروشنده شو")
+@app.message_handler(func=lambda message: message.text == "✔️ فروشنده شو")
 def become_a_seller(message):
     if subscription.subscription_offer(message):
         try:
@@ -415,47 +450,6 @@ def back_to_buyer(message):
         app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 
 
-# adding product
-product_bot = ProductBot(app)
-product_bot.register_handlers()
-product_bot.register_handle_finish_attributes()
-
-
-@app.message_handler(func=lambda message: message.text == "افزودن کالا")
-def add_product(message):
-    """Start the product addition process."""
-    if subscription.subscription_offer(message):
-        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-        if profile.seller_mode:
-            try:
-                product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
-                markup = send_menu(message, ["منصرف شدم"], message.text)
-                product_bot.bot.send_message(message.chat.id, "لطفاً نام محصول را وارد کنید:", reply_markup=markup)
-            except Exception as e:
-                print(e)
-        else:
-            product_bot.bot.send_message(message.chat.id,
-                                         "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به افزودن کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
-
-
-@app.message_handler(func=lambda message: message.text == "حذف کالا")
-def remove_product(message):
-    """Start the product deletion process."""
-    if subscription.subscription_offer(message):
-        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-        if profile.seller_mode:
-            try:
-                product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
-                markup = send_menu(message, [], "deletion", ["منصرف شدم"])
-                product_bot.bot.send_message(message.chat.id, "کد کالایی که می خواهید حذف کنید را وارد کنید",
-                                             reply_markup=markup)
-            except Exception as e:
-                print(e)
-        else:
-            product_bot.bot.send_message(message.chat.id,
-                                         "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به حذف کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
-
-
 import os
 import arabic_reshaper
 from bidi.algorithm import get_display
@@ -483,7 +477,7 @@ def sale_statistics(message):
 
             if profile.seller_mode:
                 try:
-                    sales = Transaction.objects.filter(product__store=store, status="paid").order_by("-created_at")
+                    sales = Sale.objects.filter(seller=Store.objects.get(profile=profile)).order_by("-created_at")
 
                     if not sales.exists():
                         app.send_message(message.chat.id, "متاسفانه شما تا کنون فروشی نداشته‌اید!", parse_mode="HTML")
@@ -494,21 +488,20 @@ def sale_statistics(message):
                     if not os.path.exists(directory):
                         os.makedirs(directory)
 
-                    file_path = os.path.join(directory,
-                                             f"{store.name}_{store.profile.fname} {store.profile.lname}_{today_date}.pdf")
+                    file_path = os.path.join(directory, f"{store.name}_{store.profile.fname} {store.profile.lname}_{today_date}.pdf")
                     font_path = os.path.join(sett.MEDIA_ROOT, "fonts", "Vazir.ttf")
                     pdfmetrics.registerFont(TTFont("Vazir", font_path))
 
                     p = canvas.Canvas(file_path, pagesize=A4)
                     p.setFont("Vazir", 14)
-
-                    border_margin = 28  # حاشیه 1 سانتی‌متر
-
+                    
+                    border_margin = 28
+                    
                     def draw_header_footer(page_num):
                         p.setStrokeColorRGB(0, 0, 0)
                         p.setLineWidth(5)
                         p.rect(border_margin, border_margin, A4[0] - 2 * border_margin, A4[1] - 2 * border_margin)
-
+                        
                         logo_dir = os.path.join(sett.MEDIA_ROOT, "store_logos")
                         store_logo_path = os.path.join(logo_dir, f"{store.name}.png")
                         default_logo_path = os.path.join(logo_dir, "default_store.png")
@@ -526,93 +519,139 @@ def sale_statistics(message):
                         p.drawImage(logo_path, logo_x, logo_y, width=new_width, height=new_height, mask='auto')
                         title_text = get_display(arabic_reshaper.reshape(f"📊 گزارش فروش فروشگاه: {store.name}"))
                         p.drawCentredString(A4[0] / 2, A4[1] - 100, title_text)
-
+                        
                         p.drawCentredString(A4[0] / 2, border_margin - 18, f"{page_num}")
-
+                    
                     headers = [
                         get_display(arabic_reshaper.reshape("تاریخ")),
-                        get_display(arabic_reshaper.reshape("قیمت (تومان)")),
+                        get_display(arabic_reshaper.reshape("تعداد")),
+                        get_display(arabic_reshaper.reshape("قیمت کل (تومان)")),
                         get_display(arabic_reshaper.reshape("نام محصول")),
-                        get_display(arabic_reshaper.reshape("شماره"))
+                        get_display(arabic_reshaper.reshape("ردیف"))
                     ]
-
+                    
                     data = [headers]
                     total_amount = 0
                     max_rows_per_page = 20
                     start_y = A4[1] - 160
-                    current_y = start_y
                     page_num = 1
-
+                    
                     draw_header_footer(page_num)
-
+                    
                     for idx, sale in enumerate(sales, start=1):
-                        total_amount += sale.amount
+                        total_amount += sale.total_price
                         row = [
                             get_display(arabic_reshaper.reshape(sale.created_at.strftime('%Y-%m-%d'))),
-                            f"{sale.amount:,.0f}",
+                            str(sale.quantity),
+                            f"{sale.total_price:,.0f}",
                             get_display(arabic_reshaper.reshape(sale.product.name)),
                             str(idx)
                         ]
                         data.append(row)
-
+                        
                         if len(data) > max_rows_per_page:
-                            table = Table(data, colWidths=[100, 100, 200, 50], repeatRows=1)
+                            table = Table(data, colWidths=[80, 60, 120, 150, 50], repeatRows=1)
                             table.setStyle(TableStyle([
                                 ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
                                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                                 ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
                             ]))
-
-                            table_x = (A4[0] - 450) / 2
+                            
+                            table_x = (A4[0] - 500) / 2
                             table_y = start_y - (max_rows_per_page * 20) - 40
                             table.wrapOn(p, A4[0], A4[1])
                             table.drawOn(p, table_x, table_y)
-
+                            
                             p.showPage()
                             p.setFont("Vazir", 14)
                             page_num += 1
                             draw_header_footer(page_num)
                             data = [headers]
-
+                    
                     total_row = [
-                        "",
-                        f"{total_amount:,.0f}",
+                        "", 
+                        "", 
+                        f"{total_amount:,.0f}", 
                         get_display(arabic_reshaper.reshape("مجموع کل")),
                         ""
                     ]
                     data.append(total_row)
-
-                    table = Table(data, colWidths=[100, 100, 200, 50], repeatRows=1)
+                    
+                    table = Table(data, colWidths=[80, 60, 120, 150, 50], repeatRows=1)
                     table.setStyle(TableStyle([
                         ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
                         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                         ('GRID', (0, 0), (-1, -1), 1, colors.black),
                         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
                         ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
-                        ('SPAN', (2, -1), (3, -1)),
-                        ('ALIGN', (2, -1), (3, -1), 'CENTER'),
+                        ('SPAN', (3, -1), (4, -1)),
+                        ('ALIGN', (3, -1), (4, -1), 'CENTER'),
                     ]))
-
-                    table_x = (A4[0] - 450) / 2
+                    
+                    table_x = (A4[0] - 500) / 2
                     table_y = start_y - (len(data) * 20) - 40
                     table.wrapOn(p, A4[0], A4[1])
                     table.drawOn(p, table_x, table_y)
-
+                    
                     p.showPage()
                     p.save()
-
+                    
                     with open(file_path, "rb") as pdf_file:
                         app.send_document(message.chat.id, pdf_file, caption="📄 گزارش فروش شما آماده است.")
-
+                    
                     os.remove(file_path)
                 except Exception as e:
-                    app.send_message(message.chat.id, "❌ خطایی رخ داد. لطفاً مجدداً تلاش کنید.")
-                    print(e)
+                    error_message = traceback.format_exc()
+                    app.send_message(message.chat.id, f"❌ خطایی رخ داد. لطفاً مجدداً تلاش کنید.\n\n {error_message}")
+                    print(error_message)
             else:
                 app.send_message(message.chat.id, "شما در حالت فروشندگی قرار ندارید.")
     except Exception as e:
-        app.send_message(message.chat.id, f"your error is: {e}")
+        error_message = traceback.format_exc()
+        app.send_message(message.chat.id, f"your error is: {error_message}")
+
+@app.message_handler(func=lambda message: message.text == "افزودن کالا")
+def add_product(message):
+    """Start the product addition process."""
+    try:
+        if subscription.subscription_offer(message):
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            if profile.seller_mode:
+                try:
+                    product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
+                    markup = send_menu(message, ["منصرف شدم"], message.text)
+                    product_bot.bot.send_message(message.chat.id, "لطفاً نام محصول را وارد کنید:", reply_markup=markup)
+                except Exception as e:
+                    print(e)
+            else:
+                product_bot.bot.send_message(message.chat.id,
+                                       "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به افزودن کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
+    except Exception as e:
+        error_details = traceback.format_exc()
+        print(f"{error_details}")
+
+
+@app.message_handler(func=lambda message: message.text == "حذف کالا")
+def remove_product(message):
+    """Start the product deletion process."""
+    try:
+        if subscription.subscription_offer(message):
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            if profile.seller_mode:
+                try:
+                    product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
+                    markup = send_menu(message, [], "deletion", ["منصرف شدم"])
+                    product_bot.bot.send_message(message.chat.id, "کد کالایی که می خواهید حذف کنید را وارد کنید",
+                                                 reply_markup=markup)
+                except Exception as e:
+                    print(e)
+            else:
+                product_bot.bot.send_message(message.chat.id,
+                                          "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به حذف کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
+    except Exception as e:
+        error_details = traceback.format_exc()
+        print(f"{error_details}")
 
 
 @app.callback_query_handler(
@@ -644,7 +683,7 @@ def handle_callback(call):
         print(f"Error in handle_callback: {e}\n{error_message}")
 
 
-@app.message_handler(func=lambda message: message.text == "سبد خرید")
+@app.message_handler(func=lambda message: message.text == "🛒 سبد خرید")
 @app.callback_query_handler(func=lambda call: call.data.startswith("product_show_") or call.data == "pay")
 @app.callback_query_handler(func=lambda call: call.data == "finalize")
 def cart_CallBack(data):
@@ -707,14 +746,22 @@ def phone_handler(data):
                          f"خطایی در گرفتن شماره تماس رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
 
 
-@app.message_handler(func=lambda message: message.text == "ﺁﺩﺮﺳ ﭗﺴﺘﯾ ﻢﻋﻦ" or (
-        session_manager.get_user_session(message.chat.id, namespace="address") != {} and
-        session_manager.get_user_session(message.chat.id, namespace="address")["state"] in ("address_selection_zipcode",
-                                                                                            "address_selection_street")))
+
+@app.message_handler(func=lambda message: 
+    message.text == "🚚 آدرس پستی من" 
+    or (
+        session_manager.get_user_session(message.chat.id, namespace="address") != {} 
+        and session_manager.get_user_session(
+            message.chat.id, 
+            namespace="address"
+        ).get("state") in ("address_selection_zipcode", "address_selection_street")
+    )
+)
 @app.callback_query_handler(func=lambda call: call.data.startswith(
     ("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next',
-     'prev', 'country_', 'province_', 'city_', '_back')))
+     'prev', 'country_', 'province_', 'city_', '_back', "change_address")) or call.data in ("back_to_addresses"))
 def unified_address_handler(data):
+    print("gg")
     try:
 
         if isinstance(data, types.Message):
@@ -725,11 +772,9 @@ def unified_address_handler(data):
             message = data.message
             call_data = data.data
             is_callback = True
-            app.answer_callback_query(data.id)
         loc = SendLocation(app, message)
         session = session_manager.get_user_session(message.chat.id, namespace="address")
-        print(session)
-
+        
         if call_data == "_back":
             state = [
                 "show_addresses",
@@ -743,13 +788,13 @@ def unified_address_handler(data):
 
             old_state = session["state"]
             session["state"] = state[state.index(old_state) - 1]
-            print(f"old state {old_state}")
-            print(f"new state {session['state']}")
-            session_manager.set_user_session(data.message.chat.id, session, namespace="address")
+            session_manager.set_user_session(message.chat.id, session, namespace="address")
 
         if not is_callback:
 
-            if message.text == "آدرس پستی من":
+            if message.text == "🚚 آدرس پستی من":
+                session['from my postal address'] = True
+                session_manager.set_user_session(message.chat.id, session, namespace="address")
                 loc.show_addresses()
             elif session["state"] == "address_selection_street":
                 loc.handle_picked_street(message)
@@ -757,19 +802,20 @@ def unified_address_handler(data):
                 loc.handle_picked_zipcode(message)
 
         elif call_data == "address_close":
-            session_manager.reset_user_session(data.message.from_user.id, namespace="address")
+            session_manager.reset_user_session(data.message.chat.id, namespace="address")
             app.delete_message(data.message.chat.id, data.message.message_id)
             data.message.text = "🏡"
             home(data)
-
-        elif call_data == "address":
+        
+        elif call_data in ("address", "back_to_addresses"):
             loc.show_addresses(data)
         elif call_data.startswith("show_address_"):
             address_id = int(call_data.split("_")[-1])
             address = Address.objects.get(id=address_id)
-            loc.show_single_address(data, address)
+            loc.show_single_address(address, data)
         elif call_data.startswith("address_"):
             pass# loc.show_single_address(data, address)
+        
         elif call_data.startswith('close_address'):
             loc.handle_close(data)
         elif call_data.startswith('delete_address_'):
@@ -778,7 +824,11 @@ def unified_address_handler(data):
             loc.delete_address(data, address)
         elif call_data.startswith("add_new_address"):
             loc.add_new_address(data)
-        elif call_data.startswith("manual_add_address"):
+        elif call_data.startswith("manual_add_address") or call_data.startswith("change_address"):
+            if call_data.startswith("change_address"):
+                address_id = int(call_data.split("_")[-1])
+                session['change_address'] = (True, address_id)
+                session_manager.set_user_session(message.chat.id, session, namespace="address")
             loc.manual_add_address(data)
         elif call_data.startswith("next"):
             loc.handle_next(data)
@@ -814,6 +864,76 @@ def unified_address_handler(data):
         app.send_message(chat_id, f"خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
 
 
+@app.message_handler(func=lambda message: (session_manager.get_user_session(message.chat.id, namespace="address") != {}) and (session_manager.get_user_session(message.chat.id, namespace="address")["change_postal"][0]))
+def change_postal_enter_new(message):
+    loc = SendLocation(app, message)
+    session = session_manager.get_user_session(message.chat.id, namespace="address")
+    loc.handle_picked_zipcode(message)
+    session['change_postal'] = None
+    session_manager.set_user_session(message.chat.id, session, namespace="address") 
+
+
+@app.callback_query_handler(func=lambda call: call.data.startswith(("select_address",)))
+def select_address(call):
+    try:
+        loc = SendLocation(app, call.message)
+        address_id = int(call.data.split("_")[-1])
+        address = Address.objects.get(id=address_id)
+        loc.select_address(call, address)
+    except Exception as e:
+        print(e)
+
+
+@app.callback_query_handler(func=lambda call: call.data.startswith(("change_postal",)))
+def change_postal(call):
+    try:
+        app.answer_callback_query(call.id, text="تغییر کد پستی این آدرس", show_alert=False)
+        address_id = int(call.data.split("_")[-1])
+        session = session_manager.get_user_session(call.message.chat.id, namespace="address")
+        session["change_postal"] = tuple((True, address_id))
+        session_manager.set_user_session(call.message.chat.id, session, namespace="address")
+        
+        text = "لطفا کد پستی آدرس خود را وارد کنید"
+
+        markup = SendMarkup(
+                bot=app,
+                chat_id=call.message.chat.id,
+                text=text,
+                buttons=None,
+                button_layout=None,
+                handlers=None
+            )
+
+
+        markup.edit(call.message.message_id) 
+    except Exception as e:
+        print(f"Error in change_postal handler: {e}\n{traceback.format_exc()}")
+
+
+
+
+@app.message_handler(func=lambda message: message.text in ('🇮🇷 فارسی', '🇬🇧  English', '🇨🇳  中国人', '🇷🇺  русский', '🇵🇸  عربیة',))
+def change_lang(message):
+    try:
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
+        if 'فارسی' in message.text:
+            profile.lang = 'fa'
+        elif 'English' in message.text:
+            profile.lang = 'en'
+        elif "中国人" in message.text:
+            profile.lang = 'zh'
+        elif "русский" in message.text:
+            profile.lang = 'ru'
+        elif "عربیة" in message.text:
+            profile.lang = 'ar'
+        profile.save()
+        app.delete_message(message.chat.id, message.message_id)
+        app.send_message(message.chat.id, t(message, "your_lang_changed"))
+        
+    except Exception as e:
+        print(f"Error in change language handler: {e}\n{traceback.format_exc()}")
+
+
 # Back to Previous Menu
 @app.message_handler(func=lambda message: message.text == "🔙")
 def handle_back(message):
@@ -837,14 +957,23 @@ def handle_back(message):
             app.send_message(message.chat.id, f"the error is: {e}")
 
 
-# balance
-@app.message_handler(func=lambda message: message.text == "🧮 موجودی")
-def balance_menue(message):
-    if subscription.subscription_offer(message):
-        options = ["💰 موجودی من", "💳 افزایش موجودی"]
-        home_menue = ["🏡"]
-        markup = send_menu(message, options, "balance_category", home_menue)
-        app.send_message(message.chat.id, "می خوای موجودی بگیری یا موجودیت رو افزایش بدی؟", reply_markup=markup)
+
+# fill address and phone nukber field for the payment link to be activated
+@app.callback_query_handler(func=lambda call: call.data == "phone_address_required")
+def address_phone_required(data):
+   app.answer_callback_query(data.id, "برای پرداخت ابتدا باید آدرس و شماره تماس خود را وارد کنید", show_alert=True) 
+
+
+
+
+# adding product
+try:
+    product_bot = ProductBot(app)
+    product_bot.register_handlers()
+    product_bot.register_handle_finish_attributes()
+except Exception as e:
+    error_details = traceback.format_exc()
+    print(f"{error_details}")
 
 
 # show balance
@@ -855,7 +984,7 @@ def my_balance(message):
 
 
 # Buy products with code
-@app.message_handler(func=lambda message: message.text == "خرید با کد کالا")
+@app.message_handler(func=lambda message: message.text == "🔎 خرید با کد کالا")
 def buy_with_code(message):
     if subscription.subscription_offer(message):
         ask_for_product_code(message)
@@ -873,6 +1002,7 @@ def category(message):
     lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)])
 def subcategory(message):
     category_class.handle_subcategory(message)
+
 
 
 # 10 products
@@ -899,9 +1029,6 @@ def handle_ten_products(message):
                 lower_title=current_menu.lower(), status=True, category__status=True
             ).order_by("price")[:10]
 
-        if not products:
-            app.send_message(message.chat.id, "متاسفانه این محصول شامل تخفیف نشده است")
-            return
 
         if not products.exists():
             app.send_message(message.chat.id, "🚧 محصولی در این دسته بندی یافت نشد.🚧")

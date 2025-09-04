@@ -81,7 +81,7 @@ class CheckTelegramUserRegistrationView(APIView):
 
         else:
             # اگر می‌خواهی کاربر جدید بسازی اینجا بساز
-            # ProfileModel.objects.create(tel_id=tel_id, ...)
+            # ProfileModel.objects.create(tel_id=tel_id)
             return Response({
                 "message": "ثبت‌نام شما با موفقیت انجام شد."
             }, status=status.HTTP_201_CREATED)

@@ -32,7 +32,7 @@ app = TeleBot(token=TOKEN, state_storage=state_storage)
 from telbot.sessions import CartSessionManager, RedisStateManager, SessionManager
 
 # Access shared user_sessions
-session_manager = SessionManager()
+from telbot.sessions import session_manager
 
 from utils.telbot.variables import *
 import os
@@ -48,6 +48,29 @@ from django.conf import settings as sett
 
 
 from utils.funcs.geonames_address import get_country_choices, get_province_choices, get_city_choices
+
+
+def t(msg, key, **kwargs):
+    try:
+        from utils.variables.translate import translations
+        from telebot import types
+        
+        if isinstance(msg, types.Message):
+            message = msg
+        else:
+            message = msg.message
+
+        lang = ProfileModel.objects.get(tel_id=message.chat.id).lang
+        text = translations.get(key, {}).get(lang, translations[key]["en"])
+        
+        # جایگذاری متغیرها
+        if kwargs:
+            text = text.format(**kwargs)
+        return text
+    except Exception as e:
+        print(e)
+
+
 
 
 def get_tunnel_password():
@@ -1148,6 +1171,7 @@ class ProductBot:
 
     def delete_sure(self, message, product):
         try:
+            print("hi")
             state_manager = RedisStateManager(message.chat.id)
 
             # بازیابی کد محصول از Redis
@@ -1268,8 +1292,7 @@ class ProductHandler:
                      ]
 
             if len(photos) > 10:
-                photos = photos[:10]  # محدود کردن به 10 عکس
-
+                photos = photos[:10]
             self.app.send_media_group(chat_id, media=photos)
             if buttons:
                 self.send_buttons(chat_id)
@@ -1290,7 +1313,7 @@ class ProductHandler:
                 "➕": (f"increase_{self.product.code}", 2),
                 f"{cart_item.quantity}": ("count", 1),
                 "➖": (f"decrease_{self.product.code}", 0),
-                "نهایی کردن سفارش": ("finalize", 4),
+                "🛒   رفتن به سبد خرید": ("finalize", 4),
             } if cart_item.quantity > 0 else {
                 "افزودن  به 🛒 ": (f"increase_{self.product.code}", 1),
                 "نظرات 💭": (f"decrease_{self.product.code}", 0),
@@ -1400,7 +1423,7 @@ from collections import OrderedDict
 import traceback
 
 class SendCart:
-
+ 
     def __init__(self, app, message):
         try:
             self.app = app
@@ -1408,20 +1431,32 @@ class SendCart:
             self.session = CartSessionManager(self.chat_id)  # اضافه کردن CartSessionManager
             self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
             self.cart = Cart.objects.filter(profile=self.profile).first()
-            self.cart.items.filter(quantity=0).delete()
+            if self.cart:
+                self.cart.items.filter(quantity=0).delete()
             self.current_site = 'https://intelleum.ir:8443'
 
 
-            if not self.cart or not self.cart.items.exists():
-                self.app.edit_message_text(
-                    chat_id=message.chat.id,
-                    message_id=message.message_id,
-                    text="سبد خرید شما خالی است 🛒",
-                    reply_markup=None
-                )
-                self.cart = None
-                return
-
+            if not self.cart:
+                
+                try:
+                    if hasattr(message, "message_id") and hasattr(message, "text"):  
+                        # یعنی از طرف کاربر پیام متنی اومده
+                        self.app.send_message(
+                            chat_id=message.chat.id,
+                            text="سبد خرید شما خالی است 🛒"
+                        )
+                    else:
+                        # یعنی از طرف callback_query اومده (دکمه فشرده شده)
+                        self.app.edit_message_text(
+                            chat_id=message.message.chat.id,
+                            message_id=message.message.message_id,
+                            text="سبد خرید شما خالی است 🛒",
+                            reply_markup=None
+                        )
+                    self.cart = None
+                    return
+                except Exception as e:
+                    print(f"{e}")
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
             self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
 
@@ -1432,7 +1467,7 @@ class SendCart:
 
 
             # اگر دکمه‌ها قبلاً تنظیم نشده باشند، آن‌ها را مقداردهی اولیه می‌کنیم
-            if not self.buttons:
+            if not self.buttons and self.cart:
                 for index, item in enumerate(self.cart.items.all(), start=1):
                     title = f"{item.product.name} × {item.quantity} \t\t\t\t▼"
                     self.buttons[title] = (f"product_show_{item.product.code}", index)
@@ -1703,7 +1738,10 @@ class SendCart:
             invoice_text += f"🧮 <b>مجموع کل:</b> {total_price:,.0f} تومان"
 
             address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
-            line1 = address.shipping_line1[:10] + '...' if len(address.shipping_line1)>10 else address.shipping_line1
+            try:
+                line1 = address.shipping_line1[:10] + '...' if len(address.shipping_line1)>10 else address.shipping_line1
+            except Exception as e:
+                line1 = ''
             address_text = (f"{line1}, {address.shipping_city_name}, {address.shipping_province_name}, {address.shipping_country_name}"
                             if address else ' --- ')
             if len(address_text)>40:
@@ -1827,7 +1865,7 @@ class SendLocation:
         """
         try:
             self.app = app
-            self.session_manager = SessionManager()
+            self.session_manager = session_manager
             self.user_id = (message_or_call.from_user.id if hasattr(message_or_call, 'from_user') else message_or_call.message.from_user.id)
             self.chat_id = message_or_call.chat.id if hasattr(message_or_call, 'chat') else message_or_call.message.chat.id
             self.message = message_or_call if isinstance(message_or_call, types.Message) else message_or_call.message
@@ -1872,7 +1910,7 @@ class SendLocation:
 
             # اضافه کردن هندلرهای آدرس‌ها
             for address in self.user_addresses:
-                handlers[f"address_{address.id}"] = lambda c, addr=address: self.show_single_address(c, addr)
+                handlers[f"address_{address.id}"] = lambda addr, c=address: self.show_single_address(addr, c)
 
             # ایجاد کیبورد
             markup = SendMarkup(
@@ -1895,7 +1933,7 @@ class SendLocation:
             print(f"Error in show_addresses: {e}\n{error_details}")
             self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
 
-    def show_single_address(self, call, address):
+    def show_single_address(self, address, call=None):
         """
         نمایش جزئیات یک آدرس خاص
         :param call: شیء callback
@@ -1912,10 +1950,11 @@ class SendLocation:
             # دکمه‌های مدیریت
             buttons = {
                 "🗺 تغییر موقعیت مکانی": (f"change_location_{address.id}", 1),
-                "✏️ تغییر آدرس": (f"change_address_{address.id}", 2),
-                "📝 تغییر کد پستی": (f"change_postal_{address.id}", 3),
-                "🔙 بازگشت": ("back_to_addresses", 4),
-                "🗑 حذف آدرس": (f"delete_address_{address.id}", 5)
+                "ارسال خرید ها به این آدرس": (f"select_address_{address.id}", 2),
+                "✏️ تغییر آدرس": (f"change_address_{address.id}", 3),
+                "📝 تغییر کد پستی": (f"change_postal_{address.id}", 4),
+                "🔙 بازگشت": ("back_to_addresses", 5),
+                "🗑 حذف آدرس": (f"delete_address_{address.id}", 6)
             }
 
             markup = SendMarkup(
@@ -1923,17 +1962,22 @@ class SendLocation:
                 chat_id=self.chat_id,
                 text=text,
                 buttons=buttons,
-                button_layout=[1, 1, 1, 2],
+                button_layout=[1, 1, 1, 1, 2],
                 handlers={
                     f"change_location_{address.id}": lambda c: self.change_location(c, address),
+                    f"select_address_{address.id}": lambda c: self.select_address(c, address),
                     f"change_address_{address.id}": lambda c: self.change_address_text(c, address),
-                    f"change_postal_{address.id}": lambda c: self.change_postal_code(c, address),
+                    f"change_postal_{address.id}": lambda c: self.change_postal(c, address),
                     "back_to_addresses": lambda c: self.show_addresses(c),
                     f"delete_address_{address.id}": lambda c: self.delete_address(c, address)
                 }
             )
 
-            markup.edit(call.message.message_id)
+            # ارسال یا ویرایش پیام
+            if call:
+                markup.edit(call.message.message_id)  # ویرایش پیام موجود
+            else:
+                markup.send()  # ارسال پیام جدید
 
         except Exception as e:
             error_details = traceback.format_exc()
@@ -1973,25 +2017,6 @@ class SendLocation:
             print(f"Error in change_location: {e}")
             self.app.send_message(call.message.chat.id, "خطایی در تغییر موقعیت رخ داد")
 
-    def change_address_text(self, call, address):
-        """تغییر متن آدرس"""
-        try:
-            self.app.send_message(call.message.chat.id, "لطفاً آدرس جدید را وارد کنید:")
-            # ذخیره آدرس برای مرحله بعد
-            # اینجا می‌توانید از register_next_step_handler استفاده کنید
-        except Exception as e:
-            print(f"Error in change_address_text: {e}")
-            self.app.send_message(call.message.chat.id, "خطایی در تغییر آدرس رخ داد")
-
-    def change_postal_code(self, call, address):
-        """تغییر کد پستی"""
-        try:
-            self.app.send_message(call.message.chat.id, "لطفاً کد پستی جدید را وارد کنید:")
-            # ذخیره آدرس برای مرحله بعد
-            # اینجا می‌توانید از register_next_step_handler استفاده کنید
-        except Exception as e:
-            print(f"Error in change_postal_code: {e}")
-            self.app.send_message(call.message.chat.id, "خطایی در تغییر کد پستی رخ داد")
 
     def delete_address(self, call, address):
         """حذف آدرس"""
@@ -2019,7 +2044,8 @@ class SendLocation:
                 "send_location_add_address": self.send_location_add_address,
             }
 
-            data = {"state": "add_new_address"}
+            data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+            data["state"] = "add_new_address"
             self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
 
 
@@ -2340,8 +2366,10 @@ class SendLocation:
 
 
     def handle_picked_city(self, call):
-        city = call.data.split("_")[-1]
+
         data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+
+        city = call.data.split("_")[-1]
 
         data["state"] = "address_selection_street"
         data["selected_city"] = f"{city}"
@@ -2365,6 +2393,8 @@ class SendLocation:
         markup.edit(call.message.message_id) 
         data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
         print(data)
+
+
 
         
 
@@ -2391,19 +2421,47 @@ class SendLocation:
     def handle_picked_zipcode(self, message):
         try:
             data = self.session_manager.get_user_session(message.chat.id, namespace="address")
-            data["state"] = "address_selection_zipcode"
-            data["selected_zipcode"] = f"{message.text}"
 
-            self.session_manager.set_user_session(message.chat.id, data, namespace="address")
-    	
-            data = self.session_manager.get_user_session(message.chat.id, namespace="address")
+            # change postal of address previously created
+            if (type(data.get("change_postal")) == list) and (data.get("change_postal")[0]):
 
-            address = Address.objects.create(profile=self.profile, shipping_line1=data["selected_address_line1"], shipping_country=data["selected_country"], shipping_province=data["selected_province"], shipping_city=data["selected_city"], shipping_zip_code=data["selected_zipcode"], shipping_is_active=True) 
-            address.save()
+                address = Address.objects.get(id=data.get("change_postal")[1])
+                address.shipping_zip_code = int(message.text)
+                address.save()
 
-            self.app.delete_message(message.chat.id, message.message_id)
-            self.app.delete_message(message.chat.id, data["old_message"])
-            SendCart(self.app, self.message).invoice(self.message)
+            else:
+                print('ya')
+                data["state"] = "address_selection_zipcode"
+                data["selected_zipcode"] = f"{message.text}"
+
+                self.session_manager.set_user_session(message.chat.id, data, namespace="address")
+            
+                data = self.session_manager.get_user_session(message.chat.id, namespace="address")
+                if "change_address" in list(data.keys()) and data['change_address'][0]:
+                    address = Address.objects.get(id=data['change_address'][1])
+                    address.shipping_line1 = data["selected_address_line1"]
+                    address.shipping_country=data["selected_country"]
+                    address.shipping_province=data["selected_province"]
+                    address.shipping_city=data["selected_city"]
+                    address.shipping_zip_code=data["selected_zipcode"]
+                    address.save()
+                    self.app.delete_message(message.chat.id, message.message_id)
+                    self.app.delete_message(message.chat.id, data["old_message"])
+                else:
+                    address = Address.objects.create(profile=self.profile, shipping_line1=data["selected_address_line1"], shipping_country=data["selected_country"], shipping_province=data["selected_province"], shipping_city=data["selected_city"], shipping_zip_code=data["selected_zipcode"], shipping_is_active=True) 
+                    address.save()
+                    self.app.delete_message(message.chat.id, message.message_id)
+                    self.app.delete_message(message.chat.id, data["old_message"])
+
+            if (type(data.get("change_postal")) == list) and (data.get("change_postal")[0]):
+                self.show_single_address(address=address)
+                data['change_postal'] = None
+                self.session_manager.set_user_session(message.chat.id, data, namespace="address")   
+                return
+            if not data.get('from my postal address'):
+                SendCart(self.app, self.message).invoice(self.message)
+            else:
+                self.show_addresses()
             self.session_manager.reset_user_session(message.chat.id, namespace="address")
 
         except Exception as e:
@@ -2412,12 +2470,30 @@ class SendLocation:
             self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
 
 
+    def select_address(self, call, address):
+        try:
+            self.app.answer_callback_query(call.id, "این آدرس به عنوان آدرس فعال انتخاب شد.", show_alert=True)
+            address.shipping_is_active = True
+            address.save()
+        except Exception as e:
+            print(e)
+
+
+    def change_postal(self, call):
+        try:
+            
+            pass
+        except Exception as e:
+            print(f"Error in change_postal: {e}")
+
+
     def handle_previous(self, call):
         pass
 
 
     def send_location_add_address(self):
         pass
+
 
 
 class SendPhone:
@@ -2429,7 +2505,7 @@ class SendPhone:
         """
         try:
             self.app = app
-            self.session_manager = SessionManager()
+            self.session_manager = session_manager
             self.user_id = (message_or_call.from_user.id if hasattr(message_or_call, 'from_user') else message_or_call.message.from_user.id)
             self.chat_id = message_or_call.chat.id if hasattr(message_or_call, 'chat') else message_or_call.message.chat.id
             self.message = message_or_call if isinstance(message_or_call, types.Message) else message_or_call.message

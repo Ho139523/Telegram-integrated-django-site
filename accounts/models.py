@@ -8,6 +8,7 @@ import json
 from django.utils.translation import get_language
 from django.conf import settings
 
+
 class User(AbstractUser):
     def get_language_choices():
         languages = []
@@ -60,27 +61,34 @@ class User(AbstractUser):
 
 class ProfileModel(models.Model):
 
+    # ----------------------------
+    # Language choices
+    # ----------------------------
     def get_language_choices():
         languages = []
         for lang in pycountry.languages:
-            if hasattr(lang, 'alpha_2'):  # فقط زبان‌های با کد دو حرفی
+            if hasattr(lang, 'alpha_2'):
                 languages.append((lang.alpha_2, lang.name))
         return sorted(languages, key=lambda x: x[1])
 
+    # ----------------------------
+    # Default Menus (keys only)
+    # ----------------------------
     def default_tel_menu():
-        return [
-            "🧮 موجودی", "🔎 خرید با کد کالا", "🗂 دسته بندی ها",
-            "💬 پیام به پشتیبان", "تنظیمات ⚙"
-        ]
+        return ["menu_balance", "menu_buy_by_code", "menu_categories", "menu_support", "menu_settings"]
+
     def default_extra_button_menu():
-        return ["🛒 سبد خرید",]
+        return ["menu_cart"]
 
     def default_settings_menu():
-        return ["✔️ فروشنده شو", "🚚 آدرس پستی من", "پروفایل 👤"]
+        return ["menu_become_seller", "menu_my_address", "menu_profile"]
 
     def default_profile_menu():
-        return ['زبان 🌐']
+        return ["menu_language"]
 
+    # ----------------------------
+    # Fields
+    # ----------------------------
     user = models.OneToOneField(User, unique=True, null=True, on_delete=models.SET_NULL, blank=True)
     fname = models.CharField(max_length=100, blank=True, null=True, verbose_name="First Name")
     lname = models.CharField(max_length=150, blank=True, null=True, verbose_name="Last Name")
@@ -94,7 +102,12 @@ class ProfileModel(models.Model):
         verbose_name="Header Image"
     )
     birthday = models.DateField(blank=True, null=True)
-    Phone = models.CharField(max_length=10, blank=True, null=True, verbose_name="Phone Number")
+    phone = models.CharField(
+        max_length=11,
+        blank=True,
+        null=True,
+        verbose_name="Phone Number"
+    )
     about_me = models.TextField(
         max_length=1000,
         blank=True,
@@ -102,16 +115,15 @@ class ProfileModel(models.Model):
         default="Describe yourself, your capabilities and talents here. Let others know how awesome you are ;)",
         verbose_name="About Me"
     )
-    instagram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Instagram ID")
-    tweeter = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Tweeter ID")
-    telegram = models.CharField(max_length=120, unique=True, blank=True, null=True, verbose_name="Telegram ID")
+    instagram = models.CharField(max_length=120, blank=True, null=True, verbose_name="Instagram ID")
+    tweeter = models.CharField(max_length=120, blank=True, null=True, verbose_name="Tweeter ID")
+    telegram = models.CharField(max_length=120, blank=True, null=True, verbose_name="Telegram ID")
     credit = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
     tel_id = models.CharField(
-        max_length=10,
-        validators=[int_list_validator(sep=''), MinLengthValidator(10)],
-        default='100000000',
+        max_length=20,
+        validators=[int_list_validator(sep=''), MinLengthValidator(5)],
         unique=True,
-        null=False,
+        null=True,
         blank=True
     )
     tel_menu = models.JSONField(default=default_tel_menu, blank=True, null=False)
@@ -119,12 +131,24 @@ class ProfileModel(models.Model):
     seller_mode = models.BooleanField(default=False, blank=False, null=False)
     settings_menu = models.JSONField(default=default_settings_menu, blank=True, null=False)
     profile_menu = models.JSONField(default=default_profile_menu, blank=True, null=False)
-    lang = models.CharField(max_length=10, choices=get_language_choices(), default='fa', unique=False, null=False, blank=True)
+    lang = models.CharField(
+        max_length=10,
+        choices=get_language_choices(),
+        default='fa',
+        unique=False,
+        null=False,
+        blank=True
+    )
 
+    # ----------------------------
+    # Address helper
+    # ----------------------------
     def get_active_address(self):
-        """برگرداندن آدرس فعال کاربر"""
         return self.addresses.filter(is_active=True).first()
 
+    # ----------------------------
+    # User Levels
+    # ----------------------------
     class UserLevel(models.TextChoices):
         BLUE = 'blue', 'Blue User'
         GREEN = 'green', 'Green User'
@@ -139,97 +163,94 @@ class ProfileModel(models.Model):
 
     LEVEL_MENUS = {
         'blue': [
-            [
-                "🧮 موجودی", "🔎 خرید با کد کالا", "🗂 دسته بندی ها",
-                "💬 پیام به پشتیبان", "تنظیمات ⚙"
-            ],
-            ["🛒 سبد خرید",],
-            ["✔️ فروشنده شو", "🚚 آدرس پستی من", "پروفایل 👤"],
-            ['زبان 🌐'],
+            ["menu_balance", "menu_buy_by_code", "menu_categories", "menu_support", "menu_settings"],
+            ["menu_cart"],
+            ["menu_become_seller", "menu_my_address", "menu_profile"],
+            ["menu_language"],
         ],
         'green': [
-            [
-                "🧮 موجودی", "🔎 خرید با کد کالا", "🗂 دسته بندی ها",
-            "💬 پیام به پشتیبان", "تنظیمات ⚙"
-            ],
-            ["🛒 سبد خرید"],
-            ["✔️ فروشنده شو", "🚚 آدرس پستی من", "پروفایل 👤"],
-            ['زبان 🌐'],
+            ["menu_balance", "menu_buy_by_code", "menu_categories", "menu_support", "menu_settings"],
+            ["menu_cart"],
+            ["menu_become_seller", "menu_my_address", "menu_profile"],
+            ["menu_language"],
         ],
         'silver': [
-            [
-                "🧮 موجودی", "🛒 خرید سریع", "💬 پیام به پشتیبان"
-            ],
-            ["🛒 سبد خرید"],
-            ["✔️ فروشنده شو", "🚚 آدرس پستی من", "پروفایل 👤"],
-            ['زبان 🌐'],
+            ["menu_balance", "menu_quick_buy", "menu_support"],
+            ["menu_cart"],
+            ["menu_become_seller", "menu_my_address", "menu_profile"],
+            ["menu_language"],
         ],
         'gold': [
-            [
-                "💰 گزارش مالی", "🛒 خرید پیشرفته", "📊 تحلیل‌ها"
-            ],
-            ["🛒 سبد خرید"],
-            ["✔️ فروشنده شو", "🚚 آدرس پستی من", "پروفایل 👤"],
-            ['زبان 🌐'],
+            ["menu_financial_report", "menu_advanced_buy", "menu_analytics"],
+            ["menu_cart"],
+            ["menu_become_seller", "menu_my_address", "menu_profile"],
+            ["menu_language"],
         ],
         'seller': [
-            [
-                "➕ افزودن", "✖️ حذف", "🔄 فعال/غیرفعال سازی", "💰 گزارش مالی", "📊 تحلیل‌ها", "تنظیمات ⚙"
-            ],
-            ["آمار فروش"],
-            ["بازگشت به حالت خریدار", "تغییر آدرس انبار", "پروفایل 👤"],
-            ['زبان 🌐'],
+            ["product", "category", "menu_financial_report", "menu_analytics", "menu_settings"],
+            ["menu_sale_statistics"],
+            ["menu_back_to_buyer", "menu_change_warehouse", "menu_profile"],
+            ["menu_language"],
         ],
     }
 
     def __str__(self):
         if self.user:
             return self.user.username
-        elif self.tel_id:
-            return self.tel_id
+        return str(self.tel_id)
 
     @property
     def age(self):
         if self.birthday:
             today = timezone.now().date()
-            age = (
-                    today.year - self.birthday.year
-                    - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
+            return today.year - self.birthday.year - (
+                (today.month, today.day) < (self.birthday.month, self.birthday.day)
             )
-            return age
         return None
 
     def save(self, *args, **kwargs):
-        if self.pk:
+        from utils.variables.translate import translations
+
+        def translate_menu_keys(menu_keys):
+            """ فقط کلیدها رو نگه دار، ترجمه تو send_menu انجام میشه """
+            return list(menu_keys)  # copy
+
+        if not self.pk:
+            # پروفایل جدید
+            self.tel_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][0])
+            self.extra_button_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][1])
+            self.settings_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][2])
+            self.profile_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][3])
+        else:
+            # پروفایل موجود
             old_instance = ProfileModel.objects.get(pk=self.pk)
 
-            # Sync language to user if it changed
+            # تغییر سطح کاربری
+            if old_instance.user_level != self.user_level and self.user_level in self.LEVEL_MENUS:
+                self.tel_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][0])
+                self.extra_button_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][1])
+                self.settings_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][2])
+                self.profile_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][3])
+
+            # تغییر حالت فروشنده
+            if old_instance.seller_mode != self.seller_mode:
+                if self.seller_mode:
+                    # ورود به حالت فروشنده
+                    self.tel_menu = translate_menu_keys(self.LEVEL_MENUS["seller"][0])
+                    self.extra_button_menu = translate_menu_keys(self.LEVEL_MENUS["seller"][1])
+                    self.settings_menu = translate_menu_keys(self.LEVEL_MENUS["seller"][2])
+                    self.profile_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][3])
+                else:
+                    # برگشت از حالت فروشنده
+                    self.tel_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][0])
+                    self.extra_button_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][1])
+                    self.settings_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][2])
+                    self.profile_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][3])
+
+            # اگر زبان تغییر کرده باشه، فقط sync با user انجام بده (ترجمه تو send_menu)
             if old_instance.lang != self.lang and self.user:
                 self.user.lang = self.lang
                 self.user.save(update_fields=['lang'])
-
-            # تغییر منوها بر اساس سطح کاربری یا فروشنده بودن
-            if old_instance.user_level != self.user_level and self.user_level in self.LEVEL_MENUS:
-                self.tel_menu = self.LEVEL_MENUS[self.user_level][0]
-                self.extra_button_menu = self.LEVEL_MENUS[self.user_level][1]
-                self.settings_menu = self.LEVEL_MENUS[self.user_level][2]
-                self.profile_menu = self.LEVEL_MENUS[self.user_level][3]
-
-            if old_instance.seller_mode:
-                self.tel_menu = self.LEVEL_MENUS["seller"][0]
-                self.extra_button_menu = self.LEVEL_MENUS["seller"][1]
-                self.settings_menu = self.LEVEL_MENUS["seller"][2]
-                self.profile_menu = self.LEVEL_MENUS[self.user_level][3]
-
-            if not old_instance.seller_mode:
-                self.tel_menu = self.LEVEL_MENUS[self.user_level][0]
-                self.extra_button_menu = self.LEVEL_MENUS[self.user_level][1]
-                self.settings_menu = self.LEVEL_MENUS[self.user_level][2]
-                self.profile_menu = self.LEVEL_MENUS[self.user_level][3]
-
-        # Sync language from user if it wasn't manually changed
-        elif self.user and self.lang != self.user.lang:
-            self.lang = self.user.lang
 
         super().save(*args, **kwargs)
 

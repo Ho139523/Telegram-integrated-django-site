@@ -337,31 +337,44 @@ def visit_website(message):
 
 
 # settings handler
-@app.message_handler(func=lambda message: message.text == "تنظیمات ⚙")
+@app.message_handler(func=lambda message: message.text in (translations["menu_settings"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
 def settings(message):
     if subscription.subscription_offer(message):
         home_menue = ["🏡"]
         markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).settings_menu, "settings",
-                           home_menue)
-        app.send_message(message.chat.id, "اینجا می تونی تنظیمات حسابت رو تغییر بدی:", reply_markup=markup)
+                           home_menue, 2)
+        app.send_message(message.chat.id, t(message, "settings_message"), reply_markup=markup)
 
 
-@app.message_handler(func=lambda message: message.text == "➕ افزودن")
-def add(message):
+@app.message_handler(func=lambda message: message.text == t(message, "product"))
+def product(message):
     if subscription.subscription_offer(message):
-        home_menue = ["🏡"]
-        markup = send_menu(message, ["کالا", "دسته بندی"], "add",
-                           home_menue)
-        app.send_message(message.chat.id, "چی می خوای اضافه کنی؟", reply_markup=markup)
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        if profile.seller_mode:
+            home_menue = ["🏡"]
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session['product'] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "my_products_list")], "product", home_menue)
+            app.send_message(message.chat.id, t(message, "what_action_on_product"), reply_markup=markup)
+        else:
+            app.send_message(message.chat.id, t(message, "not_a_seller_edit_products"))
 
 
-@app.message_handler(func=lambda message: message.text == "✖️ حذف")
-def remove(message):
+@app.message_handler(func=lambda message: message.text == t(message, "category"))
+def category(message):
     if subscription.subscription_offer(message):
-        home_menue = ["🏡"]
-        markup = send_menu(message, ["کالا", "دسته بندی"], "remove",
-                           home_menue)
-        app.send_message(message.chat.id, "چی می خوای حذف کنی؟", reply_markup=markup)
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        if profile.seller_mode:
+            home_menue = ["🏡"]
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session['product'] = False
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate")], "category", home_menue)
+            app.send_message(message.chat.id, t(message, "what_action_on_category"), reply_markup=markup)
+
+        else:
+            app.send_message(message.chat.id, t(message, "not_a_seller_edit_categories"))
 
 @app.message_handler(func=lambda message: message.text == "🔄 فعال/غیرفعال سازی")
 def activate_or_deactivate(message):
@@ -373,25 +386,25 @@ def activate_or_deactivate(message):
 
 
 # profile settings handler
-@app.message_handler(func=lambda message: message.text == "پروفایل 👤")
+@app.message_handler(func=lambda message: message.text in (translations["menu_profile"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
 def profile_setting(message):
     if subscription.subscription_offer(message):
         home_menue = ["🏡"]
         markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).profile_menu, "profile",
                            home_menue)
-        app.send_message(message.chat.id, "اینجا می تونی پروفایل خودتون رو تغییر بدی:", reply_markup=markup)
+        app.send_message(message.chat.id, t(message, "profile_settings"), reply_markup=markup)
 
 # balance
-@app.message_handler(func=lambda message: message.text == "🧮 موجودی")
+@app.message_handler(func=lambda message: message.text == translations["menu_balance"][ProfileModel.objects.get(tel_id=message.chat.id).lang])
 def balance_menue(message):
     if subscription.subscription_offer(message):
         options = ["💰 موجودی من", "💳 افزایش موجودی"]
         home_menue = ["🏡"]
         markup = send_menu(message, options, "balance_category", home_menue)
-        app.send_message(message.chat.id, "می خوای موجودی بگیری یا موجودیت رو افزایش بدی؟", reply_markup=markup)
+        app.send_message(message.chat.id, t(message, "balance_menue"), reply_markup=markup)
 
 # language settings handler
-@app.message_handler(func=lambda message: message.text == "زبان 🌐")
+@app.message_handler(func=lambda message: message.text in (translations["menu_language"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
 def language_setting(message):
     try:
         if subscription.subscription_offer(message):
@@ -409,18 +422,16 @@ def language_setting(message):
 
             app.send_message(
                 message.chat.id,
-                "زبان مورد نظر خود را انتخاب گنید:",
+                t(message, "language_setting"),
                 reply_markup=markup
             )
-
-
 
     except Exception as e:
         error_details = traceback.format_exc()
         print(f"{error_details}")
 
 # become a seller handler
-@app.message_handler(func=lambda message: message.text == "✔️ فروشنده شو")
+@app.message_handler(func=lambda message: message.text in (translations["menu_become_seller"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
 def become_a_seller(message):
     if subscription.subscription_offer(message):
         try:
@@ -431,13 +442,13 @@ def become_a_seller(message):
             profile.save()
             profile.save()
             markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
-            app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+            app.send_message(message.chat.id, t(message, "become_a_seller"), reply_markup=markup)
         except Store.DoesNotExist:
-            app.send_message(message.chat.id, "شما هنوز فروشگاه خود را ثبت نکرده اید")
+            app.send_message(message.chat.id, t(message, "become_a_seller_no_store"))
 
 
 # back to buyer mode handler# become a seller handler
-@app.message_handler(func=lambda message: message.text == "بازگشت به حالت خریدار")
+@app.message_handler(func=lambda message: message.text in (translations["menu_back_to_buyer"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
 def back_to_buyer(message):
     if subscription.subscription_offer(message):
         profile = ProfileModel.objects.get(tel_id=message.from_user.id)
@@ -447,7 +458,7 @@ def back_to_buyer(message):
         profile.save()
 
         markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
-        app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+        app.send_message(message.chat.id, t(message, "home_message"), reply_markup=markup)
 
 
 import os
@@ -464,7 +475,7 @@ from reportlab.lib.utils import ImageReader
 import pandas as pd
 
 
-@app.message_handler(func=lambda message: message.text == "آمار فروش")
+@app.message_handler(func=lambda message: message.text == t(message, "menu_sale_statistics"))
 def sale_statistics(message):
     try:
         if subscription.subscription_offer(message):
@@ -472,7 +483,7 @@ def sale_statistics(message):
             store = Store.objects.filter(profile=profile).first()
 
             if not store:
-                app.send_message(message.chat.id, "❌ شما فروشنده نیستید.")
+                app.send_message(message.chat.id, t(message, "sale_statistics_no_store"))
                 return
 
             if profile.seller_mode:
@@ -480,7 +491,7 @@ def sale_statistics(message):
                     sales = Sale.objects.filter(seller=Store.objects.get(profile=profile)).order_by("-created_at")
 
                     if not sales.exists():
-                        app.send_message(message.chat.id, "متاسفانه شما تا کنون فروشی نداشته‌اید!", parse_mode="HTML")
+                        app.send_message(message.chat.id, t(message, "sale_statistics_no_sale"), parse_mode="HTML")
                         return
 
                     today_date = datetime.today().strftime('%Y-%m-%d')
@@ -517,17 +528,17 @@ def sale_statistics(message):
                         new_width = (orig_width / orig_height) * new_height
 
                         p.drawImage(logo_path, logo_x, logo_y, width=new_width, height=new_height, mask='auto')
-                        title_text = get_display(arabic_reshaper.reshape(f"📊 گزارش فروش فروشگاه: {store.name}"))
+                        title_text = get_display(arabic_reshaper.reshape(t(message, "sale_statistics_title", store_name=store.name)))
                         p.drawCentredString(A4[0] / 2, A4[1] - 100, title_text)
                         
                         p.drawCentredString(A4[0] / 2, border_margin - 18, f"{page_num}")
                     
                     headers = [
-                        get_display(arabic_reshaper.reshape("تاریخ")),
-                        get_display(arabic_reshaper.reshape("تعداد")),
-                        get_display(arabic_reshaper.reshape("قیمت کل (تومان)")),
-                        get_display(arabic_reshaper.reshape("نام محصول")),
-                        get_display(arabic_reshaper.reshape("ردیف"))
+                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_date"))),
+                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_quantity"))),
+                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_total_cost"))),
+                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_product_name"))),
+                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_index")))
                     ]
                     
                     data = [headers]
@@ -573,7 +584,7 @@ def sale_statistics(message):
                         "", 
                         "", 
                         f"{total_amount:,.0f}", 
-                        get_display(arabic_reshaper.reshape("مجموع کل")),
+                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_total"))),
                         ""
                     ]
                     data.append(total_row)
@@ -598,20 +609,20 @@ def sale_statistics(message):
                     p.save()
                     
                     with open(file_path, "rb") as pdf_file:
-                        app.send_document(message.chat.id, pdf_file, caption="📄 گزارش فروش شما آماده است.")
+                        app.send_document(message.chat.id, pdf_file, caption=t(message, "sale_statistics_ready"))
                     
                     os.remove(file_path)
                 except Exception as e:
                     error_message = traceback.format_exc()
-                    app.send_message(message.chat.id, f"❌ خطایی رخ داد. لطفاً مجدداً تلاش کنید.\n\n {error_message}")
                     print(error_message)
+                    app.send_message(message.chat.id, t(message, "sale_statistics_error"))
             else:
-                app.send_message(message.chat.id, "شما در حالت فروشندگی قرار ندارید.")
+                app.send_message(message.chat.id, t(message, "not_a_seller_sale_statistics"))
     except Exception as e:
         error_message = traceback.format_exc()
         app.send_message(message.chat.id, f"your error is: {error_message}")
 
-@app.message_handler(func=lambda message: message.text == "افزودن کالا")
+@app.message_handler(func=lambda message: message.text == t(message, "menu_add") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
 def add_product(message):
     """Start the product addition process."""
     try:
@@ -620,19 +631,18 @@ def add_product(message):
             if profile.seller_mode:
                 try:
                     product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
-                    markup = send_menu(message, ["منصرف شدم"], message.text)
-                    product_bot.bot.send_message(message.chat.id, "لطفاً نام محصول را وارد کنید:", reply_markup=markup)
+                    markup = send_menu(message, [t(message, "cancel_action")], message.text)
+                    app.send_message(message.chat.id, t(message, "enter_product_name"), reply_markup=markup)
                 except Exception as e:
                     print(e)
             else:
-                product_bot.bot.send_message(message.chat.id,
-                                       "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به افزودن کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
+                app.send_message(message.chat.id, t(message, "not_a_seller_add_product"))
     except Exception as e:
         error_details = traceback.format_exc()
         print(f"{error_details}")
 
 
-@app.message_handler(func=lambda message: message.text == "حذف کالا")
+@app.message_handler(func=lambda message: message.text == t(message, "menu_delete") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
 def remove_product(message):
     """Start the product deletion process."""
     try:
@@ -641,18 +651,34 @@ def remove_product(message):
             if profile.seller_mode:
                 try:
                     product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
-                    markup = send_menu(message, [], "deletion", ["منصرف شدم"])
-                    product_bot.bot.send_message(message.chat.id, "کد کالایی که می خواهید حذف کنید را وارد کنید",
-                                                 reply_markup=markup)
+                    markup = send_menu(message, [], "deletion", [t(message, "cancel_action")])
+                    product_bot.bot.send_message(message.chat.id, t(message, "enter_product_code_to_delete"), reply_markup=markup)
                 except Exception as e:
                     print(e)
             else:
-                product_bot.bot.send_message(message.chat.id,
-                                          "متأسفانه شما هنوز فروشنده نیستید یا در حالت فروشندگی قرار ندارید.تنها فروشندگان قادر به حذف کالا هستند.\n\nمنو اصلی>تنظیمات ⚙>فوشنده شو")
+                app.send_message(message.chat.id, t(message, "not_a_seller_delete_product"))
     except Exception as e:
         error_details = traceback.format_exc()
         print(f"{error_details}")
 
+@app.message_handler(func=lambda message: message.text == t(message, "menu_deactivate") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
+def deactivate(message):
+    try:
+        if subscription.subscription_offer(message):
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            if profile.seller_mode:
+                product_bot.set_state(message.chat.id, product_bot.ProductState.DEACTIVATE)
+                markup = send_menu(message, [], "deactivation", [t(message, "cancel_action")])
+                app.send_message(message.chat.id, t(message, "enter_product_code_to_deactivate"), reply_markup=markup)
+            else:
+                app.send_message(message.chat.id, t(message, "not_a_seller_deactivate"))
+    except Exception as e:
+        custom_error = f"Error in deactivate handler: {e}\n\n{traceback.format_exc()}"
+        print(custom_error)
+
+product_bot = ProductBot(app)
+product_bot.register_handlers()
+product_bot.register_handle_finish_attributes()
 
 @app.callback_query_handler(
     func=lambda call: "increase" in call.data or "decrease" in call.data or "remove" in call.data)
@@ -683,7 +709,7 @@ def handle_callback(call):
         print(f"Error in handle_callback: {e}\n{error_message}")
 
 
-@app.message_handler(func=lambda message: message.text == "🛒 سبد خرید")
+@app.message_handler(func=lambda message: message.text == t(message, "menu_cart"))
 @app.callback_query_handler(func=lambda call: call.data.startswith("product_show_") or call.data == "pay")
 @app.callback_query_handler(func=lambda call: call.data == "finalize")
 def cart_CallBack(data):
@@ -714,6 +740,47 @@ def payment_order_CallBack(data):
         cart.invoice(data)
 
 
+
+# 10 products
+@app.message_handler(
+    func=lambda message: message.text in (t(message, "most_selling"), t(message, "most_expensive"), t(message, "most_discounted"), t(message, "cheapest")))
+def handle_ten_products(message):
+    if subscription.subscription_offer(message):
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        current_menu = session["current_menu"]
+
+        if message.text == t(message, "most_discounted"):
+            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
+                lower_title=current_menu.lower(), discount__gt=0, status=True, category__status=True
+            ).order_by("discount")[:10]
+        elif message.text == t(message, "most_selling"):
+            app.send_message(message.chat.id, t(message, "most_selling_feature_not_available"))
+            return
+        elif message.text == t(message, "cheapest"):
+            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
+                lower_title=current_menu.lower(), status=True, category__status=True
+            ).order_by("-price")[:10]
+        elif message.text == t(message, "most_expensive"):
+            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
+                lower_title=current_menu.lower(), status=True, category__status=True
+            ).order_by("price")[:10]
+
+
+        if not products.exists():
+            app.send_message(message.chat.id, t(message, "no_products_in_category"))
+            return
+
+        for product in products:
+            try:
+                product_handler = ProductHandler(app, product, current_site)
+                product_handler.send_product_message(message.chat.id)
+            except Exception as e:
+                app.send_message(message.chat.id, f"the error is: {e}")
+
+
+
+
+
 @app.message_handler(func=lambda message: (
         session_manager.get_user_session(message.chat.id, namespace="phone") != {} and
         session_manager.get_user_session(message.chat.id, namespace="phone")["state"] in ("take_phone",)))
@@ -741,14 +808,14 @@ def phone_handler(data):
 
     except Exception as e:
         print(f"Error in phone_handler: {e}\n{traceback.format_exc()}")
-        chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
-        app.send_message(chat_id,
-                         f"خطایی در گرفتن شماره تماس رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
+        # chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
+        # app.send_message(chat_id,
+        #                  f"خطایی در گرفتن شماره تماس رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
 
 
 
 @app.message_handler(func=lambda message: 
-    message.text == "🚚 آدرس پستی من" 
+    message.text == t(message, "menu_my_address") 
     or (
         session_manager.get_user_session(message.chat.id, namespace="address") != {} 
         and session_manager.get_user_session(
@@ -792,13 +859,13 @@ def unified_address_handler(data):
 
         if not is_callback:
 
-            if message.text == "🚚 آدرس پستی من":
+            if message.text == t(message, "menu_my_address") :
                 session['from my postal address'] = True
                 session_manager.set_user_session(message.chat.id, session, namespace="address")
                 loc.show_addresses()
-            elif session["state"] == "address_selection_street":
+            elif session.get("state") == "address_selection_street":
                 loc.handle_picked_street(message)
-            elif session["state"] == "address_selection_zipcode":
+            elif session.get("state") == "address_selection_zipcode":
                 loc.handle_picked_zipcode(message)
 
         elif call_data == "address_close":
@@ -855,13 +922,11 @@ def unified_address_handler(data):
             print("address_selection_city")
             loc.handle_picked_province(data)
         else:
-            app.send_message(message.chat.id, "دستور نامعتبر است.")
+            app.send_message(message.chat.id, t(message, "invalid_command"))
     except Address.DoesNotExist:
-        app.send_message(message.chat.id, "آدرس مورد نظر پیدا نشد.")
+        app.send_message(message.chat.id, t(message, "address_not_found"))
     except Exception as e:
         print(f"Error in unified_address_handler: {e}\n{traceback.format_exc()}")
-        chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
-        app.send_message(chat_id, f"خطایی در سیستم رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
 
 
 @app.message_handler(func=lambda message: (session_manager.get_user_session(message.chat.id, namespace="address") != {}) and (session_manager.get_user_session(message.chat.id, namespace="address")["change_postal"][0]))
@@ -887,13 +952,13 @@ def select_address(call):
 @app.callback_query_handler(func=lambda call: call.data.startswith(("change_postal",)))
 def change_postal(call):
     try:
-        app.answer_callback_query(call.id, text="تغییر کد پستی این آدرس", show_alert=False)
+        app.answer_callback_query(call.id, text=t(call.message, "change_postal_code"), show_alert=False)
         address_id = int(call.data.split("_")[-1])
         session = session_manager.get_user_session(call.message.chat.id, namespace="address")
         session["change_postal"] = tuple((True, address_id))
         session_manager.set_user_session(call.message.chat.id, session, namespace="address")
         
-        text = "لطفا کد پستی آدرس خود را وارد کنید"
+        text = t(call.message, "enter_postal_code")
 
         markup = SendMarkup(
                 bot=app,
@@ -951,7 +1016,7 @@ def handle_back(message):
             except IndexError as e:
                 if "list index out of range" in str(e):
                     fake_message = message
-                    fake_message.text = "🗂 دسته بندی ها"
+                    fake_message.text = t(message, "menu_categories")
                     category(fake_message)
         except Exception as e:
             app.send_message(message.chat.id, f"the error is: {e}")
@@ -961,39 +1026,31 @@ def handle_back(message):
 # fill address and phone nukber field for the payment link to be activated
 @app.callback_query_handler(func=lambda call: call.data == "phone_address_required")
 def address_phone_required(data):
-   app.answer_callback_query(data.id, "برای پرداخت ابتدا باید آدرس و شماره تماس خود را وارد کنید", show_alert=True) 
+   app.answer_callback_query(data.id, t(data.message, "address_and_phone_required"), show_alert=True) 
 
-
-
-
-# adding product
-try:
-    product_bot = ProductBot(app)
-    product_bot.register_handlers()
-    product_bot.register_handle_finish_attributes()
-except Exception as e:
-    error_details = traceback.format_exc()
-    print(f"{error_details}")
 
 
 # show balance
-@app.message_handler(func=lambda message: message.text == "💰 موجودی من")
+@app.message_handler(func=lambda message: message.text == t(message, "my_balance"))
 def my_balance(message):
     if subscription.subscription_offer(message):
         show_balance(message)
 
 
 # Buy products with code
-@app.message_handler(func=lambda message: message.text == "🔎 خرید با کد کالا")
+@app.message_handler(func=lambda message: message.text == t(message, "menu_buy_by_code"))
 def buy_with_code(message):
     if subscription.subscription_offer(message):
         ask_for_product_code(message)
 
 
+
+
+
 category_class = CategoryClass()
 
 
-@app.message_handler(func=lambda message: message.text == "🗂 دسته بندی ها")
+@app.message_handler(func=lambda message: message.text == t(message, "menu_categories"))
 def category(message):
     category_class.handle_category(message)
 
@@ -1002,45 +1059,6 @@ def category(message):
     lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)])
 def subcategory(message):
     category_class.handle_subcategory(message)
-
-
-
-# 10 products
-@app.message_handler(
-    func=lambda message: message.text in ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"])
-def handle_ten_products(message):
-    if subscription.subscription_offer(message):
-        session = session_manager.get_user_session(message.chat.id, namespace="menu")
-        current_menu = session["current_menu"]
-
-        if message.text == "پر تخفیف ها":
-            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
-                lower_title=current_menu.lower(), discount__gt=0, status=True, category__status=True
-            ).order_by("discount")[:10]
-        elif message.text == "پر فروش ترین ها":
-            app.send_message(message.chat.id, "🚧 با عرض پوزش هنوز این قابلیت فعال نشده است. 🚧")
-            return
-        elif message.text == "ارزان ترین ها":
-            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
-                lower_title=current_menu.lower(), status=True, category__status=True
-            ).order_by("-price")[:10]
-        elif message.text == "گران ترین ها":
-            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
-                lower_title=current_menu.lower(), status=True, category__status=True
-            ).order_by("price")[:10]
-
-
-        if not products.exists():
-            app.send_message(message.chat.id, "🚧 محصولی در این دسته بندی یافت نشد.🚧")
-            return
-
-        for product in products:
-            try:
-                product_handler = ProductHandler(app, product, current_site)
-                product_handler.send_product_message(message.chat.id)
-            except Exception as e:
-                app.send_message(message.chat.id, f"the error is: {e}")
-
 
 ##################################
 
@@ -1057,12 +1075,11 @@ def handle_product_code(message):
                     product = Product.objects.get(code=message.text, status=True, category__status=True)
                     try:
                         product_handler = ProductHandler(app, product, current_site)
-                        product_handler.send_product_message(app, message=message, product=product, current_site=current_site)
+                        product_handler.send_product_message(message.chat.id)
                     except Exception as e:
                         app.send_message(message.chat.id, f"the error is: {e}")
                 elif Product.objects.filter(code=message.text, status=False, category__status=True).exists():
-                    app.send_message(message.chat.id,
-                                     f"کالای مورد نظر توسط فروشنده غیر فعال شده است. \n\nبرای کسب اطلاع بیشتر با پشتیبانی این فروشنده ارتباط بگیربد.")
+                    app.send_message(message.chat.id, t(message, "product_disabled_by_seller"))
 
                 elif Product.objects.filter(code=message.text, status=True, category__status=False).exists():
                     print("here")
@@ -1070,10 +1087,9 @@ def handle_product_code(message):
                                      f"دسته بندی {Product.objects.get(code=message.text, status=True, category__status=False).category.title} توسط فروشنده غیرفعال شده است لذا همه کالاهای موجود در این دسته بندی از جمله کالای مورد نظر شما نیز غیر فعال هستند.\n\n برای کسب اطلاع بیشتر با پشتیبان این فروشگاه ارتباط بگیرید.")
 
             else:
-                app.send_message(chat_id, "🚫 قالب کدی که وارد کرده اید نادرست است. از صحت کد اطمینان حاصل کنید. ⛔️")
+                app.send_message(chat_id, t(message, "invalid_code"))
             app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
         except Exception as e:
-            app.send_message(message.chat.id, f"the error is: {e}")
             print(f"the error is: {e}")
 
 
@@ -1082,10 +1098,10 @@ def handle_product_code(message):
 
 
 # Handling the 'Support 👨🏻‍💻' button click event
-@app.message_handler(func=lambda message: message.text == "💬 پیام به پشتیبان")
+@app.message_handler(func=lambda message: message.text == t(message, "menu_support"))
 def sup(message):
     app.send_message(chat_id=message.chat.id,
-                     text="شروع مکالمه با پشتیبان...\n\nلطفا پیام های خود را ارسال کنید و پس از پایان دکمه پایان مکالمه را فشار دهید:")
+                     text=t(message, "start_support_chat"))
     app.set_state(user_id=message.from_user.id, state=Support.text, chat_id=message.chat.id)
 
 
@@ -1096,21 +1112,23 @@ def sup_text(message):
         sup_markup = types.InlineKeyboardMarkup()
         client_markup = types.InlineKeyboardMarkup()
 
-        sup_markup.add(types.InlineKeyboardButton(text="پاسخ", callback_data="پاسخ"))
-        client_markup.add(types.InlineKeyboardButton(text="پایان مکالمه", callback_data="پایان مکالمه"))
+        sup_markup.add(types.InlineKeyboardButton(text=t(message, "reply"), callback_data="پاسخ"))
+        client_markup.add(types.InlineKeyboardButton(text=t(message, "end_chat"), callback_data="پایان مکالمه"))
 
         app.send_message(chat_id=5629898030,
-                         text=f"Recived a message from <code>{message.from_user.id}</code> with username @{message.from_user.username}:\n\nMessage text:\n<b>{escape_special_characters(message.text)}</b>",
+                         text=t(message, "user_message_received", user_id=message.from_user.id, username=message.from_user.username, text=escape_special_characters(message.text))
+,
                          reply_markup=sup_markup, parse_mode="HTML")
 
-        app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!\n\n لطفا منتظر پاسخ پشتیبان بمانید 🙏🙏🙏",
+        app.send_message(chat_id=message.chat.id, text=t(message, "message_sent"),
                          reply_markup=client_markup)
 
         texts[message.from_user.id] = message.text
 
 
     except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+        error_message = traceback.format_exc()
+        print(f"your error is: {error_message}")
 
 
 # هندلر برای دکمه "ثبت نام می‌کنم"
@@ -1121,14 +1139,15 @@ def ask_username(message):
             app.send_message(message.chat.id, "ممکنه لطفا ایمیلت رو وارد کنی:")
             app.register_next_step_handler(message, pick_email)
         except Exception as e:
-            app.send_message(chat_id=message.chat.id, text=f"the error is: {e}")
+            error_message = traceback.format_exc()
+            print(f"your error is: {error_message}")
 
 
 # hadling any unralted message
 @app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
 def handle_message(message):
     if subscription.subscription_offer(message):
-        app.send_message(message.chat.id, "دستور نامعتبر است. لطفاً یکی از گزینه‌های منو را انتخاب کنید.")
+        app.send_message(message.chat.id, t(message, "command_not_found"))
 
 
 # Handling the callback query when the 'answer' button is clicked
@@ -1137,6 +1156,7 @@ def answer(call):
     try:
         pattern = r"Recived a message from \d+"
         clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
+        print( re.findall(pattern=pattern, string=clean_text))
         user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
 
         app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:",
@@ -1145,7 +1165,8 @@ def answer(call):
         app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
 
     except Exception as e:
-        app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+        error_message = traceback.format_exc()
+        print(f"your error is: {error_message}")
 
 
 # Handling the support agent's reply message which is saved in 'Support.respond' state
@@ -1189,7 +1210,8 @@ def terminate_chat(call):
             app.delete_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
             app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
         except Exception as e:
-            app.send_message(chat_id=call.message.chat.id, text=f"the error is: {e}")
+            error_message = traceback.format_exc()
+            print(f"your error is: {error_message}")
 
 
 ##################################

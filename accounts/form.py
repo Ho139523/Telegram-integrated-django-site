@@ -59,7 +59,7 @@ class AvatarImageForm(forms.ModelForm):
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = ProfileModel
-        fields = ['fname', 'lname', 'Phone', 'about_me', 'birthday', 'tweeter', 'instagram']
+        fields = ['fname', 'lname', 'phone', 'about_me', 'birthday', 'tweeter', 'instagram']
         
         widgets = {
                 'about_me': forms.TextInput(attrs={"placeholder": "Describe yourself and let others know you better", 'class': 'form-control d-none', 'id': 'aboutmeField'}),

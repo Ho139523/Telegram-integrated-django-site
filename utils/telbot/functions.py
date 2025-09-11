@@ -17,6 +17,7 @@ import urllib.parse
 import base64
 import uuid
 from django.core.cache import cache
+from utils.variables.translate import translations
 
 
 # send_product_message function
@@ -51,10 +52,7 @@ from utils.funcs.geonames_address import get_country_choices, get_province_choic
 
 
 def t(msg, key, **kwargs):
-    try:
-        from utils.variables.translate import translations
-        from telebot import types
-        
+    try:        
         if isinstance(msg, types.Message):
             message = msg
         else:
@@ -507,22 +505,35 @@ subscription = SubscriptionClass(app)
 ############################  SEND MENU  ############################
 
 # Helper function to send menu
-def send_menu(message, options, current_menu, extra_buttons=None):
-    """Send a menu with options and update the session."""
+def send_menu(message, options, current_menu, extra_buttons=None, cols=3):
+    """Send a translated menu with options and update the session."""
+
     if subscription.subscription_offer(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-        # Organize buttons into rows of three
-        rows = [options[i:i + 3] for i in range(0, len(options), 3)]
-        for row in rows:
-            markup.row(*row)
+        # زبان کاربر
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
+        lang = profile.lang if profile.lang else "fa"
 
-        # Add extra buttons
+        # ترجمه گزینه‌های اصلی
+        rows = [options[i:i + cols] for i in range(0, len(options), cols)]
+        for row in rows:
+            translated_row = [
+                translations.get(key, {}).get(lang, translations.get(key, {}).get("en", key))
+                for key in row
+            ]
+            markup.row(*translated_row)
+
+        # ترجمه گزینه‌های اضافه
         if extra_buttons:
             extra_rows = [extra_buttons[i:i + 2] for i in range(0, len(extra_buttons), 2)]
             for extra_row in extra_rows:
-                markup.row(*extra_row)
-        # Send the menu
+                translated_row = [
+                    translations.get(key, {}).get(lang, translations.get(key, {}).get("en", key))
+                    for key in extra_row
+                ]
+                markup.row(*translated_row)
+
         return markup
 
 
@@ -533,7 +544,7 @@ def handle_products(message):
     if subscription.subscription_offer(message):
         chat_id = message.chat.id
         subcategory = message.text
-        options = ["پر فروش ترین ها", "گران ترین ها", "ارزان ترین ها", "پر تخفیف ها"]
+        options = [t(message, "most_selling"), t(message, "most_expensive"), t(message, "cheapest"), t(message, "most_discounted")]
 
         markup = send_menu(message, options, "products", retun_menue)
         session = session_manager.get_user_session(chat_id, namespace="menu")
@@ -645,6 +656,8 @@ class ProductBot:
         ATTRIBUTES = "attributes"
         DELETE = "delete"
         DELETE_CONFIRM = "delete_confirm"
+        DEACTIVATE = "deactivate"
+        DEACTIVATE_CONFIRM = "deactivate_confirm"
 
         def __init__(self):
             self.user_menus = {}
@@ -659,7 +672,7 @@ class ProductBot:
 
     def register_handlers(self):
         """Register message handlers."""
-        self.bot.register_message_handler(self.cancle_request, func=lambda message: message.text == "منصرف شدم")
+        self.bot.register_message_handler(self.cancle_request, func=lambda message: message.text == t(message, "cancel_action"))
         self.bot.register_message_handler(self.get_name, func=self.is_state(self.ProductState.NAME))
         self.bot.register_message_handler(self.get_brand, func=self.is_state(self.ProductState.BRAND))
         self.bot.register_message_handler(self.get_price, func=self.is_state(self.ProductState.PRICE))
@@ -672,7 +685,10 @@ class ProductBot:
         self.bot.register_message_handler(self.get_main_image, func=self.is_state(self.ProductState.MAIN_IMAGE), content_types=["photo"])
         self.bot.register_message_handler(self.get_additional_images, func=self.is_state(self.ProductState.ADDITIONAL_IMAGES), content_types=["photo"])
         self.bot.register_message_handler(self.delete, func=self.is_state(self.ProductState.DELETE))
-        self.bot.register_message_handler(self.delete_sure, func=self.is_state(self.ProductState.DELETE_CONFIRM))
+        self.bot.register_message_handler(self.delete_confirm, func=self.is_state(self.ProductState.DELETE_CONFIRM))
+        self.bot.register_message_handler(self.deactivate, func=self.is_state(self.ProductState.DEACTIVATE))
+        self.bot.register_message_handler(self.deactivate_confirm, func=self.is_state(self.ProductState.DEACTIVATE_CONFIRM))
+        
 
 
     def is_state(self, state):
@@ -701,14 +717,14 @@ class ProductBot:
         self.set_state(message.chat.id, self.ProductState.BRAND)
 
         # ارسال منو برای وارد کردن برند
-        markup = send_menu(message, ["بدون برند"], message.text, ["منصرف شدم"])
-        self.bot.send_message(message.chat.id, "لطفاً برند محصول را وارد کنید (اختیاری):", reply_markup=markup)
+        markup = send_menu(message, [t(message, "no_brand")], message.text, [t(message, "cancel_action")])
+        self.bot.send_message(message.chat.id, t(message, "enter_product_brand"), reply_markup=markup)
 
 
     def get_brand(self, message: Message):
         # ذخیره برند در Redis
         state_manager = RedisStateManager(message.chat.id)
-        if message.text == "بدون برند":
+        if message.text == t(message, "no_brand"):
             state_manager.save_user_data("brand", None)
         else:
             state_manager.save_user_data("brand", message.text)
@@ -716,8 +732,8 @@ class ProductBot:
         self.set_state(message.chat.id, self.ProductState.PRICE)
 
         # ارسال منو برای وارد کردن قیمت
-        markup = send_menu(message, ["منصرف شدم"], message.text)
-        self.bot.send_message(message.chat.id, "لطفاً قیمت محصول را وارد کنید:", reply_markup=markup)
+        markup = send_menu(message, [t(message, "cancel_action")], message.text)
+        self.bot.send_message(message.chat.id, t(message, "enter_product_price"), reply_markup=markup)
 
 
 
@@ -729,9 +745,7 @@ class ProductBot:
             # بررسی اینکه قیمت معتبر است یا خیر
             if price < 10000:
                 self.bot.send_message(
-                    message.chat.id,
-                    "❌ قیمت وارد شده کمتر از حد مجاز (10000) است. لطفاً قیمتی معتبر وارد کنید:"
-                )
+                    message.chat.id, t(message, "final_price_too_low"))
                 return  # خروج از تابع تا کاربر دوباره قیمت وارد کند
 
             # ذخیره قیمت در Redis
@@ -740,13 +754,10 @@ class ProductBot:
             self.set_state(message.chat.id, self.ProductState.DISCOUNT)
 
             # ارسال پیام برای درخواست درصد تخفیف
-            self.bot.send_message(message.chat.id, "درصد تخفیف را وارد کنید:")
+            self.bot.send_message(message.chat.id, t(message, "enter_discount"))
         except ValueError:
             # مدیریت خطای تبدیل مقدار نامعتبر
-            self.bot.send_message(
-                message.chat.id,
-                "❌ قیمت باید یک عدد باشد! لطفاً دوباره تلاش کنید:"
-            )
+            self.bot.send_message(message.chat.id, t(message, "price_not_number"))
 
 
 
@@ -763,9 +774,7 @@ class ProductBot:
             # بررسی اینکه قیمت نهایی معتبر است یا خیر
             if final_price < 10000:
                 self.bot.send_message(
-                    message.chat.id,
-                    "❌ قیمت نهایی پس از تخفیف کمتر از حد مجاز (10000) است. لطفاً دوباره قیمت اصلی را وارد کنید:"
-                )
+                    message.chat.id, t(message, "final_price_too_low"))
                 self.set_state(message.chat.id, self.ProductState.PRICE)  # بازگشت به مرحله قیمت
                 return
 
@@ -774,12 +783,12 @@ class ProductBot:
             self.set_state(message.chat.id, self.ProductState.STOCK)
 
             # ارسال پیام برای دریافت توضیحات
-            self.bot.send_message(message.chat.id, "موجودی محصول را وارد کنید:")
+            self.bot.send_message(message.chat.id, t(message, "enter_stock"))
         except ValueError:
             # مدیریت خطای تبدیل مقدار نامعتبر
             self.bot.send_message(
                 message.chat.id,
-                "❌ درصد تخفیف باید یک عدد باشد! لطفاً دوباره تلاش کنید:"
+                t(message, "discount_not_number")
             )
 
 
@@ -793,12 +802,12 @@ class ProductBot:
             state_manager = RedisStateManager(message.chat.id)
             state_manager.save_user_data("stock", stock)
 
-            markup = send_menu(message, ["فعال", "غیر فعال"], message.text, ["منصرف شدم"])
-            app.send_message(message.chat.id, "آیا وضعیت کالا فعال است؟:", reply_markup=markup)
+            markup = send_menu(message, [t(message, "active_adj"), t(message, "inactive_adj")], message.text, [t(message, "cancel_action")])
+            app.send_message(message.chat.id, t(message, "enter_status"), reply_markup=markup)
             self.set_state(message.chat.id, self.ProductState.STATUS)
 
         except ValueError:
-            self.bot.send_message(message.chat.id, "موجودی باید یک عدد صحیح باشد!")
+            self.bot.send_message(message.chat.id, t(message, "balance_not_integer"))
 
 
 
@@ -808,7 +817,7 @@ class ProductBot:
 
             # ذخیره وضعیت موجود بودن کالا در Redis
             state_manager = RedisStateManager(message.chat.id)
-            if status == "فعال":
+            if status == t(message, "active_adj"):
                 state_manager.save_user_data("status", True)
             else:
                 state_manager.save_user_data("status", False)
@@ -841,7 +850,7 @@ class ProductBot:
                             markup = send_menu(message, category_titles, parent_category_title or "انتخاب دسته‌بندی", retun_menue)
                             self.bot.send_message(
                                 message.chat.id,
-                                "لطفاً دسته‌بندی مناسب برای کالای خود را انتخاب کنید:",
+                                t(message,"choose_category"),
                                 reply_markup=markup
                             )
                         else:
@@ -849,18 +858,15 @@ class ProductBot:
                             state_manager.save_user_data("current_menu", None)
                             categories = Category.objects.filter(parent__isnull=True, status=True)
                             category_titles = [category.title for category in categories]
-                            markup = send_menu(message, category_titles, "انتخاب دسته‌بندی اصلی", home_menu)
+                            markup = send_menu(message, category_titles, "main category selection", home_menu)
                             self.bot.send_message(
                                 message.chat.id,
-                                "لطفاً دسته‌بندی اصلی را انتخاب کنید:",
+                                t(message, ""),
                                 reply_markup=markup
                             )
                     except Category.DoesNotExist:
                         # اگر دسته‌بندی قبلی معتبر نبود
-                        self.bot.send_message(
-                            message.chat.id,
-                            "دسته‌بندی قبلی معتبر نیست. لطفاً دوباره انتخاب کنید."
-                        )
+                        self.bot.send_message(message.chat.id, t(message, "invalid_previous_category"))
                 return
 
             # بررسی دسته‌بندی والد
@@ -878,18 +884,13 @@ class ProductBot:
             # نمایش دسته‌بندی‌ها
             if category_titles:
                 markup = send_menu(message, category_titles, parent_category_title or "انتخاب دسته‌بندی", menu_type)
-                self.bot.send_message(
-                    message.chat.id,
-                    "لطفاً دسته‌بندی مناسب برای کالای خود را انتخاب کنید:",
-                    reply_markup=markup
-                )
+                self.bot.send_message(message.chat.id, t(message, "choose_category"), reply_markup=markup)
                 state_manager = RedisStateManager(message.chat.id)
                 state_manager.save_user_data("current_menu", parent_category_title)  # ذخیره منوی فعلی در Redis
                 self.set_state(message.chat.id, self.ProductState.CATEGORY)
 
         except Exception as e:
-            self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-            print(f"Error: {e}")
+            print(f"Error: {e} \n\n {traceback.format_exc()}")
 
 
 
@@ -907,7 +908,7 @@ class ProductBot:
 
             # بررسی وجود دسته‌بندی انتخابی
             elif not Category.objects.filter(title__iexact=selected_category_title, status=True).exists():
-                self.bot.send_message(message.chat.id, "دسته‌بندی انتخابی معتبر نیست. لطفاً دوباره انتخاب کنید.")
+                self.bot.send_message(message.chat.id, t(message, "invalid_selected_category"))
                 return
 
             # ذخیره عنوان دسته‌بندی انتخابی در Redis
@@ -926,22 +927,22 @@ class ProductBot:
 
             # ذخیره دسته‌بندی به صورت دیکشنری در Redis
             state_manager.save_user_data("category", category_data)
-
+            print("ya")
             # بررسی زیر دسته‌ها
             if selected_category.get_next_layer_categories():
                 # نمایش زیر دسته‌ها
                 self.display_category_menu(message, selected_category_title)
             else:
                 # پایان فرآیند انتخاب دسته‌بندی
-                self.bot.send_message(message.chat.id, f"دسته‌بندی انتخاب شده: {selected_category.get_full_path()}")
+                self.bot.send_message(message.chat.id, t(message, "selected_category", cat=selected_category.get_full_path()))
 
                 # ذخیره دسته‌بندی در Redis (این ذخیره‌سازی دیگر به صورت دیکشنری است)
                 state_manager.save_user_data("category", category_data)
 
                 self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
                 main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
-                markup = send_menu(message, ["توضیحات ندارد"], "main menu", ["منصرف شدم"])
-                self.bot.send_message(message.chat.id, "لطفاً توضیحات محصول را وارد کنید (اختیاری):", reply_markup=markup)
+                markup = send_menu(message, [t(message, "no_description")], "main menu", [t(message, "cancel_action")])
+                self.bot.send_message(message.chat.id, t(message, "enter_description"), reply_markup=markup)
 
         except Exception as e:
             error_details = traceback.format_exc()
@@ -956,7 +957,7 @@ class ProductBot:
         state_manager.save_user_data("product_attributes", {})
 
         # ذخیره توضیحات محصول در Redis
-        if message.text == "توضیحات ندارد":
+        if message.text == t(message, "no_description"):
             state_manager.save_user_data("description", None)
         else:
             state_manager.save_user_data("description", message.text)
@@ -966,18 +967,18 @@ class ProductBot:
 
         # ایجاد دکمه پایان
         markup = types.InlineKeyboardMarkup()
-        finish_button = types.InlineKeyboardButton(text="هیچ ویژگی تبلیغاتی مد نظرم نیست ...!", callback_data="finish_attributes")
+        finish_button = types.InlineKeyboardButton(text=t(message, "no_ads_features"), callback_data="finish_attributes")
         markup.add(finish_button)
 
         # ارسال پیام برای درخواست ویژگی‌های تبلیغاتی
         self.bot.send_message(
             message.chat.id,
-            "لطفاً ویژگی‌های تبلیغاتی محصول را یک به یک بنویسید و در انتها دکمه پایان را ارسال کنید.",
+            t(message, "enter_ads_features"),
             reply_markup=markup
         )
 
         # ارسال منو اصلی
-        markup = send_menu(message, [], "main menu", ["منصرف شدم"])
+        markup = send_menu(message, [], "main menu", [t(message, "cancel_action")])
         self.bot.edit_message_reply_markup(
             chat_id=message.chat.id,
             message_id=message.message_id,
@@ -990,7 +991,7 @@ class ProductBot:
     def get_product_attributes(self, message: Message):
         # نمایش پیام برای وارد کردن ویژگی‌های محصول
         markup = types.InlineKeyboardMarkup()
-        finish_button = types.InlineKeyboardButton(text="پایان", callback_data="finish_attributes")
+        finish_button = types.InlineKeyboardButton(text=t(message, "finish"), callback_data="finish_attributes")
         markup.add(finish_button)
 
         key = message.text.split(":")[0]  # کلید ویژگی (مانند "وزن")
@@ -1009,7 +1010,7 @@ class ProductBot:
 
         self.bot.send_message(
             message.chat.id,
-            "لطفاً ویژگی‌های تبلیغاتی محصول را یک به یک بنویسید و در انتها دکمه پایان را ارسال کنید.",
+            t(message, "enter_ads_features"),
             reply_markup=markup
         )
         self.set_state(message.chat.id, self.ProductState.ATTRIBUTES)  # وضعیت به حالت ویژگی‌های محصول تغییر می‌کن
@@ -1020,7 +1021,7 @@ class ProductBot:
 
             # تغییر وضعیت به تصویر اصلی
             self.set_state(chat_id, self.ProductState.MAIN_IMAGE)
-            self.bot.send_message(chat_id, "لطفاً تصویر اصلی محصول را ارسال کنید:")
+            self.bot.send_message(chat_id, t(callback_query.message, "send_main_image"))
         except Exception as e:
             self.bot.send_message(callback_query.message.chat.id, "خطا در ذخیره ویژگی رخ داده است.")
             print(f"Error: {e}")
@@ -1043,7 +1044,7 @@ class ProductBot:
 
                 # تغییر وضعیت به مرحله بعدی (تصاویر اضافی)
                 self.set_state(message.chat.id, self.ProductState.ADDITIONAL_IMAGES)
-                self.bot.send_message(message.chat.id, "لطفاً 3 تصویر اضافی برای محصول ارسال کنید:")
+                self.bot.send_message(message.chat.id, t(message, "send_three_more_images"))
             else:
                 self.bot.send_message(message.chat.id, "خطا در ذخیره تصویر اصلی رخ داده است.")
         except Exception as e:
@@ -1125,13 +1126,12 @@ class ProductBot:
 
                 # ارسال پیام موفقیت
                 markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu, message.text, ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu)
-                self.bot.send_message(message.chat.id, "اطلاعات محصول با موفقیت ثبت شد!", reply_markup=markup)
+                self.bot.send_message(message.chat.id, t(message, "product_saved"), reply_markup=markup)
                 self.reset_state(message.chat.id)
             else:
-                self.bot.send_message(message.chat.id, f"لطفاً {3 - len(additional_images)} تصویر دیگر ارسال کنید:")
+                self.bot.send_message(message.chat.id, t(message, "send_extra_images", pic_num=3 - len(additional_images)))
 
         except Exception as e:
-            self.bot.send_message(message.chat.id, f"خطایی رخ داده است: {e}\nجزئیات:\n{error_message}")
             print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
 
 
@@ -1139,7 +1139,7 @@ class ProductBot:
 
     def delete(self, message: Message):
         try:
-            if message.text == "منصرف شدم":
+            if message.text == t(message, "cancel_action"):
                 self.cancle_request(message)
             else:
                 code = message.text
@@ -1153,14 +1153,14 @@ class ProductBot:
                     state_manager = RedisStateManager(message.chat.id)
                     state_manager.save_user_data("product_code", code)
 
-                    menu = ["بله مطمئنم", "منصرف شدم"]
+                    menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
                     markup = send_menu(message, menu, "main menu", home_menu)
-                    self.bot.send_message(message.chat.id, f"آیا از حذف این کالا اطمینان داری؟", reply_markup=markup)
+                    self.bot.send_message(message.chat.id, t(message, "confirm_delete_product"), reply_markup=markup)
                     self.set_state(message.chat.id, self.ProductState.DELETE_CONFIRM)
-                    self.bot.register_next_step_handler(message, self.delete_sure)
+                    self.bot.register_next_step_handler(message, self.delete_confirm)
 
                 except Product.DoesNotExist:
-                    self.bot.send_message(message.chat.id, "کالایی با این کد وجود ندارد.")
+                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
                     return
         except Exception as e:
             error_message = traceback.format_exc()  # دریافت Traceback کامل
@@ -1169,7 +1169,7 @@ class ProductBot:
 
 
 
-    def delete_sure(self, message, product):
+    def delete_confirm(self, message):
         try:
             print("hi")
             state_manager = RedisStateManager(message.chat.id)
@@ -1179,7 +1179,7 @@ class ProductBot:
             if product_code:
                 try:
                     product = Product.objects.get(code=product_code)
-                    if message.text == "بله مطمئنم":
+                    if message.text == t(message, "yes_im_sure"):
                         # حذف محصول از دیتابیس
                         product.delete()
                         print("yes")
@@ -1188,15 +1188,15 @@ class ProductBot:
                         main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
                         extra_button_menu = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
                         markup = send_menu(message, main_menu, "main menu", extra_button_menu)
-                        self.bot.send_message(message.chat.id, f"کالای مورد نظر با موفقیت حذف شد.", reply_markup=markup)
+                        self.bot.send_message(message.chat.id, t(message, "product_deleted"), reply_markup=markup)
 
-                    elif message.text == "منصرف شدم":
+                    elif message.text == t(message, "cancel_action"):
                         self.cancle_request(message)
                         return
 
                     self.reset_state(message.chat.id)
                 except Product.DoesNotExist:
-                    self.bot.send_message(message.chat.id, "کالایی با این کد وجود ندارد.")
+                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
                     return
             else:
                 self.bot.send_message(message.chat.id, "کد محصول ذخیره نشده است.")
@@ -1206,8 +1206,77 @@ class ProductBot:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
             print(f"Error: {e}")
 
+    def deactivate(self, message):
+        try:
+            if message.text == t(message, "cancel_action"):
+                self.cancle_request(message)
+            else:
+                code = message.text
+                try:
+                    product = Product.objects.get(code=code)
+                    # ارسال پیام محصول به کاربر
+                    producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir:8443')
+                    producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
+                    # ذخیره اطلاعات محصول در Redis
+                    state_manager = RedisStateManager(message.chat.id)
+                    state_manager.save_user_data("product_code", code)
 
+                    menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
+                    markup = send_menu(message, menu, "main menu", home_menu)
+                    action_text = t(message, "deactivate") if product.status else t(message, "activate")
+                    msg_text = t(message, "confirm_toggle_product", action=action_text)
+                    self.bot.send_message(message.chat.id, msg_text, reply_markup=markup)
+                    self.set_state(message.chat.id, self.ProductState.DEACTIVATE_CONFIRM)
+                    self.bot.register_next_step_handler(message, self.deactivate_confirm)
+
+                except Product.DoesNotExist:
+                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
+                    return
+        except Exception as e:
+            error_message = traceback.format_exc()  # دریافت Traceback کامل
+            print(f"Error in handle_buttons: {e}\n{error_message}")
+
+    def deactivate_confirm(self, message):
+        try:
+            state_manager = RedisStateManager(message.chat.id)
+
+            # بازیابی کد محصول از Redis
+            product_code = state_manager.get_user_data("product_code")
+            if product_code:
+                try:
+                    product = Product.objects.get(code=product_code)
+                    if message.text == t(message, "yes_im_sure"):
+                        # حذف محصول از دیتابیس
+                        if product.status:
+                            product.status = False
+                            product.save()
+                        else:
+                            product.status = True
+                            product.save()
+
+                        # ارسال پیام موفقیت‌آمیز به کاربر
+                        main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
+                        extra_button_menu = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
+                        markup = send_menu(message, main_menu, "main menu", extra_button_menu)
+                        action_text = t(message, "activated") if product.status else t(message, "deactivated")
+                        self.bot.send_message(message.chat.id, t(message, "product_toggled", action=action_text), reply_markup=markup)
+
+                    elif message.text == t(message, "cancel_action"):
+                        self.cancle_request(message)
+                        return
+
+                    self.reset_state(message.chat.id)
+                except Product.DoesNotExist:
+                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
+                    return
+            else:
+                self.bot.send_message(message.chat.id, "کد محصول ذخیره نشده است.")
+                return
+            
+        except Exception as e:
+            self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+            print(f"Error: {e}")
 
     def cancle_request(self, message):
         try:
@@ -1217,7 +1286,8 @@ class ProductBot:
                 main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
                 extra_button_menu = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
                 markup = send_menu(message, main_menu, "main menu", extra_button_menu)
-                self.bot.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
+                session_manager.reset_user_session(message.chat.id, namespace="menu")
+                self.bot.send_message(message.chat.id, t(message, "home_message"), reply_markup=markup)
                 self.reset_state(message.chat.id)
                 return
         except Exception as e:
@@ -1231,7 +1301,7 @@ class ProductBot:
 def send_payment_link(app, context):
     chat_id = update.message.chat_id
     email = "example@test.com"  # ایمیل کاربر
-    mobile = ProfileModel.objects.get(tel_id=chat_id).Phone  # شماره موبایل کاربر
+    mobile = ProfileModel.objects.get(tel_id=chat_id).phone  # شماره موبایل کاربر
     amount = 100000  # مبلغ پرداخت
     description = "توضیحات کالا"
 
@@ -1242,13 +1312,21 @@ def send_payment_link(app, context):
 
 ############################  SEND PRODUCT MESSAGE  ############################
 
+from telethon import Button
+import traceback
+from telethon.tl.types import InputMediaPhoto
+
 class ProductHandler:
     """مدیریت ارسال پیام و اطلاعات محصول"""
-    def __init__(self, app, product, current_site):
+    def __init__(self, app, product, current_site, photos=None, attributes=None):
         self.app = app
         self.product = product
         self.current_site = current_site
         self.user_manager = UserOrderManager()
+
+        # داده‌ها از بیرون پاس داده می‌شوند (ORM-free inside async)
+        self.photos = photos or []
+        self.attributes = attributes or []
 
     def format_price(self):
         formatted_price = "{:,.0f}".format(float(self.product.price))
@@ -1264,11 +1342,12 @@ class ProductHandler:
     def generate_caption(self):
         brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
-        attributes = self.product.attributes.filter(product=self.product)
 
         attribute_text = ""
-        if attributes.exists():
-            attribute_text = "\n✅ ".join([f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in attributes])
+        if self.attributes:
+            attribute_text = "\n✅ ".join(
+                [f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in self.attributes]
+            )
             attribute_text = f"✅ {attribute_text}\n\n"
 
         return (
@@ -1277,10 +1356,48 @@ class ProductHandler:
             f"کد کالا: {self.product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
-            f"🔘 فروش با ضمانت ارویجینال💯\n"
+            f"🔘 فروش با ضمانت اوریجینال💯\n"
             f"📫 ارسال به تمام نقاط کشور\n\n"
             f"{self.format_price()}\n"
         )
+
+    async def send_product_channel(self, chat_id, buttons=True):
+        try:
+            if not self.photos:
+                # فقط متن
+                await self.app.send_message(
+                    chat_id,
+                    self.generate_caption(),
+                    parse_mode="html",
+                    buttons=[[Button.inline("🛒 همین حالا بخرش", b"buy_now")]] if buttons else None
+                )
+                return
+
+            files = self.photos[:10]  # حداکثر 10 فایل
+            print("📸 Files to send:", files)
+
+            # ارسال آلبوم:
+            # کپشن فقط روی اولین عکس
+            input_files = [
+                await self.app.upload_file(files[0])
+            ] + [
+                await self.app.upload_file(f) for f in files[1:]
+            ]
+
+            await self.app.send_file(
+                chat_id,
+                input_files,
+                caption=self.generate_caption(),   # کپشن روی اولین عکس
+                parse_mode="html",
+                buttons=[Button.inline("🛒 همین حالا بخرش", b"buy_now")]
+            )
+
+            print("✅ آلبوم با کپشن روی اولین عکس ارسال شد.")
+
+        except Exception as e:
+            error_message = traceback.format_exc()
+            print(f"⚠ خطا در ارسال محصول: {e}\n{error_message}")
+
 
     def send_product_message(self, chat_id, buttons=True):
         """ارسال پیام و عکس محصول"""
@@ -1290,15 +1407,18 @@ class ProductHandler:
                      ] + [
                          types.InputMediaPhoto(open(i.image.path, 'rb')) for i in self.product.image_set.all()
                      ]
+            print(photos)
 
             if len(photos) > 10:
-                photos = photos[:10]
+                photos = photos[:10]  # محدود کردن به 10 عکس
+
             self.app.send_media_group(chat_id, media=photos)
             if buttons:
                 self.send_buttons(chat_id)
         except Exception as e:
             error_message = traceback.format_exc()  # دریافت Traceback کامل
             print(f"Error in handle_buttons: {e}\n{error_message}")
+
 
     def send_buttons(self, chat_id):
         try:
@@ -1747,14 +1867,14 @@ class SendCart:
             if len(address_text)>40:
                 address_text = address_text[:40] + "..."
                 
-            phone_text = (f"{profile.Phone}" if profile.Phone else ' --- ')
+            phone_text = (f"{profile.phone}" if profile.phone else ' --- ')
 
             payment_link = self.pay(update)
 
             buttons = {
                 f"آدرس: {address_text}": {"callback_data": "address", "index": 1},
                 f"شماره تماس: {phone_text}": {"callback_data": "phone", "index": 2},
-                "پرداخت": {"url": payment_link, "index": 3} if address and profile.Phone else {"callback_data": "phone_address_required", "index": 3},
+                "پرداخت": {"url": payment_link, "index": 3} if address and profile.phone else {"callback_data": "phone_address_required", "index": 3},
             }
 
             self.markup = SendMarkup(
@@ -2510,7 +2630,7 @@ class SendPhone:
             self.chat_id = message_or_call.chat.id if hasattr(message_or_call, 'chat') else message_or_call.message.chat.id
             self.message = message_or_call if isinstance(message_or_call, types.Message) else message_or_call.message
             self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
-            self.user_phone = self.profile.Phone
+            self.user_phone = self.profile.phone
         except Exception as e:
             error_details = traceback.format_exc()
             custom_message = f"Error in SendPhone init: {e}\nDetails:\n{error_details}"
@@ -2557,7 +2677,7 @@ class SendPhone:
             self.app.delete_message(self.chat_id, data["old_message"])
 
             num = int(message.text)
-            self.profile.Phone = num
+            self.profile.phone = num
             self.profile.save()
             SendCart(self.app, self.message).invoice(self.message)
             self.session_manager.reset_user_session(message.chat.id, namespace="phone")

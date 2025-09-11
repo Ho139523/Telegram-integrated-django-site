@@ -190,7 +190,6 @@ class Product(models.Model):
     )
     description = models.TextField(blank=True, null=True, verbose_name='Description')
     main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')
-    additional_images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
     code = models.CharField(max_length=10, unique=True, editable=False, blank=True)  # فیلد کد ده رقمی
     store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='product_store', verbose_name='Store')
 
@@ -242,20 +241,13 @@ class Product(models.Model):
 
 
 class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='product_images/', verbose_name='Product Image')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='image_set', verbose_name='Product')  # تغییر related_name
 
     def __str__(self):
-        return f"Image: {self.id}"
-        
-    def delete(self, *args, **kwargs):
-        # حذف فایل تصویر از سیستم
-        if self.image and os.path.isfile(self.image.path):
-            os.remove(self.image.path)
-        
-        super().delete(*args, **kwargs)  # حذف رکورد از دیتابیس
-        
-        
+        return f"{self.product.name} - Image {self.id}"
+
+    
         
 class ProductAttribute(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='attributes')

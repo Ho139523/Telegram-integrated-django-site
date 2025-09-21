@@ -355,7 +355,7 @@ def product(message):
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session['product'] = True
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
-            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "my_products_list")], "product", home_menue)
+            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "change"), t(message, "my_products_list")], "product", home_menue)
             app.send_message(message.chat.id, t(message, "what_action_on_product"), reply_markup=markup)
         else:
             app.send_message(message.chat.id, t(message, "not_a_seller_edit_products"))
@@ -368,9 +368,9 @@ def category(message):
         if profile.seller_mode:
             home_menue = ["🏡"]
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
-            session['product'] = False
+            session['category'] = True
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
-            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate")], "category", home_menue)
+            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "change")], "category", home_menue)
             app.send_message(message.chat.id, t(message, "what_action_on_category"), reply_markup=markup)
 
         else:
@@ -622,6 +622,7 @@ def sale_statistics(message):
         error_message = traceback.format_exc()
         app.send_message(message.chat.id, f"your error is: {error_message}")
 
+
 @app.message_handler(func=lambda message: message.text == t(message, "menu_add") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
 def add_product(message):
     """Start the product addition process."""
@@ -633,6 +634,9 @@ def add_product(message):
                     product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
                     markup = send_menu(message, [t(message, "cancel_action")], message.text)
                     app.send_message(message.chat.id, t(message, "enter_product_name"), reply_markup=markup)
+                    session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                    session['product'] = False
+                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
                 except Exception as e:
                     print(e)
             else:
@@ -642,7 +646,19 @@ def add_product(message):
         print(f"{error_details}")
 
 
-@app.message_handler(func=lambda message: message.text == t(message, "menu_delete") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
+@app.message_handler(func=lambda m: m.text == t(m, "menu_delete"))
+def delete_handler(message):
+    session = session_manager.get_user_session(message.chat.id, namespace="menu")
+
+    if session.get("category"):
+        # Category deletion
+        category_class.handle_category(message)
+
+    elif session.get("product"):
+        # Product deletion
+        remove_product(message)
+
+
 def remove_product(message):
     """Start the product deletion process."""
     try:
@@ -653,6 +669,9 @@ def remove_product(message):
                     product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
                     markup = send_menu(message, [], "deletion", [t(message, "cancel_action")])
                     product_bot.bot.send_message(message.chat.id, t(message, "enter_product_code_to_delete"), reply_markup=markup)
+                    session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                    session['product'] = False
+                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
                 except Exception as e:
                     print(e)
             else:
@@ -660,6 +679,7 @@ def remove_product(message):
     except Exception as e:
         error_details = traceback.format_exc()
         print(f"{error_details}")
+
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_deactivate") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
 def deactivate(message):
@@ -1059,6 +1079,17 @@ def category(message):
     lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)])
 def subcategory(message):
     category_class.handle_subcategory(message)
+
+@app.message_handler(func=lambda message: message.text == t(message, "delete_category_and_subcategories"))
+def delete_cat_subcat(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        current_category = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
+        category_class.delete_sure(message)
+        message.text = current_category.get_parents()[1].title
+        category_class.handle_subcategory(message)
+    except Exception as e:
+        print(traceback.format_exc())
 
 ##################################
 

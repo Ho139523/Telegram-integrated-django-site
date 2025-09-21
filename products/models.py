@@ -186,7 +186,7 @@ class Product(models.Model):
     stock = models.PositiveIntegerField(default=0, verbose_name='Stock')
     status = models.BooleanField(default=True, verbose_name='Status')
     category = models.ForeignKey(
-        'Category', on_delete=models.SET_NULL, null=True, related_name='products', verbose_name='Category'
+        'Category', on_delete=models.CASCADE, null=True, related_name='products', verbose_name='Category'
     )
     description = models.TextField(blank=True, null=True, verbose_name='Description')
     main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')

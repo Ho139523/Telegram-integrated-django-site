@@ -18,6 +18,8 @@ import base64
 import uuid
 from django.core.cache import cache
 from utils.variables.translate import translations
+from django.db.models.functions import Lower
+
 
 
 # send_product_message function
@@ -562,9 +564,11 @@ class CategoryClass:
     def handle_category(self, message):
         if subscription.subscription_offer(message):
             try:
+                session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                text = t(message, "delete_category_title_prompt") + "\n\n" + t(message, "delete_category_warning") if session.get("category") else "کالایی که دنبالشی جزو کدام دسته است"
                 cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
                 markup = send_menu(message, cats, message.text, ["🏡"])
-                app.send_message(message.chat.id, "کالایی که دنبالشی جزو کدام دسته است", reply_markup=markup)
+                app.send_message(message.chat.id, text, reply_markup=markup)
             except Exception as e:
                 app.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
                 print(f"Error: {e}")
@@ -578,12 +582,23 @@ class CategoryClass:
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
                 session["current_menu"] = message.text.title()
                 session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                
 
                 if children == []:
-                    fake_message = message
-                    fake_message.text = "hi"
-                    handle_products(fake_message)
+                    if session.get("category"):
+                        print(current_category)
+                        print(session.get("current_menu"))
+                        self.delete_sure(message)
+                        message.text = current_category.get_parents()[0].title
+                        self.handle_subcategory(message)
+                    else:
+                        fake_message = message
+                        fake_message.text = "hi"
+                        handle_products(fake_message)
                 else:
+                    if session.get("category"):
+                        button = t(message, "delete_category_and_subcategories")
+                        retun_menue.append(button) if button not in retun_menue else retun_menue
                     markup = send_menu(message, children, message.text, retun_menue)
                     app.send_message(
                         message.chat.id,
@@ -592,8 +607,18 @@ class CategoryClass:
                     )
         except Exception as e:
             app.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-            print(f"Error: {e}")
+            print(f"Error: {traceback.format_exc()}")
 
+    def delete_sure(self, message):
+        try:
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
+            print(cat)
+            print(session.get("current_menu"))
+            cat.delete()
+        except Exception as e:
+            print(traceback.format_exc())
+        
 
 ############################  ADD PRODUCT  ############################
 
@@ -1365,7 +1390,7 @@ class ProductHandler:
         try:
             if not self.photos:
                 # فقط متن
-                await self.app.send_message(
+                msg = await self.app.send_message(
                     chat_id,
                     self.generate_caption(),
                     parse_mode="html",
@@ -1384,13 +1409,14 @@ class ProductHandler:
                 await self.app.upload_file(f) for f in files[1:]
             ]
 
-            await self.app.send_file(
+            msg = await self.app.send_file(
                 chat_id,
                 input_files,
                 caption=self.generate_caption(),   # کپشن روی اولین عکس
                 parse_mode="html",
-                buttons=[Button.inline("🛒 همین حالا بخرش", b"buy_now")]
             )
+
+            self.app.send_message(chat_id, "To see the comments on this product or make the purchase click", parse_mode="html", buttons=[[Button.inline("🛒 همین حالا بخرش", b"buy_now")]])
 
             print("✅ آلبوم با کپشن روی اولین عکس ارسال شد.")
 
@@ -1405,7 +1431,7 @@ class ProductHandler:
             photos = [
                          types.InputMediaPhoto(open(self.product.main_image.path, 'rb'), caption=self.generate_caption(), parse_mode='HTML')
                      ] + [
-                         types.InputMediaPhoto(open(i.image.path, 'rb')) for i in self.product.image_set.all()
+                         types.InputMediaPhoto(open(i.image.path, 'rb')) for i in self.product.images.all()
                      ]
             print(photos)
 

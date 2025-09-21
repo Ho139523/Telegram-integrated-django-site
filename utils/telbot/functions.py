@@ -565,7 +565,12 @@ class CategoryClass:
         if subscription.subscription_offer(message):
             try:
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                text = t(message, "delete_category_title_prompt") + "\n\n" + t(message, "delete_category_warning") if session.get("category") else "کالایی که دنبالشی جزو کدام دسته است"
+                if not session.get("category"):
+                    text = t(message, "product_category_question")
+                elif session.get("category") and not session.get("cat_delete_sure"):
+                    text = t(message, "delete_category_title_prompt") + "\n\n" + t(message, "delete_category_warning")
+                else:
+                    text = t(message, "category_deleted_successfully")
                 cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
                 markup = send_menu(message, cats, message.text, ["🏡"])
                 app.send_message(message.chat.id, text, reply_markup=markup)
@@ -590,7 +595,7 @@ class CategoryClass:
                         print(session.get("current_menu"))
                         self.delete_sure(message)
                         message.text = current_category.get_parents()[0].title
-                        self.handle_subcategory(message)
+                        # self.handle_subcategory(message)
                     else:
                         fake_message = message
                         fake_message.text = "hi"
@@ -600,22 +605,25 @@ class CategoryClass:
                         button = t(message, "delete_category_and_subcategories")
                         retun_menue.append(button) if button not in retun_menue else retun_menue
                     markup = send_menu(message, children, message.text, retun_menue)
-                    app.send_message(
-                        message.chat.id,
-                        f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}",
-                        reply_markup=markup
-                    )
+                    if session.get("cat_delete_sure"):
+                        text = t(message, "category_deleted_successfully")
+                    else:
+                        text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
+                    app.send_message(message.chat.id, text, reply_markup=markup)
         except Exception as e:
-            app.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
             print(f"Error: {traceback.format_exc()}")
 
     def delete_sure(self, message):
         try:
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
-            cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
-            print(cat)
+            session["cat_delete_sure"] = True
+            markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', home_menu)
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+            app.send_message(message.chat.id, t(message, "confirm_delete_category"), reply_markup=markup)
+            # cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
+            # print(cat)
             print(session.get("current_menu"))
-            cat.delete()
+            # cat.delete()
         except Exception as e:
             print(traceback.format_exc())
         

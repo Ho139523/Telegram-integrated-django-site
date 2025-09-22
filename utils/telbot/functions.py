@@ -580,7 +580,6 @@ class CategoryClass:
                 print(f"Error: {e}")
 
     def handle_subcategory(self, message):
-        print("meme")
         try:
             if subscription.subscription_offer(message):
                 current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
@@ -593,8 +592,6 @@ class CategoryClass:
 
                 if children == []:
                     if session.get("category"):
-                        print(current_category)
-                        print(session.get("current_menu"))
                         self.delete_sure(message)
                         try:
                             message.text = current_category.get_parents()[0].title
@@ -602,17 +599,24 @@ class CategoryClass:
                             self.handle_category(message)
                         # self.handle_subcategory(message)
                     else:
-                        fake_message = message
-                        fake_message.text = "hi"
-                        handle_products(fake_message)
+                        if session.get('product_cat_selection'):
+                            a = ProductBot(app)
+                            a.get_category(message)
+                        else:
+                            fake_message = message
+                            fake_message.text = "hi"
+                            handle_products(fake_message)
                 else:
                     if session.get("category"):
+                        print('yayaya')
                         button = t(message, "delete_category_and_subcategories")
                         retun_menue.append(button) if button not in retun_menue else retun_menue
                     markup = send_menu(message, children, message.text, retun_menue)
                     if session.get("cat_delete_sure"):
                         text = t(message, "category_deleted_successfully")
                     else:
+                        button = t(message, "delete_category_and_subcategories")
+                        retun_menue.remove(button) if button in retun_menue else None
                         text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
                     app.send_message(message.chat.id, text, reply_markup=markup)
         except Exception as e:
@@ -860,78 +864,16 @@ class ProductBot:
             else:
                 state_manager.save_user_data("status", False)
 
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session['product_cat_selection'] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
             # نمایش منوی دسته‌بندی اصلی
-            self.display_category_menu(message, None)
+            cat = CategoryClass()
+            cat.handle_category(message)
 
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
             print(f"Error: {e}")
-
-
-
-
-    def display_category_menu(self, message, parent_category_title=None):
-        print("me")
-        try:
-            # مدیریت دکمه بازگشت
-            if message.text == "🔙":
-                state_manager = RedisStateManager(message.chat.id)
-                previous_menu = state_manager.get_user_data("current_menu")
-
-                if previous_menu:
-                    try:
-                        parent_category = Category.objects.get(title__iexact=previous_menu, status=True)
-
-                        if parent_category.parent:
-                            # بازگشت به دسته‌بندی والد
-                            state_manager.save_user_data("current_menu", parent_category.parent.title)
-                            category_titles = Category.objects.filter(parent=parent_category.parent, status=True).values_list("title", flat=True)
-                            markup = send_menu(message, category_titles, parent_category_title or "انتخاب دسته‌بندی", retun_menue)
-                            self.bot.send_message(
-                                message.chat.id,
-                                t(message,"choose_category"),
-                                reply_markup=markup
-                            )
-                        else:
-                            # بازگشت به منوهای سطح اول
-                            state_manager.save_user_data("current_menu", None)
-                            categories = Category.objects.filter(parent__isnull=True, status=True)
-                            category_titles = [category.title for category in categories]
-                            markup = send_menu(message, category_titles, "main category selection", home_menu)
-                            self.bot.send_message(
-                                message.chat.id,
-                                t(message, ""),
-                                reply_markup=markup
-                            )
-                    except Category.DoesNotExist:
-                        # اگر دسته‌بندی قبلی معتبر نبود
-                        self.bot.send_message(message.chat.id, t(message, "invalid_previous_category"))
-                return
-
-            # بررسی دسته‌بندی والد
-            if not parent_category_title:
-                categories = Category.objects.filter(parent__isnull=True, status=True)
-                menu_type = home_menu  # اگر دسته‌بندی والد ندارد، از home_menu استفاده کنید
-            else:
-                parent_category = Category.objects.get(title__iexact=parent_category_title, status=True)
-                categories = parent_category.get_next_layer_categories()
-                menu_type = retun_menue  # اگر دسته‌بندی والد دارد، از retun_menue استفاده کنید
-
-            # استخراج عنوان دسته‌بندی‌ها
-            category_titles = [category.title for category in categories]
-
-            # نمایش دسته‌بندی‌ها
-            if category_titles:
-                markup = send_menu(message, category_titles, parent_category_title or "انتخاب دسته‌بندی", menu_type)
-                self.bot.send_message(message.chat.id, t(message, "choose_category"), reply_markup=markup)
-                state_manager = RedisStateManager(message.chat.id)
-                state_manager.save_user_data("current_menu", parent_category_title)  # ذخیره منوی فعلی در Redis
-                self.set_state(message.chat.id, self.ProductState.CATEGORY)
-
-        except Exception as e:
-            print(f"Error: {e} \n\n {traceback.format_exc()}")
-
-
 
 
 
@@ -979,7 +921,6 @@ class ProductBot:
                 state_manager.save_user_data("category", category_data)
 
                 self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
-                main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
                 markup = send_menu(message, [t(message, "no_description")], "main menu", [t(message, "cancel_action")])
                 self.bot.send_message(message.chat.id, t(message, "enter_description"), reply_markup=markup)
 

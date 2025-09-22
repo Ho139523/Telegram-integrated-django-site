@@ -1192,15 +1192,16 @@ def cat_delete(message):
         print(traceback.format_exc())
 
 
-product_bot = ProductBot(app)
-product_bot.register_handlers()
-product_bot.register_handle_finish_attributes()
-
 @app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in Category.objects.annotate(
     lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)])
 def subcategory(message):
     category_class = CategoryClass()
     category_class.handle_subcategory(message)
+
+product_bot = ProductBot(app)
+product_bot.register_handlers()
+product_bot.register_handle_finish_attributes()
+
 
 ##################################### END CATEGROY #####################################
 

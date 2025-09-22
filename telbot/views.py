@@ -348,22 +348,6 @@ def settings(message):
         app.send_message(message.chat.id, t(message, "settings_message"), reply_markup=markup)
 
 
-@app.message_handler(func=lambda message: message.text == t(message, "product"))
-def product(message):
-    if subscription.subscription_offer(message):
-        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-        if profile.seller_mode:
-            home_menue = ["🏡"]
-            session = session_manager.get_user_session(message.chat.id, namespace="menu")
-            session['product'] = True
-            session_manager.set_user_session(message.chat.id, session, namespace="menu")
-            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "change"), t(message, "my_products_list")], "product", home_menue)
-            app.send_message(message.chat.id, t(message, "what_action_on_product"), reply_markup=markup)
-        else:
-            app.send_message(message.chat.id, t(message, "not_a_seller_edit_products"))
-
-
-
 # profile settings handler
 @app.message_handler(func=lambda message: message.text in (translations["menu_profile"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
 def profile_setting(message):
@@ -601,71 +585,6 @@ def sale_statistics(message):
         error_message = traceback.format_exc()
         app.send_message(message.chat.id, f"your error is: {error_message}")
 
-
-@app.message_handler(func=lambda message: message.text == t(message, "menu_add") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
-def add_product(message):
-    """Start the product addition process."""
-    try:
-        if subscription.subscription_offer(message):
-            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-            if profile.seller_mode:
-                try:
-                    product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
-                    markup = send_menu(message, [t(message, "cancel_action")], message.text)
-                    app.send_message(message.chat.id, t(message, "enter_product_name"), reply_markup=markup)
-                    session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                    session['product'] = False
-                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                except Exception as e:
-                    print(e)
-            else:
-                app.send_message(message.chat.id, t(message, "not_a_seller_add_product"))
-    except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"{error_details}")
-
-
-
-def remove_product(message):
-    """Start the product deletion process."""
-    try:
-        if subscription.subscription_offer(message):
-            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-            if profile.seller_mode:
-                try:
-                    product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
-                    markup = send_menu(message, [], "deletion", [t(message, "cancel_action")])
-                    product_bot.bot.send_message(message.chat.id, t(message, "enter_product_code_to_delete"), reply_markup=markup)
-                    session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                    session['product'] = False
-                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                except Exception as e:
-                    print(e)
-            else:
-                app.send_message(message.chat.id, t(message, "not_a_seller_delete_product"))
-    except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"{error_details}")
-
-
-@app.message_handler(func=lambda message: message.text == t(message, "menu_deactivate") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
-def deactivate(message):
-    try:
-        if subscription.subscription_offer(message):
-            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-            if profile.seller_mode:
-                product_bot.set_state(message.chat.id, product_bot.ProductState.DEACTIVATE)
-                markup = send_menu(message, [], "deactivation", [t(message, "cancel_action")])
-                app.send_message(message.chat.id, t(message, "enter_product_code_to_deactivate"), reply_markup=markup)
-            else:
-                app.send_message(message.chat.id, t(message, "not_a_seller_deactivate"))
-    except Exception as e:
-        custom_error = f"Error in deactivate handler: {e}\n\n{traceback.format_exc()}"
-        print(custom_error)
-
-# product_bot = ProductBot(app)
-# product_bot.register_handlers()
-# product_bot.register_handle_finish_attributes()
 
 @app.callback_query_handler(
     func=lambda call: "increase" in call.data or "decrease" in call.data or "remove" in call.data)
@@ -1031,45 +950,6 @@ def buy_with_code(message):
         ask_for_product_code(message)
 
 
-
-
-
-category_class = CategoryClass()
-
-
-@app.message_handler(func=lambda message: message.text == t(message, "menu_categories"))
-def category(message):
-    category_class.handle_category(message)
-
-
-@app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in Category.objects.annotate(
-    lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)])
-def subcategory(message):
-    category_class.handle_subcategory(message)
-
-@app.message_handler(func=lambda message: message.text == t(message, "delete_category_and_subcategories"))
-def delete_cat_subcat(message):
-    try:
-        category_class.delete_sure(message)
-    except Exception as e:
-        print(traceback.format_exc())
-
-@app.message_handler(func=lambda message: message.text == t(message, "yes_im_sure") and session_manager.get_user_session(message.chat.id, namespace="menu").get("cat_delete_sure"))
-def cat_delete(message):
-    try:
-        session = session_manager.get_user_session(message.chat.id, namespace="menu")
-        cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
-        # cat.delete()
-        try:
-            message.text = cat.get_parents()[0].title
-            category_class.handle_subcategory(message)
-        except:
-            category_class.handle_category(message)
-    except Exception as e:
-        print(traceback.format_exc())
-
-
-
 ##################################
 
 
@@ -1152,12 +1032,184 @@ def ask_username(message):
             error_message = traceback.format_exc()
             print(f"your error is: {error_message}")
 
+##################################### PRODUCT #####################################
+
+@app.message_handler(func=lambda message: message.text == t(message, "product"))
+def product(message):
+    if subscription.subscription_offer(message):
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        if profile.seller_mode:
+            home_menue = ["🏡"]
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session['product'] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "change"), t(message, "my_products_list")], "product", home_menue)
+            app.send_message(message.chat.id, t(message, "what_action_on_product"), reply_markup=markup)
+        else:
+            app.send_message(message.chat.id, t(message, "not_a_seller_edit_products"))
+
+
+
+@app.message_handler(func=lambda m: m.text == t(m, "menu_add"))
+def add_handler(message):
+    session = session_manager.get_user_session(message.chat.id, namespace="menu")
+
+    if session.get("category"):
+        # Category deletion
+        category_class.handle_category(message)
+
+    elif session.get("product"):
+        # Product deletion
+        add_product(message)
+
+
+def add_product(message):
+    """Start the product addition process."""
+    try:
+        if subscription.subscription_offer(message):
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            if profile.seller_mode:
+                try:
+                    product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
+                    markup = send_menu(message, [t(message, "cancel_action")], message.text)
+                    app.send_message(message.chat.id, t(message, "enter_product_name"), reply_markup=markup)
+                    session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                    session['product'] = False
+                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                except Exception as e:
+                    print(e)
+            else:
+                app.send_message(message.chat.id, t(message, "not_a_seller_add_product"))
+    except Exception as e:
+        error_details = traceback.format_exc()
+        print(f"{error_details}")
+
+
+
+def remove_product(message):
+    """Start the product deletion process."""
+    try:
+        if subscription.subscription_offer(message):
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            if profile.seller_mode:
+                try:
+                    product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
+                    markup = send_menu(message, [], "deletion", [t(message, "cancel_action")])
+                    product_bot.bot.send_message(message.chat.id, t(message, "enter_product_code_to_delete"), reply_markup=markup)
+                    session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                    session['product'] = False
+                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                except Exception as e:
+                    print(e)
+            else:
+                app.send_message(message.chat.id, t(message, "not_a_seller_delete_product"))
+    except Exception as e:
+        error_details = traceback.format_exc()
+        print(f"{error_details}")
+
+
+@app.message_handler(func=lambda message: message.text == t(message, "menu_deactivate") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
+def deactivate(message):
+    try:
+        if subscription.subscription_offer(message):
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            if profile.seller_mode:
+                product_bot.set_state(message.chat.id, product_bot.ProductState.DEACTIVATE)
+                markup = send_menu(message, [], "deactivation", [t(message, "cancel_action")])
+                app.send_message(message.chat.id, t(message, "enter_product_code_to_deactivate"), reply_markup=markup)
+            else:
+                app.send_message(message.chat.id, t(message, "not_a_seller_deactivate"))
+    except Exception as e:
+        custom_error = f"Error in deactivate handler: {e}\n\n{traceback.format_exc()}"
+        print(custom_error)
+
+
+##################################### END OF PRODUCT #####################################
+
+##################################### CATEGORY #####################################
+
+@app.message_handler(func=lambda message: message.text == t(message, "category"))
+def category(message):
+    if subscription.subscription_offer(message):
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        if profile.seller_mode:
+            home_menue = ["🏡"]
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session['category'] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "change")], "category", home_menue)
+            app.send_message(message.chat.id, t(message, "what_action_on_category"), reply_markup=markup)
+
+        else:
+            app.send_message(message.chat.id, t(message, "not_a_seller_edit_categories"))
+
+
+
+@app.message_handler(func=lambda m: m.text == t(m, "menu_delete"))
+def delete_handler(message):
+    session = session_manager.get_user_session(message.chat.id, namespace="menu")
+
+    if session.get("category"):
+        # Category deletion
+        category_class = CategoryClass()
+        category_class.handle_category(message)
+
+    elif session.get("product"):
+        # Product deletion
+        remove_product(message)
+
+
+
+
+
+@app.message_handler(func=lambda message: message.text == t(message, "menu_categories"))
+def category(message):
+    category_class = CategoryClass()
+    category_class.handle_category(message)
+
+
+@app.message_handler(func=lambda message: message.text == t(message, "delete_category_and_subcategories"))
+def delete_cat_subcat(message):
+    try:
+        category_class = CategoryClass()
+        category_class.delete_sure(message)
+    except Exception as e:
+        print(traceback.format_exc())
+
+@app.message_handler(func=lambda message: message.text == t(message, "yes_im_sure") and session_manager.get_user_session(message.chat.id, namespace="menu").get("cat_delete_sure"))
+def cat_delete(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
+        cat.delete()
+        category_class = CategoryClass()
+        try:
+            message.text = cat.get_parents()[0].title
+            category_class.handle_subcategory(message)
+        except:
+            category_class.handle_category(message)
+    except Exception as e:
+        print(traceback.format_exc())
+
+
+product_bot = ProductBot(app)
+product_bot.register_handlers()
+product_bot.register_handle_finish_attributes()
+
+@app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in Category.objects.annotate(
+    lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)])
+def subcategory(message):
+    category_class = CategoryClass()
+    category_class.handle_subcategory(message)
+
+##################################### END CATEGROY #####################################
 
 # hadling any unralted message
 @app.message_handler(func=lambda message: app.get_state(user_id=message.from_user.id, chat_id=message.chat.id) is None)
 def handle_message(message):
     if subscription.subscription_offer(message):
         app.send_message(message.chat.id, t(message, "command_not_found"))
+
 
 
 # Handling the callback query when the 'answer' button is clicked
@@ -1276,6 +1328,7 @@ def check_website_subscription(call):
         else:
             # Buy Process
             pass
+
 
 
 # email validation
@@ -1512,41 +1565,3 @@ def save_shipping_address(message, shipping_line1, shipping_line2, shipping_coun
 
 
 app.add_custom_filter(custom_filters.StateFilter(app))
-
-##################################### CATEGORY #####################################
-
-@app.message_handler(func=lambda message: message.text == t(message, "category"))
-def category(message):
-    if subscription.subscription_offer(message):
-        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-        if profile.seller_mode:
-            home_menue = ["🏡"]
-            session = session_manager.get_user_session(message.chat.id, namespace="menu")
-            session['category'] = True
-            session_manager.set_user_session(message.chat.id, session, namespace="menu")
-            markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "change")], "category", home_menue)
-            app.send_message(message.chat.id, t(message, "what_action_on_category"), reply_markup=markup)
-
-        else:
-            app.send_message(message.chat.id, t(message, "not_a_seller_edit_categories"))
-
-
-
-@app.message_handler(func=lambda m: m.text == t(m, "menu_delete"))
-def delete_handler(message):
-    session = session_manager.get_user_session(message.chat.id, namespace="menu")
-
-    if session.get("category"):
-        # Category deletion
-        category_class.handle_category(message)
-
-    elif session.get("product"):
-        # Product deletion
-        remove_product(message)
-
-
-product_bot = ProductBot(app)
-product_bot.register_handlers()
-product_bot.register_handle_finish_attributes()
-
-##################################### END CATEGROY #####################################

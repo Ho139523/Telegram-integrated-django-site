@@ -562,6 +562,7 @@ class CategoryClass:
         pass
 
     def handle_category(self, message):
+        print("heme")
         if subscription.subscription_offer(message):
             try:
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
@@ -579,6 +580,7 @@ class CategoryClass:
                 print(f"Error: {e}")
 
     def handle_subcategory(self, message):
+        print("meme")
         try:
             if subscription.subscription_offer(message):
                 current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
@@ -594,7 +596,10 @@ class CategoryClass:
                         print(current_category)
                         print(session.get("current_menu"))
                         self.delete_sure(message)
-                        message.text = current_category.get_parents()[0].title
+                        try:
+                            message.text = current_category.get_parents()[0].title
+                        except:
+                            self.handle_category(message)
                         # self.handle_subcategory(message)
                     else:
                         fake_message = message
@@ -866,6 +871,7 @@ class ProductBot:
 
 
     def display_category_menu(self, message, parent_category_title=None):
+        print("me")
         try:
             # مدیریت دکمه بازگشت
             if message.text == "🔙":

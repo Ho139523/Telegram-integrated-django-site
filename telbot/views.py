@@ -1,5 +1,6 @@
 # General imports
 import re
+from traceback import format_exc
 from telebot import TeleBot, types
 from collections import defaultdict
 import requests
@@ -26,7 +27,7 @@ from telebot.handler_backends import State, StatesGroup
 from telebot import custom_filters
 
 # Variables imports
-from utils.variables.TOKEN import TOKEN
+from utils.variables.TOKEN import TOKEN, BOT_ID
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
 from utils.telbot.functions import ProductHandler, SendCart, SendLocation, SendMarkup, t
@@ -193,6 +194,17 @@ def download_profile_photo(telegram_user_id, profile):
         return False
 
 
+def get_user_store(message):
+    """Return the store belonging to the profile sending this message."""
+    profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+    if not profile.seller_mode:
+        return None
+    try:
+        return Store.objects.get(owner=profile)
+    except Store.DoesNotExist:
+        return None
+
+
 ####################################################################################################
 
 
@@ -256,6 +268,35 @@ def handle_activation_account(message):
         app.send_message(message.chat.id, f"خطا: {e}")  # Log error
 
 
+@app.message_handler(func=lambda message: message.text.startswith("/start store_"))
+def handle_store_product_start(message):
+    try:
+        parts = message.text.split("_")
+        if len(parts) != 4:  # باید بشه: /start store {store_id} product {product_id}
+            app.send_message(message.chat.id, "لینک خرید معتبر نیست.")
+            return
+
+        _, store_id, _, product_id = parts  # /start store_5_product_12
+
+        
+
+        # ست کردن فروشگاه جاری
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        profile.server_store = Store.objects.get(id=store_id)
+        profile.seller_mode = False
+        profile.save()
+
+        start(message)
+
+        product_handler = ProductHandler(app, Product.objects.get(id=product_id), current_site)
+        product_handler.send_product_message(message.chat.id)
+
+    
+    except Exception as e:
+        print(traceback.format_exc())
+        app.send_message(message.chat.id, f"⚠ خطا در پردازش لینک خرید: {e}")
+
+
 # Start handler
 @app.message_handler(commands=['start'])
 def start(message):
@@ -268,18 +309,6 @@ def start(message):
         response = requests.post(f"{current_site}/telbot/api/check-registration/", json={"tel_id": tel_id})
         print(response.status_code)
 
-        if response.status_code == 201:
-            app.send_message(
-                message.chat.id,
-                f"🏆 Dear {tel_first_name}, you have successfully signed up.\n\n",
-            )
-        else:
-            print("why")
-            app.send_message(
-                message.chat.id,
-                t(message, "already_signedup", tel_first_name=tel_first_name),
-            )
-
         profile, created = ProfileModel.objects.get_or_create(tel_id=tel_id, telegram=tel_username,
                                                               fname=tel_first_name, lname=tel_last_name)
 
@@ -287,18 +316,16 @@ def start(message):
 
         if created:
             print("yes")
-        if subscription.subscription_offer(message):
-            # Display the main menu
-            main_menu = profile.tel_menu
-            extra_buttons = profile.extra_button_menu
-            markup = send_menu(message, main_menu, "main_menu", extra_buttons)
-            app.send_message(message.chat.id, t(message, "choose_option"), reply_markup=markup)
+            language_setting(message)
+        else:
+            home(message)
 
     except Exception as e:
         error_details = traceback.format_exc()
         custom_message = f"An error occurred in start handler: {e}\nDetails:\n{error_details}"
         app.send_message(message.chat.id, t(message, "start_error"))
         print(custom_message)
+
 
 
 #####################################################################################################
@@ -324,6 +351,7 @@ def home(message, text=None):
     if subscription.subscription_offer(message):
         session_manager.reset_user_session(message.chat.id, namespace="address")
         session_manager.reset_user_session(message.chat.id, namespace="menu")
+        print(session_manager.get_user_session(message.chat.id, namespace="menu"))
         profile = ProfileModel.objects.get(tel_id=id)
         markup = send_menu(message, profile.tel_menu, "main_menu", profile.extra_button_menu)
         if not text:
@@ -361,7 +389,7 @@ def profile_setting(message):
 @app.message_handler(func=lambda message: message.text == translations["menu_balance"][ProfileModel.objects.get(tel_id=message.chat.id).lang])
 def balance_menue(message):
     if subscription.subscription_offer(message):
-        options = ["💰 موجودی من", "💳 افزایش موجودی"]
+        options = [t(message, "my_balance"), t(message, "increase_balance")]
         home_menue = ["🏡"]
         markup = send_menu(message, options, "balance_category", home_menue)
         app.send_message(message.chat.id, t(message, "balance_menue"), reply_markup=markup)
@@ -399,7 +427,7 @@ def become_a_seller(message):
     if subscription.subscription_offer(message):
         try:
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-            Store.objects.get(profile=ProfileModel.objects.get(tel_id=message.from_user.id))
+            Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.from_user.id))
             profile.seller_mode = True
             profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
             profile.save()
@@ -420,8 +448,7 @@ def back_to_buyer(message):
         profile.save()
         profile.save()
 
-        markup = send_menu(message, profile.tel_menu, "settings", profile.extra_button_menu)
-        app.send_message(message.chat.id, t(message, "home_message"), reply_markup=markup)
+        home(message)
 
 
 import os
@@ -443,7 +470,7 @@ def sale_statistics(message):
     try:
         if subscription.subscription_offer(message):
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-            store = Store.objects.filter(profile=profile).first()
+            store = Store.objects.filter(owner=profile).first()
 
             if not store:
                 app.send_message(message.chat.id, t(message, "sale_statistics_no_store"))
@@ -451,7 +478,7 @@ def sale_statistics(message):
 
             if profile.seller_mode:
                 try:
-                    sales = Sale.objects.filter(seller=Store.objects.get(profile=profile)).order_by("-created_at")
+                    sales = Sale.objects.filter(seller=Store.objects.get(owner=profile)).order_by("-created_at")
 
                     if not sales.exists():
                         app.send_message(message.chat.id, t(message, "sale_statistics_no_sale"), parse_mode="HTML")
@@ -462,7 +489,7 @@ def sale_statistics(message):
                     if not os.path.exists(directory):
                         os.makedirs(directory)
 
-                    file_path = os.path.join(directory, f"{store.name}_{store.profile.fname} {store.profile.lname}_{today_date}.pdf")
+                    file_path = os.path.join(directory, f"{store.name}_{store.owner.fname} {store.owner.lname}_{today_date}.pdf")
                     font_path = os.path.join(sett.MEDIA_ROOT, "fonts", "Vazir.ttf")
                     pdfmetrics.registerFont(TTFont("Vazir", font_path))
 
@@ -1042,6 +1069,7 @@ def product(message):
             home_menue = ["🏡"]
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session['product'] = True
+            session['category'] = False
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
             markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "change"), t(message, "my_products_list")], "product", home_menue)
             app.send_message(message.chat.id, t(message, "what_action_on_product"), reply_markup=markup)
@@ -1053,9 +1081,12 @@ def product(message):
 @app.message_handler(func=lambda m: m.text == t(m, "menu_add"))
 def add_handler(message):
     session = session_manager.get_user_session(message.chat.id, namespace="menu")
+    session["menu_add"] = True
+    session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
     if session.get("category"):
         # Category deletion
+        category_class = CategoryClass()
         category_class.handle_category(message)
 
     elif session.get("product"):
@@ -1074,7 +1105,7 @@ def add_product(message):
                     markup = send_menu(message, [t(message, "cancel_action")], message.text)
                     app.send_message(message.chat.id, t(message, "enter_product_name"), reply_markup=markup)
                     session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                    session['product'] = False
+                    session['add_product'] = True
                     session_manager.set_user_session(message.chat.id, session, namespace="menu")
                 except Exception as e:
                     print(e)
@@ -1087,29 +1118,25 @@ def add_product(message):
 
 
 def remove_product(message):
-    """Start the product deletion process."""
+    """Start the product deletion process (only own store)."""
     try:
         if subscription.subscription_offer(message):
-            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-            if profile.seller_mode:
-                try:
-                    product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
-                    markup = send_menu(message, [], "deletion", [t(message, "cancel_action")])
-                    product_bot.bot.send_message(message.chat.id, t(message, "enter_product_code_to_delete"), reply_markup=markup)
-                    session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                    session['product'] = False
-                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                except Exception as e:
-                    print(e)
+            store = get_user_store(message)
+            if store:
+                product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
+                markup = send_menu(message, [], "deletion", [t(message, "cancel_action")])
+                app.send_message(message.chat.id, t(message, "enter_product_code_to_delete"), reply_markup=markup)
+                session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                session['product'] = False
+                session_manager.set_user_session(message.chat.id, session, namespace="menu")
             else:
                 app.send_message(message.chat.id, t(message, "not_a_seller_delete_product"))
-    except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"{error_details}")
+    except Exception:
+        print(traceback.format_exc())
 
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_deactivate") and session_manager.get_user_session(message.chat.id, namespace="menu")["product"])
-def deactivate(message):
+def deactivate_product(message):
     try:
         if subscription.subscription_offer(message):
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
@@ -1135,6 +1162,7 @@ def category(message):
         if profile.seller_mode:
             home_menue = ["🏡"]
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session['product'] = False
             session['category'] = True
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
             markup = send_menu(message, [t(message, "menu_add"), t(message, "menu_delete"), t(message, "menu_deactivate"), t(message, "change")], "category", home_menue)
@@ -1148,6 +1176,8 @@ def category(message):
 @app.message_handler(func=lambda m: m.text == t(m, "menu_delete"))
 def delete_handler(message):
     session = session_manager.get_user_session(message.chat.id, namespace="menu")
+    session["menu_delete"] = True
+    session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
     if session.get("category"):
         # Category deletion
@@ -1159,6 +1189,60 @@ def delete_handler(message):
         remove_product(message)
 
 
+@app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in Category.objects.annotate(
+    lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)]
+    and not session_manager.get_user_session(message.chat.id, namespace="menu").get("add_product"))
+def subcategory(message):
+    category_class = CategoryClass()
+    category_class.handle_subcategory(message)
+
+
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="menu").get("category") and
+                    session_manager.get_user_session(message.chat.id, namespace="menu").get("menu_add"))
+def get_new_category(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
+        store = Store.objects.get(owner=profile) if profile.seller_mode else profile.server_store
+
+        # Decide parent
+        parent_title = session.get("parent_for_new")
+        parent = None
+        if parent_title:
+            parent = Category.objects.filter(title__iexact=parent_title, status=True).first()
+
+        # Create category
+        cat = Category.objects.create(
+            title=message.text,
+            slug=message.text,
+            status=True,
+            parent=parent,
+            store=store
+        )
+
+        # Update session (stay in same parent unless user navigates elsewhere)
+        if parent:
+            session["current_menu"] = parent.title
+            session["parent_for_new"] = parent.title   # 🔑 keep parent locked
+        else:
+            session["current_menu"] = None
+            session["parent_for_new"] = None
+
+        session["get_new_category"] = False
+        session_manager.set_user_session(message.chat.id, session, namespace="menu")
+
+        # Refresh menu
+        category_class = CategoryClass()
+        if parent:
+            message.text = parent.title
+            category_class.handle_subcategory(message)
+        else:
+            category_class.handle_category(message)
+
+    except Exception:
+        print(traceback.format_exc())
 
 
 
@@ -1176,27 +1260,58 @@ def delete_cat_subcat(message):
     except Exception as e:
         print(traceback.format_exc())
 
-@app.message_handler(func=lambda message: message.text == t(message, "yes_im_sure") and session_manager.get_user_session(message.chat.id, namespace="menu").get("cat_delete_sure"))
+@app.message_handler(func=lambda message: message.text == t(message, "yes_im_sure"))
 def cat_delete(message):
     try:
-        session = session_manager.get_user_session(message.chat.id, namespace="menu")
-        cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
-        cat.delete()
-        category_class = CategoryClass()
-        try:
-            message.text = cat.get_parents()[0].title
+        if session_manager.get_user_session(message.chat.id, namespace="menu").get("delete_sure"):
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
+            cat.delete()
+            category_class = CategoryClass()
+            try:
+                message.text = cat.get_parents()[0].title
+                category_class.handle_subcategory(message)
+            except:
+                if not cat.store.categories.exists():
+                    home(message)
+                    return
+                category_class.handle_category(message)
+        elif session_manager.get_user_session(message.chat.id, namespace="menu").get("deactivate_category_sure"):
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
+            cat.status = False
+            cat.save()
+            parent = cat.get_parents()[0].title
+            message.text = parent
+            category_class = CategoryClass()
             category_class.handle_subcategory(message)
-        except:
-            category_class.handle_category(message)
+
     except Exception as e:
         print(traceback.format_exc())
 
 
-@app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in Category.objects.annotate(
-    lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)])
-def subcategory(message):
+@app.message_handler(func=lambda message: message.text == t(message, "menu_deactivate") and session_manager.get_user_session(message.chat.id, namespace="menu").get("category"))
+def deactivate_category(message):
+    try:
+        if subscription.subscription_offer(message):
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            if profile.seller_mode:
+                session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                session["category_deactivate"] = True
+                session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                category_class = CategoryClass()
+                category_class.handle_category(message)
+            else:
+                app.send_message(message.chat.id, t(message, "not_a_seller_deactivate"))
+    except Exception as e:
+        custom_error = f"Error in deactivate handler: {e}\n\n{traceback.format_exc()}"
+        print(custom_error)
+
+
+@app.message_handler(func=lambda message: message.text in [t(message, "deactivate_category"), t(message, "activate_category")])
+def confirm_deactivate_category(message):
     category_class = CategoryClass()
-    category_class.handle_subcategory(message)
+    category_class.deactivate_category_sure(message)
 
 product_bot = ProductBot(app)
 product_bot.register_handlers()
@@ -1286,12 +1401,15 @@ def terminate_chat(call):
 # show balance
 def show_balance(message):
     # Example: Fetch and send user balance
-    if subscription.subscription_offer(message):
-        user_id = message.from_user.id
-        balance = ProfileModel.objects.get(tel_id=user_id).credit
-        formatted_balance = "{:,.2f}".format(float(balance))
-        app.send_message(message.chat.id, f"موجودی شما: {formatted_balance} تومان")
-
+    try:
+        if subscription.subscription_offer(message):
+            user_id = message.from_user.id
+            balance = ProfileModel.objects.get(tel_id=user_id).credit
+            formatted_balance = "{:,.2f}".format(float(balance))
+            app.send_message(message.chat.id, t(message, "user_balance", formatted_balance=formatted_balance))
+    except:
+        app.send_message(message.chat.id, traceback.format_exc())
+    
 
 def ask_for_product_code(message):
     if subscription.subscription_offer(message):
@@ -1454,7 +1572,7 @@ def pick_password2(message, email, username, password, current_site=current_site
                 download_profile_photo(message.from_user.id, profile)
 
                 mail_subject = 'Activation link has been sent to your email id'
-                telegram_activation_link = f"https://t.me/hussein2079_bot?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
+                telegram_activation_link = f"https://t.me/{BOT_ID}_bot?start=activate_{urlsafe_base64_encode(force_bytes(user.pk))}_{generate_token.make_token(user)}"
 
                 message_content = render_to_string('registration/acc_active_email.html', {
                     'user': user,

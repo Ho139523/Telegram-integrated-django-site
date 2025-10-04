@@ -1,141 +1,138 @@
+import asyncio
+import traceback
+import time
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Category
+from django.conf import settings
+from asgiref.sync import sync_to_async
+
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+from telebot import TeleBot, types
+
+from products.models import Product, ProductImage, Category
+from accounts.models import ProfileModel
+from utils.telbot.functions import ProductHandler
+from utils.variables.TOKEN import TOKEN, api_id, api_hash, BOT_ID
+from utils.variables.translate import translations
 
 
+# --- CONFIG ---
+API_ID = api_id
+API_HASH = api_hash
+SESSION_STRING = settings.TG_SESSION_STRING
+BOT_TOKEN = TOKEN
+CURRENT_SITE = "https://intelium.ir:8443"
+
+bot = TeleBot(BOT_TOKEN)
+
+
+# --- Translation Helper ---
+@sync_to_async
+def async_helper(product):
+    """
+    دریافت tel_id و lang صاحب فروشگاه به صورت sync_to_async
+    """
+    store = product.store
+    
+    return store.owner.lang, store.id, product.id
+
+
+async def t(lang, key, **kwargs):
+    """
+    تابع ترجمه‌ی متن با توجه به زبان کاربر
+    """
+    try:
+        text = translations.get(key, {}).get(lang, translations[key]["en"])
+        if kwargs:
+            text = text.format(**kwargs)
+        return text
+    except Exception as e:
+        print(f"⚠ Translation error for key '{key}': {e}")
+        return translations.get(key, {}).get("en", key)
+
+
+# --- Signal: Category status cascade ---
 @receiver(post_save, sender=Category)
 def update_subcategories_status(sender, instance, **kwargs):
     """
-    سیگنال برای به‌روزرسانی وضعیت تمام زیردسته‌های یک دسته‌بندی
-    وقتی وضعیت دسته‌بندی والد به False تغییر کند.
+    وقتی دسته‌بندی غیر فعال شود، تمام زیردسته‌های آن هم غیر فعال می‌شوند
     """
-    if not instance.status:  # اگر وضعیت دسته‌بندی False باشد
-        subcategories = instance.get_all_subcategories()  # دریافت تمام زیردسته‌های
+    if not instance.status:
+        subcategories = instance.get_all_subcategories()
         for subcategory in subcategories:
-            subcategory.status = False  # وضعیت زیردسته‌ها را به False تغییر دهید
-            subcategory.save()  # ذخیره تغییرات
-            
-            
-            
-import requests
-from products.models import Product, ProductAttribute, ProductImage
-from utils.variables.TOKEN import TOKEN  # توکن ربات تلگرام شما
-from telebot import TeleBot, types
-from utils.telbot.functions import ProductHandler  # ایمپورت تابع ارسال محصول
-from telbot.sessions import CartSessionManager, RedisStateManager
-from telbot.sessions import session_manager
+            subcategory.status = False
+            subcategory.save()
 
 
-app = TeleBot(token=TOKEN)  # ایجاد شیء ربات تلگرام
+# --- Async Telegram Sending ---
+async def send_album_and_button(channel_id, product, photos):
+    """
+    آلبوم محصول را با Telethon می‌فرستد و سپس دکمه Buy Now را با TeleBot ارسال می‌کند
+    """
+    try:
+        client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+        await client.connect()
 
-# @receiver(post_save, sender=Product)
-# def send_product_to_channel(sender, instance, created, **kwargs):
-#     """
-#     وقتی محصول جدید ساخته شد، پیامش به کانال مربوط به فروشگاه ارسال شود.
-#     زیر پیام هم دکمه شیشه‌ای "همین حالا بخرش" اضافه می‌شود.
-#     """
-#     if created:
-#         try:
-#             current_site = "https://intelleum.ir"
+        if not await client.is_user_authorized():
+            print("⚠ Telethon session is not authorized.")
+            return
 
-#             # کانال فروشگاه مربوطه
-#             channel_id = instance.store.tel_channel  
-#             if not channel_id:
-#                 print(f"⚠ کانال برای فروشگاه {instance.store.name} تعریف نشده.")
-#                 return
+        # --- 1. ارسال آلبوم ---
+        handler = ProductHandler(client, product, CURRENT_SITE, photos=photos)
+        await handler.send_product_channel(channel_id, buttons=False)
 
-#             # ارسال پیام محصول
-#             product_handler = ProductHandler(app, instance, current_site)
-#             # session = session_manager.get_user_session(instance.tel_id, "product_message")
-#             # session['channel_inline_buttons'] = True
-#             # session_manager.set_user_session(instance.tel_id, session, "product_message")
-#             product_handler.send_product_channel(channel_id)
+        await client.disconnect()
+        print("✅ Album sent successfully.")
 
-#         except Exception as e:
-#             print(f"⚠ خطا در ارسال محصول به کانال {instance.store.name}: {e}")
+        # --- 2. واکشی اطلاعات صاحب فروشگاه ---
+        owner_lang, store_id, product_id = await async_helper(product)
 
+        # --- 3. ترجمه‌ی متن دکمه ---
+        buy_now_text = await t(owner_lang, "buy_now")
 
-
-import asyncio
-from telethon import TelegramClient
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from products.models import Product
-from utils.telbot.functions import ProductHandler
-from telbot.views import current_site
-from utils.variables.TOKEN import TOKEN, api_id, api_hash
+        # --- 4. ارسال دکمه با TeleBot ---
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton( buy_now_text, url=f"https://t.me/{BOT_ID}?start=store_{store_id}_product_{product_id}" ))
 
 
-# signals.py
-import asyncio
-import traceback
-from telethon import TelegramClient, errors
-from telethon.sessions import StringSession
-from django.conf import settings
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from products.models import Product
+        bot.send_message(channel_id, "👇👇👇👇👇👇👇👇", reply_markup=markup)
 
-# signals.py
-import asyncio
-import traceback
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.conf import settings
-from telethon import TelegramClient
-from telethon.sessions import StringSession
-from products.models import Product
-from utils.telbot.functions import ProductHandler  # همین کلاسی که متد send_product_channel دارد
-from telethon.tl.types import InputMediaPhoto
-# from telethon.tl.functions.messages import SendMedia
+    except Exception as e:
+        print("⚠ Error in send_album_and_button:", e)
+        traceback.print_exc()
 
 
+def send_album_sync(channel_id, product, photos):
+    asyncio.run(send_album_and_button(channel_id, product, photos))
 
-session_string = settings.TG_SESSION_STRING
 
-
-from django.db.models.signals import post_save, m2m_changed
-from django.dispatch import receiver
-from telethon import TelegramClient, Button
-from telethon.sessions import StringSession
-import asyncio, traceback
-from products.models import Product
-from utils.telbot.functions import ProductHandler  # کلاس شما
-from django.conf import settings
-# فقط برای ذخیره id محصول جدید
-
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
+# --- Signal: ProductImage trigger ---
 @receiver(post_save, sender=ProductImage)
 def send_album_when_all_images_added(sender, instance, created, **kwargs):
+    """
+    وقتی همه‌ی تصاویر محصول (از جمله main_image) اضافه شدند،
+    آلبوم به کانال ارسال شود.
+    """
     if not created:
         return
 
     product = instance.product
 
-    # کل تصاویر فعلی به همراه تصویر اصلی
-    total_images = [product.main_image.path] + [img.image.path for img in product.images.all()]
+    # جمع‌آوری همه عکس‌ها
+    photos = []
+    if product.main_image:
+        photos.append(product.main_image.path)
+    photos += [img.image.path for img in product.images.all()]
 
-    # فرض می‌کنیم تعداد کل عکس‌ها همیشه 4 است
-    if len(total_images) == 4:
-        print("✅ همه عکس‌ها اضافه شدند. آماده ارسال آلبوم!")
+    # فرض: فقط وقتی تعداد عکس‌ها 4 تا شد ارسال کنیم
+    if len(photos) == 4:
+        print("✅ All product images added. Sending album...")
 
-        async def _send():
-            client = TelegramClient(
-                StringSession(settings.TG_SESSION_STRING),
-                api_id,
-                api_hash
-            )
-            await client.connect()
-            if not await client.is_user_authorized():
-                print("⚠ Session معتبر نیست.")
-                return
+        channel_id = product.store.tel_channel
+        if not channel_id:
+            print(f"⚠ No Telegram channel defined for store {product.store.name}")
+            return
 
-            handler = ProductHandler(client, product, current_site, photos=total_images)
-            await handler.send_product_channel(product.store.tel_channel, buttons=True)
-            await client.disconnect()
-
-        import asyncio
-        asyncio.run(_send())
-
+        send_album_sync(channel_id, product, photos)

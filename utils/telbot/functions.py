@@ -1,4 +1,4 @@
-from utils.variables.TOKEN import TOKEN
+from utils.variables.TOKEN import TOKEN, BOT_ID
 import requests
 import subprocess
 import re
@@ -454,20 +454,16 @@ class SubscriptionClass:
             try:
 
                 # ✅ پاسخ اولیه به Callback Query
-                self.bot.answer_callback_query(call.id, "🔄 در حال بررسی عضویت شما...", show_alert=False)
-                self.bot.edit_message_text("🎉 عضویت شما تایید شد. حالا می‌توانید از امکانات ربات استفاده کنید.",
+                self.bot.answer_callback_query(call.id, t(call.message, "checking_membership"), show_alert=False)
+                self.bot.edit_message_text(t(call.message, "membership_confirmed"),
                                            chat_id=chat_id, message_id=call.message.message_id)
 
-                profile = ProfileModel.objects.get(tel_id=user_id)
-                main_menu = profile.tel_menu
-                extra_buttons = profile.extra_button_menu
-                markup = send_menu(call.message, main_menu, "main_menu", extra_buttons)
-
-                self.bot.send_message(user_id, "لطفاً یکی از گزینه‌ها را انتخاب کنید:", reply_markup=markup)
+                from telbot.views import start
+                start(call.message)
             except Exception as e:
                 self.bot.send_message(user_id, f"error iis: {e}")
         else:
-            self.bot.answer_callback_query(call.id, "❌ شما هنوز در کانال عضو نشده‌اید.", show_alert=True)
+            self.bot.answer_callback_query(call.id, t(call.message, "not_subscribed"), show_alert=True)
 
     def register_handlers(self):
         """🔹 ثبت هندلرهای مورد نیاز"""
@@ -483,6 +479,7 @@ class SubscriptionClass:
                 if is_member.status in ["kicked", "left"]:
                     return False
             except Exception as e:
+                
                 logger.error(f"🚨 خطا در بررسی عضویت کاربر {user} در کانال {channel}: {e}")
                 return False
         return True
@@ -490,15 +487,15 @@ class SubscriptionClass:
     def subscription_offer(self, message):
         """❌ اگر کاربر عضو نباشد، دکمه‌های عضویت نمایش داده شوند"""
         channel_markup = types.InlineKeyboardMarkup()
-        check_subscription_button = types.InlineKeyboardButton(text='✅ عضو شدم', callback_data='check_subscription2')
-        channel_subscription_button = types.InlineKeyboardButton(text='📢 در کانال ما عضو شوید', url=f"https://t.me/{self.my_channels_without_atsign[0]}")
-        group_subscription_button = types.InlineKeyboardButton(text="💬 در گروه ما عضو شوید", url=f"https://t.me/{self.my_channels_without_atsign[1]}")
+        check_subscription_button = types.InlineKeyboardButton(text=t(message, "subscribed"), callback_data='check_subscription2')
+        channel_subscription_button = types.InlineKeyboardButton(text=t(message, "join_channel"), url=f"https://t.me/{self.my_channels_without_atsign[0]}")
+        group_subscription_button = types.InlineKeyboardButton(text=t(message, 'join_group'), url=f"https://t.me/{self.my_channels_without_atsign[1]}")
 
         channel_markup.add(channel_subscription_button, group_subscription_button)
         channel_markup.add(check_subscription_button)
 
         if not self.check_subscription(user=message.from_user.id):
-            self.bot.send_message(message.chat.id, "❌ برای تایید عضویت خود در گروه و کانال بر روی دکمه‌ها کلیک کنید.", reply_markup=channel_markup)
+            self.bot.send_message(message.chat.id, t(message, "verify_membership"), reply_markup=channel_markup)
             return False
         return True
 
@@ -507,7 +504,7 @@ subscription = SubscriptionClass(app)
 ############################  SEND MENU  ############################
 
 # Helper function to send menu
-def send_menu(message, options, current_menu, extra_buttons=None, cols=3):
+def send_menu(message, options, current_menu, extra_buttons=None, cols=3, extra_cols=2):
     """Send a translated menu with options and update the session."""
 
     if subscription.subscription_offer(message):
@@ -528,7 +525,7 @@ def send_menu(message, options, current_menu, extra_buttons=None, cols=3):
 
         # ترجمه گزینه‌های اضافه
         if extra_buttons:
-            extra_rows = [extra_buttons[i:i + 2] for i in range(0, len(extra_buttons), 2)]
+            extra_rows = [extra_buttons[i:i + extra_cols] for i in range(0, len(extra_buttons), extra_cols)]
             for extra_row in extra_rows:
                 translated_row = [
                     translations.get(key, {}).get(lang, translations.get(key, {}).get("en", key))
@@ -562,22 +559,54 @@ class CategoryClass:
         pass
 
     def handle_category(self, message):
-        print("heme")
         if subscription.subscription_offer(message):
             try:
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                if not session.get("category"):
-                    text = t(message, "product_category_question")
-                elif session.get("category") and not session.get("cat_delete_sure"):
+                print(f"begining of handle_category: {session}")
+                profile = ProfileModel.objects.get(tel_id=message.chat.id)
+                if profile.seller_mode:
+                    store = Store.objects.get(owner=profile)
+                else:
+                    store = profile.server_store
+                if not session.get("category") and not session.get("product") and not store.categories.exists():
+                    # Store has no categories
+                    app.send_message(message.chat.id, t(message, "store_empty"))
+                    return
+                    
+                    # do something...
+                if session.get("category") and session.get("menu_delete") and session.get("delete_sure"):
+                    text = t(message, "category_deleted_successfully")
+                    session["delete_sure"] = False
+                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                elif session.get("category") and session.get("menu_delete"):
+                    if not store.categories.exists():
+                        app.send_message(message.chat.id, t(message, "no_category_to_delete"))
+                        session["menu_delete"] = False
+                        session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                        return
                     text = t(message, "delete_category_title_prompt") + "\n\n" + t(message, "delete_category_warning")
+                elif session.get("category") and session.get("menu_add"):
+                    if not store.categories.exists():
+                        self.add_category(message)
+                        return
+                    text = t(message, "add_subcategory_select_parent")
+                elif session.get("category") and session.get("category_deactivate"):
+                    text = t(message, "choose_category_toggle")
+                elif session.get("product"):
+                    text = t(message, "select_subcategory_for_product")
+                elif not session.get("category") and not session.get("product"):
+                    button = [t(message, "delete_category_and_subcategories"), ]
+                    for b in button:
+                        home_menu.remove(b) if b in home_menu else None
+                    text = t(message, "product_category_question")
                 else:
                     text = t(message, "category_deleted_successfully")
-                cats = Category.objects.filter(parent__isnull=True, status=True).values_list('title', flat=True)
-                markup = send_menu(message, cats, message.text, ["🏡"])
+                cats = Category.objects.filter(parent__isnull=True, status=True, store=store).values_list('title', flat=True)
+                markup = send_menu(message, cats, message.text, home_menu, extra_cols=1)
                 app.send_message(message.chat.id, text, reply_markup=markup)
             except Exception as e:
                 app.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-                print(f"Error: {e}")
+                print(f"Error: {traceback.format_exc()}")
 
     def handle_subcategory(self, message):
         try:
@@ -586,18 +615,28 @@ class CategoryClass:
                 children = [child.title for child in current_category.get_next_layer_categories()]
 
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                session["current_menu"] = message.text.title()
+                session["current_menu"] = message.text.lower()
                 session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                
+                print(f"begining of handle_subcategory: {session}")
 
                 if children == []:
-                    if session.get("category"):
+                    if session.get("category") and session.get("menu_delete"):
                         self.delete_sure(message)
                         try:
                             message.text = current_category.get_parents()[0].title
                         except:
-                            self.handle_category(message)
-                        # self.handle_subcategory(message)
+                            pass
+                    elif session.get("category") and session.get("menu_add"):
+                        self.add_category(message)
+                        try:
+                            print(current_category)
+                            print(current_category.get_parents())
+                            message.text = current_category.get_parents()[0].title
+                        except:
+                            pass
+                    elif session.get("category") and session.get("category_deactivate"):
+                        self.deactivate_category_sure(message)
+                        message.text = current_category.get_parents()[0].title
                     else:
                         if session.get('product_cat_selection'):
                             a = ProductBot(app)
@@ -608,31 +647,69 @@ class CategoryClass:
                             handle_products(fake_message)
                 else:
                     if session.get("category"):
-                        print('yayaya')
-                        button = t(message, "delete_category_and_subcategories")
-                        retun_menue.append(button) if button not in retun_menue else retun_menue
+                        if session.get("menu_delete"):
+                            button = t(message, "delete_category_and_subcategories")
+                            retun_menue.append(button) if button not in retun_menue else retun_menue
+                        elif session.get("category_deactivate"):
+                            button = t(message, "deactivate_category")
+                            retun_menue.append(button) if button not in retun_menue else retun_menue
                     markup = send_menu(message, children, message.text, retun_menue)
-                    if session.get("cat_delete_sure"):
+                    if session.get("category") and session.get("menu_delete") and session.get("delete_sure"):
                         text = t(message, "category_deleted_successfully")
+                        session["delete_sure"] = False
+                        session_manager.set_user_session(message.chat.id, session, namespace="menu")
                     else:
-                        button = t(message, "delete_category_and_subcategories")
-                        retun_menue.remove(button) if button in retun_menue else None
+                        button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
+                        for b in button:
+                            retun_menue.remove(b) if b in retun_menue else None
                         text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
                     app.send_message(message.chat.id, text, reply_markup=markup)
         except Exception as e:
             print(f"Error: {traceback.format_exc()}")
 
+    def add_category(self, message):
+        try:
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+
+            # Mark we are waiting for new category title
+            session["get_new_category"] = True
+
+            # IMPORTANT: Only set current_menu if we are actually inside a category
+            if session.get("current_menu"):
+                # user is inside a category, so add to that category
+                session["parent_for_new"] = session["current_menu"]
+            else:
+                # user is in root menu
+                session["parent_for_new"] = None  
+
+            button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
+            for b in button:
+                if b in home_menu:
+                    home_menu.remove(b)
+
+            markup = send_menu(message, [t(message, "cancel_action")], 'cat_delete_sure', home_menu)
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+
+            app.send_message(message.chat.id, t(message, "enter_new_category_title"), reply_markup=markup)
+
+        except Exception as e:
+            print(traceback.format_exc())
+
+
+    def deactivate_category_sure(self, message):
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        session["deactivate_category_sure"] = True
+        markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', home_menu)
+        session_manager.set_user_session(message.chat.id, session, namespace="menu")
+        app.send_message(message.chat.id, t(message, "confirm_deactivate_category"), reply_markup=markup)
+
     def delete_sure(self, message):
         try:
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
-            session["cat_delete_sure"] = True
+            session["delete_sure"] = True
             markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', home_menu)
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
             app.send_message(message.chat.id, t(message, "confirm_delete_category"), reply_markup=markup)
-            # cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
-            # print(cat)
-            print(session.get("current_menu"))
-            # cat.delete()
         except Exception as e:
             print(traceback.format_exc())
         
@@ -866,10 +943,13 @@ class ProductBot:
 
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session['product_cat_selection'] = True
-            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+            session['add_product'] = True
             # نمایش منوی دسته‌بندی اصلی
             cat = CategoryClass()
             cat.handle_category(message)
+            session['add_product'] = False
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+
 
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
@@ -1070,7 +1150,7 @@ class ProductBot:
                 # تبدیل داده‌های دسته‌بندی از دیکشنری به شیء Category
                 category_data = user_data["category"]
                 if category_data:
-                    selected_category = Category.objects.get(id=category_data["id"])
+                    selected_category = Category.objects.get(id=category_data["id"], status=True)
 
                 slug = generate_unique_slug(Product, user_data["name"])
                 # ایجاد و ذخیره محصول
@@ -1087,7 +1167,7 @@ class ProductBot:
                         category=selected_category,  # استفاده از شیء Category
                         description=user_data["description"],
                         main_image=user_data["main_image"],
-                        store=Store.objects.get(profile=ProfileModel.objects.get(tel_id=message.from_user.id)),
+                        store=Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.from_user.id)),
                     )
                 except Exception as e:
                     print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
@@ -1423,7 +1503,7 @@ class ProductHandler:
             button_layout = [3, 1] if cart_item.quantity > 0 else [2]
 
             text = (
-                f"انگار شما در سبد خرید خود قبلا {cart_item.quantity} تا از این کالا اضافه کرده بودید و سفارش خود را تکمیل نکرده اید.\n\nبه هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی انبار: {self.product.stock})"
+                f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی انبار: {self.product.stock})"
                 if cart_item.quantity > 0 else "می توانی قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:"
             )
 
@@ -1494,7 +1574,7 @@ class ProductHandler:
             button_layout = [3, 1] if cart_item.quantity > 0 else [2]
 
             text = (
-                f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی انبار: {product.stock})"
+                t(call.message, "unlimited_order", product_stock=product.stock)
                 if cart_item.quantity > 0 else "می توانی قبل از خرید نظرات مثبت و منفی خریداران این کالا را در اینجا بخوانید:"
             )
 
@@ -1544,14 +1624,14 @@ class SendCart:
                         # یعنی از طرف کاربر پیام متنی اومده
                         self.app.send_message(
                             chat_id=message.chat.id,
-                            text="سبد خرید شما خالی است 🛒"
+                            text=t(message, "cart_empty")
                         )
                     else:
                         # یعنی از طرف callback_query اومده (دکمه فشرده شده)
                         self.app.edit_message_text(
                             chat_id=message.message.chat.id,
                             message_id=message.message.message_id,
-                            text="سبد خرید شما خالی است 🛒",
+                            text=t(message, "cart_empty"),
                             reply_markup=None
                         )
                     self.cart = None
@@ -1669,7 +1749,7 @@ class SendCart:
             if not self.cart or not self.cart.items.exists():
                 self.app.send_message(
                     chat_id=message.chat.id,
-                    text="سبد خرید شما خالی است 🛒",
+                    text=t(message, "cart_empty"),
                 )
                 self.cart = None
                 return
@@ -1795,7 +1875,7 @@ class SendCart:
             if cart.items.exists():
                 self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
             else:
-                self.text = "سبد خرید شما خالی است 🛒"
+                self.text = t(call.message, "cart_empty")
                 new_buttons = OrderedDict()  # تمام دکمه‌ها حذف شوند
 
             # ذخیره دکمه‌های جدید در سشن

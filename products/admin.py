@@ -29,8 +29,8 @@ class ProductImageInline(admin.TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'status', 'category', 'stock')  # ستون‌های نمایش داده شده
-    list_filter = ('status', 'category',)  # فیلتر براساس وضعیت و دسته‌بندی
+    list_display = ("code", 'name', 'price', "store", 'status', 'category', 'stock')  # ستون‌های نمایش داده شده
+    list_filter = ('status', "store", 'category',)  # فیلتر براساس وضعیت و دسته‌بندی
     search_fields = ('name', 'slug', 'category__title')  # جستجو براساس نام، اسلاگ و دسته‌بندی
     prepopulated_fields = {'slug': ('name',)}  # تولید خودکار slug از نام
     ordering = ['-price', 'name']  # ترتیب پیش‌فرض
@@ -43,8 +43,8 @@ class ProductAdmin(admin.ModelAdmin):
 ### **3. مدیریت فروشگاه‌ها**
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
-    list_display = ('name', 'profile', 'city', 'province')  # ستون‌های نمایش داده شده
-    search_fields = ('name', 'profile__tel_id', 'city', 'province')  # جستجو براساس نام فروشگاه، کاربر، شهر و استان
+    list_display = ('name', 'owner', 'city', 'province')  # ستون‌های نمایش داده شده
+    search_fields = ('name', 'owner__tel_id', 'city', 'province')  # جستجو براساس نام فروشگاه، کاربر، شهر و استان
 
 
 ### **4. مدیریت ویژگی‌های محصول (در صورت نیاز جداگانه)**

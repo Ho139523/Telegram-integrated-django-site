@@ -2,7 +2,7 @@ import requests
 import sys
 import argparse
  
-TOKEN = '7777543551:AAHJYYN3VwfC686y1Ir_aYewX1IzUMOlU68'
+TOKEN = '8019448982:AAEW-sHSuIqd2BaL5qM8rSlVPkP9eoTLRIM'
  
 sub=''
  
@@ -57,8 +57,7 @@ if __name__ == "__main__":
 #
 #ssh -p 45677 hussein2079@37.148.9.135
 #clear
-#cd ./Desktop/intelleum
-#source myenv/bin/activate
+#   cd /home/hussein2079/Desktop/intelleum && source /home/hussein2079/Desktop/intelleum/myenv/bin/activate && proxychains python manage.py runserver
 #
 #############################
 #
@@ -91,3 +90,68 @@ if __name__ == "__main__":
 #############################
 #
 #uvicorn AI.asgi:application --host 0.0.0.0 --port 8000 --reload
+
+
+
+# SSL RENEWAL
+
+# عالی حسین ✅
+# خب، چون پورت 80/443 بسته است، بهترین روش DNS-01 Challenge با Cloudflare API هست تا SSL روی سرور 8443 مستقیم بگیری و Cloudflare هم روی DNS only باشه.
+
+# قدم‌به‌قدم راه‌اندازی Certbot با DNS-01 و Cloudflare
+# 1️⃣ گرفتن API Token از Cloudflare
+
+# وارد حساب Cloudflare شو.
+
+# به My Profile → API Tokens برو.
+
+# روی Create Token کلیک کن.
+
+# از Template: Edit zone DNS استفاده کن.
+
+# دامنه مورد نظر (intelleum.ir) رو انتخاب کن و Permission: Zone → DNS → Edit بده.
+
+# Token ساخته می‌شه، اون رو جایی امن نگه دار.
+
+# مثال اسم فایل Credential در سرور:
+
+# ~/.secrets/cf.ini
+
+
+# dns_cloudflare_api_token = <API_TOKEN>
+
+
+# chmod 600 ~/.secrets/cf.ini
+
+
+# sudo apt update
+# sudo apt install python3-certbot-dns-cloudflare -y
+
+
+# گرفتن گواهی SSL با DNS Challenge
+
+# sudo certbot certonly \
+#   --dns-cloudflare \
+#   --dns-cloudflare-credentials ~/.secrets/cf.ini \
+#   -d intelleum.ir
+
+
+# sudo nginx -t
+# sudo systemctl restart nginx
+
+
+# تمدید اتوماتیک
+
+# برای تمدید اتوماتیک Certbot با DNS-01 و Cloudflare، کافیه همین cron job رو داشته باشی:
+
+# sudo crontab -e
+
+
+# و اضافه کن:
+
+# 0 0 * * * certbot renew --quiet --dns-cloudflare --dns-cloudflare-credentials /home/<username>/.secrets/cf.ini
+
+
+# هر روز نیمه شب چک می‌کنه و اگر نزدیک به انقضا بود، تمدید می‌کنه.
+
+

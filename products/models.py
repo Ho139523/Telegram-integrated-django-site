@@ -97,18 +97,18 @@ class ArticleModel(models.Model):
 #        discount_amount = (self.price * self.off) / 100
 #
 
-
-
+    
 class Category(models.Model):
     title = models.CharField(max_length=50, unique=True, verbose_name='Category Title')
     slug = models.SlugField(unique=True, verbose_name='Slug')
     status = models.BooleanField(default=True, verbose_name='Publish Status')
     parent = models.ForeignKey(
-        'self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcategories',
-        verbose_name='Parent Category'
+        'self', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='subcategories', verbose_name='Parent Category'
     )
-    position = models.IntegerField(verbose_name='Position')
-    stores = models.ManyToManyField('Store', blank=True, related_name='categories', verbose_name='Stores')
+    position = models.IntegerField(default=1, verbose_name='Position')
+    store = models.ForeignKey('Store', on_delete=models.CASCADE,
+                              related_name='categories', verbose_name='Store')
 
     def __str__(self):
         return self.title
@@ -133,19 +133,17 @@ class Category(models.Model):
     def get_all_subcategories(self):
         subcategories = set()
         categories_to_check = [self]
-
         while categories_to_check:
             current = categories_to_check.pop()
             children = current.subcategories.all()
             subcategories.update(children)
             categories_to_check.extend(children)
-        
         return subcategories
-    
+
     def get_next_layer_categories(self):
         return self.subcategories.filter(status=True)
 
-    # New to_dict method
+    # Safe dictionary representation
     def to_dict(self):
         return {
             "id": self.id,
@@ -154,27 +152,24 @@ class Category(models.Model):
             "status": self.status,
             "parent": self.parent.title if self.parent else None,
             "position": self.position,
-            "stores": [store.name for store in self.stores.all()]  # Assuming Store model has a name field
+            "store": self.store.name if self.store else None,  # اصلاح شد
         }
-        
+
     def save(self, *args, **kwargs):
         is_new = self.pk is None  # بررسی کنیم آیا دسته جدید است
 
-        super().save(*args, **kwargs)  # ابتدا دسته جدید را ذخیره کنیم
+        super().save(*args, **kwargs)  # بار اول ذخیره در DB
 
         if is_new and self.parent:  # اگر دسته جدید است و والد دارد
             parent_category = self.parent
-
             if parent_category.products.exists():
                 with transaction.atomic():
-                    parent_category.products.update(category=self)  # انتقال محصولات به دسته جدید
+                    parent_category.products.update(category=self)
+
+            # ذخیره دوباره فقط در صورت نیاز به آپدیت فیلدهای خاص
+            self.save(update_fields=["parent"])
 
 
-        super().save(*args, **kwargs)  # ذخیره دسته‌بندی جدید
-
-
-
-from django.db import models
 
 class Product(models.Model):
     profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="profilemodel")
@@ -232,7 +227,7 @@ class Product(models.Model):
             os.remove(self.main_image.path)
 
         # حذف تمام تصاویر اضافی مرتبط و فایل‌های فیزیکی‌شان
-        for image in self.image_set.all():  # توجه به related_name جدید
+        for image in self.images.all():  # توجه به related_name جدید
             if image.image and os.path.isfile(image.image.path):
                 os.remove(image.image.path)
             image.delete()  # حذف رکورد از دیتابیس
@@ -279,14 +274,14 @@ class ProductCodeCounter(models.Model):
 
         
 class Store(models.Model):
-    profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="store")
+    owner = models.OneToOneField(ProfileModel, on_delete=models.CASCADE, related_name="owned_store", verbose_name="Owner Profile")
     name = models.CharField(max_length=100, verbose_name='Store Name')
     address = models.CharField(max_length=255, verbose_name='Address')
     city = models.CharField(max_length=50, verbose_name='City')
     province = models.CharField(max_length=50, verbose_name='Province')
     logo = models.ImageField(upload_to="store_logos/", blank=True, null=True, verbose_name="Store Logo")
-    tel_group = models.CharField(max_length=20, null=True, blank=True, verbose_name="Telegram group ID")
-    tel_channel = models.CharField(max_length=20, null=True, blank=True, verbose_name="Telegram channel ID")
+    tel_group = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram group ID")
+    tel_channel = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram channel ID")
 
 
     def __str__(self):

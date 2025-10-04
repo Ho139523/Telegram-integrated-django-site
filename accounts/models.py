@@ -86,6 +86,13 @@ class ProfileModel(models.Model):
     def default_profile_menu():
         return ["menu_language"]
 
+    def get_default_store():
+        from products.models import Store  # import inside function to avoid circular import
+        try:
+            return Store.objects.get(name="Intelleum").pk
+        except Store.DoesNotExist:
+            return None  # fallback, so migrations won't break
+
     # ----------------------------
     # Fields
     # ----------------------------
@@ -134,17 +141,27 @@ class ProfileModel(models.Model):
     lang = models.CharField(
         max_length=10,
         choices=get_language_choices(),
-        default='fa',
+        default='en',
         unique=False,
         null=False,
         blank=True
+    )
+    # The store this profile is currently "connected" to (for browsing/buying).
+    server_store = models.ForeignKey(
+        "products.Store",
+        on_delete=models.SET_NULL,
+        default=get_default_store,
+        null=True,
+        blank=False,
+        related_name="connected_profiles",
+        verbose_name="Server Store"
     )
 
     # ----------------------------
     # Address helper
     # ----------------------------
     def get_active_address(self):
-        return self.addresses.filter(is_active=True).first()
+        return self.addresses.filter(shipping_is_active=True).first()
 
     # ----------------------------
     # User Levels
@@ -196,8 +213,8 @@ class ProfileModel(models.Model):
 
     def __str__(self):
         if self.user:
-            return self.user.username
-        return str(self.tel_id)
+            return f"{self.user.username}  -  {self.tel_id}"
+        return f"{self.fname} {self.lname}  -  {self.tel_id}"
 
     @property
     def age(self):

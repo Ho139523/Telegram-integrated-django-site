@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -100,7 +100,7 @@ def activate(request, uidb64, token):
 
           # Create and save a shipping address if it doesn't already exist
           if not hasattr(profile, 'shippingaddressmodel'):
-              shippingaddress = ShippingAddressModel(profile=profile)
+              shippingaddress = Address(profile=profile)
               shippingaddress.save()
         
           user.profilemodel.save()
@@ -142,43 +142,38 @@ class PasswordResetConfirm(PasswordResetConfirmView):
 
 @login_required
 def profile(request, username):
-   
-    profile=ProfileModel.objects.get(user__username=username)
-    address=Address.objects.get(profile=profile, shipping_is_active=True)
-    header_form = HeaderImageForm()
-    avatar_form = AvatarImageForm()
-    update_form = ProfileUpdateForm(initial={
-        "fname": profile.fname,
-        "lname": profile.lname,
-        "Phone": profile.Phone,
-        "about_me": profile.about_me,
-        "birthday": profile.birthday,
-        "tweeter": profile.tweeter,
-        "instagram": profile.instagram,
-    })
-                                            
-    updated_address = ShippingAddressForm(initial={
-        "shipping_line1": address.shipping_line1,
-        "shipping_line2": address.shipping_line2,
-        "shipping_city": address.shipping_city,
-        "shipping_country": address.shipping_country,
-        "shipping_province": address.shipping_province,
-        "shipping_zip": address.shipping_zip_code,
-        "shipping_home_phone": address.shipping_home_phone,
-    })
-    
-    
-    context={
-        "profile": profile,
-        'view': 'Profile',
-        "header_form": header_form,
-        "avatar_form": avatar_form,
-        "update_form": update_form,
-        "updated_address": updated_address,
+    user = get_object_or_404(User, username=username)
+    profile = user.profilemodel
+    address = profile.get_active_address()
 
+    context = {
+        "user": user,
+        "profile": profile,
     }
-    return render(request, "registration/dashboard/profile.html", context=context)
-    
+
+    if address:
+        context.update({
+            "shipping_line1": address.shipping_line1,
+            "shipping_line2": address.shipping_line2,
+            "city": address.city,
+            "province": address.province,
+            "country": address.country,
+            "postal_code": address.postal_code,
+        })
+    else:
+        # Default empty values if no address exists yet
+        context.update({
+            "shipping_line1": "",
+            "shipping_line2": "",
+            "city": "",
+            "province": "",
+            "country": "",
+            "postal_code": "",
+        })
+
+    return render(request, "accounts/profile.html", context)
+
+
 
 class ChangePassword(LoginRequiredMixin, PasswordChangeView):
     

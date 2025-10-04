@@ -134,10 +134,8 @@ class ProfileModelAdmin(admin.ModelAdmin):
 
     def display_name(self, obj):
         if obj.user:
-            return obj.user.username
-        elif obj.tel_id:
-            return obj.tel_id
-        return "-"
+            return f"{obj.user.username} - {obj.tel_id}"
+        return f"{obj.fname} {obj.lname} - {obj.tel_id}"
 
     display_name.short_description = "Telegram ID / Username"
 

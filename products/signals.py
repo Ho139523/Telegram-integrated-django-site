@@ -2,6 +2,7 @@ import asyncio
 import traceback
 import time
 
+from attr import attributes
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
@@ -36,7 +37,7 @@ def async_helper(product):
     """
     store = product.store
     
-    return store.owner.lang, store.id, product.id
+    return store.owner.lang, store.id, product.code
 
 
 async def t(lang, key, **kwargs):
@@ -67,7 +68,7 @@ def update_subcategories_status(sender, instance, **kwargs):
 
 
 # --- Async Telegram Sending ---
-async def send_album_and_button(channel_id, product, photos):
+async def send_album_and_button(channel_id, product, photos, attributes):
     """
     آلبوم محصول را با Telethon می‌فرستد و سپس دکمه Buy Now را با TeleBot ارسال می‌کند
     """
@@ -80,7 +81,7 @@ async def send_album_and_button(channel_id, product, photos):
             return
 
         # --- 1. ارسال آلبوم ---
-        handler = ProductHandler(client, product, CURRENT_SITE, photos=photos)
+        handler = ProductHandler(client, product, CURRENT_SITE, photos=photos, attributes=attributes)
         await handler.send_product_channel(channel_id, buttons=False)
 
         await client.disconnect()
@@ -104,8 +105,8 @@ async def send_album_and_button(channel_id, product, photos):
         traceback.print_exc()
 
 
-def send_album_sync(channel_id, product, photos):
-    asyncio.run(send_album_and_button(channel_id, product, photos))
+def send_album_sync(channel_id, product, photos, attributes):
+    asyncio.run(send_album_and_button(channel_id, product, photos, attributes))
 
 
 # --- Signal: ProductImage trigger ---
@@ -119,6 +120,9 @@ def send_album_when_all_images_added(sender, instance, created, **kwargs):
         return
 
     product = instance.product
+
+    # ⚡ اینجا ORM را در محیط sync اجرا و list می‌کنیم (مهم!)
+    attributes = list(product.attributes.all())
 
     # جمع‌آوری همه عکس‌ها
     photos = []
@@ -135,4 +139,5 @@ def send_album_when_all_images_added(sender, instance, created, **kwargs):
             print(f"⚠ No Telegram channel defined for store {product.store.name}")
             return
 
-        send_album_sync(channel_id, product, photos)
+        # اینجا attributes به‌صورت list پاس داده می‌شود ✅
+        send_album_sync(channel_id, product, photos, attributes)

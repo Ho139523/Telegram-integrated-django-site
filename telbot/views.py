@@ -288,7 +288,9 @@ def handle_store_product_start(message):
 
         start(message)
 
-        product_handler = ProductHandler(app, Product.objects.get(id=product_id), current_site)
+        product = Product.objects.get(code=product_id)
+        attributes = product.attributes.all()
+        product_handler = ProductHandler(app, Product.objects.get(code=product_id), current_site, attributes=attributes)
         product_handler.send_product_message(message.chat.id)
 
     
@@ -634,7 +636,7 @@ def handle_callback(call):
             send_cart.add(call)
             return
 
-        product_handler = ProductHandler(app, product, current_site)
+        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
         product_handler.handle_buttons(call)
 
     except Exception as e:
@@ -705,7 +707,7 @@ def handle_ten_products(message):
 
         for product in products:
             try:
-                product_handler = ProductHandler(app, product, current_site)
+                product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
                 product_handler.send_product_message(message.chat.id)
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
@@ -991,7 +993,7 @@ def handle_product_code(message):
                 if Product.objects.filter(code=message.text, status=True, category__status=True).exists():
                     product = Product.objects.get(code=message.text, status=True, category__status=True)
                     try:
-                        product_handler = ProductHandler(app, product, current_site)
+                        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
                         product_handler.send_product_message(message.chat.id)
                     except Exception as e:
                         app.send_message(message.chat.id, f"the error is: {e}")

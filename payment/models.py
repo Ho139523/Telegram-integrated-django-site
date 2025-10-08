@@ -4,6 +4,7 @@ from products.models import Product, Store  # Ensure you have a Product model
 import uuid
 from accounts.models import ProfileModel
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 
 
 User = get_user_model()
@@ -30,6 +31,29 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name} in Cart {self.cart.id}"
+    
+    def clean(self):
+        """
+        اعتبارسنجی منطقی هنگام ذخیره آیتم سبد خرید
+        """
+        product = self.product
+
+        # بررسی حداقل مقدار خرید
+        if product.min_quantity and self.quantity < product.min_quantity:
+            raise ValidationError(f"حداقل مقدار خرید برای این کالا {product.min_quantity} {product.unit.symbol} است.")
+
+        # بررسی حداکثر مقدار خرید
+        if product.max_quantity and self.quantity > product.max_quantity:
+            raise ValidationError(f"حداکثر مقدار خرید برای این کالا {product.max_quantity} {product.unit.symbol} است.")
+
+        # بررسی مضربی از quantity_step بودن
+        if product.quantity_step and (self.quantity % product.quantity_step != 0):
+            raise ValidationError(f"مقدار خرید باید مضربی از {product.quantity_step} {product.unit.symbol} باشد.")
+    
+    def save(self, *args, **kwargs):
+        # اجرای clean() قبل از ذخیره
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class Transaction(models.Model):

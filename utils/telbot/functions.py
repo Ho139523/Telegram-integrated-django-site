@@ -1205,8 +1205,9 @@ class ProductBot:
                 code = message.text
                 try:
                     product = Product.objects.get(code=code)
+                    attributes = product.attributes.all()
                     # ارسال پیام محصول به کاربر
-                    producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir:8443')
+                    producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir:8443', attributes=attributes)
                     producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
                     # ذخیره اطلاعات محصول در Redis
@@ -1274,8 +1275,9 @@ class ProductBot:
                 code = message.text
                 try:
                     product = Product.objects.get(code=code)
+                    attributes = product.attributes.all()
                     # ارسال پیام محصول به کاربر
-                    producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir:8443')
+                    producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir:8443', attributes=attributes)
                     producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
                     # ذخیره اطلاعات محصول در Redis
@@ -1386,7 +1388,7 @@ class ProductHandler:
 
         # داده‌ها از بیرون پاس داده می‌شوند (ORM-free inside async)
         self.photos = photos or []
-        self.attributes = attributes or []
+        self.attributes = attributes
 
     def format_price(self):
         formatted_price = "{:,.0f}".format(float(self.product.price))
@@ -1416,7 +1418,6 @@ class ProductHandler:
             f"کد کالا: {self.product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
-            f"🔘 فروش با ضمانت اوریجینال💯\n"
             f"📫 ارسال به تمام نقاط کشور\n\n"
             f"{self.format_price()}\n"
         )

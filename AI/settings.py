@@ -50,12 +50,12 @@ INSTALLED_APPS = [
     'theme',
     
     # Apps
+    "products",
     'accounts', 
     'heartpred', 
     "myapi", 
     "cv",
     "mainpage",
-    "products",
     "telbot",
     "aiobot",
     "payment",

@@ -6,7 +6,7 @@ from telebot import TeleBot
 from telebot.types import Message
 from telebot.storage import StateMemoryStorage
 from accounts.models import ProfileModel, Address
-from products.models import Product, Category, ProductImage, ProductAttribute, Store
+from products.models import Product, Category, ProductImage, ProductAttribute, Store, ProductVariant
 from payment.models import Transaction, Sale, Cart, CartItem
 import os
 from django.conf import settings
@@ -19,7 +19,7 @@ import uuid
 from django.core.cache import cache
 from utils.variables.translate import translations
 from django.db.models.functions import Lower
-
+import itertools
 
 
 # send_product_message function
@@ -756,8 +756,6 @@ def download_and_save_image(file_id, bot):
 class ProductBot:
     def __init__(self, bot: TeleBot):
         self.bot = bot
-        self.user_data = {}
-        self.product_state = self.ProductState()
 
     class ProductState:
         NAME = "name"
@@ -768,6 +766,12 @@ class ProductBot:
         STOCK = "stock"
         STATUS = "status"
         CATEGORY = "category"
+        VARIANT_DECIDE = "variant_decide"
+        VARIANT_KEY = "variant_key"
+        VARIANT_VALUES = "variant_values"
+        VARIANT_ADD_ANOTHER_KEY = "variant_add_key"
+        VARIANT_CONFIRM_COMBINATIONS = "variant_confirm_combinations"
+        VARIANT_STOCKS = "variant_stocks"
         DESCRIPTION = "description"
         CODE = "code"
         MAIN_IMAGE = "main_image"
@@ -778,14 +782,6 @@ class ProductBot:
         DEACTIVATE = "deactivate"
         DEACTIVATE_CONFIRM = "deactivate_confirm"
 
-        def __init__(self):
-            self.user_menus = {}
-
-        def update_user_menu(self, chat_id, menu_title):
-            self.user_menus[chat_id] = menu_title
-
-        def get_user_menu(self, chat_id):
-            return self.user_menus.get(chat_id, None)
 
 
 
@@ -799,6 +795,15 @@ class ProductBot:
         self.bot.register_message_handler(self.get_stock, func=self.is_state(self.ProductState.STOCK))
         self.bot.register_message_handler(self.get_status, func=self.is_state(self.ProductState.STATUS))
         self.bot.register_message_handler(self.get_category, func=self.is_state(self.ProductState.CATEGORY))
+
+        # Variant workflow
+        self.bot.register_message_handler(self.get_variant_decision, func=self.is_state(self.ProductState.VARIANT_DECIDE))
+        self.bot.register_message_handler(self.get_variant_key, func=self.is_state(self.ProductState.VARIANT_KEY))
+        self.bot.register_message_handler(self.get_variant_values, func=self.is_state(self.ProductState.VARIANT_VALUES))
+        self.bot.register_message_handler(self.get_variant_add_key_answer, func=self.is_state(self.ProductState.VARIANT_ADD_ANOTHER_KEY))
+        self.bot.register_message_handler(self.get_variants_stock_values, func=self.is_state(self.ProductState.VARIANT_STOCKS))
+
+
         self.bot.register_message_handler(self.get_description, func=self.is_state(self.ProductState.DESCRIPTION))
         self.bot.register_message_handler(self.get_product_attributes, func=self.is_state(self.ProductState.ATTRIBUTES))
         self.bot.register_message_handler(self.get_main_image, func=self.is_state(self.ProductState.MAIN_IMAGE), content_types=["photo"])
@@ -825,14 +830,17 @@ class ProductBot:
         RedisStateManager(chat_id).save_user_data(key, value)
 
 
+    def get_user_data(self, chat_id, key, default=None):
+        value = RedisStateManager(chat_id).get_user_data(key)
+        return value if value is not None else default
+
     def reset_state(self, chat_id):
         RedisStateManager(chat_id).delete_state()
 
 
     def get_name(self, message: Message):
         # ذخیره نام در Redis
-        state_manager = RedisStateManager(message.chat.id)
-        state_manager.save_user_data("name", message.text)
+        self.save_user_data(message.chat.id, "name", message.text)
         self.set_state(message.chat.id, self.ProductState.BRAND)
 
         # ارسال منو برای وارد کردن برند
@@ -842,12 +850,8 @@ class ProductBot:
 
     def get_brand(self, message: Message):
         # ذخیره برند در Redis
-        state_manager = RedisStateManager(message.chat.id)
-        if message.text == t(message, "no_brand"):
-            state_manager.save_user_data("brand", None)
-        else:
-            state_manager.save_user_data("brand", message.text)
-
+        brand = None if message.text == t(message, "no_brand") else message.text
+        self.save_user_data(message.chat.id, "brand", brand)
         self.set_state(message.chat.id, self.ProductState.PRICE)
 
         # ارسال منو برای وارد کردن قیمت
@@ -868,8 +872,7 @@ class ProductBot:
                 return  # خروج از تابع تا کاربر دوباره قیمت وارد کند
 
             # ذخیره قیمت در Redis
-            state_manager = RedisStateManager(message.chat.id)
-            state_manager.save_user_data("price", price)
+            self.save_user_data(message.chat.id, "price", price)
             self.set_state(message.chat.id, self.ProductState.DISCOUNT)
 
             # ارسال پیام برای درخواست درصد تخفیف
@@ -886,8 +889,7 @@ class ProductBot:
             discount = float(message.text)
 
             # دریافت قیمت و محاسبه قیمت نهایی از Redis
-            state_manager = RedisStateManager(message.chat.id)
-            price = state_manager.get_user_data("price") or 0  # اگر قیمت وجود نداشت، مقدار پیش‌فرض 0 استفاده می‌شود
+            price = self.get_user_data(message.chat.id, "price") or 0  # اگر قیمت وجود نداشت، مقدار پیش‌فرض 0 استفاده می‌شود
             final_price = price - ((price * discount) / 100)
 
             # بررسی اینکه قیمت نهایی معتبر است یا خیر
@@ -898,7 +900,7 @@ class ProductBot:
                 return
 
             # ذخیره تخفیف در Redis و ادامه به مرحله بعد
-            state_manager.save_user_data("discount", discount)
+            self.save_user_data(message.chat.id, "discount", discount)
             self.set_state(message.chat.id, self.ProductState.STOCK)
 
             # ارسال پیام برای دریافت توضیحات
@@ -918,12 +920,10 @@ class ProductBot:
             stock = int(message.text)
 
             # ذخیره موجودی در Redis
-            state_manager = RedisStateManager(message.chat.id)
-            state_manager.save_user_data("stock", stock)
-
+            self.save_user_data(message.chat.id, "stock", stock)
+            self.set_state(message.chat.id, self.ProductState.STATUS)
             markup = send_menu(message, [t(message, "active_adj"), t(message, "inactive_adj")], message.text, [t(message, "cancel_action")])
             app.send_message(message.chat.id, t(message, "enter_status"), reply_markup=markup)
-            self.set_state(message.chat.id, self.ProductState.STATUS)
 
         except ValueError:
             self.bot.send_message(message.chat.id, t(message, "balance_not_integer"))
@@ -932,15 +932,11 @@ class ProductBot:
 
     def get_status(self, message: Message):
         try:
-            status = message.text.strip()
+            status = message.text.strip() == t(message, "active_adj")
 
             # ذخیره وضعیت موجود بودن کالا در Redis
-            state_manager = RedisStateManager(message.chat.id)
-            if status == t(message, "active_adj"):
-                state_manager.save_user_data("status", True)
-            else:
-                state_manager.save_user_data("status", False)
-
+            self.save_user_data(message.chat.id, "status", status)
+            self.set_state(message.chat.id, self.ProductState.CATEGORY)
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session['product_cat_selection'] = True
             session['add_product'] = True
@@ -957,70 +953,213 @@ class ProductBot:
 
 
 
-
-
     def get_category(self, message: Message):
         try:
-            selected_category_title = message.text.strip()
+            selected_category = Category.objects.get(title__iexact=message.text.strip(), status=True)
+            self.save_user_data(message.chat.id, "category_id", selected_category.id)
+            self.set_state(message.chat.id, self.ProductState.VARIANT_DECIDE)
+            markup = send_menu(message, [t(message, "accurate_inventory"), t(message, "not_necessary")], "main menu", [t(message, "cancel_action")])
+            self.bot.send_message(message.chat.id, t(message, "ask_variant_decision"), reply_markup=markup)
+        except Category.DoesNotExist:
+            self.bot.send_message(message.chat.id, t(message, "invalid_selected_category"))
 
-            if message.text == "🔙":
-                self.display_category_menu(message, selected_category_title)
-                return
 
-            # بررسی وجود دسته‌بندی انتخابی
-            elif not Category.objects.filter(title__iexact=selected_category_title, status=True).exists():
-                self.bot.send_message(message.chat.id, t(message, "invalid_selected_category"))
-                return
-
-            # ذخیره عنوان دسته‌بندی انتخابی در Redis
-            state_manager = RedisStateManager(message.chat.id)
-            state_manager.save_user_data("category_title", selected_category_title)
-
-            # دریافت شیء دسته‌بندی از دیتابیس
-            selected_category = Category.objects.get(title__iexact=selected_category_title, status=True)
-
-            # تبدیل شیء Category به دیکشنری
-            category_data = {
-                'id': selected_category.id,
-                'title': selected_category.title,
-                # اضافه کردن ویژگی‌های دیگر در صورت نیاز
-            }
-
-            # ذخیره دسته‌بندی به صورت دیکشنری در Redis
-            state_manager.save_user_data("category", category_data)
-            print("ya")
-            # بررسی زیر دسته‌ها
-            if selected_category.get_next_layer_categories():
-                # نمایش زیر دسته‌ها
-                self.display_category_menu(message, selected_category_title)
+    # ----------------------------
+    # Variant workflow handlers
+    # ----------------------------
+    def get_variant_decision(self, message: Message):
+        try:
+            if message.text == t(message, "accurate_inventory"):
+                self.save_user_data(message.chat.id, "variants", {})
+                self.set_state(message.chat.id, self.ProductState.VARIANT_KEY)
+                markup = send_menu(message, [t(message, "cancel_action")], message.text)
+                self.bot.send_message(message.chat.id, t(message, "enter_variant_key"), reply_markup=markup)
             else:
-                # پایان فرآیند انتخاب دسته‌بندی
-                self.bot.send_message(message.chat.id, t(message, "selected_category", cat=selected_category.get_full_path()))
-
-                # ذخیره دسته‌بندی در Redis (این ذخیره‌سازی دیگر به صورت دیکشنری است)
-                state_manager.save_user_data("category", category_data)
-
+                # Skip variants, go to images
                 self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
                 markup = send_menu(message, [t(message, "no_description")], "main menu", [t(message, "cancel_action")])
                 self.bot.send_message(message.chat.id, t(message, "enter_description"), reply_markup=markup)
+        except Exception as e:
+            print(traceback.format_exc())
+
+    def get_variant_key(self, message: Message):
+        try:
+            key = message.text.strip()
+            variants = self.get_user_data(message.chat.id, "variants")
+            if key in variants:
+                self.bot.send_message(message.chat.id, t(message, "variant_key_exists"))
+                return
+            variants[key] = []
+            self.save_user_data(message.chat.id, "current_variant_key", key)
+            self.save_user_data(message.chat.id, "variants", variants)
+            self.set_state(message.chat.id, self.ProductState.VARIANT_VALUES)
+            self.bot.send_message(message.chat.id, t(message, "enter_variant_values", keyname=key))
+        except Exception as e:
+            print(traceback.format_exc())
+
+    def get_variant_values(self, message: Message):
+        try:
+            # تبدیل همه ویرگول‌ها به کامای انگلیسی
+            normalized_text = (
+                message.text
+                .replace("،", ",")   # فارسی و عربی
+                .replace("，", ",")   # چینی
+                .replace("﹐", ",")   # کامای عربی-قدیمی
+                .replace("､", ",")   # کامای ژاپنی
+            )
+
+            # جدا کردن مقادیر
+            values = [v.strip() for v in normalized_text.split(",") if v.strip()]
+
+            key = self.get_user_data(message.chat.id, "current_variant_key")
+            variants = self.get_user_data(message.chat.id, "variants")
+            variants[key] = values
+            self.save_user_data(message.chat.id, "variants", variants)
+
+            # رفتن به مرحله‌ی بعد
+            self.set_state(message.chat.id, self.ProductState.VARIANT_ADD_ANOTHER_KEY)
+            markup = send_menu(
+                message,
+                [t(message, "yes"), t(message, "no")],
+                "main menu",
+                [t(message, "cancel_action")]
+            )
+            self.bot.send_message(
+                message.chat.id,
+                t(message, "add_another_variant_key"),
+                reply_markup=markup
+            )
 
         except Exception as e:
-            error_details = traceback.format_exc()
-            custom_message = f"An error occurred: {e}\nDetails:\n{error_details}"
-            self.bot.send_message(message.chat.id, f"{custom_message}")
+            print(traceback.format_exc())
 
+    def get_variant_add_key_answer(self, message: Message):
+        try:
+            chat_id = message.chat.id
+            text = message.text.strip()
+
+            if text == t(message, "yes"):
+                self.set_state(chat_id, self.ProductState.VARIANT_KEY)
+                markup = send_menu(message, [t(message, "cancel_action")], message.text)
+                self.bot.send_message(chat_id, t(message, "enter_next_variant_key"), reply_markup=markup)
+                return
+
+            # یعنی گفته "خیر" → همه‌ی کلیدها جمع شدند
+            variants = self.get_user_data(chat_id, "variants")
+            keys = list(variants.keys())
+            values = list(variants.values())
+
+            # تمام ترکیب‌ها از همه مقدارها ساخته می‌شوند
+            combinations = list(itertools.product(*values))
+            self.save_user_data(chat_id, "variant_combinations", combinations)
+            self.save_user_data(chat_id, "variant_stock_index", 0)
+            self.save_user_data(chat_id, "variants_stock", [])
+
+            # پیام مقدمه
+            readable_keys = "، ".join(keys)
+            markup = send_menu(message, [t(message, "cancel_action")], message.text)
+            self.bot.send_message(
+                chat_id,
+                t(message, "variant_stock_intro", keys=readable_keys),
+                reply_markup=markup
+            )
+
+            # ترکیب اول را آماده کنیم
+            first_combo = combinations[0]
+            combo_text = " ".join([f"{keys[i]}: {first_combo[i]}" for i in range(len(keys))])
+
+            self.set_state(chat_id, self.ProductState.VARIANT_STOCKS)
+            self.bot.send_message(chat_id, t(message, "enter_variant_stock", combo=combo_text))
+        except Exception as e:
+            print(traceback.format_exc())
+
+    def get_variants_stock_values(self, message: Message):
+        chat_id = message.chat.id
+        stock_str = message.text.strip()
+
+        # --- اعتبارسنجی اولیه
+        if not stock_str.isdigit():
+            self.bot.send_message(chat_id, t(message, "invalid_stock_input"))
+            return
+
+        stock = int(stock_str)
+
+        # --- بازیابی داده‌ها
+        total_stock = self.get_user_data(chat_id, "stock")  # موجودی کلی محصول
+        combinations = self.get_user_data(chat_id, "variant_combinations")
+        index = self.get_user_data(chat_id, "variant_stock_index", 0)
+        variants_stock = self.get_user_data(chat_id, "variants_stock", [])
+
+        # --- محاسبه مجموع فعلی
+        current_total = sum(item["stock"] for item in variants_stock)
+
+        # بررسی اینکه واردکردن این عدد باعث تجاوز از موجودی کل نشود
+        if current_total + stock > total_stock:
+            remaining = total_stock - current_total
+            self.bot.send_message(
+                chat_id,
+                t(message, "stock_exceed_total", total=total_stock, current=current_total, remaining=remaining)
+            )
+            return  # در همین state باقی بماند
+
+        # --- ذخیره موجودی ترکیب فعلی
+        variants_stock.append({
+            "combination": combinations[index],
+            "stock": stock
+        })
+        self.save_user_data(chat_id, "variants_stock", variants_stock)
+
+        # --- برو سراغ بعدی یا پایان کار
+        current_total += stock
+
+        if current_total >= total_stock:
+            # ✅ جمع دقیقاً برابر با موجودی کل شد
+            total = sum(item["stock"] for item in variants_stock)
+            text = t(message, "variant_stock_saved", total=total)
+            self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
+            markup = send_menu(
+                message,
+                [t(message, "no_description")],
+                "main menu",
+                [t(message, "cancel_action")]
+            )
+            self.bot.send_message(chat_id, text, reply_markup=markup)
+            return
+
+        # اگر هنوز ترکیب‌هایی مانده بود و مجموع کمتر از کل است
+        index += 1
+        if index < len(combinations):
+            self.save_user_data(chat_id, "variant_stock_index", index)
+            variants = self.get_user_data(chat_id, "variants")
+            keys = list(variants.keys())
+            combo_text = " ".join([f"{keys[i]}: {combinations[index][i]}" for i in range(len(keys))])
+            remaining = total_stock - current_total
+            self.bot.send_message(
+                chat_id,
+                t(message, "variant_stock_question", combo_text=combo_text, remaining=remaining)
+            )
+        else:
+            # اگر همه ترکیب‌ها تمام شدند ولی هنوز موجودی کل پر نشده
+            total = sum(item["stock"] for item in variants_stock)
+            self.bot.send_message(
+                chat_id,
+                t(message, "stock_less_than_total", total=total, total_stock=total_stock)
+            )
+            text = t(message, "variant_stock_partial_saved", total=total) + t(message, "enter_description")
+            self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
+            markup = send_menu(
+                message,
+                [t(message, "no_description")],
+                "main menu",
+                [t(message, "cancel_action")]
+            )
+            self.bot.send_message(chat_id, text, reply_markup=markup)
 
 
     def get_description(self, message: Message):
         # ذخیره خصوصیات محصول در Redis
-        state_manager = RedisStateManager(message.chat.id)
-        state_manager.save_user_data("product_attributes", {})
-
-        # ذخیره توضیحات محصول در Redis
-        if message.text == t(message, "no_description"):
-            state_manager.save_user_data("description", None)
-        else:
-            state_manager.save_user_data("description", message.text)
+        description = None if message.text == t(message, "no_description") else message.text
+        self.save_user_data(message.chat.id, "description", description)
 
         # تغییر وضعیت به مرحله ویژگی‌ها
         self.set_state(message.chat.id, self.ProductState.ATTRIBUTES)
@@ -1116,84 +1255,102 @@ class ProductBot:
 
     def get_additional_images(self, message: Message):
         try:
-            # استفاده از RedisStateManager برای بازیابی داده‌های کاربر
-            state_manager = RedisStateManager(message.chat.id)
-            additional_images = state_manager.get_user_data("additional_images") or []
+            chat_id = message.chat.id
 
+            additional_images = self.get_user_data(chat_id, "additional_images") or []
             file_id = message.photo[-1].file_id
-
-            # دانلود و ذخیره تصویر
             saved_image = download_and_save_image(file_id, self.bot)
 
-            if saved_image:
-                additional_images.append(saved_image)  # ذخیره مسیر تصویر
-                state_manager.save_user_data("additional_images", additional_images)  # ذخیره در Redis
-            else:
-                self.bot.send_message(message.chat.id, "یکی از تصاویر اضافی ذخیره نشد. لطفاً دوباره تلاش کنید.")
+            if not saved_image:
+                self.bot.send_message(chat_id, t(message, "extra_image_save_failed"))
+                return
 
-            # بررسی تعداد تصاویر
-            if len(additional_images) >= 3:
-                # بازیابی اطلاعات کاربر از Redis
-                user_data = {
-                    "name": state_manager.get_user_data("name"),
-                    "brand": state_manager.get_user_data("brand"),
-                    "price": state_manager.get_user_data("price"),
-                    "discount": state_manager.get_user_data("discount"),
-                    "stock": state_manager.get_user_data("stock"),
-                    "status": state_manager.get_user_data("status"),
-                    "category": state_manager.get_user_data("category"),
-                    "description": state_manager.get_user_data("description"),
-                    "main_image": state_manager.get_user_data("main_image"),
-                    "product_attributes": state_manager.get_user_data("product_attributes")
-                }
+            additional_images.append(saved_image)
+            self.save_user_data(chat_id, "additional_images", additional_images)
 
-                # تبدیل داده‌های دسته‌بندی از دیکشنری به شیء Category
-                category_data = user_data["category"]
-                if category_data:
-                    selected_category = Category.objects.get(id=category_data["id"], status=True)
+            if len(additional_images) < 3:
+                remaining = 3 - len(additional_images)
+                self.bot.send_message(chat_id, t(message, "send_extra_images", pic_num=remaining))
+                return
 
-                slug = generate_unique_slug(Product, user_data["name"])
-                # ایجاد و ذخیره محصول
-                try:
-                    product = Product.objects.create(
-                        profile=ProfileModel.objects.get(tel_id=message.from_user.id),
-                        name=user_data["name"],
-                        slug=slug,
-                        brand=user_data["brand"],
-                        price=user_data["price"],
-                        discount=user_data["discount"],
-                        stock=user_data["stock"],
-                        status=user_data["status"],
-                        category=selected_category,  # استفاده از شیء Category
-                        description=user_data["description"],
-                        main_image=user_data["main_image"],
-                        store=Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.from_user.id)),
-                    )
-                except Exception as e:
-                    print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+            store = Store.objects.get(owner=profile)
+            category_id = self.get_user_data(chat_id, "category_id")
+            if not category_id:
+                self.bot.send_message(chat_id, t(message, "invalid_selected_category"))
+                return
+            category = Category.objects.get(id=category_id, status=True)
 
-                # ذخیره ویژگی‌های محصول
-                for key, value in user_data["product_attributes"].items():
-                    ProductAttribute.objects.create(
+            name = self.get_user_data(chat_id, "name")
+            slug = generate_unique_slug(Product, name)
+
+            variants = self.get_user_data(chat_id, "variants") or {}
+            variant_combinations = self.get_user_data(chat_id, "variant_combinations") or []
+            variants_stock = self.get_user_data(chat_id, "variants_stock") or []
+
+            entries = variants_stock or [{"combination": combo, "stock": 0} for combo in variant_combinations]
+
+            # ساخت محصول اصلی
+            product = Product.objects.create(
+                profile=profile,
+                store=store,
+                name=name,
+                brand=self.get_user_data(chat_id, "brand"),
+                price=self.get_user_data(chat_id, "price"),
+                discount=self.get_user_data(chat_id, "discount") or 0,
+                stock=self.get_user_data(chat_id, "stock") or 0,
+                status=self.get_user_data(chat_id, "status") or False,
+                category=category,
+                description=self.get_user_data(chat_id, "description"),
+                main_image=self.get_user_data(chat_id, "main_image"),
+                slug=slug
+            )
+
+            # ویژگی‌ها
+            product_attrs = self.get_user_data(chat_id, "product_attributes") or {}
+            for key, value in product_attrs.items():
+                ProductAttribute.objects.create(product=product, key=key, value=value)
+
+            # ساخت واریانت‌ها
+            keys_order = list(variants.keys())
+            for entry in entries:
+                combo_raw = entry.get("combination") or entry.get("combo")
+                stock = int(entry.get("stock", 0)) if entry.get("stock") else 0
+                combo_list = list(combo_raw.values()) if isinstance(combo_raw, dict) else list(combo_raw)
+
+                if len(combo_list) != len(keys_order):
+                    print(f"[warn] combo length mismatch: keys={keys_order} combo={combo_list}")
+                    continue
+
+                parent = None
+                for i, key_name in enumerate(keys_order):
+                    value = combo_list[i]
+                    variant_stock_value = stock if i == len(keys_order) - 1 else 0
+
+                    # ایجاد واریانت
+                    variant, created = ProductVariant.objects.get_or_create(
                         product=product,
-                        key=key,  # کلید ویژگی (مانند "وزن")
-                        value=value  # مقدار ویژگی (مانند "1kg")
+                        parent=parent,
+                        key=key_name,
+                        value=value,
+                        defaults={"stock": variant_stock_value}
                     )
+                    if not created and i == len(keys_order) - 1:
+                        variant.stock = variant_stock_value
+                        variant.save(update_fields=["stock"])
+                    parent = variant
 
-                # ذخیره تصاویر اضافی مرتبط با محصول
-                for image_path in additional_images:
-                    ProductImage.objects.create(product=product, image=image_path)
+            # تصاویر اضافی
+            for image_path in additional_images:
+                ProductImage.objects.create(product=product, image=image_path)
 
-                # ارسال پیام موفقیت
-                markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu, message.text, ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu)
-                self.bot.send_message(message.chat.id, t(message, "product_saved"), reply_markup=markup)
-                self.reset_state(message.chat.id)
-            else:
-                self.bot.send_message(message.chat.id, t(message, "send_extra_images", pic_num=3 - len(additional_images)))
+            markup = send_menu(message, profile.tel_menu, "main menu", profile.extra_button_menu)
+            self.bot.send_message(chat_id, t(message, "product_saved"), reply_markup=markup)
+            self.reset_state(chat_id)
 
         except Exception as e:
             print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
-
+            self.bot.send_message(message.chat.id, t(message, "product_save_failed"))
 
 
 
@@ -1405,6 +1562,7 @@ class ProductHandler:
         brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
 
+        # 🟢 مشخصات کالا (Attributes)
         attribute_text = ""
         if self.attributes:
             attribute_text = "\n✅ ".join(
@@ -1412,12 +1570,39 @@ class ProductHandler:
             )
             attribute_text = f"✅ {attribute_text}\n\n"
 
+        # 🟢 واریانت‌ها (Variants)
+        variants_text = ""
+        variants = self.product.variants.all()
+
+        if variants.exists():
+            variant_dict = {}
+
+            for variant in variants:
+                # کل زنجیره‌ی کلید-مقدار را از پایین به بالا استخراج کن
+                chain = []
+                current = variant
+                while current:
+                    chain.append((current.key.capitalize(), current.value))
+                    current = current.parent
+
+                # همه‌ی کلیدها و مقدارها را اضافه کن
+                for key, value in chain:
+                    if key not in variant_dict:
+                        variant_dict[key] = set()
+                    variant_dict[key].add(value)
+
+            # ساخت خروجی نهایی به‌صورت ✅ Key: value1, value2
+            variant_lines = [f"{key}: {', '.join(sorted(values))}" for key, values in variant_dict.items()]
+            variants_text = "✅ " + "\n✅ ".join(variant_lines) + "\n\n"
+
+        # 🟢 متن نهایی کپشن
         return (
             f"\n⭕️ نام کالا: {self.product.name}\n"
             f"{brand_text}"
             f"کد کالا: {self.product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
+            f"{variants_text}"
             f"📫 ارسال به تمام نقاط کشور\n\n"
             f"{self.format_price()}\n"
         )

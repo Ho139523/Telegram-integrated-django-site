@@ -299,19 +299,20 @@ import hashlib
 from django.db import models
 from django.utils.text import slugify
 
+
 class ProductVariant(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
+    product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name="variants")
     parent = models.ForeignKey(
-        'self', null=True, blank=True, related_name='children', on_delete=models.CASCADE
+        "self", null=True, blank=True, related_name="children", on_delete=models.CASCADE
     )
     key = models.CharField(max_length=50, verbose_name="Variant Key", help_text="مثل 'Color', 'Size', 'Type'")
     value = models.CharField(max_length=50, verbose_name="Variant Value", help_text="مثل 'Red', '42', 'Roasted'")
-    sku = models.CharField(max_length=50, unique=True, verbose_name="SKU Code", blank=True, null=True)
+    sku = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="SKU Code")
     stock = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name="Stock Quantity")
     price_override = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, verbose_name="Custom Price")
 
     class Meta:
-        unique_together = ('product', 'parent', 'key', 'value')
+        unique_together = ("product", "parent", "key", "value")
         verbose_name = "Product Variant"
         verbose_name_plural = "Product Variants"
 
@@ -328,35 +329,66 @@ class ProductVariant(models.Model):
         return self.price_override if self.price_override else self.product.final_price
 
     def total_stock(self):
-        """موجودی کل شامل تمام زیر واریانت‌ها"""
+        """موجودی کل شامل تمام زیر‌واریانت‌ها"""
         if self.children.exists():
             return sum(child.total_stock() for child in self.children.all())
         return self.stock
 
     def generate_sku(self):
-        """
-        تولید خودکار SKU بر اساس زنجیرهٔ واریانت‌ها.
-        مثال: P123-COLOR-RED-SIZE-42
-        """
+        """تولید خودکار SKU یکتا"""
         parts = [f"P{self.product.id}"]
-
-        # تمام واریانت‌های والد را از بالا به پایین جمع کن
         lineage = []
         current = self
         while current:
             lineage.append(f"{slugify(current.key).upper()}-{slugify(current.value).upper()}")
             current = current.parent
 
-        # ترتیب را برعکس کن تا از ریشه تا برگ باشد
         parts.extend(reversed(lineage))
-
         base_sku = "-".join(parts)
 
-        # در صورت نیاز برای اطمینان از یکتایی
         hash_suffix = hashlib.md5(base_sku.encode()).hexdigest()[:6].upper()
         return f"{base_sku}-{hash_suffix}"
 
+    def clean(self):
+        # اگر واریانت فرزند دارد یا خودش فرزند است
+        if self.parent:
+            # اگر والد هنوز ذخیره نشده یا موجودی صفر دارد، بررسی را رد کن
+            if not self.parent.id or self.parent.stock == 0:
+                return
+            
+            siblings = self.parent.children.exclude(id=self.id)
+            total_sibling_stock = sum(v.stock for v in siblings)
+            
+            if total_sibling_stock + self.stock > self.parent.stock:
+                raise ValidationError({
+                    "stock": (
+                        f"❌ مجموع موجودی زیر‌واریانت‌ها ({total_sibling_stock + self.stock}) "
+                        f"نمی‌تواند از موجودی والد ({self.parent.stock}) بیشتر باشد."
+                    )
+                })
+
+
     def save(self, *args, **kwargs):
-        if not self.sku:
-            self.sku = self.generate_sku()
+        """ذخیره با تولید خودکار SKU و جلوگیری از خطای NULL"""
+        self.full_clean()
+
+        # مرحله ۱: اگر هنوز ذخیره نشده، اول ذخیره کن تا id بگیره
+        is_new = self.pk is None
+        if is_new and not self.sku:
+            temp_sku = f"TEMP-{hashlib.md5(str(self.product.id).encode()).hexdigest()[:6]}"
+            self.sku = temp_sku  # برای جلوگیری از خطای NOT NULL
+
         super().save(*args, **kwargs)
+
+        # مرحله ۲: پس از ذخیره، SKU نهایی بساز و ذخیره کن
+        if is_new:
+            base_sku = self.generate_sku()
+            final_sku = f"{base_sku}-{self.id}"
+            counter = 1
+            while ProductVariant.objects.filter(sku=final_sku).exclude(id=self.id).exists():
+                final_sku = f"{base_sku}-{self.id}-{counter}"
+                counter += 1
+            if self.sku != final_sku:
+                self.sku = final_sku
+                super().save(update_fields=["sku"])
+

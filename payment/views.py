@@ -314,10 +314,21 @@ def handle_successful_payment(transaction):
 
             buyer_info = transaction.profile
             address = buyer_info.get_active_address()
+            print(f"address: {type(address)}")
+            # address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
+            # try:
+            #     line1 = address.shipping_line1
+            # except Exception as e:
+            #     line1 = ''
+            # address_text = (f"{line1}, {address.shipping_city_name}, {address.shipping_province_name}, {address.shipping_country_name}"
+            #                 if address else ' --- ')
+             
             address_text = (
-                f"{address.shipping_line1}, {address.shipping_city}, "
-                f"{address.shipping_province}, {address.shipping_country}" if address else "نامشخص"
+                f"{address.shipping_line1}, {address.shipping_city_name}, "
+                f"{address.shipping_province_name}, {address.shipping_country_name}" if address else "نامشخص"
             )
+            print(f"address_text: {address_text}")
+
 
             for chat_id_seller, data in sellers_map.items():
                 seller_products = "\n".join(

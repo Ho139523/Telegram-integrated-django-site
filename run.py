@@ -35,7 +35,7 @@ if __name__ == "__main__":
 #ssh -R 80:127.0.0.1:8000 serveo.net
 #
 #sudo pkill -9 python
-#sudo kill $(sudo lsof -t -i :8000)
+#
 #
 ###########################
 

@@ -1,4 +1,5 @@
 # General imports
+from math import prod
 import re
 from traceback import format_exc
 from telebot import TeleBot, types
@@ -642,6 +643,26 @@ def handle_callback(call):
     except Exception as e:
         error_message = traceback.format_exc()
         print(f"Error in handle_callback: {e}\n{error_message}")
+
+
+@app.callback_query_handler(func=lambda call: "VarPrev_" in call.data or "VarNext_" in call.data)
+def handle_callback(call):
+    try:
+        data = call.data.split("_")  # تفکیک داده‌های دریافتی
+        action = data[0]
+        product_code = str(data[1]) if len(data) > 1 else None
+        print(data)
+        product = Product.objects.get(code=product_code)
+        # cart, _ = Cart.objects.get_or_create(profile=ProfileModel.objects.get(tel_id=call.message.chat.id))
+
+        # send_cart = SendCart(app, call.message)
+        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
+        product_handler.handle_variant_navigation(call)
+
+    except Exception as e:
+        error_message = traceback.format_exc()
+        print(f"Error in handle_callback: {e}\n{error_message}")
+
 
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_cart"))

@@ -69,6 +69,7 @@ from utils.telbot.functions import SubscriptionClass, CategoryClass
 # python tools
 from functools import wraps
 from django.db.models.functions import Lower
+from django.core.exceptions import ObjectDoesNotExist
 
 ###############################################################################################
 
@@ -617,66 +618,107 @@ def sale_statistics(message):
 
 
 @app.callback_query_handler(
-    func=lambda call: "increase" in call.data or "decrease" in call.data or "remove" in call.data)
-def handle_callback(call):
+    func=lambda call: "increase_" in call.data or "decrease_" in call.data or "addtocart_" in call.data)
+def handle_product_buttons(call):
     try:
-        data = call.data.split("_")  # تفکیک داده‌های دریافتی
-        action = data[0]  # increase, decrease یا remove
-        product_code = str(data[1]) if len(data) > 1 else None
+        data = call.data.split("_")
+        action = data[0]  # increase, decrease, addtocart
+        product_code = str(data[-1])
+
+        if not product_code:
+            return
+
         product = Product.objects.get(code=product_code)
-        cart, _ = Cart.objects.get_or_create(profile=ProfileModel.objects.get(tel_id=call.message.chat.id))
-
-        send_cart = SendCart(app, call.message)
-
-        if action == "remove":
-            send_cart.remove_item(call)
-
-            return
-
-        if "cart" in call.data:
-            send_cart.add(call)
-            return
-
         product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
-        product_handler.handle_buttons(call)
+        
+        
+        if action == "addtocart":
+            product_handler.handle_add_to_cart(call)
+        else:
+            product_handler.handle_buttons(call)
 
+    except ObjectDoesNotExist:
+        app.answer_callback_query(call.id, "محصول یافت نشد!", show_alert=True)
     except Exception as e:
         error_message = traceback.format_exc()
-        print(f"Error in handle_callback: {e}\n{error_message}")
+        print(f"Error in handle_product_buttons: {e}\n{error_message}")
+        app.answer_callback_query(call.id, "خطا در پردازش درخواست!", show_alert=True)
 
 
 @app.callback_query_handler(func=lambda call: "VarPrev_" in call.data or "VarNext_" in call.data)
-def handle_callback(call):
+def handle_variant_navigation(call):
     try:
-        data = call.data.split("_")  # تفکیک داده‌های دریافتی
-        action = data[0]
+        data = call.data.split("_")
         product_code = str(data[1]) if len(data) > 1 else None
-        print(data)
-        product = Product.objects.get(code=product_code)
-        # cart, _ = Cart.objects.get_or_create(profile=ProfileModel.objects.get(tel_id=call.message.chat.id))
+        
+        if not product_code:
+            return
 
-        # send_cart = SendCart(app, call.message)
+        product = Product.objects.get(code=product_code)
         product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
         product_handler.handle_variant_navigation(call)
 
+    except ObjectDoesNotExist:
+        app.answer_callback_query(call.id, "محصول یافت نشد!", show_alert=True)
     except Exception as e:
         error_message = traceback.format_exc()
-        print(f"Error in handle_callback: {e}\n{error_message}")
+        print(f"Error in handle_variant_navigation: {e}\n{error_message}")
+        app.answer_callback_query(call.id, "خطا در تغییر واریانت!", show_alert=True)
 
+
+@app.callback_query_handler(func=lambda call: "comments_" in call.data)
+def handle_comments(call):
+    try:
+        data = call.data.split("_")
+        product_code = str(data[1]) if len(data) > 1 else None
+        
+        if not product_code:
+            return
+
+        product = Product.objects.get(code=product_code)
+        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
+        product_handler.handle_comments(call)
+
+    except ObjectDoesNotExist:
+        app.answer_callback_query(call.id, "محصول یافت نشد!", show_alert=True)
+    except Exception as e:
+        error_message = traceback.format_exc()
+        print(f"Error in handle_comments: {e}\n{error_message}")
+
+
+@app.callback_query_handler(func=lambda call: "remove" in call.data or "sudoincrease" in call.data)
+def handle_cart_operations(call):
+    try:
+        data = call.data.split("_")
+        action = data[0]  # remove, sudoincrease
+        
+        if action == "remove":
+            send_cart = SendCart(app, call.message)
+            send_cart.remove_item(call)
+            return
+            
+        if "cart" in call.data:
+            send_cart = SendCart(app, call.message)
+            send_cart.add(call)
+            return
+
+    except Exception as e:
+        error_message = traceback.format_exc()
+        print(f"Error in handle_cart_operations: {e}\n{error_message}")
 
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_cart"))
 @app.callback_query_handler(func=lambda call: call.data.startswith("product_show_") or call.data == "pay")
-@app.callback_query_handler(func=lambda call: call.data == "finalize")
+@app.callback_query_handler(func=lambda call: call.data == "finalize" or call.data == "view_cart")
 def cart_CallBack(data):
     if isinstance(data, types.Message):
         cart = SendCart(app, data)
-        if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
+        if cart.cart:
             cart.send(data)
     elif isinstance(data, types.CallbackQuery):
         cart = SendCart(app, data.message)
         if cart.cart:
-            if data.data == "finalize":
+            if data.data == "finalize" or data.data == "view_cart":
                 cart.send(data)
             else:
                 cart.handle_buttons(data)
@@ -692,7 +734,7 @@ def confirm_order_CallBack(data):
 @app.callback_query_handler(func=lambda call: call.data == "payment")
 def payment_order_CallBack(data):
     cart = SendCart(app, data.message)
-    if cart.cart:  # بررسی اینکه سبد خرید موجود باشد
+    if cart.cart:
         cart.invoice(data)
 
 
@@ -784,7 +826,6 @@ def phone_handler(data):
     ("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next',
      'prev', 'country_', 'province_', 'city_', '_back', "change_address")) or call.data in ("back_to_addresses"))
 def unified_address_handler(data):
-    print("gg")
     try:
 
         if isinstance(data, types.Message):
@@ -1020,11 +1061,12 @@ def handle_product_code(message):
                         app.send_message(message.chat.id, f"the error is: {e}")
                 elif Product.objects.filter(code=message.text, status=False, category__status=True).exists():
                     app.send_message(message.chat.id, t(message, "product_disabled_by_seller"))
-
                 elif Product.objects.filter(code=message.text, status=True, category__status=False).exists():
-                    print("here")
                     app.send_message(message.chat.id,
-                                     f"دسته بندی {Product.objects.get(code=message.text, status=True, category__status=False).category.title} توسط فروشنده غیرفعال شده است لذا همه کالاهای موجود در این دسته بندی از جمله کالای مورد نظر شما نیز غیر فعال هستند.\n\n برای کسب اطلاع بیشتر با پشتیبان این فروشگاه ارتباط بگیرید.")
+                                    f"دسته بندی {Product.objects.get(code=message.text, status=True, category__status=False).category.title} توسط فروشنده غیرفعال شده است لذا همه کالاهای موجود در این دسته بندی از جمله کالای مورد نظر شما نیز غیر فعال هستند.\n\n برای کسب اطلاع بیشتر با پشتیبان این فروشگاه ارتباط بگیرید.")
+                else:
+                    # No product found with this code
+                    app.send_message(message.chat.id, t(message, "product_not_found"))
 
             else:
                 app.send_message(chat_id, t(message, "invalid_code"))
@@ -1124,6 +1166,10 @@ def add_product(message):
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
             if profile.seller_mode:
                 try:
+                    if not get_user_store(message).categories.exists():
+                        # فروشگاه هیچ دسته‌بندی ندارد
+                        app.send_message(message.chat.id, t(message, "no_categories_to_add_product"))
+                        return
                     product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
                     markup = send_menu(message, [t(message, "cancel_action")], message.text)
                     app.send_message(message.chat.id, t(message, "enter_product_name"), reply_markup=markup)
@@ -1147,6 +1193,10 @@ def remove_product(message):
             store = get_user_store(message)
             if store:
                 product_bot.set_state(message.chat.id, product_bot.ProductState.DELETE)
+                if not store.product_store.exists():
+                    # Store has no products
+                    app.send_message(message.chat.id, t(message, "no_products_to_delete"))
+                    return
                 markup = send_menu(message, [], "deletion", [t(message, "cancel_action")])
                 app.send_message(message.chat.id, t(message, "enter_product_code_to_delete"), reply_markup=markup)
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
@@ -1164,6 +1214,10 @@ def deactivate_product(message):
         if subscription.subscription_offer(message):
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
             if profile.seller_mode:
+                if not get_user_store(message).product_store.exists():
+                    # Store has no products
+                    app.send_message(message.chat.id, t(message, "no_products_to_toggle"))
+                    return
                 product_bot.set_state(message.chat.id, product_bot.ProductState.DEACTIVATE)
                 markup = send_menu(message, [], "deactivation", [t(message, "cancel_action")])
                 app.send_message(message.chat.id, t(message, "enter_product_code_to_deactivate"), reply_markup=markup)
@@ -1204,6 +1258,7 @@ def delete_handler(message):
 
     if session.get("category"):
         # Category deletion
+
         category_class = CategoryClass()
         category_class.handle_category(message)
 
@@ -1289,25 +1344,40 @@ def cat_delete(message):
         if session_manager.get_user_session(message.chat.id, namespace="menu").get("delete_sure"):
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
+            parent = cat.get_parents()
             cat.delete()
             category_class = CategoryClass()
-            try:
-                message.text = cat.get_parents()[0].title
+            if not cat.store.categories.exists():
+                home(message)
+                return
+            if parent:
+                if parent[0].get_all_subcategories():
+                    message.text = parent[0].title
+                else:
+                    message.text = parent[1].title
                 category_class.handle_subcategory(message)
-            except:
-                if not cat.store.categories.exists():
-                    home(message)
-                    return
+            else:
                 category_class.handle_category(message)
         elif session_manager.get_user_session(message.chat.id, namespace="menu").get("deactivate_category_sure"):
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
             cat.status = False
             cat.save()
-            parent = cat.get_parents()[0].title
-            message.text = parent
+            parent = cat.get_parents()
+            if not [c for c in cat.store.categories.all() if c.status]:
+                home(message)
+                return
             category_class = CategoryClass()
-            category_class.handle_subcategory(message)
+            if parent:
+                if [par for par in parent[0].get_all_subcategories() if par.status]:
+                    message.text = parent[0].title
+                else:
+                    message.text = parent[1].title
+                category_class.handle_subcategory(message)
+            else:
+                category_class.handle_category(message)
+            
+            
 
     except Exception as e:
         print(traceback.format_exc())
@@ -1322,6 +1392,9 @@ def deactivate_category(message):
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
                 session["category_deactivate"] = True
                 session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                if not Category.objects.filter(store=profile.server_store).exists():
+                    app.send_message(message.chat.id, t(message, "no_categories_for_toggle"))
+                    return
                 category_class = CategoryClass()
                 category_class.handle_category(message)
             else:

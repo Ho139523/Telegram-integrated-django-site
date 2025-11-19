@@ -1,4 +1,5 @@
 {
     "python.analysis.autoImportCompletions": true,
-    "editor.fontSize": 26
+    "editor.fontSize": 18,
+    "terminal.integrated.fontSize": 14
 }

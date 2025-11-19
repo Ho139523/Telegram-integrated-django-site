@@ -17,6 +17,7 @@ from accounts.models import ProfileModel
 from payment.models import Transaction, Sale, Cart, CartItem
 from utils.variables.TOKEN import TOKEN, api_id, api_hash, BOT_ID
 from products.signals import t, async_helper
+from django.db import transaction as db_transaction
 
 # 🟩 تنظیمات عمومی
 pay = ZarinPal()
@@ -146,11 +147,9 @@ def send_request(request):
     if request.method == 'GET':
         try:
             payment_id = request.GET.get('pid')
-            print(payment_id)
+            print(f"Payment ID: {payment_id}")
 
             payment_data = cache.get(f'payment_{payment_id}')
-            print(payment_data)
-
             if not payment_data:
                 return JsonResponse({'error': 'لینک پرداخت منقضی شده است'}, status=400)
 
@@ -162,32 +161,63 @@ def send_request(request):
             if not cart_items.exists():
                 return JsonResponse({"error": "سبد خرید خالی است"}, status=400)
 
+            # محاسبه مبلغ کل (به ریال)
             amount = sum(item.total_price() for item in cart_items) * 10
+            
+            # محاسبه تقسیم‌های پرداخت
+            splits = []
+            sellers_split = cart.get_sellers_split()
+            
+            for seller, seller_amount in sellers_split.items():
+                if hasattr(seller, 'zarinpal_merchant_id') and seller.zarinpal_merchant_id:
+                    splits.append({
+                        "merchant_id": seller.zarinpal_merchant_id,
+                        "amount": int(seller_amount * 10)  # تبدیل به ریال
+                    })
+
             description = f"پرداخت سبد خرید شامل {cart_items.count()} کالا"
 
-            response = pay.send_request(
-                amount=int(amount),
-                description=description,
-                email="admin@admin.com",
-                mobile="09123456789"
-            )
+            # ارسال درخواست پرداخت با تقسیم
+            if splits:
+                response = pay.send_split_request(
+                    amount=int(amount),
+                    description=description,
+                    splits=splits,
+                    email=profile.email,
+                    mobile=profile.phone
+                )
+            else:
+                response = pay.send_request(
+                    amount=int(amount),
+                    description=description,
+                    email="admin@admin.com",
+                    mobile=profile.phone
+                )
+
+            if not response.get("success"):
+                return JsonResponse({"error": response.get("message", "خطا در اتصال به درگاه")}, status=400)
 
             authority = response.get("authority")
             if not authority:
                 return JsonResponse({"error": "Failed to get authority from ZarinPal"}, status=400)
 
+            # ایجاد تراکنش
             transaction = Transaction.objects.create(
                 profile=profile,
                 cart=cart,
-                amount=amount // 10,
+                amount=amount // 10,  # ذخیره به تومان
                 authority=authority,
                 status="pending"
             )
+            
+            # ایجاد تقسیم‌های پرداخت
+            transaction.create_split_payments()
 
             cache.delete(f'payment_{payment_id}')
             return HttpResponseRedirect(response["url"])
 
         except Exception as e:
+            print(f"Error in send_request: {e}")
             return JsonResponse({"error": f"Error: {traceback.format_exc()}"}, status=500)
 
 
@@ -212,16 +242,21 @@ def verify(request):
             transaction.mark_as_canceled()
             return render(request, "payment/tel_payment_failed.html", {"message": "پرداخت لغو شد"})
 
+        # تایید پرداخت
         response = pay.verify(authority=authority, amount=transaction.amount * 10)
 
-        if response.get("transaction") and response.get("pay"):
+        if response.get("success") and response.get("transaction"):
             transaction.status = "paid"
+            transaction.zarinpal_ref_id = response.get("ref_id")
             transaction.save()
+            
+            # پردازش موفقیت‌آمیز پرداخت
             handle_successful_payment(transaction)
             return render(request, "payment/tel_payment_success.html")
         else:
             transaction.mark_as_failed()
-            return render(request, "payment/tel_payment_failed.html", {"message": "پرداخت ناموفق بود"})
+            return render(request, "payment/tel_payment_failed.html", 
+                         {"message": f"پرداخت ناموفق بود: {response.get('message', 'خطای ناشناخته')}"})
 
     except Exception as e:
         print(f"❌ Verify Error: {e}")
@@ -234,123 +269,109 @@ def verify(request):
 def handle_successful_payment(transaction):
     try:
         if transaction.status == "paid" and transaction.cart:
-            print("\n==================== 💳 PAYMENT PROCESS STARTED ====================")
-            print(f"Transaction ID: {transaction.id}, Buyer: {transaction.profile.tel_id}")
+            print(f"\n💳 PAYMENT SUCCESS - Transaction: {transaction.id}")
+            
+            # استفاده از transaction دیتابیس برای اطمینان از یکپارچگی داده‌ها
+            with db_transaction.atomic():
+                sales = []
+                for cart_item in transaction.cart.items.all():
+                    product = cart_item.product
+                    
+                    if product.stock >= cart_item.quantity:
+                        # کاهش موجودی
+                        product.stock -= cart_item.quantity
+                        product.save(update_fields=["stock"])
+                        
+                        # ایجاد فروش
+                        sale = Sale.objects.create(
+                            transaction=transaction,
+                            product=product,
+                            seller=product.store,
+                            quantity=cart_item.quantity,
+                            unit_price=int(product.final_price),
+                            total_price=int(cart_item.total_price())
+                        )
+                        sales.append(sale)
+                        
+                        # بررسی اتمام موجودی
+                        if product.stock == 0 and product.store.tel_channel:
+                            try:
+                                photos = []
+                                if product.main_image:
+                                    photos.append(product.main_image.path)
+                                photos += [img.image.path for img in product.images.all()]
+                                
+                                send_album_and_button(
+                                    channel_id=product.store.tel_channel,
+                                    product=product,
+                                    photos=photos,
+                                    out_of_stock=True
+                                )
+                            except Exception as ex:
+                                print(f"⚠️ Error sending out-of-stock album: {ex}")
 
-            sales = []
-            for cart_item in transaction.cart.items.all():
-                product = cart_item.product
-                print(f"\n🔹 Checking product: {product.name} | Stock: {product.stock} | Quantity: {cart_item.quantity}")
+                # ارسال پیام‌ها
+                send_payment_notifications(transaction, sales)
+                
+                # پاک کردن سبد خرید
+                transaction.cart.items.all().delete()
 
-                if product.stock >= cart_item.quantity:
-                    product.stock -= cart_item.quantity
-                    product.save(update_fields=["stock"])
-                    print(f"✅ Stock updated → New stock: {product.stock}")
+    except Exception as e:
+        print(f"❌ [handle_successful_payment] Error: {e}")
+        traceback.print_exc()
 
-                    sale = Sale.objects.create(
-                        transaction=transaction,
-                        product=product,
-                        seller=product.store,
-                        quantity=cart_item.quantity,
-                        unit_price=product.final_price,
-                        total_price=cart_item.total_price()
-                    )
-                    sales.append(sale)
-                    print(f"🧾 Sale created: {product.name} × {cart_item.quantity} ({cart_item.total_price()})")
 
-                    # اگر موجودی صفر شد → ارسال پیام خاص با دکمه درخواست موجودی
-                    if product.stock == 0 and product.store.tel_channel:
-                        print(f"📢 Product '{product.name}' is now OUT OF STOCK → sending album with out_of_stock=True")
-                        try:
-                            photos = []
-                            if product.main_image:
-                                photos.append(product.main_image.path)
-                            photos += [img.image.path for img in product.images.all()]
+def send_payment_notifications(transaction, sales):
+    """ارسال پیام‌های اطلاع‌رسانی پس از پرداخت موفق"""
+    try:
+        chat_id_buyer = transaction.profile.tel_id
+        telegram_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        
+        # پیام به خریدار
+        buyer_products = "\n".join(
+            [f"🔹 {s.product.name} × {s.quantity} = {s.total_price:,} تومان" for s in sales]
+        )
+        buyer_message = (
+            "✅ پرداخت شما با موفقیت انجام شد!\n"
+            f"🛍️ محصولات خریداری‌شده:\n{buyer_products}\n\n"
+            f"💰 مبلغ کل: {transaction.amount:,} تومان\n"
+            f"📋 کد پیگیری: {transaction.zarinpal_ref_id or '---'}"
+        )
+        
+        requests.post(telegram_url, json={"chat_id": chat_id_buyer, "text": buyer_message})
 
-                            send_album_and_button(
-                                channel_id=product.store.tel_channel,
-                                product=product,
-                                photos=photos,
-                                out_of_stock=True
-                            )
-                        except Exception as ex:
-                            print(f"⚠️ Error sending out-of-stock album: {ex}")
-                            traceback.print_exc()
-
-                else:
-                    print(f"⚠️ Not enough stock for {product.name}, removing item...")
-                    cart_item.delete()
-
-            if not sales:
-                print("⚠️ No valid sales created.")
-                return
-
-            # پیام به خریدار
-            chat_id_buyer = transaction.profile.tel_id
-            telegram_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-            buyer_products = "\n".join(
-                [f"🔹 {s.product.name} × {s.quantity} = {"{:,.0f}".format(float(s.total_price))} تومان" for s in sales]
-            )
-            formatted_amount = "{:,.0f}".format(float(transaction.amount))
-            buyer_message = (
-                "✅ پرداخت شما با موفقیت انجام شد!\n"
-                f"🛍️ محصولات خریداری‌شده:\n{buyer_products}\n\n"
-                f"💰 مبلغ کل: {formatted_amount} تومان"
-            )
-            print(f"📩 Sending confirmation to buyer {chat_id_buyer}...")
-            buyer_res = requests.post(telegram_url, json={"chat_id": chat_id_buyer, "text": buyer_message})
-            print(f"📩 Buyer response: {buyer_res.status_code} | {buyer_res.text}")
-
-            # پیام به فروشنده
-            sellers_map = {}
-            for s in sales:
-                seller_tel_id = s.seller.owner.tel_id
-                if not seller_tel_id:
-                    continue
+        # پیام به فروشندگان
+        sellers_map = {}
+        for s in sales:
+            seller_tel_id = s.seller.owner.tel_id
+            if seller_tel_id:
                 if seller_tel_id not in sellers_map:
                     sellers_map[seller_tel_id] = {"store": s.seller, "products": [], "total_income": 0}
                 sellers_map[seller_tel_id]["products"].append(s)
                 sellers_map[seller_tel_id]["total_income"] += s.total_price
 
-            buyer_info = transaction.profile
-            address = buyer_info.get_active_address()
-            print(f"address: {type(address)}")
-            # address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
-            # try:
-            #     line1 = address.shipping_line1
-            # except Exception as e:
-            #     line1 = ''
-            # address_text = (f"{line1}, {address.shipping_city_name}, {address.shipping_province_name}, {address.shipping_country_name}"
-            #                 if address else ' --- ')
-             
-            address_text = (
-                f"{address.shipping_line1}, {address.shipping_city_name}, "
-                f"{address.shipping_province_name}, {address.shipping_country_name}" if address else "نامشخص"
+        buyer_info = transaction.profile
+        address = buyer_info.get_active_address()
+        address_text = (
+            f"{address.shipping_line1}, {address.shipping_city_name}, "
+            f"{address.shipping_province_name}, {address.shipping_country_name}" if address else "نامشخص"
+        )
+
+        for chat_id_seller, data in sellers_map.items():
+            seller_products = "\n".join(
+                [f"🔹 {s.product.code} | {s.product.name} × {s.quantity} = {s.total_price:,} تومان"
+                 for s in data["products"]]
             )
-            print(f"address_text: {address_text}")
-
-
-            for chat_id_seller, data in sellers_map.items():
-                seller_products = "\n".join(
-                    [f"🔹 {s.product.code} | {s.product.name} × {s.quantity} = {"{:,.0f}".format(float(s.total_price))} تومان"
-                     for s in data["products"]]
-                )
-                seller_message = (
-                    f"📦 سفارش جدید در فروشگاه {data['store'].name}\n\n"
-                    f"{seller_products}\n\n"
-                    f"💰 مجموع درآمد شما: {"{:,.0f}".format(float(data['total_income']))} تومان\n\n"
-                    f"👤 خریدار: {buyer_info.fname} {buyer_info.lname}\n"
-                    f"📞 تلفن: {buyer_info.phone}\n"
-                    f"🏠 آدرس: {address_text}"
-                )
-                print(f"📩 Sending message to seller {chat_id_seller}...")
-                seller_res = requests.post(telegram_url, json={"chat_id": chat_id_seller, "text": seller_message})
-                print(f"📩 Seller response: {seller_res.status_code} | {seller_res.text}")
-
-            transaction.cart.items.all().delete()
-            print("🛒 Cart cleared successfully.")
-            print("==================== ✅ PAYMENT PROCESS COMPLETED ====================\n")
+            seller_message = (
+                f"📦 سفارش جدید در فروشگاه {data['store'].name}\n\n"
+                f"{seller_products}\n\n"
+                f"💰 مجموع درآمد شما: {data['total_income']:,} تومان\n\n"
+                f"👤 خریدار: {buyer_info.fname} {buyer_info.lname}\n"
+                f"📞 تلفن: {buyer_info.phone}\n"
+                f"🏠 آدرس: {address_text}"
+            )
+            requests.post(telegram_url, json={"chat_id": chat_id_seller, "text": seller_message})
 
     except Exception as e:
-        print(f"❌ [handle_successful_payment] Error: {e}")
-        traceback.print_exc()
+        print(f"❌ Error sending notifications: {e}")
+

@@ -2,85 +2,11 @@ from django.db import models, transaction
 from accounts.models import User, ProfileModel
 from django.core.exceptions import ValidationError
 import os
+import hashlib
+from django.utils.text import slugify
 
 
-# =========================
-#  CATEGORY MODEL
-# =========================
 
-class CategoryModel(models.Model):
-    title = models.CharField(max_length=50, unique=True, verbose_name='Title')
-    slug = models.SlugField(unique=True)
-    status = models.BooleanField(default=True, verbose_name='Publish Status')
-    position = models.IntegerField(verbose_name='Position')
-
-    def __str__(self):
-        return self.title
-
-    class Meta:
-        verbose_name = "Category"
-        verbose_name_plural = "Categories"
-        ordering = ["position"]
-
-
-# =========================
-#  TUTORIAL MODEL
-# =========================
-
-class TutorialModel(models.Model):
-    title = models.CharField(max_length=50, unique=True, verbose_name='Title')
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Price')
-    video = models.FileField(upload_to='tutorial_videos/', verbose_name='Video')
-    video_poster = models.ImageField(upload_to='tutorial_posters/', verbose_name='Video Poster')
-    poster = models.ImageField(upload_to='tutorial_poster/', verbose_name='Tutorial Poster')
-    about = models.TextField(max_length=5000, verbose_name='Description')
-    tag = models.ForeignKey(CategoryModel, on_delete=models.SET_NULL, null=True, verbose_name='Tag')
-    status = models.BooleanField(default=False, verbose_name='Publish Status')
-    slug = models.SlugField(unique=True)
-    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tutorials_authored', verbose_name='Author')
-    teacher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tutorials_taught', verbose_name='Teacher')
-    attachment = models.FileField(upload_to='tutorial_attachments/', blank=True, null=True, verbose_name='Attachments')
-    created = models.DateTimeField(auto_now_add=True, verbose_name="Date of creation")
-    installment = models.BooleanField(default=False, verbose_name='Installment Purchase')
-
-    def __str__(self):
-        return self.title
-
-    class Meta:
-        verbose_name = "Tutorial"
-        verbose_name_plural = "Tutorials"
-        ordering = ["created"]
-
-
-# =========================
-#  ARTICLE MODEL
-# =========================
-
-class ArticleModel(models.Model):
-    title = models.CharField(max_length=50, unique=True, verbose_name='Title')
-    poster = models.ImageField(upload_to='article_poster/', verbose_name='Article Poster')
-    context = models.TextField(max_length=5000, verbose_name='Description')
-    tag = models.ForeignKey(CategoryModel, on_delete=models.SET_NULL, null=True, verbose_name='Tag')
-    status = models.BooleanField(default=False, verbose_name='Publish Status')
-    slug = models.SlugField(unique=True)
-    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='article_authored', verbose_name='Author')
-    attachment = models.FileField(upload_to='tutorial_attachments/', blank=True, null=True, verbose_name='Attachments')
-    created = models.DateTimeField(auto_now_add=True, verbose_name="Date of creation")
-    time_takes = models.IntegerField(verbose_name='Time it takes to read it')
-
-    def __str__(self):
-        return self.title
-
-    class Meta:
-        verbose_name = "Article"
-        verbose_name_plural = "Articles"
-        ordering = ["created"]
-
-    @property
-    def required_time(self):
-        hour = self.time_takes // 60
-        minute = self.time_takes % 60
-        return [hour, minute]
 
 
 # =========================
@@ -96,6 +22,8 @@ class Store(models.Model):
     logo = models.ImageField(upload_to="store_logos/", blank=True, null=True, verbose_name="Store Logo")
     tel_group = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram group ID")
     tel_channel = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram channel ID")
+
+    markant_id = models.CharField(max_length=36, verbose_name="Markant ID", unique=True, null=False, blank=False)
 
     def __str__(self):
         return self.name
@@ -260,6 +188,15 @@ class Product(models.Model):
             image.delete()
         super().delete(*args, **kwargs)
 
+    def total_stock(self):
+        """
+        موجودی کل محصول شامل تمام واریانت‌ها.
+        اگر محصول واریانت نداشته باشد، موجودی خود محصول را برمی‌گرداند.
+        """
+        if self.variants.exists():
+            return sum(variant.stock for variant in self.variants.all())
+        return self.stock
+
 
 # =========================
 #  OTHER MODELS
@@ -300,95 +237,97 @@ from django.db import models
 from django.utils.text import slugify
 
 
-class ProductVariant(models.Model):
-    product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name="variants")
-    parent = models.ForeignKey(
-        "self", null=True, blank=True, related_name="children", on_delete=models.CASCADE
-    )
-    key = models.CharField(max_length=50, verbose_name="Variant Key", help_text="مثل 'Color', 'Size', 'Type'")
-    value = models.CharField(max_length=50, verbose_name="Variant Value", help_text="مثل 'Red', '42', 'Roasted'")
-    sku = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="SKU Code")
-    stock = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name="Stock Quantity")
-    price_override = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, verbose_name="Custom Price")
+# =========================
+# VARIANT SYSTEM (PROFESSIONAL STRUCTURE)
+# =========================
+class ProductOption(models.Model):
+    """نوع ویژگی (مثلاً رنگ، سایز، جنس)"""
+    product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name="options")
+    name = models.CharField(max_length=100, verbose_name="Option Name")  # مثل "رنگ" یا "سایز"
 
     class Meta:
-        unique_together = ("product", "parent", "key", "value")
-        verbose_name = "Product Variant"
-        verbose_name_plural = "Product Variants"
+        unique_together = ("product", "name")
+        verbose_name = "Product Option"
+        verbose_name_plural = "Product Options"
 
     def __str__(self):
-        names = [self.value]
-        parent = self.parent
-        while parent:
-            names.append(parent.value)
-            parent = parent.parent
-        return f"{self.product.name} ({' > '.join(reversed(names))})"
+        return f"{self.product.name} - {self.name}"
+
+
+class ProductOptionValue(models.Model):
+    """مقدار ویژگی (مثلاً قرمز، آبی، XL)"""
+    option = models.ForeignKey("ProductOption", on_delete=models.CASCADE, related_name="values")
+    value = models.CharField(max_length=100, verbose_name="Option Value")
+
+    class Meta:
+        unique_together = ("option", "value")
+        verbose_name = "Product Option Value"
+        verbose_name_plural = "Product Option Values"
+
+    def __str__(self):
+        return f"{self.option.name}: {self.value}"
+
+
+class ProductVariant(models.Model):
+    product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name="variants")
+    sku = models.CharField(max_length=150, unique=True, blank=True, null=True, verbose_name="SKU Code")
+    price_override = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, verbose_name="Custom Price")
+    stock = models.PositiveIntegerField(default=0, verbose_name="Stock Quantity")
+    values = models.ManyToManyField("ProductOptionValue", related_name="variants", blank=True)
+
+    class Meta:
+        verbose_name = "Product Variant"
+        verbose_name_plural = "Product Variants"
+        indexes = [
+            models.Index(fields=["sku"]),
+        ]
+
+    def __str__(self):
+        values_str = " / ".join([v.value for v in self.values.all()])
+        return f"{self.product.name} ({values_str})" if values_str else self.product.name
 
     @property
     def final_price(self):
         return self.price_override if self.price_override else self.product.final_price
 
-    def total_stock(self):
-        """موجودی کل شامل تمام زیر‌واریانت‌ها"""
-        if self.children.exists():
-            return sum(child.total_stock() for child in self.children.all())
-        return self.stock
-
     def generate_sku(self):
-        """تولید خودکار SKU یکتا"""
-        parts = [f"P{self.product.id}"]
-        lineage = []
-        current = self
-        while current:
-            lineage.append(f"{slugify(current.key).upper()}-{slugify(current.value).upper()}")
-            current = current.parent
-
-        parts.extend(reversed(lineage))
-        base_sku = "-".join(parts)
-
+        """
+        تولید SKU بر اساس ترکیب مقادیر فعلی.
+        این تابع فرض می‌کند که مقادیر (values) قبلاً ست شده‌اند.
+        """
+        value_names = [slugify(v.option.name + "-" + v.value).upper() for v in self.values.all()]
+        parts = [f"P{self.product.id}"] + value_names
+        base_sku = "-".join(parts) if parts else f"P{self.product.id}"
         hash_suffix = hashlib.md5(base_sku.encode()).hexdigest()[:6].upper()
         return f"{base_sku}-{hash_suffix}"
 
-    def clean(self):
-        # اگر واریانت فرزند دارد یا خودش فرزند است
-        if self.parent:
-            # اگر والد هنوز ذخیره نشده یا موجودی صفر دارد، بررسی را رد کن
-            if not self.parent.id or self.parent.stock == 0:
-                return
-            
-            siblings = self.parent.children.exclude(id=self.id)
-            total_sibling_stock = sum(v.stock for v in siblings)
-            
-            if total_sibling_stock + self.stock > self.parent.stock:
-                raise ValidationError({
-                    "stock": (
-                        f"❌ مجموع موجودی زیر‌واریانت‌ها ({total_sibling_stock + self.stock}) "
-                        f"نمی‌تواند از موجودی والد ({self.parent.stock}) بیشتر باشد."
-                    )
-                })
+    def ensure_sku(self, save_if_missing=True):
+        """
+        اگر SKU خالی است و values موجود است، SKU را تولید و ذخیره کن.
+        این متد را بعد از اضافه شدن m2m یا در کد view صدا بزنید.
+        """
+        if not self.sku and self.values.exists():
+            # تلاش برای تولید SKU منحصر‌به‌فرد
+            base = self.generate_sku()
+            final_sku = f"{base}"
+            counter = 1
+            # loop برای جلوگیری از collision احتمالی
+            while ProductVariant.objects.filter(sku=final_sku).exclude(pk=self.pk).exists():
+                final_sku = f"{base}-{counter}"
+                counter += 1
+            self.sku = final_sku
+            if save_if_missing:
+                self.save(update_fields=["sku"])
 
+
+    def total_stock(self):
+        """Return total available stock for this variant."""
+        return self.stock
 
     def save(self, *args, **kwargs):
-        """ذخیره با تولید خودکار SKU و جلوگیری از خطای NULL"""
-        self.full_clean()
-
-        # مرحله ۱: اگر هنوز ذخیره نشده، اول ذخیره کن تا id بگیره
-        is_new = self.pk is None
-        if is_new and not self.sku:
-            temp_sku = f"TEMP-{hashlib.md5(str(self.product.id).encode()).hexdigest()[:6]}"
-            self.sku = temp_sku  # برای جلوگیری از خطای NOT NULL
-
+        """
+        save ساده — تولید SKU را انجام نمی‌دهد تا از مشکلات مربوط به M2M جلوگیری شود.
+        از ensure_sku یا سیگنال m2m_changed برای تولید SKU استفاده کنید.
+        """
         super().save(*args, **kwargs)
-
-        # مرحله ۲: پس از ذخیره، SKU نهایی بساز و ذخیره کن
-        if is_new:
-            base_sku = self.generate_sku()
-            final_sku = f"{base_sku}-{self.id}"
-            counter = 1
-            while ProductVariant.objects.filter(sku=final_sku).exclude(id=self.id).exists():
-                final_sku = f"{base_sku}-{self.id}-{counter}"
-                counter += 1
-            if self.sku != final_sku:
-                self.sku = final_sku
-                super().save(update_fields=["sku"])
 

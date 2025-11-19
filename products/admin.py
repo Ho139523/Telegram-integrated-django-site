@@ -1,6 +1,5 @@
 from django.contrib import admin
 from .models import (
-    TutorialModel, CategoryModel, ArticleModel,
     Category, Product, ProductAttribute, Store,
     ProductImage, ProductVariant, Unit
 )
@@ -117,8 +116,8 @@ class ProductAdmin(admin.ModelAdmin):
 ### ----------------------------
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'city', 'province')
-    search_fields = ('name', 'owner__tel_id', 'city', 'province')
+    list_display = ('name', 'owner', 'city', 'province', 'markant_id')
+    search_fields = ('name', 'owner__tel_id', 'city', 'province', 'markant_id')
 
 
 ### ----------------------------
@@ -135,7 +134,3 @@ class ProductAttributeAdmin(admin.ModelAdmin):
 class ProductImageAdmin(admin.ModelAdmin):
     list_display = ('id', 'image')
 
-
-admin.site.register(TutorialModel)
-admin.site.register(CategoryModel)
-admin.site.register(ArticleModel)

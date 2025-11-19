@@ -12,11 +12,14 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telebot import TeleBot, types
 
-from products.models import Product, ProductImage, Category
+from products.models import Product, ProductImage, Category, ProductVariant
 from accounts.models import ProfileModel
 from utils.telbot.functions import ProductHandler
 from utils.variables.TOKEN import TOKEN, api_id, api_hash, BOT_ID
 from utils.variables.translate import translations
+
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
 
 
 # --- CONFIG ---
@@ -141,3 +144,17 @@ def send_album_when_all_images_added(sender, instance, created, **kwargs):
 
         # اینجا attributes به‌صورت list پاس داده می‌شود ✅
         send_album_sync(channel_id, product, photos, attributes)
+
+
+# سیگنال برای زمانیکه values به واریانت اضافه شد — اگر SKU خالی باشد آن را تولید می‌کند.
+@receiver(m2m_changed, sender=ProductVariant.values.through)
+def productvariant_values_changed(sender, instance, action, pk_set, **kwargs):
+    # action می‌تواند 'post_add' ، 'post_remove' و ... باشد
+    if action == "post_add" or action == "post_clear":
+        # اگر values الان وجود دارد و sku خالیه، تولید کن
+        try:
+            if instance.values.exists() and not instance.sku:
+                instance.ensure_sku(save_if_missing=True)
+        except Exception:
+            # لاگ خطا در صورت نیاز
+            pass

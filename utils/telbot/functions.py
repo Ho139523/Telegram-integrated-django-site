@@ -439,86 +439,87 @@ def add_performance_monitoring_to_class(cls):
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from telebot import types
 
+import threading
+from django.core.cache import cache
+
 class SendMarkup:
     def __init__(self, bot, chat_id, text=None, buttons=None, button_layout=None, handlers=None):
-        from products.models import Product
         self.bot = bot
         self.chat_id = chat_id
         self.text = text
-        self.buttons = buttons or {}
+        self.buttons = buttons or []
         self.button_layout = button_layout or []
         self.handlers = handlers or {}
-
-
+        self._precomputed_markup = None  # پیش‌محاسبه شده
 
     def generate_keyboard(self):
-        """ 📌 ساخت کیبورد داینامیک بر اساس دکمه‌ها و چیدمان تعیین‌شده """
+        """ساخت سریع کیبورد با حفظ ترتیب"""
+        if self._precomputed_markup:
+            return self._precomputed_markup
+            
         markup = types.InlineKeyboardMarkup()
-        button_list = []
+        
+        if not self.buttons or not self.button_layout:
+            return markup
 
-        # اگر buttons یک لیست است (فرمت جدید)
+        # استفاده از لیست کامپرهمنشن برای ساخت سریع دکمه‌ها
         if isinstance(self.buttons, list):
-            # مرتب‌سازی بر اساس ایندکس (عنصر سوم)
+            # مرتب‌سازی سریع
             sorted_buttons = sorted(self.buttons, key=lambda x: x[2])
             
-            for text, callback_data, index in sorted_buttons:
-                button_list.append(types.InlineKeyboardButton(text, callback_data=callback_data))
-        
-        # اگر buttons یک دیکشنری است (فرمت قدیم)
-        else:
-            # کد قبلی برای سازگاری با مکان‌های دیگر
-            sorted_buttons = sorted(self.buttons.items(), key=lambda item: item[1]['index'] if isinstance(item[1], dict) else item[1][1])
+            # ساخت دکمه‌ها
+            button_list = [
+                types.InlineKeyboardButton(text, callback_data=callback_data)
+                for text, callback_data, index in sorted_buttons
+            ]
+            
+            # چیدمان بهینه
+            index = 0
+            for row_size in self.button_layout:
+                if index < len(button_list):
+                    row_buttons = button_list[index:index + row_size]
+                    markup.row(*row_buttons)
+                    index += row_size
 
-            for text, button_data in sorted_buttons:
-                if isinstance(button_data, dict):
-                    if 'url' in button_data:
-                        button_list.append(types.InlineKeyboardButton(
-                            text,
-                            url=button_data['url']
-                        ))
-                    else:
-                        button_list.append(types.InlineKeyboardButton(
-                            text,
-                            callback_data=button_data.get('callback_data')
-                        ))
-                else:
-                    callback_data, index = button_data
-                    button_list.append(types.InlineKeyboardButton(text, callback_data=callback_data))
-
-        # چیدمان دکمه‌ها بر اساس طرح‌بندی
-        index = 0
-        for row_size in self.button_layout:
-            markup.row(*button_list[index:index + row_size])
-            index += row_size
-
+        self._precomputed_markup = markup
         return markup
 
-
     def send(self):
-        """ 📌 ارسال پیام با دکمه‌ها """
-        markup = self.generate_keyboard()
-        self.bot.send_message(self.chat_id, self.text, reply_markup=markup, parse_mode="HTML")
+        """ارسال سریع"""
+        try:
+            markup = self.generate_keyboard()
+            self.bot.send_message(
+                chat_id=self.chat_id,
+                text=self.text,
+                reply_markup=markup,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"SendMarkup.send error: {e}")
 
     def edit(self, message_id):
-        """ 📌 ویرایش پیام و به‌روزرسانی دکمه‌ها و متن """
-        markup = self.generate_keyboard()
-        self.bot.edit_message_text(
-            chat_id=self.chat_id,
-            message_id=message_id,
-            text=self.text,
-            reply_markup=markup,
-            parse_mode="HTML"
-        )
-
-
+        """ویرایش سریع"""
+        try:
+            markup = self.generate_keyboard()
+            self.bot.edit_message_text(
+                chat_id=self.chat_id,
+                message_id=message_id,
+                text=self.text,
+                reply_markup=markup,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            if "message is not modified" not in str(e):
+                print(f"SendMarkup.edit error: {e}")
 
     def handle_callback(self, call):
-        """ 📌 تابع مدیریت کلیک روی دکمه‌ها """
-        callback_data = call.data  # مقدار دریافتی از دکمه کلیک شده
-        if callback_data in self.handlers:
-            self.handlers[callback_data](call)  # اجرای تابع مرتبط با دکمه
+        """مدیریت کلیک"""
+        callback_data = call.data
+        handler = self.handlers.get(callback_data)
+        if handler:
+            handler(call)
 
-
+            
 ############################  CHECK SUBSCRIPTION  ############################
 
 import logging

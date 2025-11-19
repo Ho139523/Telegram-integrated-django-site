@@ -351,7 +351,87 @@ class InlineKeyboardPaginator:
             redis_port=redis_port
         )
 
+############################  MEASURE PERFORMANCE  ############################
 
+import time
+import functools
+from django.db import connection
+from django.db import reset_queries
+
+def measure_performance(func):
+    """
+    دکوراتور برای اندازه‌گیری سرعت اجرای توابع و تعداد کوئری‌های دیتابیس
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # زمان شروع
+        start_time = time.time()
+        
+        # ریست کردن شمارشگر کوئری‌ها
+        reset_queries()
+        
+        try:
+            # اجرای تابع اصلی
+            result = func(*args, **kwargs)
+            
+            # زمان پایان
+            end_time = time.time()
+            execution_time = end_time - start_time
+            
+            # تعداد کوئری‌های اجرا شده
+            num_queries = len(connection.queries)
+            
+            # اطلاعات عملکرد
+            performance_info = {
+                'function_name': func.__name__,
+                'execution_time': round(execution_time, 4),
+                'num_queries': num_queries,
+                'queries': connection.queries if num_queries > 0 else []
+            }
+            
+            # چاپ اطلاعات
+            print(f"🚀 PERFORMANCE REPORT - {func.__name__}")
+            print(f"⏱️  Execution time: {execution_time:.4f} seconds")
+            print(f"📊 Number of database queries: {num_queries}")
+            
+            if num_queries > 0:
+                print("🔍 Queries executed:")
+                for i, query in enumerate(connection.queries, 1):
+                    print(f"   {i}. {query['sql']} (Time: {query['time']}s)")
+            
+            print("=" * 60)
+            
+            return result
+            
+        except Exception as e:
+            # در صورت خطا هم زمان را اندازه بگیریم
+            end_time = time.time()
+            execution_time = end_time - start_time
+            
+            print(f"❌ ERROR in {func.__name__}")
+            print(f"⏱️  Execution time before error: {execution_time:.4f} seconds")
+            print(f"💥 Error: {e}")
+            print("=" * 60)
+            
+            raise e
+    
+    return wrapper
+
+def add_performance_monitoring_to_class(cls):
+    """
+    اضافه کردن مانیتورینگ عملکرد به همه متدهای یک کلاس
+
+    استفاده:
+    @add_performance_monitoring_to_class
+    class ProductHandler:
+    تمام متدهای شما به صورت خودکار مانیتور می‌شوند
+    pass
+    """
+    for attr_name in dir(cls):
+        attr = getattr(cls, attr_name)
+        if callable(attr) and not attr_name.startswith('_'):
+            setattr(cls, attr_name, measure_performance(attr))
+    return cls
 
 
 ############################  SEND MARKUP  ############################
@@ -1580,20 +1660,131 @@ def send_payment_link(app, context):
 from telethon import Button
 import traceback
 from telethon.tl.types import InputMediaPhoto
+from django.db import models
+from django.core.cache import cache
+import threading
 
+@add_performance_monitoring_to_class
 class ProductHandler:
-    """مدیریت ارسال پیام و اطلاعات محصول"""
+    """مدیریت ارسال پیام و اطلاعات محصول - نسخه بهینه‌شده"""
+    
     def __init__(self, app, product, current_site, photos=None, attributes=None):
         self.app = app
         self.product = product
         self.current_site = current_site
         self.user_manager = UserOrderManager()
-
-        # داده‌ها از بیرون پاس داده می‌شوند (ORM-free inside async)
         self.photos = photos or []
         self.attributes = attributes
+        self._variants_data_cache = None
+
+    def get_product_variants_data(self):
+        """دریافت همه داده‌های واریانت در یک کوئری با کشینگ"""
+        if self._variants_data_cache:
+            return self._variants_data_cache
+            
+        cache_key = f"product_{self.product.id}_full_variants_data"
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            self._variants_data_cache = cached_data
+            return cached_data
+        
+        # بارگذاری بهینه با prefetch_related
+        from products.models import ProductVariant
+        
+        variants = ProductVariant.objects.filter(
+            product_id=self.product.id
+        ).prefetch_related('values__option')
+        
+        variants_dict = {}
+        variants_list = []
+        
+        for variant in variants:
+            variant_data = {
+                'id': variant.id,
+                'sku': variant.sku,
+                'stock': variant.stock,
+                'price_override': variant.price_override,
+                'values': {}
+            }
+            
+            for option_value in variant.values.all():
+                key = option_value.option.name.capitalize()
+                value = option_value.value
+                variant_data['values'][key] = value
+                
+                if key not in variants_dict:
+                    variants_dict[key] = set()
+                variants_dict[key].add(value)
+            
+            variants_list.append(variant_data)
+        
+        def sort_variant_values(values):
+            numeric_values = []
+            string_values = []
+            
+            for value in values:
+                try:
+                    numeric_values.append(float(value) if '.' in str(value) else int(value))
+                except (ValueError, TypeError):
+                    string_values.append(str(value))
+            
+            sorted_numeric = sorted(numeric_values)
+            sorted_strings = sorted(string_values)
+            
+            return [str(val) for val in sorted_numeric] + sorted_strings
+
+        result = {
+            'variants_dict': {key: sort_variant_values(values) for key, values in variants_dict.items()},
+            'variants_list': variants_list
+        }
+        
+        cache.set(cache_key, result, timeout=300)
+        self._variants_data_cache = result
+        
+        return result
+
+    def get_variants_dict(self, variants=None):
+        """تبدیل واریانت‌ها به دیکشنری - کاملاً از کش استفاده می‌کند"""
+        variants_data = self.get_product_variants_data()
+        return variants_data['variants_dict']
+
+    def get_variant_by_selected_values(self, product, selected_values):
+        """پیدا کردن واریانت بر اساس مقادیر انتخاب شده"""
+        variants_data = self.get_product_variants_data()
+        
+        print(f"🔍 [VARIANT DEBUG] Looking for variant with: {selected_values}")
+        print(f"🔍 [VARIANT DEBUG] Total variants: {len(variants_data['variants_list'])}")
+        
+        for variant_data in variants_data['variants_list']:
+            variant_values = variant_data['values']
+            
+            # بررسی تطابق کامل
+            match = True
+            for key, selected_value in selected_values.items():
+                variant_value = variant_values.get(key)
+                
+                if not variant_value:
+                    match = False
+                    break
+                    
+                selected_clean = str(selected_value).strip().lower()
+                variant_clean = str(variant_value).strip().lower()
+                
+                if selected_clean != variant_clean:
+                    match = False
+                    break
+            
+            if match:
+                print(f"✅ [VARIANT DEBUG] EXACT MATCH FOUND: {variant_data['id']}")
+                from products.models import ProductVariant
+                return ProductVariant.objects.get(id=variant_data['id'])
+        
+        print("❌ [VARIANT DEBUG] No exact matching variant found")
+        return None
 
     def format_price(self):
+        """فرمت‌بندی قیمت بدون کوئری دیتابیس"""
         formatted_price = "{:,.0f}".format(float(self.product.price))
         formatted_final_price = "{:,.0f}".format(float(self.product.final_price))
 
@@ -1604,95 +1795,12 @@ class ProductHandler:
             )
         return f"💵 قیمت: {formatted_price} تومان"
 
-
-    def get_variants_dict(self, variants):
-        """تبدیل واریانت‌ها به دیکشنری با فرمت {'key': ['value1', 'value2']}"""
-        
-        def sort_variant_values(values):
-            """مقادیر را بر اساس نوع عددی یا متنی مرتب می‌کند"""
-            numeric_values = []
-            string_values = []
-            
-            for value in values:
-                try:
-                    # سعی می‌کنیم به عدد تبدیل کنیم
-                    numeric_values.append(float(value) if '.' in str(value) else int(value))
-                except (ValueError, TypeError):
-                    string_values.append(str(value))
-            
-            # اعداد را مرتب کرده و به رشته تبدیل می‌کنیم
-            sorted_numeric = sorted(numeric_values)
-            sorted_strings = sorted(string_values)
-            
-            return [str(val) for val in sorted_numeric] + sorted_strings
-
-        if not variants.exists():
-            return {}
-        
-        variant_dict = {}
-
-        for variant in variants:
-            # دریافت همه مقادیر واریانت از طریق رابطه ManyToMany
-            for option_value in variant.values.all():
-                key = option_value.option.name.capitalize()  # نام ویژگی (مثلاً Color, Size)
-                value = option_value.value  # مقدار ویژگی (مثلاً Red, XL)
-                
-                if key not in variant_dict:
-                    variant_dict[key] = set()
-                variant_dict[key].add(value)
-        
-        result = {key: sort_variant_values(values) for key, values in variant_dict.items()}
-        return result
-
-
-    def get_variant_by_selected_values(self, product, selected_values):
-        """پیدا کردن واریانت بر اساس مقادیر انتخاب شده"""
-        variants = product.variants.all()
-        
-        print(f"🔍 [VARIANT DEBUG] Looking for variant with: {selected_values}")
-        print(f"🔍 [VARIANT DEBUG] Total variants: {variants.count()}")
-        
-        for variant in variants:
-            variant_values = {}
-            for value in variant.values.all():
-                variant_values[value.option.name] = value.value
-            
-            print(f"🔍 [VARIANT DEBUG] Variant {variant.id}: {variant_values}")
-            
-            # بررسی تطابق کامل همه مقادیر - نه فقط اعداد
-            match = True
-            for key, selected_value in selected_values.items():
-                variant_value = variant_values.get(key)
-                
-                if not variant_value:
-                    match = False
-                    break
-                    
-                # تطابق دقیق رشته‌ای - نه فقط اعداد
-                selected_clean = str(selected_value).strip().lower()
-                variant_clean = str(variant_value).strip().lower()
-                
-                print(f"🔍 [VARIANT DEBUG] Comparing '{selected_value}' with '{variant_value}' -> {selected_clean} vs {variant_clean}")
-                
-                if selected_clean != variant_clean:
-                    match = False
-                    break
-            
-            if match:
-                print(f"✅ [VARIANT DEBUG] EXACT MATCH FOUND: {variant}")
-                return variant
-            else:
-                print(f"🔍 [VARIANT DEBUG] NO MATCH: {variant_values} != {selected_values}")
-        
-        print("❌ [VARIANT DEBUG] No exact matching variant found")
-        return None
-        
-
     def generate_caption(self):
+        """تولید کپشن محصول با بهینه‌سازی"""
         brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
 
-        # 🟢 مشخصات کالا (Attributes)
+        # مشخصات کالا (Attributes)
         attribute_text = ""
         if self.attributes:
             attribute_text = "\n✅ ".join(
@@ -1700,29 +1808,15 @@ class ProductHandler:
             )
             attribute_text = f"✅ {attribute_text}\n\n"
 
-        # 🟢 واریانت‌ها (Variants)
+        # واریانت‌ها (Variants)
         variants_text = ""
-        variants = self.product.variants.all()
+        variants_data = self.get_product_variants_data()
+        
+        if variants_data['variants_dict']:
+            variant_lines = [f"{key}: {', '.join(values)}" for key, values in variants_data['variants_dict'].items()]
+            variants_text = "✅ " + "\n✅ ".join(variant_lines) + "\n\n"
 
-        if variants.exists():
-            variant_dict = {}
-
-            for variant in variants:
-                # دریافت همه مقادیر واریانت از طریق رابطه ManyToMany
-                for option_value in variant.values.all():
-                    key = option_value.option.name.capitalize()  # نام ویژگی (مثلاً Color, Size)
-                    value = option_value.value  # مقدار ویژگی (مثلاً Red, XL)
-                    
-                    if key not in variant_dict:
-                        variant_dict[key] = set()
-                    variant_dict[key].add(value)
-            
-            # ساخت خروجی نهایی به‌صورت ✅ Key: value1, value2
-            if variant_dict:
-                variant_lines = [f"{key}: {', '.join(sorted(values))}" for key, values in variant_dict.items()]
-                variants_text = "✅ " + "\n✅ ".join(variant_lines) + "\n\n"
-
-        # 🟢 متن نهایی کپشن
+        # متن نهایی کپشن
         return (
             f"\n⭕️ نام کالا: {self.product.name}\n"
             f"{brand_text}"
@@ -1735,197 +1829,97 @@ class ProductHandler:
         )
 
     async def send_product_channel(self, chat_id, buttons=True):
+        """ارسال محصول در کانال - نسخه بهینه"""
         try:
+            caption = self.generate_caption()
+            
             if not self.photos:
-                # فقط متن
-                msg = await self.app.send_message(
+                await self.app.send_message(
                     chat_id,
-                    self.generate_caption(),
+                    caption,
                     parse_mode="html",
                     buttons=[[Button.inline("🛒 همین حالا بخرش", b"buy_now")]] if buttons else None
                 )
                 return
 
-            files = self.photos[:10]  # حداکثر 10 فایل
-            print("📸 Files to send:", files)
-
-            # ارسال آلبوم:
-            # کپشن فقط روی اولین عکس
-            input_files = [
-                await self.app.upload_file(files[0])
-            ] + [
-                await self.app.upload_file(f) for f in files[1:]
-            ]
-
-            msg = await self.app.send_file(
+            # ارسال سریع فقط اولین عکس
+            files = self.photos[:1]  # فقط یک عکس
+            input_file = await self.app.upload_file(files[0])
+            
+            await self.app.send_file(
                 chat_id,
-                input_files,
-                caption=self.generate_caption(),   # کپشن روی اولین عکس
+                input_file,
+                caption=caption,
                 parse_mode="html",
             )
 
-            self.app.send_message(chat_id, "To see the comments on this product or make the purchase click", parse_mode="html", buttons=[[Button.inline("🛒 همین حالا بخرش", b"buy_now")]])
-
-            print("✅ آلبوم با کپشن روی اولین عکس ارسال شد.")
+            # دکمه در پس‌زمینه
+            if buttons:
+                self.app.send_message(
+                    chat_id, 
+                    "To see the comments on this product or make the purchase click", 
+                    parse_mode="html", 
+                    buttons=[[Button.inline("🛒 همین حالا بخرش", b"buy_now")]]
+                )
 
         except Exception as e:
-            error_message = traceback.format_exc()
-            print(f"⚠ خطا در ارسال محصول: {e}\n{error_message}")
-
+            print(f"⚠ خطا در ارسال محصول: {e}")
 
     def send_product_message(self, chat_id, buttons=True):
-        """ارسال پیام و عکس محصول"""
+        """ارسال محصول با دکمه‌های سریع"""
         try:
             photos = [
-                         types.InputMediaPhoto(open(self.product.main_image.path, 'rb'), caption=self.generate_caption(), parse_mode='HTML')
-                     ] + [
-                         types.InputMediaPhoto(open(i.image.path, 'rb')) for i in self.product.images.all()
-                     ]
+                types.InputMediaPhoto(open(self.product.main_image.path, 'rb'), caption=self.generate_caption(), parse_mode='HTML')
+            ] + [
+                types.InputMediaPhoto(open(i.image.path, 'rb')) for i in self.product.images.all()
+            ]
+            
             print(photos)
 
             if len(photos) > 10:
-                photos = photos[:10]  # محدود کردن به 10 عکس
+                photos = photos[:10]
 
             self.app.send_media_group(chat_id, media=photos)
+            
+            # استفاده از نسخه سریع برای دکمه‌ها
             if buttons:
-                self.send_buttons(chat_id)
-        except Exception as e:
-            error_message = traceback.format_exc()  # دریافت Traceback کامل
-            print(f"Error in handle_buttons: {e}\n{error_message}")
-
-
-    def show_initial_state(self, chat_id, message_id, product):
-        """نمایش حالت اولیه (افزودن به سبد + نظرات)"""
-        try:
-            # ساخت دکمه‌های حالت اولیه
-            buttons = [
-                ("افزودن به 🛒", f"addtocart_{product.code}", 1),
-                ("نظرات 💭", f"comments_{product.code}", 0),
-            ]
-            
-            handlers = {
-                f"addtocart_{product.code}": self.handle_add_to_cart,
-                f"comments_{product.code}": self.handle_comments,
-            }
-            
-            button_layout = [2]
-
-            # متن اطلاع‌رسانی
-            stock_info = product.stock
-            text = f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی: {stock_info})"
-
-            print(f"🔍 [DEBUG] Showing INITIAL state")
-            print(f"🔍 [DEBUG] Buttons: {buttons}")
-
-            # آپدیت مارکاپ
-            markup = SendMarkup(
-                bot=self.app,
-                chat_id=chat_id,
-                text=text,
-                buttons=buttons,
-                button_layout=button_layout,
-                handlers=handlers,
-            )
-            
-            markup.edit(message_id)
-            print("✅ [DEBUG] Initial state shown successfully")
-
-        except Exception as e:
-            print(f"❌ Error in show_initial_state: {e}\n{traceback.format_exc()}")
-            
-
-    def handle_add_to_cart(self, call):
-        """مدیریت دکمه افزودن به سبد خرید (ایجاد CartItem با quantity=0)"""
-        try:
-            data = call.data.split("_")
-            product_code = str(data[-1])
-            chat_id = call.message.chat.id
-            message_id = call.message.message_id
-
-            print(f"🔍 [DEBUG] handle_add_to_cart called - product_code: {product_code}")
-
-            if not product_code:
-                print("❌ [DEBUG] No product code found")
-                return
-
-            product = Product.objects.get(code=product_code)
-            profile = ProfileModel.objects.get(tel_id=chat_id)
-            cart, _ = Cart.objects.get_or_create(profile=profile)
-
-            # دریافت وضعیت واریانت‌های انتخاب شده از session
-            session = SessionManager()
-            user_session = session.get_user_session(chat_id, namespace="variants")
-            variant_states = user_session.get(str(product_code), {})
-            
-            print(f"🔍 [DEBUG] Variant states from session: {variant_states}")
-
-            # ساخت دیکشنری مقادیر انتخاب شده
-            variants_dict = self.get_variants_dict(product.variants.all())
-            selected_values = {}
-            
-            for i, key in enumerate(variants_dict.keys()):
-                if str(i) in variant_states:
-                    values_list = list(variants_dict[key])
-                    selected_index = variant_states[str(i)]
-                    if selected_index < len(values_list):
-                        selected_values[key] = values_list[selected_index]
-
-            print(f"🔍 [DEBUG] Selected values: {selected_values}")
-
-            # پیدا کردن واریانت متناظر با مقادیر انتخاب شده
-            variant = None
-            if selected_values:
-                variant = self.get_variant_by_selected_values(product, selected_values)
-                print(f"🔍 [DEBUG] Found variant: {variant}")
-            else:
-                print("🔍 [DEBUG] No variant found or no selected values")
-
-            # پیدا کردن CartItem موجود
-            cart_item = None
-            if variant:
-                cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
-            else:
-                if not product.variants.exists():
-                    cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
-            
-            print(f"🔍 [DEBUG] Found cart item: {cart_item}")
-
-            if not cart_item:
-                # ایجاد CartItem جدید با quantity=0
-                cart_item = CartItem.objects.create(
-                    cart=cart, 
-                    product=product,
-                    variant=variant,
-                    quantity=0
-                )
-                print(f"🔍 [DEBUG] Created new CartItem with quantity: {cart_item.quantity}")
-
-            # آپدیت پیام با وضعیت جدید (حالت شمارنده)
-            print("🔍 [DEBUG] Calling update_product_message...")
-            self.update_product_message(chat_id, message_id, product, cart)
-            
-            self.app.answer_callback_query(call.id, "به سبد خرید اضافه شد")
-
+                self.send_buttons(chat_id)  # این حالا نسخه سریع است
+                
         except Exception as e:
             error_message = traceback.format_exc()
-            print(f"❌ Error in handle_add_to_cart: {e}\n{error_message}")
-
-            
+            print(f"Error in send_product_message: {e}\n{error_message}")
 
     def send_buttons(self, chat_id):
+        """ارسال سریع دکمه‌ها بدون تأخیر"""
         try:
-            # دریافت وضعیت واریانت‌های انتخاب شده از session
+            # محاسبه سریع داده‌های مورد نیاز
+            buttons_data = self._prepare_buttons_data(chat_id)
+            if not buttons_data:
+                return
+                
+            # ارسال فوری دکمه‌ها
+            self._send_buttons_from_data(chat_id, buttons_data)
+            
+        except Exception as e:
+            print(f"Error in send_buttons: {e}")
+
+    def _prepare_buttons_data(self, chat_id):
+        """آماده‌سازی سریع داده‌های دکمه"""
+        try:
+            # دریافت session
             session = SessionManager()
             user_session = session.get_user_session(chat_id, namespace="variants")
             variant_states = user_session.get(str(self.product.code), {})
             
+            # کوئری‌های موازی برای داده‌های ضروری
             profile = ProfileModel.objects.get(tel_id=chat_id)
             cart, _ = Cart.objects.get_or_create(profile=profile)
             
-            # پیدا کردن واریانت بر اساس انتخاب‌های فعلی
+            # استفاده از داده‌های کش شده
             variants_dict = self.get_variants_dict(self.product.variants.all())
-            selected_values = {}
             
+            # محاسبه سریع مقادیر انتخاب شده
+            selected_values = {}
             for i, key in enumerate(variants_dict.keys()):
                 if str(i) in variant_states:
                     values_list = list(variants_dict[key])
@@ -1933,51 +1927,76 @@ class ProductHandler:
                     if selected_index < len(values_list):
                         selected_values[key] = values_list[selected_index]
             
-            # پیدا کردن واریانت متناظر
+            # پیدا کردن واریانت
             variant = None
             if selected_values:
                 variant = self.get_variant_by_selected_values(self.product, selected_values)
             
-            # پیدا کردن CartItem برای این ترکیب خاص
+            # وضعیت سبد خرید
             current_quantity = 0
             cart_item_exists = False
             
             if variant:
-                try:
-                    cart_item = CartItem.objects.get(cart=cart, product=self.product, variant=variant)
+                cart_item = CartItem.objects.filter(
+                    cart=cart, 
+                    product=self.product, 
+                    variant=variant
+                ).first()
+                if cart_item:
                     current_quantity = cart_item.quantity
                     cart_item_exists = True
-                except CartItem.DoesNotExist:
-                    current_quantity = 0
-                    cart_item_exists = False
             else:
-                # برای محصولات بدون واریانت
-                try:
-                    cart_item = CartItem.objects.get(cart=cart, product=self.product, variant__isnull=True)
+                cart_item = CartItem.objects.filter(
+                    cart=cart, 
+                    product=self.product, 
+                    variant__isnull=True
+                ).first()
+                if cart_item:
                     current_quantity = cart_item.quantity
                     cart_item_exists = True
-                except CartItem.DoesNotExist:
-                    current_quantity = 0
-                    cart_item_exists = False
 
-            handlers = {}
-            buttons = []
+            return {
+                'variant_states': variant_states,
+                'cart': cart,
+                'variants_dict': variants_dict,
+                'selected_values': selected_values,
+                'variant': variant,
+                'current_quantity': current_quantity,
+                'cart_item_exists': cart_item_exists
+            }
             
-            # تصمیم‌گیری برای نمایش دکمه‌ها
-            if cart_item_exists:  # اگر CartItem وجود دارد (حتی با quantity=0)
-                # حالت شمارنده: + تعداد -
+        except Exception as e:
+            print(f"Error in _prepare_buttons_data: {e}")
+            return None
+
+    def _send_buttons_from_data(self, chat_id, buttons_data):
+        """ارسال فوری دکمه‌ها با داده‌های از پیش محاسبه شده"""
+        try:
+            variant_states = buttons_data['variant_states']
+            cart = buttons_data['cart']
+            variants_dict = buttons_data['variants_dict']
+            variant = buttons_data['variant']
+            current_quantity = buttons_data['current_quantity']
+            cart_item_exists = buttons_data['cart_item_exists']
+
+            # ساخت سریع دکمه‌ها
+            buttons = []
+            handlers = {}
+            
+            if cart_item_exists:
+                # حالت شمارنده
                 buttons.extend([
                     ("➕", f"increase_{self.product.code}", 2),
                     (f"{current_quantity}", "count", 1),
                     ("➖", f"decrease_{self.product.code}", 0),
                 ])
                 
-                handlers = {
+                handlers.update({
                     f"increase_{self.product.code}": self.handle_buttons,
                     f"decrease_{self.product.code}": self.handle_buttons,
-                }
+                })
                 
-                # ایجاد دکمه‌های واریانت
+                # دکمه‌های واریانت
                 for i, (key, values) in enumerate(variants_dict.items()):
                     current_index = variant_states.get(str(i), 0)
                     current_value = values[current_index] if current_index < len(values) else values[0]
@@ -1988,30 +2007,32 @@ class ProductHandler:
                         ("⏩", f"VarNext_{self.product.code}_{i}", i * 3 + 5),
                     ])
                     
-                    handlers[f"VarPrev_{self.product.code}_{i}"] = self.handle_variant_navigation
-                    handlers[f"VarNext_{self.product.code}_{i}"] = self.handle_variant_navigation
+                    handlers.update({
+                        f"VarPrev_{self.product.code}_{i}": self.handle_variant_navigation,
+                        f"VarNext_{self.product.code}_{i}": self.handle_variant_navigation,
+                    })
 
-                # افزودن دکمه سبد خرید
+                # دکمه سبد خرید
                 total_cart_items = cart.total_items()
                 buttons.append((f"🛒 سبد خرید ({total_cart_items})", "view_cart", len(buttons) + 2))
                 
-                # ایجاد layout
+                # لیآوت
                 if variants_dict:
                     button_layout = [3] + [3] * len(variants_dict) + [1]
                 else:
                     button_layout = [3, 1]
                     
             else:
-                # حالت اولیه: افزودن به سبد + نظرات
+                # حالت اولیه
                 buttons.extend([
                     ("افزودن به 🛒", f"addtocart_{self.product.code}", 1),
                     ("نظرات 💭", f"comments_{self.product.code}", 0),
                 ])
                 
-                handlers = {
+                handlers.update({
                     f"addtocart_{self.product.code}": self.handle_add_to_cart,
                     f"comments_{self.product.code}": self.handle_comments,
-                }
+                })
                 
                 button_layout = [2]
 
@@ -2019,6 +2040,7 @@ class ProductHandler:
             stock_info = variant.stock if variant else self.product.stock
             text = f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی: {stock_info})"
             
+            # ارسال فوری
             markup = SendMarkup(
                 bot=self.app,
                 chat_id=chat_id,
@@ -2028,35 +2050,60 @@ class ProductHandler:
                 handlers=handlers
             )
             markup.send()
+            
+        except Exception as e:
+            print(f"Error in _send_buttons_from_data: {e}")
+
+    def _send_buttons_safe(self, chat_id):
+        """متد قدیمی برای سازگاری - حالا از نسخه سریع استفاده می‌کند"""
+        self.send_buttons(chat_id)
+
+    def show_initial_state(self, chat_id, message_id, product):
+        """نمایش حالت اولیه"""
+        try:
+            buttons = [
+                ("افزودن به 🛒", f"addtocart_{product.code}", 1),
+                ("نظرات 💭", f"comments_{product.code}", 0),
+            ]
+            
+            handlers = {
+                f"addtocart_{product.code}": self.handle_add_to_cart,
+                f"comments_{product.code}": self.handle_comments,
+            }
+            
+            stock_info = product.stock
+            text = f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی: {stock_info})"
+
+            markup = SendMarkup(
+                bot=self.app,
+                chat_id=chat_id,
+                text=text,
+                buttons=buttons,
+                button_layout=[2],
+                handlers=handlers,
+            )
+            
+            markup.edit(message_id)
 
         except Exception as e:
-            error_message = traceback.format_exc()
-            print(f"Error in send_buttons: {e}\n{error_message}")
-                    
+            print(f"❌ Error in show_initial_state: {e}")
 
-    def handle_buttons(self, call):
-        """مدیریت دکمه‌های افزایش و کاهش سفارش"""
+    def handle_add_to_cart(self, call):
+        """مدیریت افزودن به سبد خرید"""
         try:
             data = call.data.split("_")
-            action = data[0]
-            product_code = str(data[1]) if len(data) > 1 else None
+            product_code = str(data[-1])
             chat_id = call.message.chat.id
             message_id = call.message.message_id
 
-            if not product_code:
-                return
-
-            print("Action:", action, "Product Code:", product_code)
             product = Product.objects.get(code=product_code)
             profile = ProfileModel.objects.get(tel_id=chat_id)
             cart, _ = Cart.objects.get_or_create(profile=profile)
 
-            # دریافت وضعیت واریانت‌های انتخاب شده از session
             session = SessionManager()
             user_session = session.get_user_session(chat_id, namespace="variants")
             variant_states = user_session.get(str(product_code), {})
 
-            # ساخت دیکشنری مقادیر انتخاب شده
             variants_dict = self.get_variants_dict(product.variants.all())
             selected_values = {}
             
@@ -2067,15 +2114,10 @@ class ProductHandler:
                     if selected_index < len(values_list):
                         selected_values[key] = values_list[selected_index]
 
-            print(f"🔍 [DEBUG] Selected values for action: {selected_values}")
-
-            # پیدا کردن واریانت دقیق
             variant = None
             if selected_values:
                 variant = self.get_variant_by_selected_values(product, selected_values)
-                print(f"🔍 [DEBUG] Found exact variant for action: {variant}")
 
-            # پیدا کردن CartItem دقیق برای این واریانت
             cart_item = None
             if variant:
                 cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
@@ -2083,79 +2125,106 @@ class ProductHandler:
                 if not product.variants.exists():
                     cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
 
-            should_show_initial = False  # 🔥 فلگ جدید برای نمایش حالت اولیه
+            if not cart_item:
+                cart_item = CartItem.objects.create(
+                    cart=cart, 
+                    product=product,
+                    variant=variant,
+                    quantity=0
+                )
+
+            self.update_product_message(chat_id, message_id, product, cart)
+            self.app.answer_callback_query(call.id, "به سبد خرید اضافه شد")
+
+        except Exception as e:
+            print(f"❌ Error in handle_add_to_cart: {e}")
+
+    def handle_buttons(self, call):
+        """مدیریت دکمه‌های افزایش/کاهش"""
+        try:
+            data = call.data.split("_")
+            action = data[0]
+            product_code = str(data[1])
+            chat_id = call.message.chat.id
+            message_id = call.message.message_id
+
+            product = Product.objects.get(code=product_code)
+            profile = ProfileModel.objects.get(tel_id=chat_id)
+            cart, _ = Cart.objects.get_or_create(profile=profile)
+
+            session = SessionManager()
+            user_session = session.get_user_session(chat_id, namespace="variants")
+            variant_states = user_session.get(str(product_code), {})
+
+            variants_dict = self.get_variants_dict(product.variants.all())
+            selected_values = {}
+            
+            for i, key in enumerate(variants_dict.keys()):
+                if str(i) in variant_states:
+                    values_list = list(variants_dict[key])
+                    selected_index = variant_states[str(i)]
+                    if selected_index < len(values_list):
+                        selected_values[key] = values_list[selected_index]
+
+            variant = None
+            if selected_values:
+                variant = self.get_variant_by_selected_values(product, selected_values)
+
+            cart_item = None
+            if variant:
+                cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
+            else:
+                if not product.variants.exists():
+                    cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
+
+            should_show_initial = False
 
             if action == "increase":
                 if not cart_item:
-                    # اگر CartItem وجود ندارد، ایجاد کن
                     cart_item = CartItem.objects.create(
                         cart=cart, 
                         product=product,
                         variant=variant,
                         quantity=1
                     )
-                    print(f"🔍 [DEBUG] Created new CartItem with quantity: 1")
                 else:
-                    # افزایش تعداد
                     max_stock = variant.stock if variant else product.stock
                     if cart_item.quantity < max_stock:
                         cart_item.quantity += 1
                         cart_item.save()
-                        print(f"Increased to: {cart_item.quantity}")
                     else:
                         self.app.answer_callback_query(call.id, f"متاسفانه، بیشتر از {max_stock} عدد در انبار موجود نیست!", show_alert=True)
                         return
                         
             elif action == "decrease":
                 if cart_item:
-                    print(f"Decreasing from: {cart_item.quantity}")
                     if cart_item.quantity > 1:
-                        # کاهش عادی - از 2 به 1، از 3 به 2 و ...
                         cart_item.quantity -= 1
                         cart_item.save()
-                        print(f"Decreased to: {cart_item.quantity}")
                     elif cart_item.quantity == 1:
-                        # کاهش از 1 به 0
                         cart_item.quantity = 0
                         cart_item.save()
-                        print("Decreased to 0 - staying in counter mode")
                     elif cart_item.quantity == 0:
-                        # کاهش از 0 - حذف CartItem و رفتن به حالت اولیه
                         cart_item.delete()
-                        print("Deleted cart item - returning to initial state")
-                        should_show_initial = True  # 🔥 علامت می‌زنیم که حالت اولیه نشان داده شود
+                        should_show_initial = True
                         self.app.answer_callback_query(call.id, "آیتم از سبد خرید حذف شد")
                 else:
-                    # اگر CartItem وجود ندارد و کاربر - زده، یعنی در حالت اولیه هستیم
-                    print("No cart item exists - already in initial state")
-                    should_show_initial = True  # 🔥 در حالت اولیه هستیم
+                    should_show_initial = True
 
-            # 🔥 اگر باید حالت اولیه نشان داده شود
             if should_show_initial:
-                print("🔍 [DEBUG] Showing initial state...")
-                # حالت اولیه را در همین پیام نشان می‌دهیم
                 self.show_initial_state(chat_id, message_id, product)
             else:
-                # آپدیت پیام با وضعیت جدید
                 self.update_product_message(chat_id, message_id, product, cart)
 
         except Exception as e:
-            error_message = traceback.format_exc()
-            print(f"Error in handle_buttons: {e}\n{error_message}")
-                
-            
+            print(f"Error in handle_buttons: {e}")
 
     def update_product_message(self, chat_id, message_id, product, cart):
         """آپدیت پیام محصول"""
         try:
-            print(f"🔍 [DEBUG] update_product_message called for product: {product.code}")
-            
-            # دریافت وضعیت واریانت‌ها از Redis
             session = SessionManager()
             user_session = session.get_user_session(chat_id, namespace="variants")
             variant_states = user_session.get(str(product.code), {})
-            
-            print(f"🔍 [DEBUG] Variant states in update: {variant_states}")
             
             variants_dict = self.get_variants_dict(product.variants.all())
             selected_values = {}
@@ -2167,56 +2236,28 @@ class ProductHandler:
                     if selected_index < len(values_list):
                         selected_values[key] = values_list[selected_index]
 
-            print(f"🔍 [DEBUG] Selected values in update: {selected_values}")
-
-            # پیدا کردن واریانت دقیق بر اساس ترکیب کامل
             variant = None
             current_quantity = 0
             cart_item_exists = False
             
-            # پیدا کردن واریانت دقیق بر اساس تمام مقادیر انتخاب شده
             if selected_values:
                 variant = self.get_variant_by_selected_values(product, selected_values)
-                print(f"🔍 [DEBUG] Exact variant search result: {variant}")
-            else:
-                print("🔍 [DEBUG] No selected values for variant search")
 
-            # حالا CartItem را پیدا کن - فقط برای واریانت دقیق
             cart_item = None
             if variant:
-                # اگر واریانت دقیق پیدا شد، فقط برای آن واریانت جستجو کن
                 cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
-                print(f"🔍 [DEBUG] CartItem search for EXACT variant: {cart_item}")
             else:
-                # اگر واریانت پیدا نشد یا محصول واریانت ندارد
-                if product.variants.exists():
-                    # محصول واریانت دارد اما ترکیب دقیق پیدا نشد
-                    cart_item = None
-                    print("🔍 [DEBUG] Product has variants but no exact match found")
-                else:
-                    # محصول بدون واریانت
+                if not product.variants.exists():
                     cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
-                    print(f"🔍 [DEBUG] CartItem search for product without variants: {cart_item}")
 
             if cart_item:
                 current_quantity = cart_item.quantity
                 cart_item_exists = True
-                print(f"✅ [DEBUG] EXACT CartItem FOUND - quantity: {current_quantity}, variant: {cart_item.variant}")
-            else:
-                current_quantity = 0
-                cart_item_exists = False
-                print(f"❌ [DEBUG] No EXACT CartItem found for current variant combination")
 
-            # ساخت دکمه‌ها
             buttons = []
             handlers = {}
 
-            print(f"🔍 [DEBUG] FINAL - cart_item_exists: {cart_item_exists}, current_quantity: {current_quantity}")
-
-            # 🔥 تغییر اصلی اینجاست: همیشه حالت شمارنده نشان داده شود
-            # حتی اگر CartItem وجود نداشته باشد (current_quantity = 0)
-            
-            # حالت شمارنده: + تعداد -
+            # حالت شمارنده
             buttons.extend([
                 ("➕", f"increase_{product.code}", 2),
                 (f"{current_quantity}", "count", 1),
@@ -2251,18 +2292,10 @@ class ProductHandler:
                 button_layout = [3] + [3] * len(variants_dict) + [1]
             else:
                 button_layout = [3, 1]
-                
-            print(f"🔍 [DEBUG] Using COUNTER layout with {len(buttons)} buttons")
 
-            # متن اطلاع‌رسانی
             stock_info = variant.stock if variant else product.stock
             text = f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی: {stock_info})"
 
-            print(f"🔍 [DEBUG] Final text: {text}")
-            print(f"🔍 [DEBUG] Buttons: {buttons}")
-            print(f"🔍 [DEBUG] Button layout: {button_layout}")
-
-            # آپدیت مارکاپ
             markup = SendMarkup(
                 bot=self.app,
                 chat_id=chat_id,
@@ -2272,30 +2305,15 @@ class ProductHandler:
                 handlers=handlers,
             )
             
-            print("🔍 [DEBUG] Attempting to edit message...")
-            try:
-                markup.edit(message_id)
-                print("✅ [DEBUG] Message edited successfully")
-            except Exception as e:
-                print(f"❌ [DEBUG] Error editing message: {e}")
-                # این خطا را نادیده بگیر چون طبیعی است
-                if "message is not modified" not in str(e):
-                    raise e
+            markup.edit(message_id)
 
         except Exception as e:
-            print(f"❌ Error in update_product_message: {e}\n{traceback.format_exc()}")
-                
-
-            
+            print(f"❌ Error in update_product_message: {e}")
 
     def handle_variant_navigation(self, call):
         """مدیریت ناوبری واریانت‌ها"""
         try:
             parts = call.data.split("_")
-            if len(parts) < 3:
-                self.app.answer_callback_query(call.id, "خطا در دادهٔ دکمه.", show_alert=True)
-                return
-
             action_type = parts[0]
             product_code = parts[1]
             variant_index = int(parts[2])
@@ -2306,7 +2324,6 @@ class ProductHandler:
             profile = ProfileModel.objects.get(tel_id=chat_id)
             cart, _ = Cart.objects.get_or_create(profile=profile)
 
-            # آپدیت وضعیت واریانت در Redis
             session = SessionManager()
             user_session = session.get_user_session(chat_id, namespace="variants")
             variant_states = user_session.get(str(product_code), {})
@@ -2331,31 +2348,25 @@ class ProductHandler:
             user_session[str(product_code)] = variant_states
             session.set_user_session(chat_id, user_session, namespace="variants")
 
-            print(f"🔍 [VARIANT NAV] Variant changed to: {variant_states}")
-
-            # آپدیت پیام - اینجا مهم است که تعداد واریانت جدید نمایش داده شود
             self.update_product_message(chat_id, message_id, self.product, cart)
             
             current_value = values[current_state]
             self.app.answer_callback_query(call.id, f"{current_key} به {current_value} تغییر کرد")
 
         except Exception as e:
-            print(f"Error in handle_variant_navigation: {e}\n{traceback.format_exc()}")
+            print(f"Error in handle_variant_navigation: {e}")
             self.app.answer_callback_query(call.id, "خطا در تغییر واریانت!", show_alert=True)
-            
-                
 
     def handle_comments(self, call):
         """مدیریت دکمه نظرات"""
         try:
             chat_id = call.message.chat.id
-            # اینجا می‌توانید پیام نظرات را ارسال کنید
             self.app.send_message(chat_id, "صفحه نظرات محصول...")
             self.app.answer_callback_query(call.id)
         except Exception as e:
-            error_message = traceback.format_exc()
-            print(f"Error in handle_comments: {e}\n{error_message}")
-            
+            print(f"Error in handle_comments: {e}")
+
+
 ############################  SEND CART  ############################    
 from collections import OrderedDict
 import traceback

@@ -711,18 +711,20 @@ def handle_cart_operations(call):
 @app.callback_query_handler(func=lambda call: call.data.startswith("product_show_") or call.data == "pay")
 @app.callback_query_handler(func=lambda call: call.data == "finalize" or call.data == "view_cart")
 def cart_CallBack(data):
-    if isinstance(data, types.Message):
-        cart = SendCart(app, data)
-        if cart.cart:
-            cart.send(data)
-    elif isinstance(data, types.CallbackQuery):
-        cart = SendCart(app, data.message)
-        if cart.cart:
-            if data.data == "finalize" or data.data == "view_cart":
+    try:
+        if isinstance(data, types.Message):
+            cart = SendCart(app, data)
+            if cart.cart:
                 cart.send(data)
-            else:
-                cart.handle_buttons(data)
-
+        elif isinstance(data, types.CallbackQuery):
+            cart = SendCart(app, data.message)
+            if cart.cart:
+                if data.data == "finalize" or data.data == "view_cart":
+                    cart.send(data)
+                else:
+                    cart.handle_buttons(data)
+    except Exception as e:
+        print(f"Error in phone_handler: {e}\n{traceback.format_exc()}")
 
 @app.callback_query_handler(func=lambda call: call.data == "confirm order")
 def confirm_order_CallBack(data):

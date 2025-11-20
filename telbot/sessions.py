@@ -43,23 +43,22 @@ class CartSessionManager:
         self.chat_id = chat_id
 
     def set_buttons(self, buttons):
-        """ذخیره دکمه‌ها در سشن بدون تبدیل تاپل‌ها به لیست"""
-        buttons_list = [(key, tuple(value)) for key, value in buttons.items()]  # اطمینان از حفظ تاپل‌ها
-        self.redis.set(f"buttons:{self.chat_id}", json.dumps(buttons_list))  # ذخیره در Redis
+        """ذخیره دکمه‌ها در سشن به فرمت لیست جدید"""
+        # buttons باید لیستی از تاپل‌های (text, callback_data, index) باشد
+        self.redis.set(f"buttons:{self.chat_id}", json.dumps(buttons))
 
     def get_buttons(self):
-        """بازیابی دکمه‌های ذخیره‌شده و اطمینان از تبدیل مقدارها به تاپل"""
+        """بازیابی دکمه‌های ذخیره‌شده به فرمت لیست"""
         buttons = self.redis.get(f"buttons:{self.chat_id}")
-        return OrderedDict((key, tuple(value)) for key, value in json.loads(buttons)) if buttons else OrderedDict()
+        return json.loads(buttons) if buttons else []
 
     def clear_buttons(self):
         """پاک کردن دکمه‌های ذخیره‌شده"""
         self.redis.delete(f"buttons:{self.chat_id}")
 
     def update_buttons(self, new_buttons):
-        """بروزرسانی دکمه‌ها بدون حذف کامل آنها"""
-        self.clear_buttons()  # پاک کردن دکمه‌های قبلی از سشن
-        self.set_buttons(new_buttons)  # ذخیره مقدار جدید
+        """بروزرسانی دکمه‌ها"""
+        self.set_buttons(new_buttons)
 
 
 ############################################## ADD PRODUCT ##############################################

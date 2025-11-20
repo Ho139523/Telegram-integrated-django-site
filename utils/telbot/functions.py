@@ -450,42 +450,161 @@ class SendMarkup:
         self.buttons = buttons or []
         self.button_layout = button_layout or []
         self.handlers = handlers or {}
-        self._precomputed_markup = None  # پیش‌محاسبه شده
+        self._keyboard_cache = None
 
+    def _validate_button(self, text, callback_data, is_url=False):
+        """اعتبارسنجی دکمه قبل از ساخت"""
+        if not text or not isinstance(text, str) or text.strip() == "":
+            return False, "متن دکمه نمی‌تواند خالی باشد"
+        
+        # برای دکمه‌های URL، callback_data می‌تواند خالی باشد
+        if not is_url and (not callback_data or callback_data.strip() == ""):
+            return False, "callback_data نمی‌تواند خالی باشد"
+            
+        if not isinstance(callback_data, str):
+            return False, "callback_data باید رشته باشد"
+            
+        return True, "معتبر"
+
+
+    def _convert_buttons_to_list(self):
+        """تبدیل دکمه‌ها به فرمت لیست یکپارچه با اعتبارسنجی"""
+        if not self.buttons:
+            return []
+            
+        button_list = []
+        
+        try:
+            # اگر buttons از قبل لیست است
+            if isinstance(self.buttons, list):
+                for item in self.buttons:
+                    if len(item) >= 3:  # (text, callback_data, index)
+                        text, callback_data, index = item[0], item[1], item[2]
+                        is_valid, message = self._validate_button(text, callback_data)
+                        if is_valid:
+                            button_list.append((text, callback_data, index))
+                        else:
+                            print(f"دکمه نامعتبر حذف شد: {text} - {message}")
+                    else:
+                        print(f"فرمت دکمه نامعتبر: {item}")
+            
+            # اگر buttons دیکشنری است
+            elif isinstance(self.buttons, dict):
+                for text, button_data in self.buttons.items():
+                    callback_data = ""
+                    url = ""
+                    index = len(button_list) + 1
+                    
+                    if isinstance(button_data, dict):
+                        # فرمت جدید با دیکشنری
+                        callback_data = button_data.get('callback_data', '')
+                        url = button_data.get('url', '')  # اضافه کردن پشتیبانی از URL
+                        index = button_data.get('index', index)
+                        
+                        # اولویت با URL است اگر وجود دارد
+                        if url:
+                            callback_data = url  # استفاده از URL به عنوان callback_data
+                    elif isinstance(button_data, (list, tuple)) and len(button_data) >= 2:
+                        # فرمت قدیمی با تاپل
+                        callback_data, index = button_data[0], button_data[1]
+                    else:
+                        print(f"فرمت دکمه نامعتبر برای {text}: {button_data}")
+                        continue
+                    
+                    # اعتبارسنجی: اگر URL داریم، callback_data خالی مجاز است
+                    if url:
+                        # برای دکمه‌های URL، callback_data می‌تواند خالی باشد
+                        if not text or not isinstance(text, str) or text.strip() == "":
+                            print(f"دکمه نامعتبر حذف شد: {text} - متن دکمه نمی‌تواند خالی باشد")
+                            continue
+                        button_list.append((text, url, index))
+                    else:
+                        # برای دکمه‌های معمولی، callback_data باید پر باشد
+                        is_valid, message = self._validate_button(text, callback_data)
+                        if is_valid:
+                            button_list.append((text, callback_data, index))
+                        else:
+                            print(f"دکمه نامعتبر حذف شد: {text} - {message}")
+            
+            else:
+                print(f"فرمت buttons نامعتبر: {type(self.buttons)}")
+                
+        except Exception as e:
+            print(f"خطا در تبدیل دکمه‌ها: {e}")
+            
+        return button_list
+
+        
     def generate_keyboard(self):
-        """ساخت سریع کیبورد با حفظ ترتیب"""
-        if self._precomputed_markup:
-            return self._precomputed_markup
+        """ساخت کیبورد با اعتبارسنجی کامل"""
+        if self._keyboard_cache:
+            return self._keyboard_cache
             
         markup = types.InlineKeyboardMarkup()
         
-        if not self.buttons or not self.button_layout:
+        if not self.buttons:
             return markup
 
-        # استفاده از لیست کامپرهمنشن برای ساخت سریع دکمه‌ها
-        if isinstance(self.buttons, list):
-            # مرتب‌سازی سریع
-            sorted_buttons = sorted(self.buttons, key=lambda x: x[2])
-            
-            # ساخت دکمه‌ها
-            button_list = [
-                types.InlineKeyboardButton(text, callback_data=callback_data)
-                for text, callback_data, index in sorted_buttons
-            ]
-            
-            # چیدمان بهینه
+        # تبدیل به فرمت لیست یکپارچه
+        button_list = self._convert_buttons_to_list()
+        
+        if not button_list:
+            print("هیچ دکمه معتبری برای نمایش وجود ندارد")
+            return markup
+        
+        # مرتب‌سازی بر اساس ایندکس
+        try:
+            sorted_buttons = sorted(button_list, key=lambda x: x[2])
+        except Exception as e:
+            print(f"خطا در مرتب‌سازی دکمه‌ها: {e}")
+            sorted_buttons = button_list
+
+        # ساخت دکمه‌های اینلاین
+        inline_buttons = []
+        for text, callback_data, index in sorted_buttons:
+            try:
+                # بررسی اگر دکمه لینک باشد (شامل http یا https)
+                if callback_data.startswith(('http://', 'https://')):
+                    inline_buttons.append(types.InlineKeyboardButton(text, url=callback_data))
+                else:
+                    inline_buttons.append(types.InlineKeyboardButton(text, callback_data=callback_data))
+            except Exception as e:
+                print(f"خطا در ساخت دکمه {text}: {e}")
+                continue
+
+        if not inline_buttons:
+            print("هیچ دکمه اینلاین معتبری ساخته نشد")
+            return markup
+
+        # چیدمان دکمه‌ها بر اساس طرح‌بندی
+        try:
             index = 0
             for row_size in self.button_layout:
-                if index < len(button_list):
-                    row_buttons = button_list[index:index + row_size]
+                if index >= len(inline_buttons):
+                    break
+                    
+                if row_size <= 0:
+                    print(f"سایز ردیف نامعتبر: {row_size}")
+                    continue
+                    
+                row_buttons = inline_buttons[index:index + row_size]
+                if row_buttons:  # اطمینان از خالی نبودن ردیف
                     markup.row(*row_buttons)
-                    index += row_size
+                index += row_size
+                
+            # اگر دکمه‌های باقیمانده داریم، آن‌ها را در ردیف آخر قرار دهیم
+            if index < len(inline_buttons):
+                remaining_buttons = inline_buttons[index:]
+                markup.row(*remaining_buttons)
+                
+        except Exception as e:
+            print(f"خطا در چیدمان دکمه‌ها: {e}")
 
-        self._precomputed_markup = markup
+        self._keyboard_cache = markup
         return markup
 
     def send(self):
-        """ارسال سریع"""
+        """ارسال پیام با هندل خطا"""
         try:
             markup = self.generate_keyboard()
             self.bot.send_message(
@@ -495,10 +614,19 @@ class SendMarkup:
                 parse_mode="HTML"
             )
         except Exception as e:
-            print(f"SendMarkup.send error: {e}")
+            print(f"Error in SendMarkup.send: {e}")
+            # تلاش برای ارسال بدون دکمه در صورت خطا
+            try:
+                self.bot.send_message(
+                    chat_id=self.chat_id,
+                    text=self.text,
+                    parse_mode="HTML"
+                )
+            except Exception as e2:
+                print(f"Error sending without buttons: {e2}")
 
     def edit(self, message_id):
-        """ویرایش سریع"""
+        """ویرایش پیام با هندل خطا"""
         try:
             markup = self.generate_keyboard()
             self.bot.edit_message_text(
@@ -510,16 +638,49 @@ class SendMarkup:
             )
         except Exception as e:
             if "message is not modified" not in str(e):
-                print(f"SendMarkup.edit error: {e}")
+                print(f"Error in SendMarkup.edit: {e}")
+                # تلاش برای ویرایش بدون دکمه در صورت خطا
+                try:
+                    self.bot.edit_message_text(
+                        chat_id=self.chat_id,
+                        message_id=message_id,
+                        text=self.text,
+                        parse_mode="HTML"
+                    )
+                except Exception as e2:
+                    print(f"Error editing without buttons: {e2}")
 
     def handle_callback(self, call):
-        """مدیریت کلیک"""
+        """مدیریت کلیک روی دکمه‌ها"""
         callback_data = call.data
-        handler = self.handlers.get(callback_data)
-        if handler:
-            handler(call)
+        if callback_data in self.handlers:
+            try:
+                self.handlers[callback_data](call)
+            except Exception as e:
+                print(f"Error in handler for {callback_data}: {e}")
 
-            
+    def debug_buttons(buttons):
+        """تابع کمکی برای دیباگ دکمه‌ها"""
+        print("=== DEBUG BUTTONS ===")
+    
+        if not buttons:
+            print("دکمه‌ها خالی هستند")
+            return
+        
+        if isinstance(buttons, list):
+            print(f"فرمت: لیست ({len(buttons)} آیتم)")
+            for i, item in enumerate(buttons):
+                print(f"  {i}: {item}")
+        elif isinstance(buttons, dict):
+            print(f"فرمت: دیکشنری ({len(buttons)} آیتم)")
+            for key, value in buttons.items():
+                print(f"  '{key}': {value}")
+        else:
+            print(f"فرمت نامشخص: {type(buttons)}")
+    
+        print("=====================")
+
+
 ############################  CHECK SUBSCRIPTION  ############################
 
 import logging
@@ -2442,131 +2603,87 @@ class SendCart:
 
 
     def handle_buttons(self, call):
-        """مدیریت دکمه‌های افزایش و کاهش سفارش"""
         try:
-            data = call.data.split("_")
-            action = data[0]
-            product_code = str(data[1]) if len(data) > 1 else None
-            chat_id = call.message.chat.id
-            message_id = call.message.message_id
+            if call.data.startswith("product_show_"):
+                product_code = call.data.split("_")[-1]
+                item = self.cart.items.get(product__code=product_code)
 
-            if not product_code:
-                return
+                if item:
+                    stored_buttons = self.session.get_buttons()  # دریافت دکمه‌های ذخیره‌شده
+                    product_title = next((key for key in stored_buttons if stored_buttons[key][0] == call.data), None)
 
-            print("Action:", action, "Product Code:", product_code)
-            product = Product.objects.get(code=product_code)
-            profile = ProfileModel.objects.get(tel_id=chat_id)
-            cart, _ = Cart.objects.get_or_create(profile=profile)
-
-            # دریافت وضعیت واریانت‌های انتخاب شده از session
-            session = SessionManager()
-            user_session = session.get_user_session(chat_id, namespace="variants")
-            variant_states = user_session.get(str(product_code), {})
-
-            # ساخت دیکشنری مقادیر انتخاب شده
-            variants_dict = self.get_variants_dict(product.variants.all())
-            selected_values = {}
-            
-            for i, key in enumerate(variants_dict.keys()):
-                if str(i) in variant_states:
-                    values_list = list(variants_dict[key])
-                    selected_index = variant_states[str(i)]
-                    if selected_index < len(values_list):
-                        selected_values[key] = values_list[selected_index]
-
-            print(f"🔍 [DEBUG] Selected values for action: {selected_values}")
-
-            # پیدا کردن واریانت دقیق
-            variant = None
-            if selected_values:
-                variant = self.get_variant_by_selected_values(product, selected_values)
-                print(f"🔍 [DEBUG] Found exact variant for action: {variant}")
-
-            # پیدا کردن CartItem دقیق برای این واریانت
-            cart_item = None
-            if variant:
-                cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
-            else:
-                if not product.variants.exists():
-                    cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
-
-            if action == "increase":
-                if not cart_item:
-                    # اگر CartItem وجود ندارد، ایجاد کن
-                    cart_item = CartItem.objects.create(
-                        cart=cart, 
-                        product=product,
-                        variant=variant,
-                        quantity=1
-                    )
-                    print(f"🔍 [DEBUG] Created new CartItem with quantity: 1")
-                else:
-                    # افزایش تعداد
-                    max_stock = variant.stock if variant else product.stock
-                    if cart_item.quantity < max_stock:
-                        cart_item.quantity += 1
-                        cart_item.save()
-                        print(f"Increased to: {cart_item.quantity}")
-                    else:
-                        self.app.answer_callback_query(call.id, f"متاسفانه، بیشتر از {max_stock} عدد در انبار موجود نیست!", show_alert=True)
+                    if not product_title:
+                        print(f"Error: {call.data} not found in buttons!")
                         return
-                        
-            elif action == "decrease":
-                if cart_item:
-                    print(f"Decreasing from: {cart_item.quantity}")
-                    if cart_item.quantity > 1:
-                        # کاهش عادی - از 2 به 1، از 3 به 2 و ...
-                        cart_item.quantity -= 1
-                        cart_item.save()
-                        print(f"Decreased to: {cart_item.quantity}")
-                    elif cart_item.quantity == 1:
-                        # کاهش از 1 به 0
-                        cart_item.quantity = 0
-                        cart_item.save()
-                        print("Decreased to 0")
-                    elif cart_item.quantity == 0:
-                        # کاهش از 0 - حذف CartItem و رفتن به حالت اولیه
-                        cart_item.delete()
-                        print("Deleted cart item - returning to initial state")
-                        # 🔥 اینجا باید به حالت اولیه برگردیم
-                        self.app.answer_callback_query(call.id, "آیتم از سبد خرید حذف شد")
-                else:
-                    # اگر CartItem وجود ندارد و کاربر - زده، یعنی می‌خواهد به حالت اولیه برگردد
-                    print("No cart item exists - already in initial state")
 
-            # آپدیت پیام با وضعیت جدید
-            self.update_product_message(chat_id, message_id, product, cart)
+                    product_index = list(stored_buttons.keys()).index(product_title)
+                    new_buttons = {}
+                    new_layout = []
+                    expanded = product_title.endswith("▲")  # آیا دکمه کلیک‌شده باز است؟
+                    new_title = product_title.replace("▲", "▼") if expanded else product_title.replace("▼", "▲")
+
+                    # **🔹 بررسی اینکه آیا دکمه دیگری باز است؟**
+                    stored_buttons = self.session.get_buttons()
+                    currently_open = next((key for key in stored_buttons.keys() if key.endswith("▲")), None)
+
+                    for idx, (key, value) in enumerate(stored_buttons.items()):
+                        if key == currently_open and key != product_title:
+                            new_buttons[currently_open.replace("▲", "▼")] = tuple(value)  # بستن دکمه قبلی
+                            new_layout.append(1)
+
+
+                        elif idx == product_index:
+                            new_buttons[new_title] = (value[0], product_index)  # اینجا مقدار جدید به‌درستی تاپل است
+                            new_layout.append(1)
+
+                            if not expanded:
+                                new_buttons["❌"] = (f"remove_{product_code}_cart", product_index + 1)
+                                new_buttons["➖"] = (f"decrease_{product_code}_cart", product_index + 1)
+                                new_buttons["➕"] = (f"increase_{product_code}_cart", product_index + 1)
+                                new_layout.append(3)
+
+                        elif key not in ["❌", "➖", "➕"]:
+                            new_buttons[key] = tuple(value)  # همیشه مقدار را به تاپل تبدیل کنید
+                            new_layout.append(3)
+
+
+
+
+                    # **🔹 مرتب‌سازی بر اساس جایگاه**
+                    sorted_buttons = OrderedDict(sorted(new_buttons.items(), key=lambda x: x[1][1]))
+
+                    # **اضافه کردن دکمه پرداخت در انتها**
+                    sorted_buttons["✅ تکمیل خرید و پرداخت"] = ("confirm order", len(sorted_buttons) + 1)
+
+                    # **ذخیره وضعیت جدید در سشن**
+                    self.session.update_buttons(sorted_buttons)
+
+                    # **ویرایش دکمه‌ها**
+                    self.markup.text = self.text
+                    self.markup.buttons = sorted_buttons
+                    self.markup.button_layout = [1 if "remove" not in v[0] else 3 for v in sorted_buttons.values()]
+                    self.markup.edit(call.message.message_id)
+
+                    self.app.answer_callback_query(call.id, f"وضعیت {item.product.name} تغییر یافت.")
+
+
 
         except Exception as e:
-            error_message = traceback.format_exc()
-            print(f"Error in handle_buttons: {e}\n{error_message}")
+            print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
 
-
-
-    def send(self, message_or_call):
+    def send(self, message):
         try:
             # حذف آیتم‌هایی که تعدادشان صفر شده است
-            if self.cart:
-                self.cart.items.filter(quantity=0).delete()
+            self.cart.items.filter(quantity=0).delete()
 
             if not self.cart or not self.cart.items.exists():
-                # تشخیص نوع ورودی
-                if isinstance(message_or_call, types.Message):
-                    # ورودی از نوع Message
-                    self.app.send_message(
-                        chat_id=message_or_call.chat.id,
-                        text=t(message_or_call, "cart_empty"),
-                    )
-                elif isinstance(message_or_call, types.CallbackQuery):
-                    # ورودی از نوع CallbackQuery - همیشه پیام جدید
-                    self.app.send_message(
-                        chat_id=message_or_call.message.chat.id,
-                        text=t(message_or_call.message, "cart_empty"),
-                    )
+                self.app.send_message(
+                    chat_id=message.chat.id,
+                    text=t(message, "cart_empty"),
+                )
                 self.cart = None
                 return
 
-            # بقیه کد برای زمانی که سبد خرید خالی نیست
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
             self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
 
@@ -2580,13 +2697,10 @@ class SendCart:
 
             self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
             self.session.update_buttons(self.buttons)
-            
-            # همیشه پیام جدید ارسال شود - بدون ویرایش پیام قبلی
             self.markup.send()
 
         except Exception as e:
             print(f"Error in send: {e}\n{traceback.format_exc()}")
-
 
 
     def add(self, call):
@@ -2748,11 +2862,17 @@ class SendCart:
 
             payment_link = self.pay(update)
 
+            # اصلاح شده: اطمینان از اینکه callback_data هیچگاه خالی نباشد
             buttons = {
                 f"آدرس: {address_text}": {"callback_data": "address", "index": 1},
                 f"شماره تماس: {phone_text}": {"callback_data": "phone", "index": 2},
-                "پرداخت": {"url": payment_link, "index": 3} if address and profile.phone else {"callback_data": "phone_address_required", "index": 3},
             }
+
+            # اضافه کردن دکمه پرداخت با فرمت صحیح
+            if address and profile.phone:
+                buttons["پرداخت"] = {"url": payment_link, "index": 3}
+            else:
+                buttons["تکمیل اطلاعات برای پرداخت"] = {"callback_data": "phone_address_required", "index": 3}
 
             self.markup = SendMarkup(
                 bot=self.app,
@@ -2764,8 +2884,7 @@ class SendCart:
                     "address": lambda call: SendLocation(self.app, call.message).show_addresses(),
                     "phone_address_required": lambda call: self.app.answer_callback_query(call.id, "⚠️ لطفاً ابتدا آدرس و شماره تماس را تکمیل کنید.")
                 }
-            )
-
+            ) 
             if isinstance(update, types.CallbackQuery):
                 self.markup.edit(message_id)
             elif isinstance(update, types.Message):
@@ -2777,6 +2896,7 @@ class SendCart:
         except Exception as e:
             print(f"Error in invoice: {e}\n{traceback.format_exc()}")
             self.app.send_message(chat_id, "❌ خطایی در نمایش فاکتور رخ داد.")
+
 
     def pay(self, update):
 
@@ -2809,47 +2929,6 @@ class SendCart:
 
         return payment_link
 
-
-        # ارسال درخواست به سرور شما
-        # try:
-        # 	response = requests.post(
-        # 		f"{self.current_site}/buy",
-        # 		headers={"Content-Type": "application/json"},
-        # 		data=json.dumps({'tel_id': tel_id}),
-        # 		verify=False
-        # 	)
-        # 	if response.status_code == 400:
-        # 		self.app.send_message(
-        # 				chat_id=call.message.chat.id,
-        # 				text=f"roror:\n{response.error}"
-        # 			)
-        # 	# بررسی پاسخ سرور
-        # 	if response.status_code == 200:
-        # 		payment_data = response.json()
-        # 		payment_link = payment_data.get("redirect_url")
-
-        # 		if payment_link:
-        # 			# ارسال لینک به کاربر در تلگرام
-        # 			self.app.send_message(
-        # 				chat_id=call.message.chat.id,
-        # 				text=f"لینک پرداخت شما:\n{payment_link}"
-        # 			)
-        # 		else:
-        # 			self.app.send_message(
-        # 				chat_id=call.message.chat.id,
-        # 				text="خطا در دریافت لینک پرداخت"
-        # 			)
-        # 	else:
-        # 		self.app.send_message(
-        # 			chat_id=call.message.chat.id,
-        # 			text=f"خطا در ارتباط با سرور پرداخت: {response.status_code}"
-        # 		)
-
-        # except requests.exceptions.RequestException as e:
-        # 	self.app.send_message(
-        # 		chat_id=call.message.chat.id,
-        # 		text=f"خطا در ارسال درخواست پرداخت: {str(e)}"
-        # 	)
 ############################  SEND LOCATION  ############################
 
 class SendLocation:
@@ -3490,6 +3569,8 @@ class SendLocation:
     def send_location_add_address(self):
         pass
 
+
+#################    SEND PHONE    #################
 
 
 class SendPhone:

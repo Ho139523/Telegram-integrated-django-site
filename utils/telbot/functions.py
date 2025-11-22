@@ -1,3 +1,4 @@
+from pydoc import describe
 from utils.variables.TOKEN import TOKEN, BOT_ID
 import requests
 import subprocess
@@ -1096,8 +1097,11 @@ class ProductBot:
 
     def get_name(self, message: Message):
         # ذخیره نام در Redis
-        self.save_user_data(message.chat.id, "name", message.text)
-        self.set_state(message.chat.id, self.ProductState.BRAND)
+        session_manager.set_user_session(message.chat.id, {"brand": False, "name_d": message.text, "price": True}, namespace="add_product")
+        session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+        session["brand"] = False
+        session["name_d"] =  message.text
+        session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
         # ارسال منو برای وارد کردن برند
         markup = send_menu(message, [t(message, "no_brand")], message.text, [t(message, "cancel_action")])
@@ -1106,9 +1110,12 @@ class ProductBot:
 
     def get_brand(self, message: Message):
         # ذخیره برند در Redis
-        brand = None if message.text == t(message, "no_brand") else message.text
-        self.save_user_data(message.chat.id, "brand", brand)
-        self.set_state(message.chat.id, self.ProductState.PRICE)
+        session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+        session["price"] = False
+        session["discount"] = True
+        session["brand_d"] =  None if message.text == t(message, "no_brand") else message.text
+
+        session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
         # ارسال منو برای وارد کردن قیمت
         markup = send_menu(message, [t(message, "cancel_action")], message.text)
@@ -1128,8 +1135,13 @@ class ProductBot:
                 return  # خروج از تابع تا کاربر دوباره قیمت وارد کند
 
             # ذخیره قیمت در Redis
-            self.save_user_data(message.chat.id, "price", price)
-            self.set_state(message.chat.id, self.ProductState.DISCOUNT)
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            session["discount"] = False
+            session["status"] = True
+            session["price_d"] = price
+
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
 
             # ارسال پیام برای درخواست درصد تخفیف
             self.bot.send_message(message.chat.id, t(message, "enter_discount"))
@@ -1143,24 +1155,32 @@ class ProductBot:
         try:
             # تلاش برای تبدیل تخفیف به عدد
             discount = float(message.text)
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
 
             # دریافت قیمت و محاسبه قیمت نهایی از Redis
-            price = self.get_user_data(message.chat.id, "price") or 0  # اگر قیمت وجود نداشت، مقدار پیش‌فرض 0 استفاده می‌شود
+            price = session["price_d"] or 0
             final_price = price - ((price * discount) / 100)
-
             # بررسی اینکه قیمت نهایی معتبر است یا خیر
             if final_price < 10000:
                 self.bot.send_message(
                     message.chat.id, t(message, "final_price_too_low"))
-                self.set_state(message.chat.id, self.ProductState.PRICE)  # بازگشت به مرحله قیمت
+                session["price"] = True
+                session ["status"] = False
+                
+                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
                 return
 
             # ذخیره تخفیف در Redis و ادامه به مرحله بعد
-            self.save_user_data(message.chat.id, "discount", discount)
-            self.set_state(message.chat.id, self.ProductState.STOCK)
+            session["status"] = False
+            session["category"] = True
+            session["discount_d"] = discount
+
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
 
             # ارسال پیام برای دریافت توضیحات
-            self.bot.send_message(message.chat.id, t(message, "enter_stock"))
+            markup = send_menu(message, [t(message, "active_adj"), t(message, "inactive_adj")], message.text, [t(message, "cancel_action")])
+            app.send_message(message.chat.id, t(message, "enter_status"), reply_markup=markup)
         except ValueError:
             # مدیریت خطای تبدیل مقدار نامعتبر
             self.bot.send_message(
@@ -1173,26 +1193,28 @@ class ProductBot:
 
     def get_stock(self, message: Message):
         try:
-            stock = int(message.text)
-
             # ذخیره موجودی در Redis
-            self.save_user_data(message.chat.id, "stock", stock)
-            self.set_state(message.chat.id, self.ProductState.STATUS)
-            markup = send_menu(message, [t(message, "active_adj"), t(message, "inactive_adj")], message.text, [t(message, "cancel_action")])
-            app.send_message(message.chat.id, t(message, "enter_status"), reply_markup=markup)
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            session["ask_variant_decision"] = False
+            session["get_description"] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
-        except ValueError:
-            self.bot.send_message(message.chat.id, t(message, "balance_not_integer"))
+            markup = send_menu(message, [], message.text, [t(message, "cancel_action")])
+            self.bot.send_message(message.chat.id, t(message, "enter_stock"), reply_markup=markup)
+            
+        except Exception as e:
+            print(traceback.format_exc())
 
 
 
     def get_status(self, message: Message):
         try:
             status = message.text.strip() == t(message, "active_adj")
+            session2 = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            session2["category"] = False
+            session2["status_d"] = status
+            session_manager.set_user_session(message.chat.id, session2, namespace="add_product")
 
-            # ذخیره وضعیت موجود بودن کالا در Redis
-            self.save_user_data(message.chat.id, "status", status)
-            self.set_state(message.chat.id, self.ProductState.CATEGORY)
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session['product_cat_selection'] = True
             session['add_product'] = True
@@ -1211,9 +1233,16 @@ class ProductBot:
 
     def get_category(self, message: Message):
         try:
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            session["ask_variant_decision"] = True
+                
+
             selected_category = Category.objects.get(title__iexact=message.text.strip(), status=True)
-            self.save_user_data(message.chat.id, "category_id", selected_category.id)
-            self.set_state(message.chat.id, self.ProductState.VARIANT_DECIDE)
+            print(selected_category.id)
+            session["category_id"] = selected_category.id
+            
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
             markup = send_menu(message, [t(message, "accurate_inventory"), t(message, "not_necessary")], "main menu", [t(message, "cancel_action")])
             self.bot.send_message(message.chat.id, t(message, "ask_variant_decision"), reply_markup=markup)
         except Category.DoesNotExist:
@@ -1225,14 +1254,17 @@ class ProductBot:
     # ----------------------------
     def get_variant_decision(self, message: Message):
         try:
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
             if message.text == t(message, "accurate_inventory"):
+                session["variants"] = {}
+                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
                 self.save_user_data(message.chat.id, "variants", {})
                 self.set_state(message.chat.id, self.ProductState.VARIANT_KEY)
                 markup = send_menu(message, [t(message, "cancel_action")], message.text)
                 self.bot.send_message(message.chat.id, t(message, "enter_variant_key"), reply_markup=markup)
             else:
                 # Skip variants, go to images
-                self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
+                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
                 markup = send_menu(message, [t(message, "no_description")], "main menu", [t(message, "cancel_action")])
                 self.bot.send_message(message.chat.id, t(message, "enter_description"), reply_markup=markup)
         except Exception as e:
@@ -1415,10 +1447,13 @@ class ProductBot:
     def get_description(self, message: Message):
         # ذخیره خصوصیات محصول در Redis
         description = None if message.text == t(message, "no_description") else message.text
-        self.save_user_data(message.chat.id, "description", description)
+        session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+        session["get_attribute"] = False
+        session["get_more_attributes"] = True
+        session["get_description_d"] = message.text
 
         # تغییر وضعیت به مرحله ویژگی‌ها
-        self.set_state(message.chat.id, self.ProductState.ATTRIBUTES)
+        session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
         # ایجاد دکمه پایان
         markup = types.InlineKeyboardMarkup()
@@ -1444,38 +1479,49 @@ class ProductBot:
 
 
     def get_product_attributes(self, message: Message):
-        # نمایش پیام برای وارد کردن ویژگی‌های محصول
-        markup = types.InlineKeyboardMarkup()
-        finish_button = types.InlineKeyboardButton(text=t(message, "finish"), callback_data="finish_attributes")
-        markup.add(finish_button)
+        try:
+            # نمایش پیام برای وارد کردن ویژگی‌های محصول
+            markup = types.InlineKeyboardMarkup()
+            finish_button = types.InlineKeyboardButton(text=t(message, "finish"), callback_data="finish_attributes")
+            markup.add(finish_button)
 
-        key = message.text.split(":")[0]  # کلید ویژگی (مانند "وزن")
-        if ":" not in message.text:
-            value = ""
-        else:
-            value = message.text.split(":")[1]  # مقدار ویژگی (مانند "1kg")
+            key = message.text.split(":")[0]  # کلید ویژگی (مانند "وزن")
+            if ":" not in message.text:
+                value = ""
+            else:
+                value = message.text.split(":")[1]  # مقدار ویژگی (مانند "1kg")
 
-        # بازیابی ویژگی‌ها از Redis
-        state_manager = RedisStateManager(message.chat.id)
-        product_attributes = state_manager.get_user_data("product_attributes") or {}
-        product_attributes[key] = value
+            # بازیابی ویژگی‌ها از Redis
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            if "product_attributes" not in session:
+                session["product_attributes"] = {}
+            session["product_attributes"][key] = value
 
-        # ذخیره ویژگی‌های جدید در Redis
-        state_manager.save_user_data("product_attributes", product_attributes)
 
-        self.bot.send_message(
-            message.chat.id,
-            t(message, "enter_ads_features"),
-            reply_markup=markup
-        )
-        self.set_state(message.chat.id, self.ProductState.ATTRIBUTES)  # وضعیت به حالت ویژگی‌های محصول تغییر می‌کن
+            # ذخیره ویژگی‌های جدید در Redis
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
+            self.bot.send_message(
+                message.chat.id,
+                t(message, "enter_ads_features"),
+                reply_markup=markup
+            )
+        except Exception as e:
+            self.bot.send_message(message.chat.id, "خطا در ذخیره ویژگی رخ داده است.")
+            print(f"Error: {traceback.format_exc()}")
 
     def handle_finish_attributes(self, callback_query: types.CallbackQuery):
         try:
             chat_id = callback_query.message.chat.id
+            session = session_manager.get_user_session(callback_query.message.chat.id, namespace="add_product")
+            print(session["category_id"])
+            session["get_main_image"] = False
+            session["get_additional_images"] = True
+            session["get_more_attributes"] = False
+            session_manager.set_user_session(callback_query.message.chat.id, session, namespace="add_product")
+
 
             # تغییر وضعیت به تصویر اصلی
-            self.set_state(chat_id, self.ProductState.MAIN_IMAGE)
             self.bot.send_message(chat_id, t(callback_query.message, "send_main_image"))
         except Exception as e:
             self.bot.send_message(callback_query.message.chat.id, "خطا در ذخیره ویژگی رخ داده است.")
@@ -1488,23 +1534,38 @@ class ProductBot:
 
     def get_main_image(self, message: Message):
         try:
+            # بررسی اینکه آیا کاربر عکس فرستاده یا نه
+            if not message.photo:
+                self.bot.send_message(message.chat.id, t(message, "please_send_image"))
+                # ثبت مجدد هندلر برای دریافت عکس
+                self.bot.register_next_step_handler(message, self.get_main_image)
+                return
+
             # دانلود و ذخیره تصویر
             file_id = message.photo[-1].file_id
             saved_path = download_and_save_image(file_id, self.bot)
 
             if saved_path:
                 # ذخیره مسیر تصویر در Redis
-                state_manager = RedisStateManager(message.chat.id)
-                state_manager.save_user_data("main_image", saved_path)  # ذخیره مسیر تصویر در Redis
+                session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+                session["get_additional_images"] = False
+                session["process_accomplished"] = True
+                session["main_image"] = saved_path
 
                 # تغییر وضعیت به مرحله بعدی (تصاویر اضافی)
-                self.set_state(message.chat.id, self.ProductState.ADDITIONAL_IMAGES)
+                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+                
                 self.bot.send_message(message.chat.id, t(message, "send_three_more_images"))
             else:
                 self.bot.send_message(message.chat.id, "خطا در ذخیره تصویر اصلی رخ داده است.")
+                # اگر خطا در ذخیره عکس اتفاق افتاد، دوباره درخواست عکس بده
+                self.bot.register_next_step_handler(message, self.get_main_image)
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-            print(f"Error: {e}")
+            print(f"Error: {traceback.format_exc()}")
+            # در صورت خطا، دوباره درخواست عکس بده
+            self.bot.register_next_step_handler(message, self.get_main_image)
+
 
 
     def generate_readable_sku(self, product_name, combo_list, product_id, attempt=1):
@@ -1526,7 +1587,8 @@ class ProductBot:
             chat_id = message.chat.id
 
             # Save the additional image
-            additional_images = self.get_user_data(chat_id, "additional_images") or []
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            additional_images = session.get("additional_images", [])
             file_id = message.photo[-1].file_id
             saved_image = download_and_save_image(file_id, self.bot)
 
@@ -1535,7 +1597,8 @@ class ProductBot:
                 return
 
             additional_images.append(saved_image)
-            self.save_user_data(chat_id, "additional_images", additional_images)
+            session["additional_images"] = additional_images
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
             if len(additional_images) < 3:
                 remaining = 3 - len(additional_images)
@@ -1546,32 +1609,35 @@ class ProductBot:
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
             store = Store.objects.get(owner=profile)
 
-            category_id = self.get_user_data(chat_id, "category_id")
+            category_id = session.get("category_id")
             if not category_id:
                 self.bot.send_message(chat_id, t(message, "invalid_selected_category"))
                 return
             category = Category.objects.get(id=category_id, status=True)
 
             # Product basic info
-            name = self.get_user_data(chat_id, "name")
+            name = session.get("name_d")
             slug = generate_unique_slug(Product, name)
-            price = self.get_user_data(chat_id, "price") or 10000
-            discount = self.get_user_data(chat_id, "discount") or 0
-            stock = self.get_user_data(chat_id, "stock") or 0
-            status = self.get_user_data(chat_id, "status") or True
+            price = session.get("price_d")
+            discount = session.get("discount_d")
+            stock = session.get("get_stock_d")
+            status = session.get("status_d")
+            brand = session.get("brand_d")
+            description = session.get("description_d")
+            main_image = session.get("main_image")
 
             product = Product.objects.create(
                 profile=profile,
                 store=store,
                 name=name,
-                brand=self.get_user_data(chat_id, "brand"),
+                brand=brand,
                 price=price,
                 discount=discount,
                 stock=stock,
                 status=status,
                 category=category,
-                description=self.get_user_data(chat_id, "description"),
-                main_image=self.get_user_data(chat_id, "main_image"),
+                description=description,
+                main_image=main_image,
                 slug=slug
             )
 

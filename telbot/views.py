@@ -1161,6 +1161,9 @@ def add_handler(message):
         add_product(message)
 
 
+#####################################    ADD PRODUCT    #####################################
+
+
 def add_product(message):
     """Start the product addition process."""
     try:
@@ -1172,12 +1175,14 @@ def add_product(message):
                         # فروشگاه هیچ دسته‌بندی ندارد
                         app.send_message(message.chat.id, t(message, "no_categories_to_add_product"))
                         return
-                    product_bot.set_state(message.chat.id, product_bot.ProductState.NAME)
+#                    product_bot.get_name(message)
                     markup = send_menu(message, [t(message, "cancel_action")], message.text)
                     app.send_message(message.chat.id, t(message, "enter_product_name"), reply_markup=markup)
                     session = session_manager.get_user_session(message.chat.id, namespace="menu")
                     session['add_product'] = True
                     session_manager.set_user_session(message.chat.id, session, namespace="menu")
+		    
+                    session_manager.set_user_session(message.chat.id, {"brand": True}, namespace="add_product")
                 except Exception as e:
                     print(e)
             else:
@@ -1186,6 +1191,71 @@ def add_product(message):
         error_details = traceback.format_exc()
         print(f"{error_details}")
 
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("brand"))
+def add_product_get_brand(message):
+    product_bot.get_name(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("price"))
+def add_product_get_price(message):
+    product_bot.get_brand(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("discount"))
+def add_product_get_discount(message):
+    product_bot.get_price(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("status"))
+def add_product_get_status(message):
+    product_bot.get_discount(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("category"))
+def add_product_get_category(message):
+    product_bot.get_status(message)
+
+@app.message_handler(func=lambda message: message.text in [t(message, "accurate_inventory"), t(message, "not_necessary")] and session_manager.get_user_session(message.chat.id, namespace="add_product").get("ask_variant_decision"))
+def add_product_ask_variant_decision(message):
+    if message.text == t(message, "accurate_inventory"):
+        product_bot.get_variant_decision(message)
+    elif message.text == t(message, "not_necessary"):
+        product_bot.get_stock(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("get_description"))
+def add_product_get_description(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+        session["get_description"] = False
+        session["get_attribute"] = True
+        session["get_stock_d"] = int(message.text)
+            
+        session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
+        markup = send_menu(message, [t(message, "no_description")], "main menu", [t(message, "cancel_action")])    
+        app.send_message(message.chat.id, t(message, "enter_description"), reply_markup=markup)
+    except ValueError:
+            app.send_message(message.chat.id, t(message, "balance_not_integer"))
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("get_attribute"))
+def add_product_get_attributes(message):
+    product_bot.get_description(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("get_more_attributes"))
+def add_product_get_more_attributes(message):
+    product_bot.get_product_attributes(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("get_main_image"))
+def add_product_finish_attributes(message):
+    product_bot.handle_finish_attributes(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("get_additional_images"), content_types=["photo", "text"])
+def add_product_get_additional_images(message):
+    print("fine")
+    product_bot.get_main_image(message)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("process_accomplished"), content_types=["photo", "text"])
+def add_product_process_accomplished(message):
+    product_bot.get_additional_images(message)
+
+#####################################    REMOVE PRODUCT    #####################################
 
 
 def remove_product(message):

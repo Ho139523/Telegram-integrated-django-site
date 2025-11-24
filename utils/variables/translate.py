@@ -1004,12 +1004,12 @@ translations = {
         "zh": "没有与此代码对应的商品。",
         "ar": "لا يوجد منتج بهذا الرمز."
     },
-    "change": {
-        "fa": "تغییر",
-        "en": "Change",
+    "edit": {
+        "fa": "اصلاح",
+        "en": "Edit",
         "ru": "Изменить",
-        "zh": "更改",
-        "ar": "تغيير"
+        "zh": "编辑",
+        "ar": "تعديل"
     },
     "delete_category_title_prompt": {
         "fa": "دسته بندی یا زیر دسته ای که قصد حذف آن را دارید انتخاب کنید",
@@ -1437,5 +1437,376 @@ translations = {
         "ru": "В вашем магазине нет категорий для добавления товара. Пожалуйста, сначала добавьте нужную категорию в разделе категорий.",
         "zh": "您的商店没有可添加商品的分类。请先在分类部分添加所需分类。",
         "ar": "متجرك لا يحتوي على أي فئات لإضافة المنتج إليها. يرجى أولاً إضافة الفئة المطلوبة في قسم الفئات."
+    },
+    "no_products_to_represent": {
+        "fa": "متاسفانه، فروشگاه شما هیچ محصولی برای ارائه ندارد.",
+        "en": "Unfortunately, your store has no products to represent.",
+        "ru": "К сожалению, в вашем магазине нет товаров для представления.",
+        "zh": "很遗憾，您的商店没有可展示的商品。",
+        "ar": "للأسف، متجرك لا يحتوي على أي منتجات لعرضها."
+    },
+    "view_here": {
+        "fa": "همین‌جا می‌بینم",
+        "en": "View Here",
+        "ru": "Посмотреть здесь",
+        "zh": "在这里查看",
+        "ar": "أشاهده هنا"
+    },
+    "view_products_format": {
+        "fa": "در کدام قالب می‌خواهید کالاهای خود را ببینید؟",
+        "en": "In which format would you like to see your products?",
+        "ru": "В каком формате вы хотите просмотреть свои товары?",
+        "zh": "您想以哪种格式查看您的商品？",
+        "ar": "بأي صيغة تريد عرض منتجاتك؟"
+    },
+    "product_export_caption": {
+        "fa": "📊 محصولات فروشگاه {store_name}\n📦 {total_products} محصول\n🔄 {total_variants} واریانت\n💰 ارزش موجودی: {total_stock_value:,.0f} تومان",
+        "en": "📊 Products of {store_name}\n📦 {total_products} products\n🔄 {total_variants} variants\n💰 Stock Value: {total_stock_value:,.0f}",
+        "ru": "📊 Продукты магазина {store_name}\n📦 {total_products} продуктов\n🔄 {total_variants} вариантов\n💰 Стоимость запаса: {total_stock_value:,.0f}",
+        "zh": "📊 {store_name}的产品\n📦 {total_products} 个产品\n🔄 {total_variants} 个变体\n💰 库存价值: {total_stock_value:,.0f}",
+        "ar": "📊 منتجات متجر {store_name}\n📦 {total_products} منتج\n🔄 {total_variants} متغير\n💰 قيمة المخزون: {total_stock_value:,.0f}"
+    },
+    'products_sheet': {
+        'fa': 'محصولات',
+        'en': 'Products',
+        'ru': 'Продукты',
+        'zh': '产品',
+        'ar': 'المنتجات'
+    },
+    'variants_sheet': {
+        'fa': 'واریانت‌ها',
+        'en': 'Variants',
+        'ru': 'Варианты',
+        'zh': '变体',
+        'ar': 'المتغيرات'
+    },
+    'summary_sheet': {
+        'fa': 'خلاصه',
+        'en': 'Summary',
+        'ru': 'Сводка',
+        'zh': '摘要',
+        'ar': 'ملخص'
+    },
+    'categories_sheet': {
+        'fa': 'دسته‌بندی‌ها',
+        'en': 'Categories',
+        'ru': 'Категории',
+        'zh': '分类',
+        'ar': 'الفئات'
+    },
+    'id': {
+        'fa': 'ID',
+        'en': 'ID',
+        'ru': 'ID',
+        'zh': 'ID',
+        'ar': 'رقم'
+    },
+    'product_name': {
+        'fa': 'نام محصول',
+        'en': 'Product Name',
+        'ru': 'Название товара',
+        'zh': '产品名称',
+        'ar': 'اسم المنتج'
+    },
+    'product_code': {
+        'fa': 'کد محصول',
+        'en': 'Product Code',
+        'ru': 'Код товара',
+        'zh': '产品代码',
+        'ar': 'رمز المنتج'
+    },
+    'brand': {
+        'fa': 'برند',
+        'en': 'Brand',
+        'ru': 'Бренд',
+        'zh': '品牌',
+        'ar': 'العلامة التجارية'
+    },
+    'category': {
+        'fa': 'دسته‌بندی',
+        'en': 'Category',
+        'ru': 'Категория',
+        'zh': '分类',
+        'ar': 'الفئة'
+    },
+    'base_price': {
+        'fa': 'قیمت پایه',
+        'en': 'Base Price',
+        'ru': 'Базовая цена',
+        'zh': '基础价格',
+        'ar': 'السعر الأساسي'
+    },
+    'discount_percent': {
+        'fa': 'تخفیف %',
+        'en': 'Discount %',
+        'ru': 'Скидка %',
+        'zh': '折扣 %',
+        'ar': 'خصم %'
+    },
+    'final_price': {
+        'fa': 'قیمت نهایی',
+        'en': 'Final Price',
+        'ru': 'Итоговая цена',
+        'zh': '最终价格',
+        'ar': 'السعر النهائي'
+    },
+    'stock': {
+        'fa': 'موجودی',
+        'en': 'Stock',
+        'ru': 'Запас',
+        'zh': '库存',
+        'ar': 'المخزون'
+    },
+    'status': {
+        'fa': 'وضعیت',
+        'en': 'Status',
+        'ru': 'Статус',
+        'zh': '状态',
+        'ar': 'الحالة'
+    },
+    'unit': {
+        'fa': 'واحد',
+        'en': 'Unit',
+        'ru': 'Единица',
+        'zh': '单位',
+        'ar': 'الوحدة'
+    },
+    'min_quantity': {
+        'fa': 'حداقل تعداد',
+        'en': 'Min Quantity',
+        'ru': 'Мин. количество',
+        'zh': '最小数量',
+        'ar': 'الحد الأدنى للكمية'
+    },
+    'max_quantity': {
+        'fa': 'حداکثر تعداد',
+        'en': 'Max Quantity',
+        'ru': 'Макс. количество',
+        'zh': '最大数量',
+        'ar': 'الحد الأقصى للكمية'
+    },
+    'quantity_step': {
+        'fa': 'گام تعداد',
+        'en': 'Quantity Step',
+        'ru': 'Шаг количества',
+        'zh': '数量步长',
+        'ar': 'خطوة الكمية'
+    },
+    'images_count': {
+        'fa': 'تعداد تصاویر',
+        'en': 'Images Count',
+        'ru': 'Количество изображений',
+        'zh': '图片数量',
+        'ar': 'عدد الصور'
+    },
+    'variants_count': {
+        'fa': 'تعداد واریانت‌ها',
+        'en': 'Variants Count',
+        'ru': 'Количество вариантов',
+        'zh': '变体数量',
+        'ar': 'عدد المتغيرات'
+    },
+    'description': {
+        'fa': 'توضیحات',
+        'en': 'Description',
+        'ru': 'Описание',
+        'zh': '描述',
+        'ar': 'الوصف'
+    },
+    'has_main_image': {
+        'fa': 'تصویر اصلی',
+        'en': 'Has Main Image',
+        'ru': 'Есть главное изображение',
+        'zh': '有主图',
+        'ar': 'يوجد صورة رئيسية'
+    },
+    'product_id': {
+        'fa': 'ID محصول',
+        'en': 'Product ID',
+        'ru': 'ID товара',
+        'zh': '产品ID',
+        'ar': 'رقم المنتج'
+    },
+    'variant_id': {
+        'fa': 'ID واریانت',
+        'en': 'Variant ID',
+        'ru': 'ID варианта',
+        'zh': '变体ID',
+        'ar': 'رقم المتغير'
+    },
+    'sku': {
+        'fa': 'SKU',
+        'en': 'SKU',
+        'ru': 'SKU',
+        'zh': 'SKU',
+        'ar': 'SKU'
+    },
+    'attributes': {
+        'fa': 'مشخصات',
+        'en': 'Attributes',
+        'ru': 'Атрибуты',
+        'zh': '属性',
+        'ar': 'الخصائص'
+    },
+    'price_override': {
+        'fa': 'قیمت اختصاصی',
+        'en': 'Price Override',
+        'ru': 'Особая цена',
+        'zh': '自定义价格',
+        'ar': 'سعر مخصص'
+    },
+    'active': {
+        'fa': 'فعال',
+        'en': 'Active',
+        'ru': 'Активный',
+        'zh': '活跃',
+        'ar': 'نشط'
+    },
+    'inactive': {
+        'fa': 'غیرفعال',
+        'en': 'Inactive',
+        'ru': 'Неактивный',
+        'zh': '非活跃',
+        'ar': 'غير نشط'
+    },
+    'yes': {
+        'fa': 'دارد',
+        'en': 'Yes',
+        'ru': 'Да',
+        'zh': '有',
+        'ar': 'نعم'
+    },
+    'no': {
+        'fa': 'ندارد',
+        'en': 'No',
+        'ru': 'Нет',
+        'zh': '无',
+        'ar': 'لا'
+    },
+    'store_name': {
+        'fa': 'نام فروشگاه',
+        'en': 'Store Name',
+        'ru': 'Название магазина',
+        'zh': '店铺名称',
+        'ar': 'اسم المتجر'
+    },
+    'store_address': {
+        'fa': 'آدرس فروشگاه',
+        'en': 'Store Address',
+        'ru': 'Адрес магазина',
+        'zh': '店铺地址',
+        'ar': 'عنوان المتجر'
+    },
+    'export_date': {
+        'fa': 'تاریخ صادرات',
+        'en': 'Export Date',
+        'ru': 'Дата экспорта',
+        'zh': '导出日期',
+        'ar': 'تاريخ التصدير'
+    },
+    'total_products': {
+        'fa': 'تعداد کل محصولات',
+        'en': 'Total Products',
+        'ru': 'Всего товаров',
+        'zh': '总产品数',
+        'ar': 'إجمالي المنتجات'
+    },
+    'active_products': {
+        'fa': 'محصولات فعال',
+        'en': 'Active Products',
+        'ru': 'Активные товары',
+        'zh': '活跃产品',
+        'ar': 'المنتجات النشطة'
+    },
+    'inactive_products': {
+        'fa': 'محصولات غیرفعال',
+        'en': 'Inactive Products',
+        'ru': 'Неактивные товары',
+        'zh': '非活跃产品',
+        'ar': 'المنتجات غير النشطة'
+    },
+    'products_with_variants': {
+        'fa': 'محصولات دارای واریانت',
+        'en': 'Products with Variants',
+        'ru': 'Товары с вариантами',
+        'zh': '有变体的产品',
+        'ar': 'المنتجات ذات المتغيرات'
+    },
+    'total_variants': {
+        'fa': 'تعداد کل واریانت‌ها',
+        'en': 'Total Variants',
+        'ru': 'Всего вариантов',
+        'zh': '总变体数',
+        'ar': 'إجمالي المتغيرات'
+    },
+    'categories_count': {
+        'fa': 'تعداد دسته‌بندی‌ها',
+        'en': 'Categories Count',
+        'ru': 'Количество категорий',
+        'zh': '分类数量',
+        'ar': 'عدد الفئات'
+    },
+    'products_with_discount': {
+        'fa': 'محصولات دارای تخفیف',
+        'en': 'Products with Discount',
+        'ru': 'Товары со скидкой',
+        'zh': '有折扣的产品',
+        'ar': 'المنتجات ذات الخصم'
+    },
+    'products_with_images': {
+        'fa': 'محصولات دارای تصویر',
+        'en': 'Products with Images',
+        'ru': 'Товары с изображениями',
+        'zh': '有图片的产品',
+        'ar': 'المنتجات ذات الصور'
+    },
+    'total_stock_value': {
+        'fa': 'ارزش کل موجودی',
+        'en': 'Total Stock Value',
+        'ru': 'Общая стоимость запаса',
+        'zh': '总库存价值',
+        'ar': 'القيمة الإجمالية للمخزون'
+    },
+    'category_id': {
+        'fa': 'ID دسته‌بندی',
+        'en': 'Category ID',
+        'ru': 'ID категории',
+        'zh': '分类ID',
+        'ar': 'رقم الفئة'
+    },
+    'category_name': {
+        'fa': 'نام دسته‌بندی',
+        'en': 'Category Name',
+        'ru': 'Название категории',
+        'zh': '分类名称',
+        'ar': 'اسم الفئة'
+    },
+    'full_path': {
+        'fa': 'مسیر کامل',
+        'en': 'Full Path',
+        'ru': 'Полный путь',
+        'zh': '完整路径',
+        'ar': 'المسار الكامل'
+    },
+    'parent_category': {
+        'fa': 'دسته‌بندی والد',
+        'en': 'Parent Category',
+        'ru': 'Родительская категория',
+        'zh': '父分类',
+        'ar': 'الفئة الرئيسية'
+    },
+    'position': {
+        'fa': 'موقعیت',
+        'en': 'Position',
+        'ru': 'Позиция',
+        'zh': '位置',
+        'ar': 'الموقع'
+    },
+    "product_save_failed": {
+        "fa": "خطایی در ثبت محصول به وجود آمد. لطفاً با ادمین تماس بگیرید.",
+        "en": "An error occurred while creating the product. Please contact the admin.",
+        "ru": "Произошла ошибка при создании товара. Пожалуйста, свяжитесь с администратором.",
+        "zh": "创建商品时发生错误。请联系管理员。",
+        "ar": "حدث خطأ أثناء تسجيل المنتج. يرجى التواصل مع المسؤول."
     },
 }

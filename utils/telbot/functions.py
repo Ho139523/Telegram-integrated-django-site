@@ -1512,35 +1512,84 @@ class ProductBot:
     def get_additional_images(self, message: Message):
         try:
             chat_id = message.chat.id
-                                                                    # Save the additional image
-            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            
+            # دریافت session
+            session = session_manager.get_user_session(chat_id, namespace="add_product")
             additional_images = session.get("additional_images", [])
-            file_id = message.photo[-1].file_id
-            saved_image = download_and_save_image(file_id, self.bot)
-
-            if not saved_image:
-                self.bot.send_message(chat_id, t(message, "extra_image_save_failed"))
-                return 
-            additional_images.append(saved_image)
-            session["additional_images"] = additional_images
-            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
-
-            if len(additional_images) < 3:
-                remaining = 3 - len(additional_images)
-                self.bot.send_message(chat_id, t(message, "send_extra_images", pic_num=remaining))
+            
+            # بررسی آیا کاربر آلبوم عکس فرستاده است
+            if message.media_group_id:
+                # پردازش آلبوم عکس
+                if hasattr(message, 'photo') and message.photo:
+                    file_id = message.photo[-1].file_id
+                    saved_image = download_and_save_image(file_id, self.bot)
+                    
+                    if saved_image:
+                        additional_images.append(saved_image)
+                        session["additional_images"] = additional_images
+                        session_manager.set_user_session(chat_id, session, namespace="add_product")
+                
+                # اگر آلبوم کامل شده، منتظر می‌مانیم تا همه عکس‌ها پردازش شوند
+                # این هندلر برای هر عکس در آلبوم فراخوانی می‌شود
                 return
-
+            
+            # بررسی عکس تکی
+            elif message.photo:
+                file_id = message.photo[-1].file_id
+                saved_image = download_and_save_image(file_id, self.bot)
+    
+                if not saved_image:
+                    self.bot.send_message(chat_id, t(message, "extra_image_save_failed"))
+                    self.bot.register_next_step_handler(message, self.get_additional_images)
+                    return
+                    
+                additional_images.append(saved_image)
+                session["additional_images"] = additional_images
+                session_manager.set_user_session(chat_id, session, namespace="add_product")
+            
+            # اگر کاربر متن یا محتوای غیرعکس فرستاد
+            else:
+                self.bot.send_message(chat_id, t(message, "please_send_image"))
+                self.bot.register_next_step_handler(message, self.get_additional_images)
+                return
+    
+            # بررسی تعداد عکس‌های جمع‌آوری شده
+            current_count = len(additional_images)
+            remaining = 3 - current_count
+            
+            if current_count < 3:
+                self.bot.send_message(
+                    chat_id, 
+                    t(message, "send_extra_images", pic_num=remaining)
+                )
+                self.bot.register_next_step_handler(message, self.get_additional_images)
+                return
+            
+            # وقتی 3 عکس کامل شد، ادامه پردازش...
+            self._save_complete_product(message, session, additional_images)
+            
+        except Exception as e:
+            print(f"Error in get_additional_images: {e}\n{traceback.format_exc()}")
+            self.bot.send_message(message.chat.id, t(message, "product_save_failed"))
+            self.bot.register_next_step_handler(message, self.get_additional_images)
+    
+    def _save_complete_product(self, message, session, additional_images):
+        """ذخیره کامل محصول پس از دریافت تمام عکس‌ها"""
+        try:
+            chat_id = message.chat.id
+            
             # Retrieve user, store, and category
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
             store = Store.objects.get(owner=profile)
-
+    
             category_id = session.get("category_id")
             if not category_id:
                 self.bot.send_message(chat_id, t(message, "invalid_selected_category"))
                 return
+            
             category = Category.objects.get(id=category_id, status=True)
-
-            # Product basic info
+    
+            # Product basic info - با نام‌های صحیح فیلدها
             name = session.get("name_d")
             slug = generate_unique_slug(Product, name)
             price = session.get("price_d")
@@ -1550,7 +1599,8 @@ class ProductBot:
             brand = session.get("brand_d")
             description = session.get("get_description_d")
             main_image = session.get("main_image")
-
+    
+            # ایجاد محصول
             product = Product.objects.create(
                 profile=profile,
                 store=store,
@@ -1565,73 +1615,85 @@ class ProductBot:
                 main_image=main_image,
                 slug=slug
             )
-
+    
             # Product attributes
             product_attrs = session.get("product_attributes", {})
             for key, value in product_attrs.items():
                 ProductAttribute.objects.create(product=product, key=key, value=value)
-
+    
             # Variants
-            variants = session.get("variants", {})
-            variant_combinations = session.get("variant_combinations", [])
-            variants_stock = session.get("variants_stock", [])
-            entries = variants_stock or [{"combination": combo, "stock": 0} for combo in variant_combinations]
-
-            option_cache = {}
-            value_cache = {}
-            keys_order = list(variants.keys())
-
-            if entries:
-                for entry in entries:
-                    combo_raw = entry.get("combination") or entry.get("combo")
-                    stock = int(entry.get("stock", 0)) if entry.get("stock") else 0
-                    combo_list = list(combo_raw.values()) if isinstance(combo_raw, dict) else list(combo_raw)
-
-                    if len(combo_list) != len(keys_order):
-                        print(f"[warn] combo length mismatch: keys={keys_order} combo={combo_list}")
-                        continue
-
-                    sku = self.generate_readable_sku(product.name, combo_list, product.id)
-                    variant = ProductVariant.objects.create(product=product, stock=stock, sku=sku)
-
-                    for i, key_name in enumerate(keys_order):
-                        val = combo_list[i]
-
-                        if key_name not in option_cache:
-                            option_obj, _ = ProductOption.objects.get_or_create(product=product, name=key_name)
-                            option_cache[key_name] = option_obj
-                        else:
-                            option_obj = option_cache[key_name]
-
-                        if (key_name, val) not in value_cache:
-                            value_obj, _ = ProductOptionValue.objects.get_or_create(option=option_obj, value=val)
-                            value_cache[(key_name, val)] = value_obj
-                        else:
-                            value_obj = value_cache[(key_name, val)]
-
-                        variant.values.add(value_obj)
-            else:
-                # If product has no variants, generate a simple SKU
-                ProductVariant.objects.create(
-                    product=product,
-                    stock=stock,
-                    sku=f"{re.sub(r'[^A-Z0-9]', '', product.name.upper())[:8]}-{product.id:03d}"
-                )
-
+            self._create_product_variants(product, session)
+    
             # Save extra images
             for image_path in additional_images:
                 ProductImage.objects.create(product=product, image=image_path)
-
-            # Send success message
+    
+            # ارسال پیام موفقیت و پاک‌سازی session
             self.bot.send_message(chat_id, t(message, "product_saved"))
-            session_manager.reset_user_session(message.chat.id, namespace="add_product")
-            session2 = session_manager.get_user_session(message.chat.id, namespace="menu")
-            session2['add_product'] = False
-            session_manager.set_user_session(message.chat.id, session2, namespace="menu")
-
+            self._cleanup_sessions(chat_id)
+    
         except Exception as e:
-            print(f"Error in get_additional_images: {e}\n{traceback.format_exc()}")
+            print(f"Error in _save_complete_product: {e}\n{traceback.format_exc()}")
             self.bot.send_message(message.chat.id, t(message, "product_save_failed"))
+    
+    def _create_product_variants(self, product, session):
+        """ایجاد variants محصول"""
+        variants = session.get("variants", {})
+        variant_combinations = session.get("variant_combinations", [])
+        variants_stock = session.get("variants_stock", [])
+        
+        entries = variants_stock or [{"combination": combo, "stock": 0} for combo in variant_combinations]
+    
+        option_cache = {}
+        value_cache = {}
+        keys_order = list(variants.keys())
+    
+        if entries:
+            for entry in entries:
+                combo_raw = entry.get("combination") or entry.get("combo")
+                stock = int(entry.get("stock", 0)) if entry.get("stock") else 0
+                combo_list = list(combo_raw.values()) if isinstance(combo_raw, dict) else list(combo_raw)
+    
+                if len(combo_list) != len(keys_order):
+                    print(f"[warn] combo length mismatch: keys={keys_order} combo={combo_list}")
+                    continue
+    
+                sku = self.generate_readable_sku(product.name, combo_list, product.id)
+                variant = ProductVariant.objects.create(product=product, stock=stock, sku=sku)
+    
+                for i, key_name in enumerate(keys_order):
+                    val = combo_list[i]
+    
+                    if key_name not in option_cache:
+                        option_obj, _ = ProductOption.objects.get_or_create(product=product, name=key_name)
+                        option_cache[key_name] = option_obj
+                    else:
+                        option_obj = option_cache[key_name]
+    
+                    cache_key = (key_name, val)
+                    if cache_key not in value_cache:
+                        value_obj, _ = ProductOptionValue.objects.get_or_create(option=option_obj, value=val)
+                        value_cache[cache_key] = value_obj
+                    else:
+                        value_obj = value_cache[cache_key]
+    
+                    variant.values.add(value_obj)
+        else:
+            # If product has no variants, generate a simple SKU
+            ProductVariant.objects.create(
+                product=product,
+                stock=session.get("get_stock_d", 0),
+                sku=f"{re.sub(r'[^A-Z0-9]', '', product.name.upper())[:8]}-{product.id:03d}"
+            )
+    
+    def _cleanup_sessions(self, chat_id):
+        """پاک‌سازی sessionها پس از اتمام کار"""
+        session_manager.reset_user_session(chat_id, namespace="add_product")
+        
+        menu_session = session_manager.get_user_session(chat_id, namespace="menu")
+        if menu_session:
+            menu_session['add_product'] = False
+            session_manager.set_user_session(chat_id, menu_session, namespace="menu")
 
 
 

@@ -1,4 +1,5 @@
 from pydoc import describe
+# from tkinter.font import names
 from utils.variables.TOKEN import TOKEN, BOT_ID
 import requests
 import subprocess
@@ -42,7 +43,7 @@ state_storage = StateMemoryStorage()
 app = TeleBot(token=TOKEN, state_storage=state_storage)
 
 
-from telbot.sessions import CartSessionManager, RedisStateManager, SessionManager
+from telbot.sessions import CartSessionManager, RedisStateManager, SessionManager, RedisExportManager
 
 # Access shared user_sessions
 from telbot.sessions import session_manager
@@ -98,7 +99,7 @@ def get_tunnel_password():
             print("Error fetching password:", result.stderr)
             return None
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred: {traceback.format_exc()}")
         return None
 
 
@@ -341,7 +342,7 @@ class InlineKeyboardPaginator:
             button_layout.append(len(control_buttons))
             return buttons, button_layout
         except Exception as e:
-            print(f"errors in class: {e}")
+            print(f"errors in class: {traceback.format_exc()}")
 
     @staticmethod
     def load_from_redis(user_id, redis_host="localhost", redis_port=6379):
@@ -411,7 +412,7 @@ def measure_performance(func):
             
             print(f"❌ ERROR in {func.__name__}")
             print(f"⏱️  Execution time before error: {execution_time:.4f} seconds")
-            print(f"💥 Error: {e}")
+            print(f"💥 Error: {traceback.format_exc()}")
             print("=" * 60)
             
             raise e
@@ -531,7 +532,7 @@ class SendMarkup:
                 print(f"فرمت buttons نامعتبر: {type(self.buttons)}")
                 
         except Exception as e:
-            print(f"خطا در تبدیل دکمه‌ها: {e}")
+            print(f"خطا در تبدیل دکمه‌ها: {traceback.format_exc()}")
             
         return button_list
 
@@ -557,7 +558,7 @@ class SendMarkup:
         try:
             sorted_buttons = sorted(button_list, key=lambda x: x[2])
         except Exception as e:
-            print(f"خطا در مرتب‌سازی دکمه‌ها: {e}")
+            print(f"خطا در مرتب‌سازی دکمه‌ها: {traceback.format_exc()}")
             sorted_buttons = button_list
 
         # ساخت دکمه‌های اینلاین
@@ -570,7 +571,7 @@ class SendMarkup:
                 else:
                     inline_buttons.append(types.InlineKeyboardButton(text, callback_data=callback_data))
             except Exception as e:
-                print(f"خطا در ساخت دکمه {text}: {e}")
+                print(f"خطا در ساخت دکمه {text}: {traceback.format_exc()}")
                 continue
 
         if not inline_buttons:
@@ -599,7 +600,7 @@ class SendMarkup:
                 markup.row(*remaining_buttons)
                 
         except Exception as e:
-            print(f"خطا در چیدمان دکمه‌ها: {e}")
+            print(f"خطا در چیدمان دکمه‌ها: {traceback.format_exc()}")
 
         self._keyboard_cache = markup
         return markup
@@ -615,7 +616,7 @@ class SendMarkup:
                 parse_mode="HTML"
             )
         except Exception as e:
-            print(f"Error in SendMarkup.send: {e}")
+            print(f"Error in SendMarkup.send: {traceback.format_exc()}")
             # تلاش برای ارسال بدون دکمه در صورت خطا
             try:
                 self.bot.send_message(
@@ -639,7 +640,7 @@ class SendMarkup:
             )
         except Exception as e:
             if "message is not modified" not in str(e):
-                print(f"Error in SendMarkup.edit: {e}")
+                print(f"Error in SendMarkup.edit: {traceback.format_exc()}")
                 # تلاش برای ویرایش بدون دکمه در صورت خطا
                 try:
                     self.bot.edit_message_text(
@@ -658,7 +659,7 @@ class SendMarkup:
             try:
                 self.handlers[callback_data](call)
             except Exception as e:
-                print(f"Error in handler for {callback_data}: {e}")
+                print(f"Error in handler for {callback_data}: {traceback.format_exc()}")
 
     def debug_buttons(buttons):
         """تابع کمکی برای دیباگ دکمه‌ها"""
@@ -718,7 +719,7 @@ class SubscriptionClass:
                 from telbot.views import start
                 start(call.message)
             except Exception as e:
-                self.bot.send_message(user_id, f"error iis: {e}")
+                self.bot.send_message(user_id, f"error is: {traceback.format_exc()}")
         else:
             self.bot.answer_callback_query(call.id, t(call.message, "not_subscribed"), show_alert=True)
 
@@ -737,7 +738,7 @@ class SubscriptionClass:
                     return False
             except Exception as e:
                 
-                logger.error(f"🚨 خطا در بررسی عضویت کاربر {user} در کانال {channel}: {e}")
+                logger.error(f"🚨 خطا در بررسی عضویت کاربر {user} در کانال {channel}: {traceback.format_exc()}")
                 return False
         return True
 
@@ -818,6 +819,7 @@ class CategoryClass:
     def handle_category(self, message):
         if subscription.subscription_offer(message):
             try:
+                extra_menu = [t(message, "cancel_action")]
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
                 print(f"begining of handle_category: {session}")
                 profile = ProfileModel.objects.get(tel_id=message.chat.id)
@@ -852,14 +854,15 @@ class CategoryClass:
                 elif session.get("product"):
                     text = t(message, "select_subcategory_for_product")
                 elif not session.get("category") and not session.get("product"):
+                    extra_menu = home_menu
                     button = [t(message, "delete_category_and_subcategories"), ]
                     for b in button:
-                        home_menu.remove(b) if b in home_menu else None
+                        extra_menu.remove(b) if b in extra_menu else None
                     text = t(message, "product_category_question")
                 else:
                     text = t(message, "category_deleted_successfully")
                 cats = Category.objects.filter(parent__isnull=True, status=True, store=store).values_list('title', flat=True)
-                markup = send_menu(message, cats, message.text, home_menu, extra_cols=1)
+                markup = send_menu(message, cats, message.text, extra_menu, extra_cols=1)
                 app.send_message(message.chat.id, text, reply_markup=markup)
             except Exception as e:
                 app.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
@@ -868,6 +871,7 @@ class CategoryClass:
     def handle_subcategory(self, message):
         try:
             if subscription.subscription_offer(message):
+                extra_menu = ["🔙", t(message, "cancel_action")]
                 current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
                 children = [child.title for child in current_category.get_next_layer_categories()]
 
@@ -903,14 +907,15 @@ class CategoryClass:
                             fake_message.text = "hi"
                             handle_products(fake_message)
                 else:
-                    if session.get("category"):
+                    if not session.get("category") and not session.get("product"):
+                        extra_menu = retun_menue
+                    elif session.get("category"):
                         if session.get("menu_delete"):
                             button = t(message, "delete_category_and_subcategories")
-                            retun_menue.append(button) if button not in retun_menue else retun_menue
+                            extra_menu.append(button) if button not in extra_menu else extra_menu
                         elif session.get("category_deactivate"):
                             button = t(message, "deactivate_category")
-                            retun_menue.append(button) if button not in retun_menue else retun_menue
-                    markup = send_menu(message, children, message.text, retun_menue)
+                            extra_menu.append(button) if button not in extra_menu else extra_menu
                     if session.get("category") and session.get("menu_delete") and session.get("delete_sure"):
                         text = t(message, "category_deleted_successfully")
                         session["delete_sure"] = False
@@ -918,8 +923,9 @@ class CategoryClass:
                     else:
                         button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
                         for b in button:
-                            retun_menue.remove(b) if b in retun_menue else None
+                            extra_menu.remove(b) if b in extra_menu else None
                         text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
+                    markup = send_menu(message, children, message.text, extra_menu)
                     app.send_message(message.chat.id, text, reply_markup=markup)
         except Exception as e:
             print(f"Error: {traceback.format_exc()}")
@@ -927,6 +933,7 @@ class CategoryClass:
     def add_category(self, message):
         try:
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            extra_menu = [t(message, "cancel_action")]
 
             # Mark we are waiting for new category title
             session["get_new_category"] = True
@@ -941,10 +948,10 @@ class CategoryClass:
 
             button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
             for b in button:
-                if b in home_menu:
-                    home_menu.remove(b)
+                if b in extra_menu:
+                    extra_menu.remove(b)
 
-            markup = send_menu(message, [t(message, "cancel_action")], 'cat_delete_sure', home_menu)
+            markup = send_menu(message, [t(message, "cancel_action")], 'cat_delete_sure', extra_menu)
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
             app.send_message(message.chat.id, t(message, "enter_new_category_title"), reply_markup=markup)
@@ -954,17 +961,22 @@ class CategoryClass:
 
 
     def deactivate_category_sure(self, message):
-        session = session_manager.get_user_session(message.chat.id, namespace="menu")
-        session["deactivate_category_sure"] = True
-        markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', home_menu)
-        session_manager.set_user_session(message.chat.id, session, namespace="menu")
-        app.send_message(message.chat.id, t(message, "confirm_deactivate_category"), reply_markup=markup)
+        try:
+            extra_menu = [t(message, "cancel_action")]
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session["deactivate_category_sure"] = True
+            markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', extra_menu)
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+            app.send_message(message.chat.id, t(message, "confirm_deactivate_category"), reply_markup=markup)
+        except Exception as e:
+            print(traceback.format_exc())
 
     def delete_sure(self, message):
         try:
+            extra_menu = [t(message, "cancel_action")]
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session["delete_sure"] = True
-            markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', home_menu)
+            markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', extra_menu)
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
             app.send_message(message.chat.id, t(message, "confirm_delete_category"), reply_markup=markup)
         except Exception as e:
@@ -1005,7 +1017,7 @@ def download_and_save_image(file_id, bot):
 
         return file_path  # مسیر ذخیره‌شده را برمی‌گرداند
     except Exception as e:
-        print(f"خطا در ذخیره تصویر: {e}")
+        print(f"خطا در ذخیره تصویر: {traceback.format_exc()}")
         return None
 
 
@@ -1013,87 +1025,6 @@ def download_and_save_image(file_id, bot):
 class ProductBot:
     def __init__(self, bot: TeleBot):
         self.bot = bot
-
-    class ProductState:
-        NAME = "name"
-        SLUG = "slug"
-        BRAND = "brand"
-        PRICE = "price"
-        DISCOUNT = "discount"
-        STOCK = "stock"
-        STATUS = "status"
-        CATEGORY = "category"
-        VARIANT_DECIDE = "variant_decide"
-        VARIANT_KEY = "variant_key"
-        VARIANT_VALUES = "variant_values"
-        VARIANT_ADD_ANOTHER_KEY = "variant_add_key"
-        VARIANT_CONFIRM_COMBINATIONS = "variant_confirm_combinations"
-        VARIANT_STOCKS = "variant_stocks"
-        DESCRIPTION = "description"
-        CODE = "code"
-        MAIN_IMAGE = "main_image"
-        ADDITIONAL_IMAGES = "additional_images"
-        ATTRIBUTES = "attributes"
-        DELETE = "delete"
-        DELETE_CONFIRM = "delete_confirm"
-        DEACTIVATE = "deactivate"
-        DEACTIVATE_CONFIRM = "deactivate_confirm"
-
-
-
-
-    def register_handlers(self):
-        """Register message handlers."""
-        self.bot.register_message_handler(self.cancle_request, func=lambda message: message.text == t(message, "cancel_action"))
-        self.bot.register_message_handler(self.get_name, func=self.is_state(self.ProductState.NAME))
-        self.bot.register_message_handler(self.get_brand, func=self.is_state(self.ProductState.BRAND))
-        self.bot.register_message_handler(self.get_price, func=self.is_state(self.ProductState.PRICE))
-        self.bot.register_message_handler(self.get_discount, func=self.is_state(self.ProductState.DISCOUNT))
-        self.bot.register_message_handler(self.get_stock, func=self.is_state(self.ProductState.STOCK))
-        self.bot.register_message_handler(self.get_status, func=self.is_state(self.ProductState.STATUS))
-        self.bot.register_message_handler(self.get_category, func=self.is_state(self.ProductState.CATEGORY))
-
-        # Variant workflow
-        self.bot.register_message_handler(self.get_variant_decision, func=self.is_state(self.ProductState.VARIANT_DECIDE))
-        self.bot.register_message_handler(self.get_variant_key, func=self.is_state(self.ProductState.VARIANT_KEY))
-        self.bot.register_message_handler(self.get_variant_values, func=self.is_state(self.ProductState.VARIANT_VALUES))
-        self.bot.register_message_handler(self.get_variant_add_key_answer, func=self.is_state(self.ProductState.VARIANT_ADD_ANOTHER_KEY))
-        self.bot.register_message_handler(self.get_variants_stock_values, func=self.is_state(self.ProductState.VARIANT_STOCKS))
-
-
-        self.bot.register_message_handler(self.get_description, func=self.is_state(self.ProductState.DESCRIPTION))
-        self.bot.register_message_handler(self.get_product_attributes, func=self.is_state(self.ProductState.ATTRIBUTES))
-        self.bot.register_message_handler(self.get_main_image, func=self.is_state(self.ProductState.MAIN_IMAGE), content_types=["photo"])
-        self.bot.register_message_handler(self.get_additional_images, func=self.is_state(self.ProductState.ADDITIONAL_IMAGES), content_types=["photo"])
-        self.bot.register_message_handler(self.delete, func=self.is_state(self.ProductState.DELETE))
-        self.bot.register_message_handler(self.delete_confirm, func=self.is_state(self.ProductState.DELETE_CONFIRM))
-        self.bot.register_message_handler(self.deactivate, func=self.is_state(self.ProductState.DEACTIVATE))
-        self.bot.register_message_handler(self.deactivate_confirm, func=self.is_state(self.ProductState.DEACTIVATE_CONFIRM))
-        
-
-
-    def is_state(self, state):
-        def check(message: Message):
-            state_manager = RedisStateManager(message.chat.id)
-            return state_manager.get_state() == state
-        return check
-
-
-    def set_state(self, chat_id, state):
-        RedisStateManager(chat_id).set_state(state)
-
-
-    def save_user_data(self, chat_id, key, value):
-        RedisStateManager(chat_id).save_user_data(key, value)
-
-
-    def get_user_data(self, chat_id, key, default=None):
-        value = RedisStateManager(chat_id).get_user_data(key)
-        return value if value is not None else default
-
-    def reset_state(self, chat_id):
-        RedisStateManager(chat_id).delete_state()
-
 
     def get_name(self, message: Message):
         # ذخیره نام در Redis
@@ -1227,7 +1158,7 @@ class ProductBot:
 
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-            print(f"Error: {e}")
+            print(f"Error: {traceback.format_exc()}")
 
 
 
@@ -1469,11 +1400,7 @@ class ProductBot:
 
         # ارسال منو اصلی
         markup = send_menu(message, [], "main menu", [t(message, "cancel_action")])
-        self.bot.edit_message_reply_markup(
-            chat_id=message.chat.id,
-            message_id=message.message_id,
-            reply_markup=markup
-        )
+        
 
 
 
@@ -1525,7 +1452,7 @@ class ProductBot:
             self.bot.send_message(chat_id, t(callback_query.message, "send_main_image"))
         except Exception as e:
             self.bot.send_message(callback_query.message.chat.id, "خطا در ذخیره ویژگی رخ داده است.")
-            print(f"Error: {e}")
+            print(f"Error: {traceback.format_exc()}")
 
     def register_handle_finish_attributes(self):
         self.bot.callback_query_handler(func=lambda call: call.data == 'finish_attributes')(self.handle_finish_attributes)
@@ -1585,8 +1512,7 @@ class ProductBot:
     def get_additional_images(self, message: Message):
         try:
             chat_id = message.chat.id
-
-            # Save the additional image
+                                                                    # Save the additional image
             session = session_manager.get_user_session(message.chat.id, namespace="add_product")
             additional_images = session.get("additional_images", [])
             file_id = message.photo[-1].file_id
@@ -1594,8 +1520,7 @@ class ProductBot:
 
             if not saved_image:
                 self.bot.send_message(chat_id, t(message, "extra_image_save_failed"))
-                return
-
+                return 
             additional_images.append(saved_image)
             session["additional_images"] = additional_images
             session_manager.set_user_session(message.chat.id, session, namespace="add_product")
@@ -1623,7 +1548,7 @@ class ProductBot:
             stock = session.get("get_stock_d")
             status = session.get("status_d")
             brand = session.get("brand_d")
-            description = session.get("description_d")
+            description = session.get("get_description_d")
             main_image = session.get("main_image")
 
             product = Product.objects.create(
@@ -1642,14 +1567,14 @@ class ProductBot:
             )
 
             # Product attributes
-            product_attrs = self.get_user_data(chat_id, "product_attributes") or {}
+            product_attrs = session.get("product_attributes", {})
             for key, value in product_attrs.items():
                 ProductAttribute.objects.create(product=product, key=key, value=value)
 
             # Variants
-            variants = self.get_user_data(chat_id, "variants") or {}
-            variant_combinations = self.get_user_data(chat_id, "variant_combinations") or []
-            variants_stock = self.get_user_data(chat_id, "variants_stock") or []
+            variants = session.get("variants", {})
+            variant_combinations = session.get("variant_combinations", [])
+            variants_stock = session.get("variants_stock", [])
             entries = variants_stock or [{"combination": combo, "stock": 0} for combo in variant_combinations]
 
             option_cache = {}
@@ -1698,9 +1623,11 @@ class ProductBot:
                 ProductImage.objects.create(product=product, image=image_path)
 
             # Send success message
-            markup = send_menu(message, profile.tel_menu, "main menu", profile.extra_button_menu)
-            self.bot.send_message(chat_id, t(message, "product_saved"), reply_markup=markup)
-            self.reset_state(chat_id)
+            self.bot.send_message(chat_id, t(message, "product_saved"))
+            session_manager.reset_user_session(message.chat.id, namespace="add_product")
+            session2 = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session2['add_product'] = False
+            session_manager.set_user_session(message.chat.id, session2, namespace="menu")
 
         except Exception as e:
             print(f"Error in get_additional_images: {e}\n{traceback.format_exc()}")
@@ -1722,14 +1649,15 @@ class ProductBot:
                     producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
                     # ذخیره اطلاعات محصول در Redis
-                    state_manager = RedisStateManager(message.chat.id)
-                    state_manager.save_user_data("product_code", code)
+                    session = session_manager.get_user_session(message.chat.id, namespace="delete_product")
+                    session['enter_product_code_to_delete'] = False
+                    session['delete_product_confirm'] = True
+                    session['code'] = code
+                    session_manager.set_user_session(message.chat.id, session, namespace="delete_product")
 
                     menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
                     markup = send_menu(message, menu, "main menu", home_menu)
                     self.bot.send_message(message.chat.id, t(message, "confirm_delete_product"), reply_markup=markup)
-                    self.set_state(message.chat.id, self.ProductState.DELETE_CONFIRM)
-                    self.bot.register_next_step_handler(message, self.delete_confirm)
 
                 except Product.DoesNotExist:
                     self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
@@ -1743,30 +1671,25 @@ class ProductBot:
 
     def delete_confirm(self, message):
         try:
-            print("hi")
-            state_manager = RedisStateManager(message.chat.id)
+            session = session_manager.get_user_session(message.chat.id, namespace="delete_product")
 
             # بازیابی کد محصول از Redis
-            product_code = state_manager.get_user_data("product_code")
+            product_code = session['code']
             if product_code:
                 try:
                     product = Product.objects.get(code=product_code)
                     if message.text == t(message, "yes_im_sure"):
                         # حذف محصول از دیتابیس
                         product.delete()
-                        print("yes")
-
+                        
                         # ارسال پیام موفقیت‌آمیز به کاربر
-                        main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
-                        extra_button_menu = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
-                        markup = send_menu(message, main_menu, "main menu", extra_button_menu)
-                        self.bot.send_message(message.chat.id, t(message, "product_deleted"), reply_markup=markup)
+                        self.bot.send_message(message.chat.id, t(message, "product_deleted"))
 
                     elif message.text == t(message, "cancel_action"):
                         self.cancle_request(message)
                         return
 
-                    self.reset_state(message.chat.id)
+                    session_manager.reset_user_session(message.chat.id, namespace="delete_product")
                 except Product.DoesNotExist:
                     self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
                     return
@@ -1776,46 +1699,46 @@ class ProductBot:
 
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-            print(f"Error: {e}")
+            print(f"Error: {traceback.format_exc()}")
 
     def deactivate(self, message):
         try:
-            if message.text == t(message, "cancel_action"):
-                self.cancle_request(message)
-            else:
-                code = message.text
-                try:
-                    product = Product.objects.get(code=code)
-                    attributes = product.attributes.all()
-                    # ارسال پیام محصول به کاربر
-                    producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir:8443', attributes=attributes)
-                    producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
+            code = message.text
+            try:
+                product = Product.objects.get(code=code)
+                attributes = product.attributes.all()
+                # ارسال پیام محصول به کاربر
+                producthandler = ProductHandler(app=self.bot, product=product, current_site='https://intelleum.ir:8443', attributes=attributes)
+                producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
-                    # ذخیره اطلاعات محصول در Redis
-                    state_manager = RedisStateManager(message.chat.id)
-                    state_manager.save_user_data("product_code", code)
+                # ذخیره اطلاعات محصول در Redis
+                state_manager = RedisStateManager(message.chat.id)
+                state_manager.save_user_data("product_code", code)
+                session = {'deactivate_product_confirm': True, 'code': code}
+                session_manager.set_user_session(message.chat.id, session, namespace="deactivate_product")
+                session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                session["deavtivate_product"] = False
+                session["deactivate_product_confirm"] = True
+                session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
-                    menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
-                    markup = send_menu(message, menu, "main menu", home_menu)
-                    action_text = t(message, "deactivate") if product.status else t(message, "activate")
-                    msg_text = t(message, "confirm_toggle_product", action=action_text)
-                    self.bot.send_message(message.chat.id, msg_text, reply_markup=markup)
-                    self.set_state(message.chat.id, self.ProductState.DEACTIVATE_CONFIRM)
-                    self.bot.register_next_step_handler(message, self.deactivate_confirm)
+                menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
+                markup = send_menu(message, menu, "main menu", home_menu)
+                action_text = t(message, "deactivate") if product.status else t(message, "activate")
+                msg_text = t(message, "confirm_toggle_product", action=action_text)
+                self.bot.send_message(message.chat.id, msg_text, reply_markup=markup)
 
-                except Product.DoesNotExist:
-                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
-                    return
+            except Product.DoesNotExist:
+                self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
+                return
         except Exception as e:
             error_message = traceback.format_exc()  # دریافت Traceback کامل
             print(f"Error in handle_buttons: {e}\n{error_message}")
 
     def deactivate_confirm(self, message):
         try:
-            state_manager = RedisStateManager(message.chat.id)
-
+            session = session_manager.get_user_session(message.chat.id, namespace="deactivate_product")
             # بازیابی کد محصول از Redis
-            product_code = state_manager.get_user_data("product_code")
+            product_code = session.get("code")
             if product_code:
                 try:
                     product = Product.objects.get(code=product_code)
@@ -1829,17 +1752,13 @@ class ProductBot:
                             product.save()
 
                         # ارسال پیام موفقیت‌آمیز به کاربر
-                        main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
-                        extra_button_menu = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
-                        markup = send_menu(message, main_menu, "main menu", extra_button_menu)
                         action_text = t(message, "activated") if product.status else t(message, "deactivated")
-                        self.bot.send_message(message.chat.id, t(message, "product_toggled", action=action_text), reply_markup=markup)
+                        self.bot.send_message(message.chat.id, t(message, "product_toggled", action=action_text))
 
                     elif message.text == t(message, "cancel_action"):
                         self.cancle_request(message)
                         return
 
-                    self.reset_state(message.chat.id)
                 except Product.DoesNotExist:
                     self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
                     return
@@ -1849,23 +1768,17 @@ class ProductBot:
             
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-            print(f"Error: {e}")
+            print(f"Error: {traceback.format_exc()}")
 
     def cancle_request(self, message):
         try:
             if subscription.subscription_offer(message):
                 # بازیابی منوها از Redis
-                state_manager = RedisStateManager(message.chat.id)
-                main_menu = ProfileModel.objects.get(tel_id=message.from_user.id).tel_menu
-                extra_button_menu = ProfileModel.objects.get(tel_id=message.from_user.id).extra_button_menu
-                markup = send_menu(message, main_menu, "main menu", extra_button_menu)
-                session_manager.reset_user_session(message.chat.id, namespace="menu")
-                self.bot.send_message(message.chat.id, t(message, "home_message"), reply_markup=markup)
-                self.reset_state(message.chat.id)
+                session_manager.reset_user_session(message.chat.id, namespace="add_product")
                 return
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
-            print(f"Error: {e}")
+            print(f"Error: {traceback.format_exc()}")
 
 
 
@@ -2091,7 +2004,7 @@ class ProductHandler:
                 )
 
         except Exception as e:
-            print(f"⚠ خطا در ارسال محصول: {e}")
+            print(f"⚠ خطا در ارسال محصول: {traceback.format_exc()}")
 
     def send_product_message(self, chat_id, buttons=True):
         """ارسال محصول با دکمه‌های سریع"""
@@ -2129,7 +2042,7 @@ class ProductHandler:
             self._send_buttons_from_data(chat_id, buttons_data)
             
         except Exception as e:
-            print(f"Error in send_buttons: {e}")
+            print(f"Error in send_buttons: {traceback.format_exc()}")
 
     def _prepare_buttons_data(self, chat_id):
         """آماده‌سازی سریع داده‌های دکمه"""
@@ -2194,7 +2107,7 @@ class ProductHandler:
             }
             
         except Exception as e:
-            print(f"Error in _prepare_buttons_data: {e}")
+            print(f"Error in _prepare_buttons_data: {traceback.format_exc()}")
             return None
 
     def _send_buttons_from_data(self, chat_id, buttons_data):
@@ -2280,7 +2193,7 @@ class ProductHandler:
             markup.send()
             
         except Exception as e:
-            print(f"Error in _send_buttons_from_data: {e}")
+            print(f"Error in _send_buttons_from_data: {traceback.format_exc()}")
 
     def _send_buttons_safe(self, chat_id):
         """متد قدیمی برای سازگاری - حالا از نسخه سریع استفاده می‌کند"""
@@ -2314,7 +2227,7 @@ class ProductHandler:
             markup.edit(message_id)
 
         except Exception as e:
-            print(f"❌ Error in show_initial_state: {e}")
+            print(f"❌ Error in show_initial_state: {traceback.format_exc()}")
 
     def handle_add_to_cart(self, call):
         """مدیریت افزودن به سبد خرید"""
@@ -2365,7 +2278,7 @@ class ProductHandler:
             self.app.answer_callback_query(call.id, "به سبد خرید اضافه شد")
 
         except Exception as e:
-            print(f"❌ Error in handle_add_to_cart: {e}")
+            print(f"❌ Error in handle_add_to_cart: {traceback.format_exc()}")
 
     def handle_buttons(self, call):
         """مدیریت دکمه‌های افزایش/کاهش"""
@@ -2445,7 +2358,7 @@ class ProductHandler:
                 self.update_product_message(chat_id, message_id, product, cart)
 
         except Exception as e:
-            print(f"Error in handle_buttons: {e}")
+            print(f"Error in handle_buttons: {traceback.format_exc()}")
 
     def update_product_message(self, chat_id, message_id, product, cart):
         """آپدیت پیام محصول"""
@@ -2536,7 +2449,7 @@ class ProductHandler:
             markup.edit(message_id)
 
         except Exception as e:
-            print(f"❌ Error in update_product_message: {e}")
+            print(f"❌ Error in update_product_message: {traceback.format_exc()}")
 
     def handle_variant_navigation(self, call):
         """مدیریت ناوبری واریانت‌ها"""
@@ -2582,7 +2495,7 @@ class ProductHandler:
             self.app.answer_callback_query(call.id, f"{current_key} به {current_value} تغییر کرد")
 
         except Exception as e:
-            print(f"Error in handle_variant_navigation: {e}")
+            print(f"Error in handle_variant_navigation: {traceback.format_exc()}")
             self.app.answer_callback_query(call.id, "خطا در تغییر واریانت!", show_alert=True)
 
     def handle_comments(self, call):
@@ -2592,7 +2505,7 @@ class ProductHandler:
             self.app.send_message(chat_id, "صفحه نظرات محصول...")
             self.app.answer_callback_query(call.id)
         except Exception as e:
-            print(f"Error in handle_comments: {e}")
+            print(f"Error in handle_comments: {traceback.format_exc()}")
 
 
 ############################  SEND CART  ############################    
@@ -2633,7 +2546,7 @@ class SendCart:
                     self.cart = None
                     return
                 except Exception as e:
-                    print(f"{e}")
+                    print(f"{traceback.format_exc()}")
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
             self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
 
@@ -3133,7 +3046,7 @@ class SendLocation:
             self.app.send_message(call.message.chat.id, "لطفاً آدرس جدید را ارسال کنید:")
             # اینجا می‌توانید از register_next_step_handler استفاده کنید
         except Exception as e:
-            print(f"Error in handle_add_address: {e}")
+            print(f"Error in handle_add_address: {traceback.format_exc()}")
             self.app.send_message(call.message.chat.id, "خطایی در افزودن آدرس رخ داد")
 
     def handle_close(self, call):
@@ -3142,7 +3055,7 @@ class SendLocation:
             self.app.delete_message(call.message.chat.id, call.message.message_id)
             self.session_manager.reset_user_session(call.message.chat.id, namespace="address")
         except Exception as e:
-            print(f"Error in handle_close: {e}")
+            print(f"Error in handle_close: {traceback.format_exc()}")
 
     def change_location(self, call, address):
         """تغییر موقعیت مکانی"""
@@ -3155,7 +3068,7 @@ class SendLocation:
             # ذخیره آدرس برای مرحله بعد
             # اینجا می‌توانید از register_next_step_handler استفاده کنید
         except Exception as e:
-            print(f"Error in change_location: {e}")
+            print(f"Error in change_location: {traceback.format_exc()}")
             self.app.send_message(call.message.chat.id, "خطایی در تغییر موقعیت رخ داد")
 
 
@@ -3166,7 +3079,7 @@ class SendLocation:
             self.app.answer_callback_query(call.id, "آدرس با موفقیت حذف شد")
             self.show_addresses(call)
         except Exception as e:
-            print(f"Error in delete_address: {e}")
+            print(f"Error in delete_address: {traceback.format_exc()}")
             self.app.answer_callback_query(call.id, "خطا در حذف آدرس")
 
     def add_new_address(self, call):
@@ -3625,7 +3538,7 @@ class SendLocation:
             
             pass
         except Exception as e:
-            print(f"Error in change_postal: {e}")
+            print(f"Error in change_postal: {traceback.format_exc()}")
 
 
     def handle_previous(self, call):
@@ -3636,7 +3549,7 @@ class SendLocation:
         pass
 
 
-#################    SEND PHONE    #################
+##############################################    SEND PHONE    ##############################################
 
 
 class SendPhone:
@@ -3712,3 +3625,534 @@ class SendPhone:
             self.app.send_message(self.chat_id, "خطایی در گرفتن شماره تماس تابع دوم‌ها رخ داد")
 
 
+##############################################    PRODUCT LIST    ##############################################
+
+import base64
+import openpyxl
+from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
+import pandas as pd
+from io import BytesIO
+import traceback
+from django.db.models import Prefetch, Count, Sum, Avg
+import redis
+import json
+from datetime import datetime, timedelta
+import threading
+from products.models import Product, ProductVariant, Category, Store
+from accounts.models import ProfileModel
+
+class AdvancedProductExporter:
+    """کلاس کامل برای مدیریت صادرات پیشرفته محصولات"""
+    
+    def __init__(self, redis_url="redis://localhost:6379/0"):
+        self.redis_manager = RedisExportManager(redis_url)
+        self.chunk_size = 100
+        self.LANGUAGE_FONTS = {
+            'fa': 'B Nazanin',  # فارسی
+            'ar': 'Arial',      # عربی
+            'ru': 'Arial',      # روسی
+            'zh': 'SimSun',     # چینی
+            'en': 'Arial'       # انگلیسی
+        }
+    
+    def export_products_to_excel(self, message, use_cache=True, background_processing=False):
+        """
+        صادرات کامل محصولات به اکسل
+        """
+        try:
+            # بررسی subscription و پروفایل
+            if not self._check_subscription(message):
+                return {'error': 'اشتراک مورد نیاز است'}
+            
+            profile = self._get_user_profile(message)
+            if not profile:
+                return {'error': 'پروفایل یافت نشد'}
+                
+            if not profile.seller_mode:
+                return {'error': 'حالت فروشنده مورد نیاز است'}
+            
+            store = self._get_user_store(profile)
+            if not store:
+                return {'error': 'فروشگاهی برای این پروفایل یافت نشد'}
+            
+            # دریافت زبان کاربر
+            user_lang = profile.lang
+            
+            # بررسی کش
+            if use_cache:
+                cached_result = self.redis_manager.get_cached_export(store.id)
+                if cached_result and cached_result.get('file_data'):
+                    try:
+                        file_data = cached_result['file_data']
+                        if isinstance(file_data, str):
+                            file_data = file_data.encode('utf-8')
+                        
+                        if file_data[:4] == b'PK\x03\x04':
+                            file_buffer = BytesIO(file_data)
+                            file_buffer.name = cached_result['filename']
+                            
+                            print(f"Using cached file - Size: {len(file_data)} bytes")
+                            
+                            return {
+                                'file_buffer': file_buffer,
+                                'filename': cached_result['filename'],
+                                'from_cache': True,
+                                'metadata': cached_result['metadata'],
+                                'store_name': store.name,
+                                'user_lang': user_lang
+                            }
+                        else:
+                            print("Cached file has invalid Excel signature")
+                    except Exception as e:
+                        print(f"Error processing cached file: {e}")
+            
+            # تولید فایل جدید
+            return self._generate_excel_file(store, user_lang)
+            
+        except Exception as e:
+            print(f"Export error: {traceback.format_exc()}")
+            return {'error': f'خطا در تولید فایل اکسل: {str(e)}'}
+    
+    def _check_subscription(self, message):
+        """بررسی subscription"""
+        try:
+            return subscription.subscription_offer(message)
+        except:
+            return True
+    
+    def _get_user_profile(self, message):
+        """دریافت پروفایل کاربر"""
+        try:
+            return ProfileModel.objects.get(tel_id=message.from_user.id)
+        except ProfileModel.DoesNotExist:
+            return None
+    
+    def _get_user_store(self, profile):
+        """دریافت فروشگاه کاربر"""
+        try:
+            return Store.objects.get(owner=profile)
+        except Store.DoesNotExist:
+            return None
+    
+    def _get_store_statistics(self, store):
+        """آمار فروشگاه"""
+        stats = {
+            'total_products': Product.objects.filter(store=store).count(),
+            'active_products': Product.objects.filter(store=store, status=True).count(),
+            'products_with_variants': Product.objects.filter(
+                store=store, 
+                variants__isnull=False
+            ).distinct().count(),
+            'total_variants': ProductVariant.objects.filter(product__store=store).count(),
+            'categories_count': Category.objects.filter(store=store).count(),
+            'products_with_discount': Product.objects.filter(store=store, discount__gt=0).count(),
+            'products_with_images': Product.objects.filter(
+                store=store
+            ).exclude(main_image='').count(),
+        }
+        
+        from django.db.models import F, Sum
+        stock_value = Product.objects.filter(store=store).aggregate(
+            total_value=Sum(F('price') * F('stock'))
+        )
+        stats['total_stock_value'] = float(stock_value['total_value'] or 0)
+        
+        return stats
+    
+    def _get_translation(self, key, lang):
+        """دریافت ترجمه برای کلید و زبان مشخص"""
+        return translations.get(key, {}).get(lang, translations.get(key, {}).get('en', key))
+    
+    def _get_font_for_language(self, lang):
+        """دریافت فونت مناسب برای زبان"""
+        return self.LANGUAGE_FONTS.get(lang, 'Arial')
+    
+    def _auto_adjust_column_widths(self, worksheet):
+        """تنظیم خودکار عرض ستون‌ها بر اساس محتوای سلول‌ها"""
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            
+            for cell in column:
+                try:
+                    if cell.value:
+                        cell_length = len(str(cell.value))
+                        adjusted_length = cell_length * 1.2
+                        if adjusted_length > max_length:
+                            max_length = adjusted_length
+                except:
+                    pass
+            
+            adjusted_width = min(max(max_length, 8), 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+    
+    def _apply_center_alignment_to_sheet(self, worksheet):
+        """اعمال وسط‌چین به تمام سلول‌های یک شیت"""
+        center_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        
+        for row in worksheet.iter_rows():
+            for cell in row:
+                cell.alignment = center_alignment
+    
+    def _generate_excel_file(self, store, user_lang):
+        """تولید فایل اکسل با تنظیمات پیشرفته"""
+        try:
+            output = BytesIO()
+            
+            # ایجاد workbook جدید
+            workbook = openpyxl.Workbook()
+            
+            # حذف sheet پیش‌فرض
+            workbook.remove(workbook.active)
+            
+            # ایجاد sheets با نام‌های ترجمه شده
+            products_sheet = workbook.create_sheet(self._get_translation('products_sheet', user_lang))
+            variants_sheet = workbook.create_sheet(self._get_translation('variants_sheet', user_lang))
+            summary_sheet = workbook.create_sheet(self._get_translation('summary_sheet', user_lang))
+            categories_sheet = workbook.create_sheet(self._get_translation('categories_sheet', user_lang))
+            
+            # تنظیم فونت برای هر زبان
+            font_name = self._get_font_for_language(user_lang)
+            base_font = Font(name=font_name, size=10)
+            header_font = Font(name=font_name, size=11, bold=True)
+            
+            # پر کردن داده‌ها با ترجمه و فونت مناسب
+            self._fill_products_sheet(products_sheet, store, user_lang, base_font, header_font)
+            self._fill_variants_sheet(variants_sheet, store, user_lang, base_font, header_font)
+            self._fill_summary_sheet(summary_sheet, store, user_lang, base_font, header_font)
+            self._fill_categories_sheet(categories_sheet, store, user_lang, base_font, header_font)
+            
+            # تنظیم خودکار عرض ستون‌ها برای همه sheets
+            for sheet in workbook.worksheets:
+                self._auto_adjust_column_widths(sheet)
+                # اعمال وسط‌چین به تمام سلول‌های شیت
+                self._apply_center_alignment_to_sheet(sheet)
+            
+            # ذخیره workbook در BytesIO
+            workbook.save(output)
+            output.seek(0)
+            file_data = output.getvalue()
+            
+            # بررسی signature فایل
+            if file_data[:4] != b'PK\x03\x04':
+                raise ValueError("Generated file is not a valid Excel file")
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{store.name}_products_export_{timestamp}.xlsx"
+            
+            # ذخیره در کش
+            cached_data = {
+                'file_data': file_data,
+                'filename': filename,
+                'metadata': self._get_store_statistics(store),
+                'store_name': store.name,
+                'generated_at': datetime.now().isoformat(),
+                'user_lang': user_lang
+            }
+            
+            try:
+                self.redis_manager.cache_export(store.id, cached_data)
+            except Exception as e:
+                print(f"Cache error (non-critical): {e}")
+                # خطای کش بحرانی نیست، ادامه بده
+            
+            # ایجاد BytesIO برای ارسال
+            file_buffer = BytesIO(file_data)
+            file_buffer.name = filename
+            
+            return {
+                'file_buffer': file_buffer,
+                'filename': filename,
+                'from_cache': False,
+                'metadata': cached_data['metadata'],
+                'store_name': store.name,
+                'user_lang': user_lang
+            }
+            
+        except Exception as e:
+            print(f"Excel generation error: {traceback.format_exc()}")
+            raise e
+    
+    def _fill_products_sheet(self, sheet, store, user_lang, base_font, header_font):
+        """پر کردن شیت محصولات"""
+        headers = [
+            self._get_translation('id', user_lang),
+            self._get_translation('product_name', user_lang),
+            self._get_translation('product_code', user_lang),
+            self._get_translation('brand', user_lang),
+            self._get_translation('category', user_lang),
+            self._get_translation('base_price', user_lang),
+            self._get_translation('discount_percent', user_lang),
+            self._get_translation('final_price', user_lang),
+            self._get_translation('stock', user_lang),
+            self._get_translation('status', user_lang),
+            self._get_translation('unit', user_lang),
+            self._get_translation('min_quantity', user_lang),
+            self._get_translation('max_quantity', user_lang),
+            self._get_translation('quantity_step', user_lang),
+            self._get_translation('images_count', user_lang),
+            self._get_translation('variants_count', user_lang),
+            self._get_translation('description', user_lang),
+            self._get_translation('has_main_image', user_lang)
+        ]
+        
+        # اضافه کردن headers با فونت header و وسط‌چین
+        center_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        for col, header in enumerate(headers, 1):
+            cell = sheet.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.alignment = center_alignment
+        
+        # اضافه کردن داده‌ها با وسط‌چین
+        row_num = 2
+        for product_data in self._stream_products_data(store):
+            # ترجمه مقادیر وضعیت
+            status_text = self._get_translation('active', user_lang) if product_data['status'] == 'فعال' else self._get_translation('inactive', user_lang)
+            has_image_text = self._get_translation('yes', user_lang) if product_data['has_main_image'] else self._get_translation('no', user_lang)
+            
+            data_row = [
+                product_data['id'],
+                product_data['name'],
+                product_data['code'],
+                product_data['brand'],
+                product_data['category_full_path'],
+                product_data['price'],
+                product_data['discount'],
+                product_data['final_price'],
+                product_data['stock'],
+                status_text,
+                f"{product_data['unit_name']} ({product_data['unit_symbol']})",
+                product_data['min_quantity'],
+                product_data['max_quantity'] or '',
+                product_data['quantity_step'],
+                product_data['images_count'],
+                len(product_data['variants']),
+                product_data['description'],
+                has_image_text
+            ]
+            
+            for col, value in enumerate(data_row, 1):
+                cell = sheet.cell(row=row_num, column=col, value=value)
+                cell.font = base_font
+                cell.alignment = center_alignment
+            
+            row_num += 1
+    
+    def _fill_variants_sheet(self, sheet, store, user_lang, base_font, header_font):
+        """پر کردن شیت واریانت‌ها"""
+        headers = [
+            self._get_translation('product_id', user_lang),
+            self._get_translation('product_name', user_lang),
+            self._get_translation('variant_id', user_lang),
+            self._get_translation('sku', user_lang),
+            self._get_translation('attributes', user_lang),
+            self._get_translation('price_override', user_lang),
+            self._get_translation('final_price', user_lang),
+            self._get_translation('stock', user_lang),
+            self._get_translation('status', user_lang)
+        ]
+        
+        # اضافه کردن headers با فونت header و وسط‌چین
+        center_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        for col, header in enumerate(headers, 1):
+            cell = sheet.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.alignment = center_alignment
+        
+        # اضافه کردن داده‌ها با وسط‌چین
+        row_num = 2
+        for product_data in self._stream_products_data(store):
+            for variant in product_data['variants']:
+                # ترجمه وضعیت
+                status_text = self._get_translation('active', user_lang) if variant['is_active'] else self._get_translation('inactive', user_lang)
+                
+                data_row = [
+                    product_data['id'],
+                    product_data['name'],
+                    variant['variant_id'],
+                    variant['sku'],
+                    variant['values'],
+                    variant['price_override'] or '',
+                    variant['final_price'],
+                    variant['stock'],
+                    status_text
+                ]
+                
+                for col, value in enumerate(data_row, 1):
+                    cell = sheet.cell(row=row_num, column=col, value=value)
+                    cell.font = base_font
+                    cell.alignment = center_alignment
+                
+                row_num += 1
+    
+    def _fill_summary_sheet(self, sheet, store, user_lang, base_font, header_font):
+        """پر کردن شیت خلاصه"""
+        stats = self._get_store_statistics(store)
+        
+        summary_data = [
+            [self._get_translation('store_name', user_lang), store.name],
+            [self._get_translation('store_address', user_lang), f"{store.address}, {store.city}"],
+            [self._get_translation('export_date', user_lang), datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
+            [self._get_translation('total_products', user_lang), stats['total_products']],
+            [self._get_translation('active_products', user_lang), stats['active_products']],
+            [self._get_translation('inactive_products', user_lang), stats['total_products'] - stats['active_products']],
+            [self._get_translation('products_with_variants', user_lang), stats['products_with_variants']],
+            [self._get_translation('total_variants', user_lang), stats['total_variants']],
+            [self._get_translation('categories_count', user_lang), stats['categories_count']],
+            [self._get_translation('products_with_discount', user_lang), stats['products_with_discount']],
+            [self._get_translation('products_with_images', user_lang), stats['products_with_images']],
+            [self._get_translation('total_stock_value', user_lang), f"{stats['total_stock_value']:,.0f}"],
+        ]
+        
+        center_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        
+        for row, (metric, value) in enumerate(summary_data, 1):
+            # سلول متریک
+            metric_cell = sheet.cell(row=row, column=1, value=metric)
+            metric_cell.font = header_font
+            metric_cell.alignment = center_alignment
+            
+            # سلول مقدار
+            value_cell = sheet.cell(row=row, column=2, value=value)
+            value_cell.font = base_font
+            value_cell.alignment = center_alignment
+    
+    def _fill_categories_sheet(self, sheet, store, user_lang, base_font, header_font):
+        """پر کردن شیت دسته‌بندی‌ها"""
+        headers = [
+            self._get_translation('category_id', user_lang),
+            self._get_translation('category_name', user_lang),
+            self._get_translation('full_path', user_lang),
+            self._get_translation('total_products', user_lang),
+            self._get_translation('active_products', user_lang),
+            self._get_translation('parent_category', user_lang),
+            self._get_translation('position', user_lang),
+            self._get_translation('status', user_lang)
+        ]
+        
+        # اضافه کردن headers با فونت header و وسط‌چین
+        center_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        for col, header in enumerate(headers, 1):
+            cell = sheet.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.alignment = center_alignment
+        
+        # اضافه کردن داده‌ها با وسط‌چین
+        row_num = 2
+        for category in Category.objects.filter(store=store):
+            product_count = Product.objects.filter(category=category, store=store).count()
+            active_count = Product.objects.filter(category=category, store=store, status=True).count()
+            
+            # ترجمه وضعیت
+            status_text = self._get_translation('active', user_lang) if category.status else self._get_translation('inactive', user_lang)
+            
+            data_row = [
+                category.id,
+                category.title,
+                category.get_full_path(),
+                product_count,
+                active_count,
+                category.parent.title if category.parent else self._get_translation('no', user_lang),
+                category.position,
+                status_text
+            ]
+            
+            for col, value in enumerate(data_row, 1):
+                cell = sheet.cell(row=row_num, column=col, value=value)
+                cell.font = base_font
+                cell.alignment = center_alignment
+            
+            row_num += 1
+    
+    def _stream_products_data(self, store):
+        """جریان داده محصولات"""
+        products_query = Product.objects.filter(store=store).select_related(
+            'category', 'unit'
+        ).prefetch_related('images').order_by('category__title', 'name')
+        
+        total_count = products_query.count()
+        
+        for offset in range(0, total_count, self.chunk_size):
+            products_chunk = products_query[offset:offset + self.chunk_size]
+            
+            product_ids = [p.id for p in products_chunk]
+            variants_map = {}
+            
+            variants = ProductVariant.objects.filter(
+                product_id__in=product_ids
+            ).prefetch_related('values__option')
+            
+            for variant in variants:
+                if variant.product_id not in variants_map:
+                    variants_map[variant.product_id] = []
+                variants_map[variant.product_id].append(variant)
+            
+            for product in products_chunk:
+                product_data = self._serialize_product(product)
+                
+                if product.id in variants_map:
+                    variants_data = [
+                        self._serialize_variant(variant) 
+                        for variant in variants_map[product.id]
+                    ]
+                    product_data['variants'] = variants_data
+                else:
+                    product_data['variants'] = []
+                
+                yield product_data
+            
+            del products_chunk
+            del variants_map
+    
+    def _serialize_product(self, product):
+        """سریالایز کردن داده محصول"""
+        return {
+            'id': product.id,
+            'name': product.name,
+            'code': product.code,
+            'brand': product.brand or '',
+            'category_full_path': product.category.get_full_path() if product.category else '',
+            'category_name': product.category.title if product.category else '',
+            'price': float(product.price),
+            'discount': float(product.discount),
+            'final_price': float(product.final_price),
+            'stock': product.total_stock(),
+            'status': 'فعال' if product.status else 'غیرفعال',
+            'unit_name': product.unit.name if product.unit else '',
+            'unit_symbol': product.unit.symbol if product.unit else '',
+            'min_quantity': float(product.min_quantity),
+            'max_quantity': float(product.max_quantity) if product.max_quantity else None,
+            'quantity_step': float(product.quantity_step),
+            'description': self._truncate_description(product.description),
+            'has_main_image': bool(product.main_image),
+            'images_count': product.images.count(),
+        }
+    
+    def _serialize_variant(self, variant):
+        """سریالایز کردن داده واریانت"""
+        variant_values = " | ".join([
+            f"{value.option.name}:{value.value}" 
+            for value in variant.values.all()
+        ])
+        
+        return {
+            'variant_id': variant.id,
+            'sku': variant.sku or '',
+            'values': variant_values,
+            'price_override': float(variant.price_override) if variant.price_override else None,
+            'final_price': float(variant.final_price),
+            'stock': variant.stock,
+            'is_active': variant.product.status if variant.product else True
+        }
+    
+    def _truncate_description(self, description, max_length=100):
+        """کوتاه کردن توضیحات"""
+        if not description:
+            return ''
+        return (description[:max_length] + '...') if len(description) > max_length else description
+    
+    def clear_cache_for_store(self, store_id):
+        """پاک کردن کش برای یک فروشگاه خاص"""
+        cache_key = self.redis_manager._make_export_key(store_id)
+        self.redis_manager.redis_client.delete(cache_key)

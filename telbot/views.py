@@ -1367,9 +1367,31 @@ def add_product_process_accomplished(message):
     try:
         product_bot.get_additional_images(message)
         session = session_manager.get_user_session(message.chat.id, namespace="add_product")
-#        session["additional_images"] = []
-#        product(message)
     except Exception:
+        print(traceback.format_exc())
+
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("process_getout"), content_types=["photo"])
+def add_product_process_getout(message):
+    try:
+        product_bot.get_additional_images(message)
+        session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+
+        session2 = session_manager.get_user_session(message.chat.id, namespace="menu")
+        session2['add_product'] = False
+        session_manager.set_user_session(message.chat.id, session2, namespace="menu")
+
+        print(session.get("code"))
+        product_obj = Product.objects.get(code=session.get("code"))
+        attributes = product_obj.attributes.all()
+        product_handler = ProductHandler(app, product_obj, current_site, attributes=attributes)
+        product_handler.send_product_message(message.chat.id, buttons=False)
+
+        session_manager.reset_user_session(message.chat.id, namespace="add_product")
+        product(message)
+    except:
+        print("*" * 20)
         print(traceback.format_exc())
 
 

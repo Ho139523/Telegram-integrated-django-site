@@ -14,3 +14,4 @@ nginx/logs/access.log
 nginx/logs/error.log
 logs/
 media/
+*.swp

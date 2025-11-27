@@ -1,4 +1,6 @@
 from pydoc import describe
+
+from markupsafe import Markup
 # from tkinter.font import names
 from utils.variables.TOKEN import TOKEN, BOT_ID
 import requests
@@ -1528,8 +1530,7 @@ class ProductBot:
     def get_additional_images(self, message: Message):
         try:
             chat_id = message.chat.id
-                                                                    # Save the additional image
-            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            session = session_manager.get_user_session(chat_id, namespace="add_product")
             additional_images = session.get("additional_images", [])
             file_id = message.photo[-1].file_id
             saved_image = download_and_save_image(file_id, self.bot)
@@ -1537,15 +1538,28 @@ class ProductBot:
             if not saved_image:
                 self.bot.send_message(chat_id, t(message, "extra_image_save_failed"))
                 return 
+            
             additional_images.append(saved_image)
             session["additional_images"] = additional_images
-            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
-
-            if len(additional_images) < 3:
-                remaining = 3 - len(additional_images)
-                self.bot.send_message(chat_id, t(message, "send_extra_images", pic_num=remaining))
+            
+            # تعداد عکس‌های مورد نیاز (می‌تواند دینامیک باشد)
+            required_images = 3  # یا می‌توانی از session بخوانی: session.get("required_images", 3)
+            
+            # بررسی آیا یک عکس به آخرین عکس مانده؟
+            current_count = len(additional_images)
+            remaining = required_images - current_count
+            
+            if remaining == 1:  # یک عکس به آخرین عکس مانده
+                session["process_getout"] = True
+                session["process_accomplished"] = False
+            
+            if current_count < required_images:
+                markup = send_menu(message, [t(message, "cancel_action")], message.text)
+                self.bot.send_message(chat_id, t(message, "send_extra_images", pic_num=remaining), reply_markup=markup)
+                session_manager.set_user_session(chat_id, session, namespace="add_product")
                 return
 
+            # اگر به تعداد مورد نیاز رسیدیم، ادامه پردازش...
             # Retrieve user, store, and category
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
             store = Store.objects.get(owner=profile)
@@ -1638,17 +1652,17 @@ class ProductBot:
             for image_path in additional_images:
                 ProductImage.objects.create(product=product, image=image_path)
 
+
+            session["code"] = product.code
+            session_manager.set_user_session(chat_id, session, namespace="add_product")
+
             # Send success message
             self.bot.send_message(chat_id, t(message, "product_saved"))
-            session_manager.reset_user_session(message.chat.id, namespace="add_product")
-            session2 = session_manager.get_user_session(message.chat.id, namespace="menu")
-            session2['add_product'] = False
-            session_manager.set_user_session(message.chat.id, session2, namespace="menu")
+            
 
         except Exception as e:
             print(f"Error in get_additional_images: {e}\n{traceback.format_exc()}")
             self.bot.send_message(message.chat.id, t(message, "product_save_failed"))
-
 
 
     def delete(self, message: Message):

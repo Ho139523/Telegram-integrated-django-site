@@ -1127,6 +1127,7 @@ class ProductBot:
             # ذخیره موجودی در Redis
             session = session_manager.get_user_session(message.chat.id, namespace="add_product")
             session["ask_variant_decision"] = False
+            session["no_variant"] = True
             session["get_description"] = True
             session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
@@ -1186,32 +1187,30 @@ class ProductBot:
     def get_variant_decision(self, message: Message):
         try:
             session = session_manager.get_user_session(message.chat.id, namespace="add_product")
-            if message.text == t(message, "accurate_inventory"):
-                session["variants"] = {}
-                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
-                self.save_user_data(message.chat.id, "variants", {})
-                self.set_state(message.chat.id, self.ProductState.VARIANT_KEY)
-                markup = send_menu(message, [t(message, "cancel_action")], message.text)
-                self.bot.send_message(message.chat.id, t(message, "enter_variant_key"), reply_markup=markup)
-            else:
-                # Skip variants, go to images
-                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
-                markup = send_menu(message, [t(message, "no_description")], "main menu", [t(message, "cancel_action")])
-                self.bot.send_message(message.chat.id, t(message, "enter_description"), reply_markup=markup)
+            session["variants"] = {}
+            session["ask_variant_decision"] = False
+            session["variantkey"] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+            markup = send_menu(message, [t(message, "cancel_action")], message.text)
+            self.bot.send_message(message.chat.id, t(message, "enter_variant_key"), reply_markup=markup)
         except Exception as e:
             print(traceback.format_exc())
 
     def get_variant_key(self, message: Message):
         try:
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
             key = message.text.strip()
-            variants = self.get_user_data(message.chat.id, "variants")
+            variants = session.get("variants")
             if key in variants:
                 self.bot.send_message(message.chat.id, t(message, "variant_key_exists"))
                 return
             variants[key] = []
-            self.save_user_data(message.chat.id, "current_variant_key", key)
-            self.save_user_data(message.chat.id, "variants", variants)
-            self.set_state(message.chat.id, self.ProductState.VARIANT_VALUES)
+            session["variants"] = variants
+            session["current_variant_key"] = key
+
+            session["variantvalue"] = True
+            session["variantkey"] = False
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
             self.bot.send_message(message.chat.id, t(message, "enter_variant_values", keyname=key))
         except Exception as e:
             print(traceback.format_exc())
@@ -1219,6 +1218,8 @@ class ProductBot:
     def get_variant_values(self, message: Message):
         try:
             # تبدیل همه ویرگول‌ها به کامای انگلیسی
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            key = message.text.strip()
             normalized_text = (
                 message.text
                 .replace("،", ",")   # فارسی و عربی
@@ -1230,13 +1231,16 @@ class ProductBot:
             # جدا کردن مقادیر
             values = [v.strip() for v in normalized_text.split(",") if v.strip()]
 
-            key = self.get_user_data(message.chat.id, "current_variant_key")
-            variants = self.get_user_data(message.chat.id, "variants")
+            key = session.get("current_variant_key")
+            variants = session.get("variants")
             variants[key] = values
-            self.save_user_data(message.chat.id, "variants", variants)
+            session["variants"] = variants
 
             # رفتن به مرحله‌ی بعد
-            self.set_state(message.chat.id, self.ProductState.VARIANT_ADD_ANOTHER_KEY)
+            session["variantvalue"] = False
+            session["variant_add_key_answer"] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
             markup = send_menu(
                 message,
                 [t(message, "yes"), t(message, "no")],
@@ -1254,25 +1258,32 @@ class ProductBot:
 
     def get_variant_add_key_answer(self, message: Message):
         try:
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
             chat_id = message.chat.id
             text = message.text.strip()
 
             if text == t(message, "yes"):
-                self.set_state(chat_id, self.ProductState.VARIANT_KEY)
+                session["variantkey"] = True
+                session["variant_add_key_answer"] = False
+                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
                 markup = send_menu(message, [t(message, "cancel_action")], message.text)
                 self.bot.send_message(chat_id, t(message, "enter_next_variant_key"), reply_markup=markup)
                 return
 
             # یعنی گفته "خیر" → همه‌ی کلیدها جمع شدند
-            variants = self.get_user_data(chat_id, "variants")
+            variants = session.get("variants")
             keys = list(variants.keys())
             values = list(variants.values())
 
             # تمام ترکیب‌ها از همه مقدارها ساخته می‌شوند
             combinations = list(itertools.product(*values))
-            self.save_user_data(chat_id, "variant_combinations", combinations)
-            self.save_user_data(chat_id, "variant_stock_index", 0)
-            self.save_user_data(chat_id, "variants_stock", [])
+            session["variant_combinations"] = combinations
+            session["variant_stock_index"] = 0
+            session["variants_stock"] = []
+            session["variants_stock_values"] = True
+            session["variant_add_key_answer"] = False
+
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
             # پیام مقدمه
             readable_keys = "، ".join(keys)
@@ -1287,93 +1298,92 @@ class ProductBot:
             first_combo = combinations[0]
             combo_text = " ".join([f"{keys[i]}: {first_combo[i]}" for i in range(len(keys))])
 
-            self.set_state(chat_id, self.ProductState.VARIANT_STOCKS)
             self.bot.send_message(chat_id, t(message, "enter_variant_stock", combo=combo_text))
         except Exception as e:
             print(traceback.format_exc())
 
+
+
+   
     def get_variants_stock_values(self, message: Message):
-        chat_id = message.chat.id
-        stock_str = message.text.strip()
-
-        # --- اعتبارسنجی اولیه
-        if not stock_str.isdigit():
-            self.bot.send_message(chat_id, t(message, "invalid_stock_input"))
-            return
-
-        stock = int(stock_str)
-
-        # --- بازیابی داده‌ها
-        total_stock = self.get_user_data(chat_id, "stock")  # موجودی کلی محصول
-        combinations = self.get_user_data(chat_id, "variant_combinations")
-        index = self.get_user_data(chat_id, "variant_stock_index", 0)
-        variants_stock = self.get_user_data(chat_id, "variants_stock", [])
-
-        # --- محاسبه مجموع فعلی
-        current_total = sum(item["stock"] for item in variants_stock)
-
-        # بررسی اینکه واردکردن این عدد باعث تجاوز از موجودی کل نشود
-        if current_total + stock > total_stock:
-            remaining = total_stock - current_total
-            self.bot.send_message(
-                chat_id,
-                t(message, "stock_exceed_total", total=total_stock, current=current_total, remaining=remaining)
-            )
-            return  # در همین state باقی بماند
-
-        # --- ذخیره موجودی ترکیب فعلی
-        variants_stock.append({
-            "combination": combinations[index],
-            "stock": stock
-        })
-        self.save_user_data(chat_id, "variants_stock", variants_stock)
-
-        # --- برو سراغ بعدی یا پایان کار
-        current_total += stock
-
-        if current_total >= total_stock:
-            # ✅ جمع دقیقاً برابر با موجودی کل شد
-            total = sum(item["stock"] for item in variants_stock)
-            text = t(message, "variant_stock_saved", total=total)
-            self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
-            markup = send_menu(
-                message,
-                [t(message, "no_description")],
-                "main menu",
-                [t(message, "cancel_action")]
-            )
-            self.bot.send_message(chat_id, text, reply_markup=markup)
-            return
-
-        # اگر هنوز ترکیب‌هایی مانده بود و مجموع کمتر از کل است
-        index += 1
-        if index < len(combinations):
-            self.save_user_data(chat_id, "variant_stock_index", index)
-            variants = self.get_user_data(chat_id, "variants")
+        try:
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            chat_id = message.chat.id
+            stock_str = message.text.strip()
+    
+            # --- اعتبارسنجی اولیه
+            if not stock_str.isdigit():
+                self.bot.send_message(chat_id, t(message, "invalid_stock_input"))
+                return
+    
+            stock = int(stock_str)
+    
+            # --- بازیابی داده‌ها
+            combinations = session.get("variant_combinations", [])
+            index = session.get("variant_stock_index", 0)
+            variants_stock = session.get("variants_stock", [])
+            variants = session.get("variants", {})
             keys = list(variants.keys())
-            combo_text = " ".join([f"{keys[i]}: {combinations[index][i]}" for i in range(len(keys))])
-            remaining = total_stock - current_total
-            self.bot.send_message(
-                chat_id,
-                t(message, "variant_stock_question", combo_text=combo_text, remaining=remaining)
-            )
-        else:
-            # اگر همه ترکیب‌ها تمام شدند ولی هنوز موجودی کل پر نشده
-            total = sum(item["stock"] for item in variants_stock)
-            self.bot.send_message(
-                chat_id,
-                t(message, "stock_less_than_total", total=total, total_stock=total_stock)
-            )
-            text = t(message, "variant_stock_partial_saved", total=total) + t(message, "enter_description")
-            self.set_state(message.chat.id, self.ProductState.DESCRIPTION)
-            markup = send_menu(
-                message,
-                [t(message, "no_description")],
-                "main menu",
-                [t(message, "cancel_action")]
-            )
-            self.bot.send_message(chat_id, text, reply_markup=markup)
+    
+            # --- ذخیره موجودی ترکیب فعلی
+            variants_stock.append({
+                "combination": combinations[index],
+                "stock": stock
+            })
+            session["variants_stock"] = variants_stock
+    
+            # --- محاسبه مجموع موجودی‌ها
+            total_stock = sum(item["stock"] for item in variants_stock)
+            session["get_stock_d"] = total_stock  # ذخیره موجودی کل
+    
+            # --- رفتن به ترکیب بعدی
+            index += 1
+    
+            # بررسی آیا این آخرین واریانت بود؟
+            is_last_variant = (index >= len(combinations))
+    
+            if index < len(combinations):
+                # هنوز ترکیب‌های باقی مانده وجود دارد
+                session["variant_stock_index"] = index
+                session_manager.set_user_session(chat_id, session, namespace="add_product")
+    
+                # نمایش ترکیب بعدی برای کاربر
+                combo_text = " ".join([f"{keys[i]}: {combinations[index][i]}" for i in range(len(keys))])
+                self.bot.send_message(chat_id, t(message, "variant_stock_question", combo_text=combo_text))
+            else:
+                # تمام ترکیب‌ها تکمیل شده‌اند
+                session["variants_stock_values"] = False
+                session["get_description"] = True
+    
+                # نمایش خلاصه و درخواست توضیحات
+                total = sum(item["stock"] for item in variants_stock)
+                text = t(message, "variant_stock_saved", total=total) + "\n\n" + t(message, "enter_description")
+                
+                markup = send_menu(
+                    message,
+                    [t(message, "no_description")],
+                    "main menu",
+                    [t(message, "cancel_action")]
+                )
+                self.bot.send_message(chat_id, text, reply_markup=markup)
 
+
+                session_manager.set_user_session(chat_id, session, namespace="add_product")
+    
+                # فقط وقتی آخرین واریانت را گرفتیم "سلام دنیا" پرینت کن
+                if is_last_variant:
+                    print("سلام دنیا")
+                    
+                    session["get_description"] = False
+                    session["get_attribute"] = True
+
+                    session_manager.set_user_session(chat_id, session, namespace="add_product")
+    
+        except Exception as e:
+            print(f"Error in get_variants_stock_values: {e}\n{traceback.format_exc()}")
+            self.bot.send_message(chat_id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
+    
+ 
 
     def get_description(self, message: Message):
         # ذخیره خصوصیات محصول در Redis
@@ -1387,6 +1397,12 @@ class ProductBot:
         session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
         # ایجاد دکمه پایان
+
+        
+        markup = send_menu(message, [t(message, "cancel_action")], message.text)
+        fake_message = self.bot.send_message(message.chat.id, "انبارداری موفق", reply_markup=markup)
+        self.bot.delete_message(message.chat.id, fake_message.message_id)
+
         markup = types.InlineKeyboardMarkup()
         finish_button = types.InlineKeyboardButton(text=t(message, "no_ads_features"), callback_data="finish_attributes")
         markup.add(finish_button)
@@ -1512,84 +1528,35 @@ class ProductBot:
     def get_additional_images(self, message: Message):
         try:
             chat_id = message.chat.id
-            
-            # دریافت session
-            session = session_manager.get_user_session(chat_id, namespace="add_product")
+                                                                    # Save the additional image
+            session = session_manager.get_user_session(message.chat.id, namespace="add_product")
             additional_images = session.get("additional_images", [])
-            
-            # بررسی آیا کاربر آلبوم عکس فرستاده است
-            if message.media_group_id:
-                # پردازش آلبوم عکس
-                if hasattr(message, 'photo') and message.photo:
-                    file_id = message.photo[-1].file_id
-                    saved_image = download_and_save_image(file_id, self.bot)
-                    
-                    if saved_image:
-                        additional_images.append(saved_image)
-                        session["additional_images"] = additional_images
-                        session_manager.set_user_session(chat_id, session, namespace="add_product")
-                
-                # اگر آلبوم کامل شده، منتظر می‌مانیم تا همه عکس‌ها پردازش شوند
-                # این هندلر برای هر عکس در آلبوم فراخوانی می‌شود
+            file_id = message.photo[-1].file_id
+            saved_image = download_and_save_image(file_id, self.bot)
+
+            if not saved_image:
+                self.bot.send_message(chat_id, t(message, "extra_image_save_failed"))
+                return 
+            additional_images.append(saved_image)
+            session["additional_images"] = additional_images
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
+            if len(additional_images) < 3:
+                remaining = 3 - len(additional_images)
+                self.bot.send_message(chat_id, t(message, "send_extra_images", pic_num=remaining))
                 return
-            
-            # بررسی عکس تکی
-            elif message.photo:
-                file_id = message.photo[-1].file_id
-                saved_image = download_and_save_image(file_id, self.bot)
-    
-                if not saved_image:
-                    self.bot.send_message(chat_id, t(message, "extra_image_save_failed"))
-                    self.bot.register_next_step_handler(message, self.get_additional_images)
-                    return
-                    
-                additional_images.append(saved_image)
-                session["additional_images"] = additional_images
-                session_manager.set_user_session(chat_id, session, namespace="add_product")
-            
-            # اگر کاربر متن یا محتوای غیرعکس فرستاد
-            else:
-                self.bot.send_message(chat_id, t(message, "please_send_image"))
-                self.bot.register_next_step_handler(message, self.get_additional_images)
-                return
-    
-            # بررسی تعداد عکس‌های جمع‌آوری شده
-            current_count = len(additional_images)
-            remaining = 3 - current_count
-            
-            if current_count < 3:
-                self.bot.send_message(
-                    chat_id, 
-                    t(message, "send_extra_images", pic_num=remaining)
-                )
-                self.bot.register_next_step_handler(message, self.get_additional_images)
-                return
-            
-            # وقتی 3 عکس کامل شد، ادامه پردازش...
-            self._save_complete_product(message, session, additional_images)
-            
-        except Exception as e:
-            print(f"Error in get_additional_images: {e}\n{traceback.format_exc()}")
-            self.bot.send_message(message.chat.id, t(message, "product_save_failed"))
-            self.bot.register_next_step_handler(message, self.get_additional_images)
-    
-    def _save_complete_product(self, message, session, additional_images):
-        """ذخیره کامل محصول پس از دریافت تمام عکس‌ها"""
-        try:
-            chat_id = message.chat.id
-            
+
             # Retrieve user, store, and category
             profile = ProfileModel.objects.get(tel_id=message.from_user.id)
             store = Store.objects.get(owner=profile)
-    
+
             category_id = session.get("category_id")
             if not category_id:
                 self.bot.send_message(chat_id, t(message, "invalid_selected_category"))
                 return
-            
             category = Category.objects.get(id=category_id, status=True)
-    
-            # Product basic info - با نام‌های صحیح فیلدها
+
+            # Product basic info
             name = session.get("name_d")
             slug = generate_unique_slug(Product, name)
             price = session.get("price_d")
@@ -1599,8 +1566,7 @@ class ProductBot:
             brand = session.get("brand_d")
             description = session.get("get_description_d")
             main_image = session.get("main_image")
-    
-            # ایجاد محصول
+
             product = Product.objects.create(
                 profile=profile,
                 store=store,
@@ -1615,85 +1581,73 @@ class ProductBot:
                 main_image=main_image,
                 slug=slug
             )
-    
+
             # Product attributes
             product_attrs = session.get("product_attributes", {})
             for key, value in product_attrs.items():
                 ProductAttribute.objects.create(product=product, key=key, value=value)
-    
+
             # Variants
-            self._create_product_variants(product, session)
-    
+            variants = session.get("variants", {})
+            variant_combinations = session.get("variant_combinations", [])
+            variants_stock = session.get("variants_stock", [])
+            entries = variants_stock or [{"combination": combo, "stock": 0} for combo in variant_combinations]
+
+            option_cache = {}
+            value_cache = {}
+            keys_order = list(variants.keys())
+
+            if entries:
+                for entry in entries:
+                    combo_raw = entry.get("combination") or entry.get("combo")
+                    stock = int(entry.get("stock", 0)) if entry.get("stock") else 0
+                    combo_list = list(combo_raw.values()) if isinstance(combo_raw, dict) else list(combo_raw)
+
+                    if len(combo_list) != len(keys_order):
+                        print(f"[warn] combo length mismatch: keys={keys_order} combo={combo_list}")
+                        continue
+
+                    sku = self.generate_readable_sku(product.name, combo_list, product.id)
+                    variant = ProductVariant.objects.create(product=product, stock=stock, sku=sku)
+
+                    for i, key_name in enumerate(keys_order):
+                        val = combo_list[i]
+
+                        if key_name not in option_cache:
+                            option_obj, _ = ProductOption.objects.get_or_create(product=product, name=key_name)
+                            option_cache[key_name] = option_obj
+                        else:
+                            option_obj = option_cache[key_name]
+
+                        if (key_name, val) not in value_cache:
+                            value_obj, _ = ProductOptionValue.objects.get_or_create(option=option_obj, value=val)
+                            value_cache[(key_name, val)] = value_obj
+                        else:
+                            value_obj = value_cache[(key_name, val)]
+
+                        variant.values.add(value_obj)
+            else:
+                # If product has no variants, generate a simple SKU
+                ProductVariant.objects.create(
+                    product=product,
+                    stock=stock,
+                    sku=f"{re.sub(r'[^A-Z0-9]', '', product.name.upper())[:8]}-{product.id:03d}"
+                )
+
             # Save extra images
             for image_path in additional_images:
                 ProductImage.objects.create(product=product, image=image_path)
-    
-            # ارسال پیام موفقیت و پاک‌سازی session
+
+            # Send success message
             self.bot.send_message(chat_id, t(message, "product_saved"))
-            self._cleanup_sessions(chat_id)
-    
+            session_manager.reset_user_session(message.chat.id, namespace="add_product")
+            session2 = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session2['add_product'] = False
+            session_manager.set_user_session(message.chat.id, session2, namespace="menu")
+
         except Exception as e:
-            print(f"Error in _save_complete_product: {e}\n{traceback.format_exc()}")
+            print(f"Error in get_additional_images: {e}\n{traceback.format_exc()}")
             self.bot.send_message(message.chat.id, t(message, "product_save_failed"))
-    
-    def _create_product_variants(self, product, session):
-        """ایجاد variants محصول"""
-        variants = session.get("variants", {})
-        variant_combinations = session.get("variant_combinations", [])
-        variants_stock = session.get("variants_stock", [])
-        
-        entries = variants_stock or [{"combination": combo, "stock": 0} for combo in variant_combinations]
-    
-        option_cache = {}
-        value_cache = {}
-        keys_order = list(variants.keys())
-    
-        if entries:
-            for entry in entries:
-                combo_raw = entry.get("combination") or entry.get("combo")
-                stock = int(entry.get("stock", 0)) if entry.get("stock") else 0
-                combo_list = list(combo_raw.values()) if isinstance(combo_raw, dict) else list(combo_raw)
-    
-                if len(combo_list) != len(keys_order):
-                    print(f"[warn] combo length mismatch: keys={keys_order} combo={combo_list}")
-                    continue
-    
-                sku = self.generate_readable_sku(product.name, combo_list, product.id)
-                variant = ProductVariant.objects.create(product=product, stock=stock, sku=sku)
-    
-                for i, key_name in enumerate(keys_order):
-                    val = combo_list[i]
-    
-                    if key_name not in option_cache:
-                        option_obj, _ = ProductOption.objects.get_or_create(product=product, name=key_name)
-                        option_cache[key_name] = option_obj
-                    else:
-                        option_obj = option_cache[key_name]
-    
-                    cache_key = (key_name, val)
-                    if cache_key not in value_cache:
-                        value_obj, _ = ProductOptionValue.objects.get_or_create(option=option_obj, value=val)
-                        value_cache[cache_key] = value_obj
-                    else:
-                        value_obj = value_cache[cache_key]
-    
-                    variant.values.add(value_obj)
-        else:
-            # If product has no variants, generate a simple SKU
-            ProductVariant.objects.create(
-                product=product,
-                stock=session.get("get_stock_d", 0),
-                sku=f"{re.sub(r'[^A-Z0-9]', '', product.name.upper())[:8]}-{product.id:03d}"
-            )
-    
-    def _cleanup_sessions(self, chat_id):
-        """پاک‌سازی sessionها پس از اتمام کار"""
-        session_manager.reset_user_session(chat_id, namespace="add_product")
-        
-        menu_session = session_manager.get_user_session(chat_id, namespace="menu")
-        if menu_session:
-            menu_session['add_product'] = False
-            session_manager.set_user_session(chat_id, menu_session, namespace="menu")
 
 
 

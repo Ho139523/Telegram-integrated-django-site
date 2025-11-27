@@ -1202,6 +1202,7 @@ def cancel_action(message):
     try:
         session = session_manager.get_user_session(message.chat.id, namespace="menu")
         if session.get("add_product") or session.get("delete_product") or session.get("deavtivate_product") or session.get("product_list"):
+            print("yes")
             product_bot.cancle_request(message)
             product(message)
         elif session.get("category"):
@@ -1255,22 +1256,83 @@ def add_product_ask_variant_decision(message):
     except Exception:
         print(traceback.format_exc())
 
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("variantkey"))
+def get_variant_key(message):
+    try:
+        product_bot.get_variant_key(message)
+    except:
+        print(traceback.format_exc())
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("variantvalue"))
+def get_variant_values(message):
+    try:
+        product_bot.get_variant_values(message)
+    except:
+        print(traceback.format_exc())
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("variant_add_key_answer"))
+def get_variant_add_key_answer(message):
+    try:
+        product_bot.get_variant_add_key_answer(message)
+    except:
+        print(traceback.format_exc())
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("variants_stock_values"))
+def get_variants_stock_values(message):
+    try:
+        product_bot.get_variants_stock_values(message)
+    except:
+        print(traceback.format_exc())
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("add_another_variant_key"))
+def add_another_variant_key(message):
+    try:
+        product_bot.get_add_another_variant_key(message)
+    except:
+        print(traceback.format_exc())
+
+
 @app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("get_description"))
 def add_product_get_description(message):
     try:
         session = session_manager.get_user_session(message.chat.id, namespace="add_product")
-        session["get_description"] = False
-        session["get_attribute"] = True
-        session["get_stock_d"] = int(message.text)
-            
-        session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+        
+        # اگر از حالت واریانت آمده‌ایم، موجودی قبلاً تنظیم شده
 
-        markup = send_menu(message, [t(message, "no_description")], "main menu", [t(message, "cancel_action")])    
-        app.send_message(message.chat.id, t(message, "enter_description"), reply_markup=markup)
+        if not session.get("no_variant"):
+            # حالت واریانت - فقط توضیحات را دریافت کن
+            description = None if message.text == t(message, "no_description") else message.text
+            session["get_description"] = False
+            session["get_attribute"] = True
+            session["get_description_d"] = description
+
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
+        else:
+            # حالت بدون واریانت - ابتدا موجودی را دریافت کن
+            stock_str = message.text.strip()
+            if not stock_str.isdigit():
+                app.send_message(message.chat.id, t(message, "balance_not_integer"))
+                return
+                
+            stock = int(stock_str)
+            session["get_stock_d"] = stock
+            session["get_description"] = False
+            session["get_attribute"] = True
+
+            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+
+            markup = send_menu(message, [t(message, "no_description")], "main menu", [t(message, "cancel_action")]) 
+            app.send_message(message.chat.id, t(message, "enter_description"), reply_markup=markup)
+            
     except ValueError:
-            app.send_message(message.chat.id, t(message, "balance_not_integer"))
+        app.send_message(message.chat.id, t(message, "balance_not_integer"))
     except Exception:
         print(traceback.format_exc())
+
 
 @app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="add_product").get("get_attribute"))
 def add_product_get_attributes(message):

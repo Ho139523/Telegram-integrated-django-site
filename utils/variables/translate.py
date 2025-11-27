@@ -1390,7 +1390,7 @@ translations = {
         "ar": "✅ تم حفظ مخزون المتغيرات بنجاح! (الإجمالي: {total} قطعة)\nالآن ننتقل إلى الخطوة التالية."
     },
     "variant_stock_question": {
-        "fa": "📦 چند عدد از «{combo_text}» موجود داریم؟ (حداکثر تا {remaining} عدد)",
+        "fa": "📦 چند عدد از «{combo_text}» موجود داریم؟",
         "en": "📦 How many units of “{combo_text}” are in stock? (Up to {remaining} items)",
         "ru": "📦 Сколько единиц «{combo_text}» есть на складе? (До {remaining} шт.)",
         "zh": "📦 “{combo_text}” 有多少库存？（最多 {remaining} 件）",

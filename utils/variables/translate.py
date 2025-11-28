@@ -1391,10 +1391,10 @@ translations = {
     },
     "variant_stock_question": {
         "fa": "📦 چند عدد از «{combo_text}» موجود داریم؟",
-        "en": "📦 How many units of “{combo_text}” are in stock? (Up to {remaining} items)",
-        "ru": "📦 Сколько единиц «{combo_text}» есть на складе? (До {remaining} шт.)",
-        "zh": "📦 “{combo_text}” 有多少库存？（最多 {remaining} 件）",
-        "ar": "📦 كم عدد «{combo_text}» المتوفر في المخزون؟ (بحد أقصى {remaining} قطعة)"
+        "en": "📦 How many units of “{combo_text}” are in stock?",
+        "ru": "📦 Сколько единиц «{combo_text}» есть на складе?",
+        "zh": "📦 “{combo_text}” 有多少库存",
+        "ar": "📦 كم عدد «{combo_text}» المتوفر في المخزون؟"
     },
     "variant_stock_partial_saved": {
         "fa": "✅ موجودی‌ها ثبت شد! (جمع فعلی: {total} عدد)\n",

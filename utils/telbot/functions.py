@@ -1355,6 +1355,9 @@ class ProductBot:
     
                 # نمایش ترکیب بعدی برای کاربر
                 combo_text = " ".join([f"{keys[i]}: {combinations[index][i]}" for i in range(len(keys))])
+                print(f"combo_text: {combo_text}")
+                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+                print(t(message, "variant_stock_question", combo_text=combo_text))
                 self.bot.send_message(chat_id, t(message, "variant_stock_question", combo_text=combo_text))
             else:
                 # تمام ترکیب‌ها تکمیل شده‌اند
@@ -1397,7 +1400,7 @@ class ProductBot:
         session = session_manager.get_user_session(message.chat.id, namespace="add_product")
         session["get_attribute"] = False
         session["get_more_attributes"] = True
-        session["get_description_d"] = message.text
+        session["get_description_d"] = description
 
         # تغییر وضعیت به مرحله ویژگی‌ها
         session_manager.set_user_session(message.chat.id, session, namespace="add_product")

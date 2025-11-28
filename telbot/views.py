@@ -458,6 +458,8 @@ def back_to_buyer(message):
 
 
 import os
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import arabic_reshaper
 from bidi.algorithm import get_display
 from datetime import datetime
@@ -468,157 +470,234 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
-import pandas as pd
+from django.core.cache import cache
+import tempfile
+import gc
 
+def generate_sales_pdf(store, sales_data, message_text, font_path):
+    """تابع جداگانه برای تولید PDF در thread جداگانه"""
+    try:
+        # ایجاد فایل موقت در حافظه
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+            file_path = temp_file.name
+
+        # تنظیمات PDF
+        p = canvas.Canvas(file_path, pagesize=A4)
+        p.setFont("Vazir", 12)  # کاهش سایز فونت برای صرفه‌جویی در فضا
+        
+        border_margin = 20  # کاهش حاشیه
+        
+        def draw_header_footer(page_num):
+            p.setStrokeColorRGB(0, 0, 0)
+            p.setLineWidth(2)  # کاهش ضخامت خط
+            p.rect(border_margin, border_margin, A4[0] - 2 * border_margin, A4[1] - 2 * border_margin)
+            
+            # حذف لوگو برای کاهش حجم فایل
+            title_text = get_display(arabic_reshaper.reshape(
+                message_text("sale_statistics_title", store_name=store.name)
+            ))
+            p.drawCentredString(A4[0] / 2, A4[1] - 80, title_text)
+            
+            # شماره صفحه کوچک‌تر
+            p.setFont("Vazir", 8)
+            p.drawCentredString(A4[0] / 2, border_margin - 12, f"Page {page_num}")
+            p.setFont("Vazir", 12)
+
+        # هدرهای جدول با ستون‌های بهینه‌شده
+        headers = [
+            get_display(arabic_reshaper.reshape(message_text("sale_statistics_index"))),
+            get_display(arabic_reshaper.reshape(message_text("sale_statistics_date"))),
+            get_display(arabic_reshaper.reshape(message_text("sale_statistics_quantity"))),
+            get_display(arabic_reshaper.reshape(message_text("sale_statistics_total_cost"))),
+            get_display(arabic_reshaper.reshape(message_text("sale_statistics_product_name"))),
+        ]
+        
+        data = [headers]
+        total_amount = 0
+        max_rows_per_page = 25  # افزایش تعداد ردیف در هر صفحه
+        start_y = A4[1] - 120  # تنظیم موقعیت شروع
+        page_num = 1
+        
+        draw_header_footer(page_num)
+        
+        # پردازش داده‌های فروش
+        for idx, sale in enumerate(sales_data, start=1):
+            total_amount += sale['total_price']
+            row = [
+                str(idx),
+                get_display(arabic_reshaper.reshape(sale['date'])),
+                str(sale['quantity']),
+                f"{sale['total_price']:,.0f}",
+                get_display(arabic_reshaper.reshape(sale['product_name'][:30])),  # محدود کردن طول نام محصول
+            ]
+            data.append(row)
+            
+            # ایجاد صفحه جدید در صورت نیاز
+            if len(data) > max_rows_per_page:
+                table = Table(data, colWidths=[40, 70, 50, 80, 120])  # عرض ستون‌های بهینه‌شده
+                table.setStyle(TableStyle([
+                    ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),  # فونت کوچک‌تر
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # خطوط نازک‌تر
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ]))
+                
+                table_x = border_margin + 10
+                table_y = start_y - (max_rows_per_page * 18) - 20  # کاهش فاصله
+                table.wrapOn(p, A4[0], A4[1])
+                table.drawOn(p, table_x, table_y)
+                
+                p.showPage()
+                p.setFont("Vazir", 12)
+                page_num += 1
+                draw_header_footer(page_num)
+                data = [headers]
+        
+        # ردیف مجموع
+        total_row = [
+            "", 
+            "", 
+            "", 
+            f"{total_amount:,.0f}", 
+            get_display(arabic_reshaper.reshape(message_text("sale_statistics_total")))
+        ]
+        data.append(total_row)
+        
+        # جدول نهایی
+        table = Table(data, colWidths=[40, 70, 50, 80, 120])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+            ('SPAN', (3, -1), (4, -1)),
+        ]))
+        
+        table_x = border_margin + 10
+        table_y = start_y - (len(data) * 18) - 20
+        table.wrapOn(p, A4[0], A4[1])
+        table.drawOn(p, table_x, table_y)
+        
+        p.save()
+        return file_path
+        
+    except Exception as e:
+        # پاک‌سازی در صورت خطا
+        if 'file_path' in locals() and os.path.exists(file_path):
+            os.unlink(file_path)
+        raise e
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_sale_statistics"))
 def sale_statistics(message):
     try:
-        if subscription.subscription_offer(message):
-            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-            store = Store.objects.filter(owner=profile).first()
+        # بررسی سریع subscription
+        if not subscription.subscription_offer(message):
+            return
 
-            if not store:
-                app.send_message(message.chat.id, t(message, "sale_statistics_no_store"))
-                return
+        chat_id = message.chat.id
+        cache_key = f"sale_stats_{chat_id}_{datetime.now().strftime('%Y%m%d')}"
+        
+        # بررسی کش برای جلوگیری از پردازش تکراری
+        if cache.get(cache_key):
+            app.send_message(chat_id, "در حال پردازش درخواست قبلی... لطفاً چند لحظه صبر کنید.")
+            return
+        
+        cache.set(cache_key, True, 300)  # کش به مدت 5 دقیقه
 
-            if profile.seller_mode:
+        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        store = Store.objects.filter(owner=profile).first()
+
+        if not store:
+            app.send_message(chat_id, t(message, "sale_statistics_no_store"))
+            cache.delete(cache_key)
+            return
+
+        if not profile.seller_mode:
+            app.send_message(chat_id, t(message, "not_a_seller_sale_statistics"))
+            cache.delete(cache_key)
+            return
+
+        # دریافت داده‌های فروش با کوئری بهینه
+        sales = Sale.objects.filter(
+            seller=store
+        ).select_related('product').only(
+            'created_at', 'quantity', 'total_price', 'product__name'
+        ).order_by("-created_at")[:1000]  # محدود کردن به 1000 رکورد اخیر
+
+        if not sales.exists():
+            app.send_message(chat_id, t(message, "sale_statistics_no_sale"), parse_mode="HTML")
+            cache.delete(cache_key)
+            return
+
+        # آماده‌سازی داده‌ها برای پردازش
+        sales_data = []
+        for sale in sales:
+            sales_data.append({
+                'date': sale.created_at.strftime('%Y-%m-%d'),
+                'quantity': sale.quantity,
+                'total_price': sale.total_price,
+                'product_name': sale.product.name
+            })
+
+        # ارسال پیام "در حال پردازش"
+        processing_msg = app.send_message(chat_id, "📊 در حال تولید گزارش...")
+
+        def generate_and_send_pdf():
+            try:
+                font_path = os.path.join(sett.MEDIA_ROOT, "fonts", "Vazir.ttf")
+                if not os.path.exists(font_path):
+                    raise FileNotFoundError("فونت Vazir یافت نشد")
+
+                pdfmetrics.registerFont(TTFont("Vazir", font_path))
+                
+                # تولید PDF در thread جداگانه
+                file_path = generate_sales_pdf(store, sales_data, t, font_path)
+                
+                # ارسال فایل
+                with open(file_path, "rb") as pdf_file:
+                    app.send_document(chat_id, pdf_file, 
+                                    caption=t(message, "sale_statistics_ready"))
+                
+                # حذف فایل موقت
+                os.unlink(file_path)
+                
+                # پاک‌سازی حافظه
+                gc.collect()
+                
+            except Exception as e:
+                app.send_message(chat_id, t(message, "sale_statistics_error"))
+                print(f"Error generating PDF: {traceback.format_exc()}")
+            finally:
+                # حذف پیام در حال پردازش و پاک‌سازی کش
                 try:
-                    sales = Sale.objects.filter(seller=Store.objects.get(owner=profile)).order_by("-created_at")
+                    app.delete_message(chat_id, processing_msg.message_id)
+                except:
+                    pass
+                cache.delete(cache_key)
 
-                    if not sales.exists():
-                        app.send_message(message.chat.id, t(message, "sale_statistics_no_sale"), parse_mode="HTML")
-                        return
+        # اجرای تولید PDF در thread جداگانه
+        import threading
+        thread = threading.Thread(target=generate_and_send_pdf)
+        thread.daemon = True
+        thread.start()
 
-                    today_date = datetime.today().strftime('%Y-%m-%d')
-                    directory = os.path.join(sett.MEDIA_ROOT, "sale_reports")
-                    if not os.path.exists(directory):
-                        os.makedirs(directory)
+        # پاسخ فوری به کاربر
+        app.send_message(chat_id, "✅ درخواست شما دریافت شد. گزارش در حال آماده‌سازی است...")
 
-                    file_path = os.path.join(directory, f"{store.name}_{store.owner.fname} {store.owner.lname}_{today_date}.pdf")
-                    font_path = os.path.join(sett.MEDIA_ROOT, "fonts", "Vazir.ttf")
-                    pdfmetrics.registerFont(TTFont("Vazir", font_path))
-
-                    p = canvas.Canvas(file_path, pagesize=A4)
-                    p.setFont("Vazir", 14)
-                    
-                    border_margin = 28
-                    
-                    def draw_header_footer(page_num):
-                        p.setStrokeColorRGB(0, 0, 0)
-                        p.setLineWidth(5)
-                        p.rect(border_margin, border_margin, A4[0] - 2 * border_margin, A4[1] - 2 * border_margin)
-                        
-                        logo_dir = os.path.join(sett.MEDIA_ROOT, "store_logos")
-                        store_logo_path = os.path.join(logo_dir, f"{store.name}.png")
-                        default_logo_path = os.path.join(logo_dir, "default_store.png")
-
-                        logo_x = 65
-                        logo_y = A4[1] - 125
-
-                        logo_path = store_logo_path if os.path.exists(store_logo_path) else default_logo_path
-                        logo_image = ImageReader(logo_path)
-                        orig_width, orig_height = logo_image.getSize()
-
-                        new_height = 65
-                        new_width = (orig_width / orig_height) * new_height
-
-                        p.drawImage(logo_path, logo_x, logo_y, width=new_width, height=new_height, mask='auto')
-                        title_text = get_display(arabic_reshaper.reshape(t(message, "sale_statistics_title", store_name=store.name)))
-                        p.drawCentredString(A4[0] / 2, A4[1] - 100, title_text)
-                        
-                        p.drawCentredString(A4[0] / 2, border_margin - 18, f"{page_num}")
-                    
-                    headers = [
-                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_date"))),
-                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_quantity"))),
-                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_total_cost"))),
-                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_product_name"))),
-                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_index")))
-                    ]
-                    
-                    data = [headers]
-                    total_amount = 0
-                    max_rows_per_page = 20
-                    start_y = A4[1] - 160
-                    page_num = 1
-                    
-                    draw_header_footer(page_num)
-                    
-                    for idx, sale in enumerate(sales, start=1):
-                        total_amount += sale.total_price
-                        row = [
-                            get_display(arabic_reshaper.reshape(sale.created_at.strftime('%Y-%m-%d'))),
-                            str(sale.quantity),
-                            f"{sale.total_price:,.0f}",
-                            get_display(arabic_reshaper.reshape(sale.product.name)),
-                            str(idx)
-                        ]
-                        data.append(row)
-                        
-                        if len(data) > max_rows_per_page:
-                            table = Table(data, colWidths=[80, 60, 120, 150, 50], repeatRows=1)
-                            table.setStyle(TableStyle([
-                                ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
-                                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                            ]))
-                            
-                            table_x = (A4[0] - 500) / 2
-                            table_y = start_y - (max_rows_per_page * 20) - 40
-                            table.wrapOn(p, A4[0], A4[1])
-                            table.drawOn(p, table_x, table_y)
-                            
-                            p.showPage()
-                            p.setFont("Vazir", 14)
-                            page_num += 1
-                            draw_header_footer(page_num)
-                            data = [headers]
-                    
-                    total_row = [
-                        "", 
-                        "", 
-                        f"{total_amount:,.0f}", 
-                        get_display(arabic_reshaper.reshape(t(message, "sale_statistics_total"))),
-                        ""
-                    ]
-                    data.append(total_row)
-                    
-                    table = Table(data, colWidths=[80, 60, 120, 150, 50], repeatRows=1)
-                    table.setStyle(TableStyle([
-                        ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
-                        ('SPAN', (3, -1), (4, -1)),
-                        ('ALIGN', (3, -1), (4, -1), 'CENTER'),
-                    ]))
-                    
-                    table_x = (A4[0] - 500) / 2
-                    table_y = start_y - (len(data) * 20) - 40
-                    table.wrapOn(p, A4[0], A4[1])
-                    table.drawOn(p, table_x, table_y)
-                    
-                    p.showPage()
-                    p.save()
-                    
-                    with open(file_path, "rb") as pdf_file:
-                        app.send_document(message.chat.id, pdf_file, caption=t(message, "sale_statistics_ready"))
-                    
-                    os.remove(file_path)
-                except Exception as e:
-                    error_message = traceback.format_exc()
-                    print(error_message)
-                    app.send_message(message.chat.id, t(message, "sale_statistics_error"))
-            else:
-                app.send_message(message.chat.id, t(message, "not_a_seller_sale_statistics"))
     except Exception as e:
         error_message = traceback.format_exc()
-        app.send_message(message.chat.id, f"your error is: {error_message}")
+        print(f"Sale statistics error: {error_message}")
+        app.send_message(message.chat.id, t(message, "sale_statistics_error"))
+        
+        # پاک‌سازی کش در صورت خطا
+        cache_key = f"sale_stats_{message.chat.id}_{datetime.now().strftime('%Y%m%d')}"
+        cache.delete(cache_key)
 
 
+        
 @app.callback_query_handler(
     func=lambda call: "increase_" in call.data or "decrease_" in call.data or "addtocart_" in call.data)
 def handle_product_buttons(call):
@@ -1305,6 +1384,7 @@ def add_product_get_description(message):
         if not session.get("no_variant"):
             # حالت واریانت - فقط توضیحات را دریافت کن
             description = None if message.text == t(message, "no_description") else message.text
+            print(description)
             session["get_description"] = False
             session["get_attribute"] = True
             session["get_description_d"] = description

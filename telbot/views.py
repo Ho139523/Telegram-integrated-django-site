@@ -1660,7 +1660,7 @@ def cat_delete(message):
             cat.delete()
             category_class = CategoryClass()
             if not cat.store.categories.exists():
-                home(message)
+                category(message)
                 return
             if parent:
                 if parent[0].get_all_subcategories():
@@ -1676,7 +1676,7 @@ def cat_delete(message):
             cat.save()
             parent = cat.get_parents()
             if not [c for c in cat.store.categories.all() if c.status]:
-                home(message)
+                category(message)
                 return
             category_class = CategoryClass()
             if parent:
@@ -1705,7 +1705,7 @@ def deactivate_category(message):
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
                 session["category_deactivate"] = True
                 session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                if not Category.objects.filter(store=profile.server_store).exists():
+                if not Category.objects.filter(store=get_user_store(message)).exists():
                     app.send_message(message.chat.id, t(message, "no_categories_for_toggle"))
                     return
                 category_class = CategoryClass()

@@ -922,6 +922,10 @@ class CategoryClass:
                         text = t(message, "category_deleted_successfully")
                         session["delete_sure"] = False
                         session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                    elif session.get("category") and session.get("menu_delete"):
+                        text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
+                    elif session.get("category") and session.get("category_deactivate"):
+                        text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
                     else:
                         button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
                         for b in button:
@@ -953,7 +957,7 @@ class CategoryClass:
                 if b in extra_menu:
                     extra_menu.remove(b)
 
-            markup = send_menu(message, [t(message, "cancel_action")], 'cat_delete_sure', extra_menu)
+            markup = send_menu(message, [], 'cat_delete_sure', extra_menu)
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
             app.send_message(message.chat.id, t(message, "enter_new_category_title"), reply_markup=markup)
@@ -1834,8 +1838,9 @@ from telethon.tl.types import InputMediaPhoto
 from django.db import models
 from django.core.cache import cache
 import threading
+from asgiref.sync import sync_to_async
 
-@add_performance_monitoring_to_class
+#@add_performance_monitoring_to_class
 class ProductHandler:
     """مدیریت ارسال پیام و اطلاعات محصول - نسخه بهینه‌شده"""
     
@@ -1914,6 +1919,25 @@ class ProductHandler:
         self._variants_data_cache = result
         
         return result
+
+    async def async_get_product_variants_data(self):
+        variants = await sync_to_async(list)(
+            ProductAttribute.objects.filter(product=self.product)
+        )
+
+        variants_dict = {}
+
+        for variant in variants:
+            key = variant.key
+            value = variant.value
+            if key not in variants_dict:
+                variants_dict[key] = []
+            if value:
+                variants_dict[key].append(value)
+
+        return {
+            "variants_dict": variants_dict
+        }
 
     def get_variants_dict(self, variants=None):
         """تبدیل واریانت‌ها به دیکشنری - کاملاً از کش استفاده می‌کند"""
@@ -1999,11 +2023,46 @@ class ProductHandler:
             f"{self.format_price()}\n"
         )
 
+    async def async_generate_caption(self):
+        brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
+        description_text = f"{self.product.description}\n" if self.product.description else ""
+
+        # Attributes سینک نیست → مشکلی ندارد
+        attribute_text = ""
+        if self.attributes:
+            attribute_text = "\n✅ ".join(
+                [f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in self.attributes]
+            )
+            attribute_text = f"✅ {attribute_text}\n\n"
+
+        # --- واریانت‌ها (async) ---
+        variants_data = await self.async_get_product_variants_data()
+
+        variants_text = ""
+        if variants_data['variants_dict']:
+            variant_lines = [
+                f"{key}: {', '.join(values)}"
+                for key, values in variants_data['variants_dict'].items()
+            ]
+            variants_text = "✅ " + "\n✅ ".join(variant_lines) + "\n\n"
+
+        return (
+            f"\n⭕️ نام کالا: {self.product.name}\n"
+            f"{brand_text}"
+            f"کد کالا: {self.product.code}\n\n"
+            f"{description_text}\n"
+            f"{attribute_text}"
+            f"{variants_text}"
+            f"📫 ارسال به تمام نقاط کشور\n\n"
+            f"{self.format_price()}\n"
+        )
+
+
     async def send_product_channel(self, chat_id, buttons=True):
-        """ارسال محصول در کانال - نسخه بهینه"""
         try:
-            caption = self.generate_caption()
-            
+            caption = await self.async_generate_caption()
+
+            # اگر هیچ عکسی وجود نداشت
             if not self.photos:
                 await self.app.send_message(
                     chat_id,
@@ -2013,28 +2072,35 @@ class ProductHandler:
                 )
                 return
 
-            # ارسال سریع فقط اولین عکس
-            files = self.photos[:1]  # فقط یک عکس
-            input_file = await self.app.upload_file(files[0])
-            
+            # --- آماده‌سازی فایل‌ها ---
+            files = []
+            for p in self.photos:
+                files.append(await self.app.upload_file(p))
+
+            print("✅ All product images added. Sending album...")
+
+            # --- ارسال آلبوم با کپشن روی تصویر اول ---
             await self.app.send_file(
                 chat_id,
-                input_file,
-                caption=caption,
+                files,
+                caption=caption,          # کپشن فقط روی اولین عکس قرار می‌گیرد
                 parse_mode="html",
+                supports_streaming=True
             )
 
-            # دکمه در پس‌زمینه
+            print("✅ Album sent successfully.")
+
+            # --- ارسال دکمه در پیام جدا ---
             if buttons:
-                self.app.send_message(
-                    chat_id, 
-                    "To see the comments on this product or make the purchase click", 
-                    parse_mode="html", 
+                await self.app.send_message(
+                    chat_id,
+                    "برای مشاهده نظرات یا خرید این محصول کلیک کنید:",
+                    parse_mode="html",
                     buttons=[[Button.inline("🛒 همین حالا بخرش", b"buy_now")]]
                 )
 
-        except Exception as e:
-            print(f"⚠ خطا در ارسال محصول: {traceback.format_exc()}")
+        except Exception:
+            print("⚠ خطا در ارسال محصول:", traceback.format_exc())
 
     def send_product_message(self, chat_id, buttons=True):
         """ارسال محصول با دکمه‌های سریع"""

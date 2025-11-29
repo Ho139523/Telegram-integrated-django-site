@@ -704,27 +704,36 @@ def handle_product_buttons(call):
     try:
         data = call.data.split("_")
         action = data[0]  # increase, decrease, addtocart
-        product_code = str(data[-1])
+        
+        # استخراج product_code (همیشه در index 1 هست)
+        if len(data) < 2:
+            app.answer_callback_query(call.id, "داده‌های نامعتبر!", show_alert=True)
+            return
+            
+        product_code = str(data[1])
 
         if not product_code:
+            app.answer_callback_query(call.id, "کد محصول نامعتبر است!", show_alert=True)
             return
 
-        product = Product.objects.get(code=product_code)
+        try:
+            product = Product.objects.get(code=product_code)
+        except Product.DoesNotExist:
+            app.answer_callback_query(call.id, "محصول یافت نشد!", show_alert=True)
+            return
+
         product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
         
-        
+        # هندلرها خودشون variant_id رو از call.data استخراج می‌کنن
         if action == "addtocart":
             product_handler.handle_add_to_cart(call)
         else:
             product_handler.handle_buttons(call)
 
-    except ObjectDoesNotExist:
-        app.answer_callback_query(call.id, "محصول یافت نشد!", show_alert=True)
     except Exception as e:
         error_message = traceback.format_exc()
         print(f"Error in handle_product_buttons: {e}\n{error_message}")
         app.answer_callback_query(call.id, "خطا در پردازش درخواست!", show_alert=True)
-
 
 @app.callback_query_handler(func=lambda call: "VarPrev_" in call.data or "VarNext_" in call.data)
 def handle_variant_navigation(call):
@@ -767,7 +776,7 @@ def handle_comments(call):
         print(f"Error in handle_comments: {e}\n{error_message}")
 
 
-@app.callback_query_handler(func=lambda call: "remove" in call.data or "sudoincrease" in call.data)
+@app.callback_query_handler(func=lambda call: any(x in call.data for x in ["remove", "add", "reduce"]))
 def handle_cart_operations(call):
     try:
         data = call.data.split("_")
@@ -778,7 +787,7 @@ def handle_cart_operations(call):
             send_cart.remove_item(call)
             return
             
-        if "cart" in call.data:
+        if action == "add" or action == "reduce":
             send_cart = SendCart(app, call.message)
             send_cart.add(call)
             return

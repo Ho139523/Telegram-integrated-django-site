@@ -2225,10 +2225,11 @@ class ProductHandler:
             
             if cart_item_exists:
                 # حالت شمارنده
+                variant_id = variant.id if variant else "0"
                 buttons.extend([
-                    ("➕", f"increase_{self.product.code}", 2),
+                    ("➕", f"increase_{self.product.code}_{variant_id}", 2),
                     (f"{current_quantity}", "count", 1),
-                    ("➖", f"decrease_{self.product.code}", 0),
+                    ("➖", f"decrease_{self.product.code}_{variant_id}", 0),
                 ])
                 
                 handlers.update({
@@ -2380,11 +2381,13 @@ class ProductHandler:
             print(f"❌ Error in handle_add_to_cart: {traceback.format_exc()}")
 
     def handle_buttons(self, call):
-        """مدیریت دکمه‌های افزایش/کاهش"""
+        """مدیریت دکمه‌های افزایش/کاهش با در نظر گرفتن واریانت"""
         try:
             data = call.data.split("_")
-            action = data[0]
+            action = data[0]  # increase یا decrease
             product_code = str(data[1])
+            variant_id = str(data[2]) if len(data) > 2 else "0"  # 🆕 گرفتن variant_id
+            
             chat_id = call.message.chat.id
             message_id = call.message.message_id
 
@@ -2406,25 +2409,45 @@ class ProductHandler:
                     if selected_index < len(values_list):
                         selected_values[key] = values_list[selected_index]
 
+            # 🆕 پیدا کردن واریانت بر اساس variant_id از callback_data
             variant = None
-            if selected_values:
+            if variant_id != "0":
+                try:
+                    variant = ProductVariant.objects.get(id=variant_id, product=product)
+                except ProductVariant.DoesNotExist:
+                    print(f"Variant with id {variant_id} not found, using selected values")
+                    # اگر variant_id پیدا نشد، از selected_values استفاده کن
+                    if selected_values:
+                        variant = self.get_variant_by_selected_values(product, selected_values)
+            elif selected_values:
+                # اگر variant_id نداریم اما selected_values داریم
                 variant = self.get_variant_by_selected_values(product, selected_values)
 
+            # 🆕 جستجوی دقیق CartItem بر اساس محصول و واریانت
             cart_item = None
             if variant:
-                cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
+                cart_item = CartItem.objects.filter(
+                    cart=cart, 
+                    product=product, 
+                    variant=variant
+                ).first()
             else:
-                if not product.variants.exists():
-                    cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
+                # اگر واریانت نداریم
+                cart_item = CartItem.objects.filter(
+                    cart=cart, 
+                    product=product, 
+                    variant__isnull=True
+                ).first()
 
             should_show_initial = False
 
             if action == "increase":
                 if not cart_item:
+                    # ایجاد آیتم جدید با واریانت صحیح
                     cart_item = CartItem.objects.create(
                         cart=cart, 
                         product=product,
-                        variant=variant,
+                        variant=variant,  # 🆕 ذخیره واریانت
                         quantity=1
                     )
                 else:
@@ -2433,7 +2456,11 @@ class ProductHandler:
                         cart_item.quantity += 1
                         cart_item.save()
                     else:
-                        self.app.answer_callback_query(call.id, f"متاسفانه، بیشتر از {max_stock} عدد در انبار موجود نیست!", show_alert=True)
+                        self.app.answer_callback_query(
+                            call.id, 
+                            f"متاسفانه، بیشتر از {max_stock} عدد در انبار موجود نیست!", 
+                            show_alert=True
+                        )
                         return
                         
             elif action == "decrease":
@@ -2459,8 +2486,11 @@ class ProductHandler:
         except Exception as e:
             print(f"Error in handle_buttons: {traceback.format_exc()}")
 
+
+
+
     def update_product_message(self, chat_id, message_id, product, cart):
-        """آپدیت پیام محصول"""
+        """آپدیت پیام محصول با در نظر گرفتن واریانت"""
         try:
             session = SessionManager()
             user_session = session.get_user_session(chat_id, namespace="variants")
@@ -2483,12 +2513,20 @@ class ProductHandler:
             if selected_values:
                 variant = self.get_variant_by_selected_values(product, selected_values)
 
+            # 🆕 جستجوی دقیق CartItem
             cart_item = None
             if variant:
-                cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
+                cart_item = CartItem.objects.filter(
+                    cart=cart, 
+                    product=product, 
+                    variant=variant
+                ).first()
             else:
-                if not product.variants.exists():
-                    cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
+                cart_item = CartItem.objects.filter(
+                    cart=cart, 
+                    product=product, 
+                    variant__isnull=True
+                ).first()
 
             if cart_item:
                 current_quantity = cart_item.quantity
@@ -2497,16 +2535,17 @@ class ProductHandler:
             buttons = []
             handlers = {}
 
-            # حالت شمارنده
+            # 🆕 اضافه کردن variant_id به callback_dataهای افزایش/کاهش
+            variant_id = variant.id if variant else "0"
             buttons.extend([
-                ("➕", f"increase_{product.code}", 2),
+                ("➕", f"increase_{self.product.code}_{variant_id}", 2),
                 (f"{current_quantity}", "count", 1),
-                ("➖", f"decrease_{product.code}", 0),
+                ("➖", f"decrease_{self.product.code}_{variant_id}", 0),
             ])
             
             handlers = {
-                f"increase_{product.code}": self.handle_buttons,
-                f"decrease_{product.code}": self.handle_buttons,
+                f"increase_{product.code}_{variant_id}": self.handle_buttons,
+                f"decrease_{product.code}_{variant_id}": self.handle_buttons,
             }
             
             # دکمه‌های واریانت
@@ -2549,6 +2588,8 @@ class ProductHandler:
 
         except Exception as e:
             print(f"❌ Error in update_product_message: {traceback.format_exc()}")
+
+
 
     def handle_variant_navigation(self, call):
         """مدیریت ناوبری واریانت‌ها"""
@@ -2617,25 +2658,21 @@ class SendCart:
         try:
             self.app = app
             self.chat_id = message.chat.id
-            self.session = CartSessionManager(self.chat_id)  # اضافه کردن CartSessionManager
+            self.session = CartSessionManager(self.chat_id)
             self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
             self.cart = Cart.objects.filter(profile=self.profile).first()
             if self.cart:
                 self.cart.items.filter(quantity=0).delete()
             self.current_site = 'https://intelleum.ir:8443'
-
-
+                                                                
             if not self.cart:
-                
                 try:
-                    if hasattr(message, "message_id") and hasattr(message, "text"):  
-                        # یعنی از طرف کاربر پیام متنی اومده
+                    if hasattr(message, "message_id") and hasattr(message, "text"):
                         self.app.send_message(
                             chat_id=message.chat.id,
                             text=t(message, "cart_empty")
                         )
                     else:
-                        # یعنی از طرف callback_query اومده (دکمه فشرده شده)
                         self.app.edit_message_text(
                             chat_id=message.message.chat.id,
                             message_id=message.message.message_id,
@@ -2646,24 +2683,30 @@ class SendCart:
                     return
                 except Exception as e:
                     print(f"{traceback.format_exc()}")
+            
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
             self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
 
-            # بازیابی دکمه‌های قبلی اگر وجود داشته باشند
             stored_buttons = self.session.get_buttons()
-
             self.buttons = OrderedDict()
 
-
-            # اگر دکمه‌ها قبلاً تنظیم نشده باشند، آن‌ها را مقداردهی اولیه می‌کنیم
             if not self.buttons and self.cart:
                 for index, item in enumerate(self.cart.items.all(), start=1):
+                    # اضافه کردن variant_id به callback_data
+                    variant_id = item.variant.id if item.variant else "0"
                     title = f"{item.product.name} × {item.quantity} \t\t\t\t▼"
-                    self.buttons[title] = (f"product_show_{item.product.code}", index)
+                    self.buttons[title] = (f"product_show_{item.product.code}_{variant_id}", index)
 
                 self.buttons["✅ تکمیل خرید و پرداخت"] = ("confirm order", len(self.buttons) + 1)
 
-
+            # ایجاد handlers با در نظر گرفتن واریانت
+            handlers = {
+                "confirm order": self.invoice,
+            }
+            for item in self.cart.items.all():
+                variant_id = item.variant.id if item.variant else "0"
+                callback_data = f"product_show_{item.product.code}_{variant_id}"
+                handlers[callback_data] = self.handle_buttons
 
             self.markup = SendMarkup(
                 bot=self.app,
@@ -2671,92 +2714,103 @@ class SendCart:
                 text=self.text,
                 buttons=self.buttons,
                 button_layout=[1] * len(self.buttons),
-                handlers={
-                    "confirm order": self.invoice,
-                    **{f"product_show_{item.product.code}": self.handle_buttons for item in self.cart.items.all()}
-                }
+                handlers=handlers
             )
         except Exception as e:
             print(f"Error in __init__: {e}\n{traceback.format_exc()}")
 
 
+            
+
     def handle_buttons(self, call):
         try:
             if call.data.startswith("product_show_"):
-                product_code = call.data.split("_")[-1]
-                item = self.cart.items.get(product__code=product_code)
+                # استخراج product_code و variant_id از callback_data
+                parts = call.data.split("_")
+                product_code = parts[2]
+                variant_id = parts[3] if len(parts) > 3 else "0"
+                
+                # جستجوی دقیق بر اساس محصول و واریانت
+                if variant_id != "0":
+                    item = self.cart.items.get(
+                        product__code=product_code, 
+                        variant__id=variant_id
+                    )
+                else:
+                    item = self.cart.items.get(
+                        product__code=product_code, 
+                        variant__isnull=True
+                    )
 
-                if item:
-                    stored_buttons = self.session.get_buttons()  # دریافت دکمه‌های ذخیره‌شده
-                    product_title = next((key for key in stored_buttons if stored_buttons[key][0] == call.data), None)
+                if not item:
+                    print(f"Error: {call.data} not found in cart!")
+                    return
 
-                    if not product_title:
-                        print(f"Error: {call.data} not found in buttons!")
-                        return
+                stored_buttons = self.session.get_buttons()
+                product_title = next((key for key in stored_buttons if stored_buttons[key][0] == call.data), None)
 
-                    product_index = list(stored_buttons.keys()).index(product_title)
-                    new_buttons = {}
-                    new_layout = []
-                    expanded = product_title.endswith("▲")  # آیا دکمه کلیک‌شده باز است؟
-                    new_title = product_title.replace("▲", "▼") if expanded else product_title.replace("▼", "▲")
+                if not product_title:
+                    print(f"Error: {call.data} not found in buttons!")
+                    return
 
-                    # **🔹 بررسی اینکه آیا دکمه دیگری باز است؟**
-                    stored_buttons = self.session.get_buttons()
-                    currently_open = next((key for key in stored_buttons.keys() if key.endswith("▲")), None)
+                product_index = list(stored_buttons.keys()).index(product_title)
+                new_buttons = {}
+                new_layout = []
+                expanded = product_title.endswith("▲")
+                new_title = product_title.replace("▲", "▼") if expanded else product_title.replace("▼", "▲")
 
-                    for idx, (key, value) in enumerate(stored_buttons.items()):
-                        if key == currently_open and key != product_title:
-                            new_buttons[currently_open.replace("▲", "▼")] = tuple(value)  # بستن دکمه قبلی
-                            new_layout.append(1)
+                # بررسی اینکه آیا دکمه دیگری باز است؟
+                stored_buttons = self.session.get_buttons()
+                currently_open = next((key for key in stored_buttons.keys() if key.endswith("▲")), None)
 
+                for idx, (key, value) in enumerate(stored_buttons.items()):
+                    if key == currently_open and key != product_title:
+                        new_buttons[currently_open.replace("▲", "▼")] = tuple(value)
+                        new_layout.append(1)
+                    elif idx == product_index:
+                        new_buttons[new_title] = (value[0], product_index)
+                        new_layout.append(1)
 
-                        elif idx == product_index:
-                            new_buttons[new_title] = (value[0], product_index)  # اینجا مقدار جدید به‌درستی تاپل است
-                            new_layout.append(1)
-
-                            if not expanded:
-                                new_buttons["❌"] = (f"remove_{product_code}_cart", product_index + 1)
-                                new_buttons["➖"] = (f"decrease_{product_code}_cart", product_index + 1)
-                                new_buttons["➕"] = (f"increase_{product_code}_cart", product_index + 1)
-                                new_layout.append(3)
-
-                        elif key not in ["❌", "➖", "➕"]:
-                            new_buttons[key] = tuple(value)  # همیشه مقدار را به تاپل تبدیل کنید
+                        if not expanded:
+                            # اضافه کردن variant_id به دکمه‌های کنترل
+                            variant_id = item.variant.id if item.variant else "0"
+                            new_buttons["❌"] = (f"remove_{product_code}_{variant_id}_cart", product_index + 1)
+                            new_buttons["➖"] = (f"reduce_{product_code}_{variant_id}_cart", product_index + 1)
+                            new_buttons["➕"] = (f"add_{product_code}_{variant_id}_cart", product_index + 1)
                             new_layout.append(3)
+                    elif key not in ["❌", "➖", "➕"]:
+                        new_buttons[key] = tuple(value)
+                        new_layout.append(3)
 
+                # مرتب‌سازی بر اساس جایگاه
+                sorted_buttons = OrderedDict(sorted(new_buttons.items(), key=lambda x: x[1][1]))
 
+                # اضافه کردن دکمه پرداخت در انتها
+                sorted_buttons["✅ تکمیل خرید و پرداخت"] = ("confirm order", len(sorted_buttons) + 1)
 
+                # ذخیره وضعیت جدید در سشن
+                self.session.update_buttons(sorted_buttons)
 
-                    # **🔹 مرتب‌سازی بر اساس جایگاه**
-                    sorted_buttons = OrderedDict(sorted(new_buttons.items(), key=lambda x: x[1][1]))
+                # ویرایش دکمه‌ها
+                self.markup.text = self.text
+                self.markup.buttons = sorted_buttons
+                self.markup.button_layout = [1 if "remove" not in v[0] else 3 for v in sorted_buttons.values()]
+                self.markup.edit(call.message.message_id)
 
-                    # **اضافه کردن دکمه پرداخت در انتها**
-                    sorted_buttons["✅ تکمیل خرید و پرداخت"] = ("confirm order", len(sorted_buttons) + 1)
-
-                    # **ذخیره وضعیت جدید در سشن**
-                    self.session.update_buttons(sorted_buttons)
-
-                    # **ویرایش دکمه‌ها**
-                    self.markup.text = self.text
-                    self.markup.buttons = sorted_buttons
-                    self.markup.button_layout = [1 if "remove" not in v[0] else 3 for v in sorted_buttons.values()]
-                    self.markup.edit(call.message.message_id)
-
-                    self.app.answer_callback_query(call.id, f"وضعیت {item.product.name} تغییر یافت.")
-
-
+                self.app.answer_callback_query(call.id, f"وضعیت {item.product.name} تغییر یافت.")
 
         except Exception as e:
             print(f"Error in handle_buttons: {e}\n{traceback.format_exc()}")
 
+
+            
     def send(self, message):
         try:
-            # حذف آیتم‌هایی که تعدادشان صفر شده است
             self.cart.items.filter(quantity=0).delete()
 
             if not self.cart or not self.cart.items.exists():
                 self.app.send_message(
-                    chat_id=message.chat.id,
+                    chat_id=message.message.chat.id,
                     text=t(message, "cart_empty"),
                 )
                 self.cart = None
@@ -2765,15 +2819,16 @@ class SendCart:
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
             self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
 
-            # به‌روزرسانی دکمه‌ها پس از حذف آیتم‌های صفر شده
             self.buttons = OrderedDict()
             for index, item in enumerate(self.cart.items.all(), start=1):
+                # اضافه کردن variant_id به callback_data
+                variant_id = item.variant.id if item.variant else "0"
                 title = f"{item.product.name} × {item.quantity} \t\t\t\t▼"
-                self.buttons[title] = (f"product_show_{item.product.code}", index)
+                self.buttons[title] = (f"product_show_{item.product.code}_{variant_id}", index)
 
             self.buttons["✅ تکمیل خرید و پرداخت"] = ("confirm order", len(self.buttons) + 1)
 
-            self.session.set_buttons(self.buttons)  # ذخیره دکمه‌ها در سشن
+            self.session.set_buttons(self.buttons)
             self.session.update_buttons(self.buttons)
             self.markup.send()
 
@@ -2781,115 +2836,114 @@ class SendCart:
             print(f"Error in send: {e}\n{traceback.format_exc()}")
 
 
+
+
     def add(self, call):
         try:
             data = call.data.split("_")
             action = data[0]  # increase یا decrease
             product_code = str(data[1]) if len(data) > 1 else None
+            variant_id = str(data[2]) if len(data) > 2 else "0"
+            
             product = Product.objects.get(code=product_code)
             profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
             cart = Cart.objects.get(profile=profile)
 
-            try:
-                cart_item = CartItem.objects.get(cart=cart, product=product)
-            except CartItem.DoesNotExist:
-                self.app.answer_callback_query(call.id, "این محصول دیگر در سبد خرید شما نیست!", show_alert=True)
-                return  # ادامه اجرای تابع متوقف شود
+            # جستجوی دقیق بر اساس محصول و واریانت
+            if variant_id != "0":
+                cart_item = CartItem.objects.get(cart=cart, product=product, variant__id=variant_id)
+            else:
+                cart_item = CartItem.objects.get(cart=cart, product=product, variant__isnull=True)
 
-
-            if action == "increase":
-                if cart_item.quantity < product.stock:  # جلوگیری از سفارش بیش از موجودی
+            if action == "add":
+                if cart_item.quantity < product.stock:
                     cart_item.quantity += 1
                 else:
                     self.app.answer_callback_query(call.id, f"متاسفانه، بیشتر از {product.stock} عدد در انبار فروشگاه موجود نیست!", show_alert=True)
-            elif action == "decrease" and cart_item.quantity > 1:
+            elif action == "reduce" and cart_item.quantity > 1:
                 cart_item.quantity -= 1
+            elif action == "reduce" and cart_item.quantity == 1:
+                self.app.answer_callback_query(call.id, f"حداقل مقدار یک عدد می باشد. برای حذف کامل روی دکمه ❌ کلیک کنید.", show_alert=True)
             cart_item.save()
 
-            # دریافت دکمه‌های ذخیره‌شده از سشن
+            # بقیه کد بدون تغییر...
             stored_buttons = self.session.get_buttons()
-
-            # بررسی اینکه کدام دکمه باز است (فلش بالا `▲` دارد)
             currently_open = next((key for key in stored_buttons.keys() if key.endswith("▲")), None)
 
-            # ساخت دکمه‌های جدید
             new_buttons = OrderedDict()
             new_layout = []
 
             for key, value in stored_buttons.items():
                 if key == currently_open:
-                    # به‌روزرسانی تعداد محصول در دکمه باز
                     new_title = f"{product.name} × {cart_item.quantity} \t\t\t\t▲"
                     new_buttons[new_title] = value
                     new_layout.append(1)
 
-                    # دکمه‌های افزایش، کاهش و حذف را حفظ می‌کنیم
-                    new_buttons["❌"] = (f"remove_{product_code}_cart", value[1] + 1)
-                    new_buttons["➖"] = (f"decrease_{product_code}_cart", value[1] + 1)
-                    new_buttons["➕"] = (f"increase_{product_code}_cart", value[1] + 1)
+                    # اضافه کردن variant_id به دکمه‌های کنترل
+                    new_buttons["❌"] = (f"remove_{product_code}_{variant_id}_cart", value[1] + 1)
+                    new_buttons["➖"] = (f"reduce_{product_code}_{variant_id}_cart", value[1] + 1)
+                    new_buttons["➕"] = (f"add_{product_code}_{variant_id}_cart", value[1] + 1)
                     new_layout.append(3)
 
                 elif key not in ["❌", "➖", "➕"]:
-                    # سایر دکمه‌ها را بدون تغییر نگه می‌داریم
                     new_buttons[key] = value
                     new_layout.append(1)
 
-            # به‌روزرسانی مجموع قیمت
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
             self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
 
-            # ذخیره دکمه‌های جدید در سشن
             self.session.update_buttons(new_buttons)
 
-            # ویرایش پیام و دکمه‌ها
             self.markup.text = self.text
+            
             self.markup.buttons = new_buttons
             self.markup.button_layout = new_layout
             self.markup.edit(call.message.message_id)
+            
 
         except Exception as e:
             print(f"Error in add: {e}\n{traceback.format_exc()}")
 
+            
 
     def remove_item(self, call):
         try:
-            product_code = call.data.split("_")[-2]
+            data = call.data.split("_")
+            product_code = data[1]
+            variant_id = data[2] if len(data) > 2 else "0"
+            
             profile = ProfileModel.objects.get(tel_id=call.message.chat.id)
             cart = Cart.objects.get(profile=profile)
 
-            # حذف کامل آیتم از سبد خرید
-            cart.items.filter(product__code=product_code).delete()
+            # حذف دقیق بر اساس محصول و واریانت
+            if variant_id != "0":
+                cart.items.filter(product__code=product_code, variant__id=variant_id).delete()
+            else:
+                cart.items.filter(product__code=product_code, variant__isnull=True).delete()
 
-            # دریافت دکمه‌های ذخیره‌شده از سشن
+            # بقیه کد بدون تغییر...
             stored_buttons = self.session.get_buttons()
-
-            # حذف دکمه محصول و دکمه‌های مرتبط (`❌`، `➖`، `➕`)
             new_buttons = OrderedDict()
             new_layout = []
 
             for key, value in stored_buttons.items():
-                # بررسی اینکه آیا دکمه مربوط به این محصول است یا یکی از دکمه‌های کنترل آن
-                if product_code in value[0]:
-                    continue  # دکمه حذف شود
+                # بررسی اینکه آیا دکمه مربوط به این محصول و واریانت است
+                if product_code in value[0] and variant_id in value[0]:
+                    continue
 
                 new_buttons[key] = value
                 new_layout.append(1)
 
-
-
-            # به‌روزرسانی مجموع مبلغ قابل پرداخت
             self.total_price = sum(item.total_price() for item in cart.items.all())
 
             if cart.items.exists():
                 self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
             else:
                 self.text = t(call.message, "cart_empty")
-                new_buttons = OrderedDict()  # تمام دکمه‌ها حذف شوند
+                new_buttons = OrderedDict()
 
-            # ذخیره دکمه‌های جدید در سشن
             self.session.update_buttons(new_buttons)
 
-            # ویرایش پیام و دکمه‌ها
             self.markup.text = self.text
             self.markup.buttons = new_buttons
             self.markup.button_layout = [1] * len(new_buttons)
@@ -2897,6 +2951,7 @@ class SendCart:
 
         except Exception as e:
             print(f"Error in remove_item: {e}\n{traceback.format_exc()}")
+
 
 
     def invoice(self, update):

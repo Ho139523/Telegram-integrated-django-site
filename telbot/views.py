@@ -296,7 +296,9 @@ def handle_store_product_start(message):
         product_handler = ProductHandler(app, Product.objects.get(code=product_id), current_site, attributes=attributes)
         product_handler.send_product_message(message.chat.id)
 
-    
+    except Product.DoesNotExist:
+        print(traceback.format_exc())
+        app.send_message(message.chat.id, t(message, "item_not_available"))
     except Exception as e:
         print(traceback.format_exc())
         app.send_message(message.chat.id, f"⚠ خطا در پردازش لینک خرید: {e}")
@@ -357,6 +359,7 @@ def home(message, text=None):
         session_manager.reset_user_session(message.chat.id, namespace="menu")
         session_manager.reset_user_session(message.chat.id, namespace="add_product")
         session_manager.reset_user_session(message.chat.id, namespace="delete_product")
+        session_manager.reset_user_session(message.chat.id, namespace="phone")
 
         profile = ProfileModel.objects.get(tel_id=id)
         markup = send_menu(message, profile.tel_menu, "main_menu", profile.extra_button_menu)
@@ -776,12 +779,14 @@ def handle_comments(call):
         print(f"Error in handle_comments: {e}\n{error_message}")
 
 
-@app.callback_query_handler(func=lambda call: any(x in call.data for x in ["remove", "add", "reduce"]))
+@app.callback_query_handler(func=lambda call: call.data == "add" or call.data == "remove" or call.data == "reduce")
 def handle_cart_operations(call):
     try:
         data = call.data.split("_")
         action = data[0]  # remove, sudoincrease
         
+
+
         if action == "remove":
             send_cart = SendCart(app, call.message)
             send_cart.remove_item(call)
@@ -798,24 +803,48 @@ def handle_cart_operations(call):
 
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_cart"))
-@app.callback_query_handler(func=lambda call: call.data.startswith("product_show_") or call.data == "pay")
+@app.callback_query_handler(func=lambda call: call.data.startswith("cart_")) # استفاده از "cart_" برای هندلرهای پویا
 @app.callback_query_handler(func=lambda call: call.data == "finalize" or call.data == "view_cart")
 def cart_CallBack(data):
     try:
         if isinstance(data, types.Message):
-            cart = SendCart(app, data)
-            if cart.cart:
-                cart.send(data)
+            # اگر پیام است
+            message = data
+            chat_id = message.chat.id
+            is_callback = False
         elif isinstance(data, types.CallbackQuery):
-            cart = SendCart(app, data.message)
-            if cart.cart:
-                if data.data == "finalize" or data.data == "view_cart":
-                    cart.send(data)
-                else:
-                    cart.handle_buttons(data)
-    except Exception as e:
-        print(f"Error in phone_handler: {e}\n{traceback.format_exc()}")
+            # اگر کال‌بک کوئری است
+            message = data.message
+            chat_id = message.chat.id
+            is_callback = True
+        else:
+            return
 
+        # 3. ایجاد شیء SendCart با آرگومان‌های صحیح
+        # نکته: app (بات) به عنوان آرگومان bot، chat_id، و user_cart به عنوان cart ارسال می‌شوند.
+        cart_menu = SendCart(app, message)
+
+        if not is_callback or data.data == "view_cart" or data.data == "finalize":
+            # پاسخ به دستور متنی یا درخواست‌های ارسال مجدد منو
+            cart_menu.send()
+            
+            # در صورتی که نیاز به مدیریت دکمه "finalize" دارید:
+            if is_callback and data.data == "finalize":
+                 # منطق انتقال به مرحله نهایی پرداخت (مثلاً تابع دیگری صدا زده شود)
+                 pass
+
+        elif is_callback:
+            # مدیریت دکمه‌های پویا در SendCart (مانند cart_toggle یا cart_inc/dec)
+            # توجه: متد handle_callback در طرح SendCart تعریف شده است.
+            cart_menu.handle_callback(data)
+            
+    except ProfileModel.DoesNotExist:
+        print(f"Error: Profile not found for chat ID {data.chat.id}")
+    except Exception as e:
+        print(f"Error in cart_CallBack: {e}\n{traceback.format_exc()}")
+
+
+        
 @app.callback_query_handler(func=lambda call: call.data == "confirm order")
 def confirm_order_CallBack(data):
     cart = SendCart(app, data.message)
@@ -898,9 +927,6 @@ def phone_handler(data):
 
     except Exception as e:
         print(f"Error in phone_handler: {e}\n{traceback.format_exc()}")
-        # chat_id = data.message.chat.id if hasattr(data, 'message') else data.chat.id
-        # app.send_message(chat_id,
-        #                  f"خطایی در گرفتن شماره تماس رخ داد. لطفاً مجدداً تلاش کنید. : {e}\n{traceback.format_exc()}")
 
 
 
@@ -919,7 +945,6 @@ def phone_handler(data):
      'prev', 'country_', 'province_', 'city_', '_back', "change_address")) or call.data in ("back_to_addresses"))
 def unified_address_handler(data):
     try:
-
         if isinstance(data, types.Message):
             message = data
             call_data = None
@@ -979,6 +1004,7 @@ def unified_address_handler(data):
             address = Address.objects.get(id=address_id)
             loc.delete_address(data, address)
         elif call_data.startswith("add_new_address"):
+            print("yes add new address")
             loc.add_new_address(data)
         elif call_data.startswith("manual_add_address") or call_data.startswith("change_address"):
             if call_data.startswith("change_address"):
@@ -1910,7 +1936,7 @@ def show_balance(message):
 
 def ask_for_product_code(message):
     if subscription.subscription_offer(message):
-        app.send_message(message.chat.id, "لطفاً کد کالای مورد نظر را وارد کنید:")
+        app.send_message(message.chat.id, t(message, "enter_product_code_to_search"))
         app.set_state(user_id=message.from_user.id, state=Support.code, chat_id=message.chat.id)
 
 

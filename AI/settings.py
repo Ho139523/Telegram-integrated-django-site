@@ -21,6 +21,8 @@ BASE_URL = config("BASE_URL")
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']#config('ALLOWED_HOSTS', cast=Csv())
 CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'https://*.serveo.net', 'https://*.loca.lt', 'https://*.trycloudflare.com', BASE_URL]
  
+
+current_site = 'https://intelleum.ir:8443'
  
 LOGIN_REDIRECT_URL='accounts:profile' 
 LOGIN_URL='accounts:login' 

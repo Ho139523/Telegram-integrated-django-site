@@ -1809,4 +1809,95 @@ translations = {
         "zh": "创建商品时发生错误。请联系管理员。",
         "ar": "حدث خطأ أثناء تسجيل المنتج. يرجى التواصل مع المسؤول."
     },
+    "enter_product_code_to_search": {
+        "fa": "لطفاً کد کالای مورد نظر را وارد کنید:",
+        "en": "Please enter the product code:",
+        "ru": "Пожалуйста, введите код товара:",
+        "zh": "请输入商品代码：",
+        "ar": "يرجى إدخال رمز المنتج:"
+    },
+    "add_new_address": {
+        "fa": "افزودن آدرس جدید ➕",
+        "en": "➕ Add New Address",
+        "ru": "➕ Добавить новый адрес",
+        "zh": "➕ 添加新地址",
+        "ar": "إضافة عنوان جديد ➕"
+    },
+    "close": {
+        "fa": "بستن ❌",
+        "en": "❌ Close",
+        "ru": "❌ Закрыть",
+        "zh": "❌ 关闭",
+        "ar": "إغلاق ❌"
+    },
+    "your_addresses": {
+        "fa": "📍 آدرس‌های شما:\n\n",
+        "en": "📍 Your Addresses:\n\n",
+        "ru": "📍 Ваши адреса:\n\n",
+        "zh": "📍 您的地址：\n\n",
+        "ar": "📍 عناوينك:\n\n"
+    },
+    "cart_summary": {
+        "fa": "🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{total_price:,.0f} تومان",
+        "en": "🛒 Your Cart:\n\n💰 Total Amount To Pay:\t{total_price:,.0f} Toman",
+        "ru": "🛒 Ваша корзина:\n\n💰 Общая сумма к оплате:\t{total_price:,.0f} Туман",
+        "zh": "🛒 您的购物车：\n\n💰 应付总金额：\t{total_price:,.0f} 图曼",
+        "ar": "🛒 سلة التسوق الخاصة بك:\n\n💰 المبلغ الإجمالي المستحق:\t{total_price:,.0f} تومان"
+    },
+    "checkout": {
+        "fa": "✅ تکمیل خرید و پرداخت",
+        "en": "✅ Complete Purchase & Pay",
+        "ru": "✅ Завершить покупку и оплатить",
+        "zh": "✅ 完成购买并支付",
+        "ar": "✅ إكمال الشراء والدفع"
+    },
+    "order_invoice": {
+        "fa": "📜 فاکتور سفارشات شما:\n\n",
+        "en": "📜 Your order invoice:\n\n",
+        "ru": "📜 Счёт за ваши заказы:\n\n",
+        "zh": "📜 您的订单发票：\n\n",
+        "ar": "📜 فاتورة طلباتك:"
+    },
+    "total_amount": {
+        "fa": "🧮 <b>مجموع کل:</b> {total_price:,.0f} تومان",
+        "en": "🧮 <b>Total amount:</b> {total_price:,.0f} Toman",
+        "ru": "🧮 <b>Общая сумма:</b> {total_price:,.0f} туман",
+        "zh": "🧮 <b>总金额：</b> {total_price:,.0f} 图曼",
+        "ar": "🧮 <b>إجمالي المبلغ:</b> {total_price:,.0f} تومان"
+    },
+    "address": {
+        "fa": "آدرس: {address_text}",
+        "en": "Address: {address_text}",
+        "ru": "Адрес: {address_text}",
+        "zh": "地址: {address_text}",
+        "ar": "العنوان: {address_text}"
+    },
+    "contact_number": {
+        "fa": "شماره تماس: {phone_text}",
+        "en": "Contact Number: {phone_text}",
+        "ru": "Контактный номер: {phone_text}",
+        "zh": "联系电话：{phone_text}",
+        "ar": "رقم التواصل: {phone_text}"
+    },
+    "item_not_available": {
+        "fa": "متاسفانه کالای مورد نظر دیگر وجود ندارد و توسط فروشنده آن حذف شده است.",
+        "en": "Unfortunately, the desired item is no longer available and has been removed by the seller.",
+        "ru": "К сожалению, нужный товар больше недоступен и был удалён продавцом.",
+        "zh": "很遗憾，您想要的商品已不存在，并已被卖家删除。",
+        "ar": "للأسف، السلعة المطلوبة لم تعد متوفرة وقد تمت إزالتها من قبل البائع."
+    },
+    "pay_and_purchase": {
+        "fa": "پرداخت",
+        "en": "Pay and purchase",
+        "ru": "Оплатить и купить",
+        "zh": "支付并购买",
+        "ar": "الدفع والشراء"
+    },
+    "processing_payment": {
+        "fa": "✅ در حال پردازش پرداخت ...",
+        "en": "✅ Processing payment...",
+        "ru": "✅ Обработка платежа...",
+        "zh": "✅ 正在处理付款…",
+        "ar": "✅ جارٍ معالجة الدفع..."
+    },
 }

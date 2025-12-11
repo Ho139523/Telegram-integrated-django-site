@@ -2666,54 +2666,95 @@ class SendCart(SendMarkup):
     از SendMarkup برای ارسال پیام و کیبورد ارث می‌برد.
     """
     
+
     def __init__(self, bot, message, open_product_id=None, **kwargs):
-        
-        # 🟢 FIX 1: ذخیره bot برای رفع خطای 'bot' در کلاس والد (SendMarkup)
-        self.bot = bot
-        
-        # 🟢 FIX 2: ذخیره cart برای رفع خطای 'cart' در متد _generate_cart_header
-        # 'cart' یک آبجکت از مدل Cart است
-        profile = ProfileModel.objects.get(tel_id=message.chat.id)
-
         try:
-            self.cart = Cart.objects.get(profile=profile)
-        except Cart.DoesNotExist:
-            self.bot.send_message(message.chat.id, t(message, "cart_is_empty"))
-            return
-        self.open_product_id = open_product_id 
+            self.bot = bot
 
-        # تعیین message و chat_id بر اساس نوع ورودی
-        if isinstance(message, types.Message):
-            message_obj = message
-            chat_id = message.chat.id
-            is_callback = False
-        elif isinstance(message, types.CallbackQuery):
-            message_obj = message.message
-            chat_id = message_obj.chat.id
-            is_callback = True
-        else:
-            # اگر ورودی نامعتبر است، باید از ساخت آبجکت جلوگیری شود یا خطا گزارش شود.
-            # در اینجا، برای سادگی، یک حالت بازگشت (return) را نگه می‌داریم 
-            # اما در عمل، اگر این اتفاق بیفتد، caller باید هندل شود.
-            return
+            # تعیین message و chat_id بر اساس نوع ورودی
+            if isinstance(message, types.Message):
+                self.message_obj = message
+                self.chat_id = message.chat.id
+                self.is_callback = False
+            elif isinstance(message, types.CallbackQuery):
+                self.message_obj = message.message
+                self.chat_id = message.message.chat.id
+                self.is_callback = True
+                self.callback_query = message
+            else:
+                raise ValueError("Invalid message type. Must be Message or CallbackQuery")
+
+            # دریافت پروفایل و سبد خرید
+            try:
+                self.profile = ProfileModel.objects.get(tel_id=self.chat_id)
+                self.cart = Cart.objects.filter(profile=self.profile).first()
+
+                if not self.cart or not self.cart.items.exists():
+                    if hasattr(message, "message_id") and hasattr(message, "text"):
+                        self.bot.send_message(self.chat_id, t(message, "cart_empty"))
+                    else:
+                        self.bot.edit_message_text(
+                            chat_id=self.chat_id,
+                            message_id=message.message.message_id,
+                            text=t(message, "cart_empty"),
+                            reply_markup=None
+                        )
+                    self.cart = None
+                    return
+
+                self.cart.items.filter(quantity=0).delete()
+
+            except ProfileModel.DoesNotExist:
+                self.bot.send_message(self.chat_id, "پروفایل کاربر یافت نشد!")
+                self.cart = None
+                return
+
+            # مدیریت open_product_id در سشن
+            session_data = session_manager.get_user_session(self.chat_id, namespace="cart") or {}
+
+            if open_product_id is not None:
+                # فقط is_open را بروزرسانی کن، بقیه سشن را حفظ کن
+                session_data['is_open'] = open_product_id
+                session_manager.set_user_session(self.chat_id, session_data, namespace="cart")
+            else:
+                if 'is_open' not in session_data:
+                    session_data['is_open'] = None
+                    session_manager.set_user_session(self.chat_id, session_data, namespace="cart")
+
+            # محاسبه قیمت کل و متن
+            self.total_price = sum(item.total_price() for item in self.cart.items.all())
+            self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
+
+            # ایجاد دکمه‌ها و layout
+            self.buttons = self._generate_buttons(self.message_obj)
+            self.button_layout = self._generate_layout()
+
+            # ثبت هندلرها
+            self.handlers = self._register_handlers()
+
+            # کش کیبورد
+            self._keyboard_cache = {}
+
+            # current_site برای لینک پرداخت
+            self.current_site = 'https://intelleum.ir:8443'
+
+            # فراخوانی سازنده والد
+            super().__init__(
+                bot=bot,
+                chat_id=self.chat_id,
+                text=self.text,
+                buttons=self.buttons,
+                button_layout=self.button_layout,
+                handlers=self.handlers,
+                **kwargs
+            )
+
+        except Exception as e:
+            print(f"Error in SendCart.__init__: {e}\n{traceback.format_exc()}")
+            if hasattr(self, 'chat_id'):
+                self.bot.send_message(self.chat_id, "خطا در بارگذاری سبد خرید!")
+            raise
             
-        # chat_id = message.chat.id # این خط دیگر لازم نیست چون در بالا تنظیم شد
-        
-        # NOTE: برای اجرای واقعی، شما باید یک شی message یا callback_query داشته باشید
-        # تا بتوانید lang را از ProfileModel بگیرید و از تابع t استفاده کنید.
-        # در اینجا، فرض می‌کنیم text و chat_id به درستی تنظیم می‌شوند
-        
-        self.text = self._generate_cart_header(message_obj)
-        self.buttons = self._generate_buttons(message_obj)
-        self.button_layout = self._generate_layout()
-        
-        # Handlers برای مدیریت کلیک‌ها
-        self.handlers = self._register_handlers()
-        
-
-        
-        super().__init__(bot, chat_id, text=self.text, buttons=self.buttons, button_layout=self.button_layout, handlers=self.handlers, **kwargs)
-
     # --- متدهای کمکی برای تولید محتوا ---
 
     def _get_user_language(self):
@@ -2756,95 +2797,158 @@ class SendCart(SendMarkup):
     
     def _generate_buttons(self, message):
         """
-        2. تولید دکمه‌های اصلی کالاها و دکمه پرداخت
+        تولید دکمه‌های محصولات و واریانت‌ها با فوکوس دقیق
         """
         buttons = {}
         product_items = self._get_product_items()
-        
         index_counter = 1
-        
-        # دکمه‌های کالاها
+
+        # گرفتن سشن کاربر
+        session_data = session_manager.get_user_session(self.chat_id, namespace="cart") or {}
+
         for product_id, data in product_items.items():
             product = data["product"]
             total_quantity = data["total_quantity"]
-            is_open = product_id == self.open_product_id
-            
-            # 2. متن دکمه: Product Name x Total Quantity + ▼/▲
+
+            # آیا محصول باز است؟
+            is_open = session_data.get("is_open") == product_id
+
+            # دکمه اصلی محصول
             arrow = "▲" if is_open else "▼"
             button_text = f"{product.name} x {total_quantity} {arrow}"
-            
-            # callback_data: cart_toggle:product_id
-            callback_data = f"cart_toggle:{product_id}"
-            
-            # ذخیره دکمه اصلی کالا
             buttons[button_text] = {
-                'callback_data': callback_data,
+                'callback_data': f"cart_toggle:{product_id}",
                 'index': index_counter
             }
             index_counter += 1
-            
-            # 3. دکمه‌های واریانت (اگر محصول باز است)
-            if is_open:
-                # مرتب‌سازی آیتم‌ها بر اساس شناسه یا هر معیار دیگر
-                sorted_items = sorted(data["items"], key=lambda x: x.id)
-                
-                # پیدا کردن شاخص آیتمی که باید در حالت نمایش (focused) باشد
-                # اگر آیتم باز قبلی در کال‌بک داده نشده، اولین آیتم را نمایش می‌دهیم.
-                focused_item_index = 0 
-                
-                for i, item in enumerate(sorted_items):
-                    # اگر واریانت ندارد، از یک آیتم واحد استفاده کنید
-                    if not item.variant:
-                        # نمایش دکمه‌های کنترل (X, -, +)
-                        # button_layout اینها را در یک ردیف قرار می‌دهد
-                        buttons[f"❌"] = {'callback_data': f"cart_remove_product:{product_id}", 'index': index_counter, 'row': 'control'}
-                        index_counter += 1
-                        buttons[f"➖"] = {'callback_data': f"cart_dec:{item.id}", 'index': index_counter, 'row': 'control'}
-                        index_counter += 1
-                        buttons[f"{item.quantity}"] = {'callback_data': f"cart_ignore", 'index': index_counter, 'row': 'control'}
-                        index_counter += 1
-                        buttons[f"➕"] = {'callback_data': f"cart_inc:{item.id}", 'index': index_counter, 'row': 'control'}
-                        index_counter += 1
-                        break # فقط یک بار برای محصولات بدون واریانت اجرا شود
-                        
-                    
-                    # 5. دکمه‌های پیمایش واریانت برای آیتم‌های دارای واریانت
-                    if i == focused_item_index:
-                        # Variant Title (Callback Data: cart_prev:product_id:current_item_id)
-                        buttons[f"<<"] = {'callback_data': f"cart_prev_variant:{product_id}:{item.id}", 'index': index_counter, 'row': 'variant_nav'}
-                        index_counter += 1
 
-                        # Variant Info
-                        variant_info = " / ".join([v.value for v in item.variant.values.all()])
-                        buttons[f"{variant_info}"] = {'callback_data': f"cart_ignore", 'index': index_counter, 'row': 'variant_nav'}
-                        index_counter += 1
+            if not is_open:
+                continue  # اگر باز نیست، سراغ محصول بعدی برو
 
-                        # Variant Title (Callback Data: cart_next:product_id:current_item_id)
-                        buttons[f">>"] = {'callback_data': f"cart_next_variant:{product_id}:{item.id}", 'index': index_counter, 'row': 'variant_nav'}
-                        index_counter += 1
-                        
-                        # 4. دکمه‌های کنترل (X, -, +)
-                        buttons[f"❌"] = {'callback_data': f"cart_remove_product:{product_id}", 'index': index_counter, 'row': 'item_control'}
-                        index_counter += 1
-                        buttons[f"➖"] = {'callback_data': f"cart_dec:{item.id}", 'index': index_counter, 'row': 'item_control'}
-                        index_counter += 1
-                        buttons[f"{item.quantity}"] = {'callback_data': f"cart_ignore", 'index': index_counter, 'row': 'item_control'}
-                        index_counter += 1
-                        buttons[f"➕"] = {'callback_data': f"cart_inc:{item.id}", 'index': index_counter, 'row': 'item_control'}
-                        index_counter += 1
-                        
-                        break # فقط اولین آیتم (کاری) برای محصول باز نمایش داده شود
-                    
-        # دکمه نهایی (تکمیل خرید)
+            # مرتب‌سازی آیتم‌ها
+            sorted_items = sorted(data["items"], key=lambda x: x.id)
+
+            # گرفتن آیتم فوکوس از سشن
+            focused_item_id = session_data.get(f"focused_item_{product_id}")
+
+            focused_item = next((item for item in sorted_items if item.id == focused_item_id), None)
+
+            # اگر فوکوسی نبود، اولین آیتم را انتخاب کن
+            if not focused_item and sorted_items:
+                focused_item = sorted_items[0]
+                session_data[f"focused_item_{product_id}"] = focused_item.id
+                session_manager.set_user_session(self.chat_id, session_data, namespace="cart")
+
+            if not focused_item:
+                continue  # هیچ آیتمی برای نمایش وجود ندارد
+
+            item = focused_item
+            variant_info = self._get_variant_display_info(item.variant)[1]
+
+            # دکمه‌های پیمایش واریانت
+            buttons["<<"] = {
+                'callback_data': f"cart_prev_variant:{product_id}:{item.id}",
+                'index': index_counter,
+                'row': 'variant_nav'
+            }
+            index_counter += 1
+
+            buttons[variant_info] = {
+                'callback_data': "cart_ignore",
+                'index': index_counter,
+                'row': 'variant_nav'
+            }
+            index_counter += 1
+
+            buttons[">>"] = {
+                'callback_data': f"cart_next_variant:{product_id}:{item.id}",
+                'index': index_counter,
+                'row': 'variant_nav'
+            }
+            index_counter += 1
+
+            # دکمه‌های کنترل تعداد
+            buttons["❌"] = {
+                'callback_data': f"cart_remove_product:{product_id}",
+                'index': index_counter,
+                'row': 'item_control'
+            }
+            index_counter += 1
+
+            buttons["➖"] = {
+                'callback_data': f"cart_dec:{item.id}",
+                'index': index_counter,
+                'row': 'item_control'
+            }
+            index_counter += 1
+
+            buttons[f"{item.quantity}"] = {
+                'callback_data': "cart_ignore",
+                'index': index_counter,
+                'row': 'item_control'
+            }
+            index_counter += 1
+
+            buttons["➕"] = {
+                'callback_data': f"cart_inc:{item.id}",
+                'index': index_counter,
+                'row': 'item_control'
+            }
+            index_counter += 1
+
+        # دکمه تکمیل خرید
         buttons[t(message, "checkout")] = {
             'callback_data': "cart_checkout",
             'index': index_counter
         }
-        index_counter += 1
-        
+
         return buttons
 
-    
+
+    def _handle_variant_nav(self, call, product_id, current_item_id, direction):
+        """
+        پیمایش بین واریانت‌های موجود در سبد خرید
+        """
+        try:
+            variants_in_cart = self._get_product_variants_in_cart(product_id)
+            if not variants_in_cart:
+                self.bot.answer_callback_query(call.id, "هیچ واریانتی برای این محصول موجود نیست", show_alert=True)
+                return
+
+            # پیدا کردن ایندکس واریانت فعلی
+            current_index = next((i for i, v in enumerate(variants_in_cart) if v['item_id'] == int(current_item_id)), 0)
+
+            # محاسبه ایندکس جدید
+            if direction == "next":
+                new_index = (current_index + 1) % len(variants_in_cart)
+            else:
+                new_index = (current_index - 1) % len(variants_in_cart)
+
+            new_variant_data = variants_in_cart[new_index]
+
+            # بروزرسانی سشن کامل
+            session_data = session_manager.get_user_session(self.chat_id, namespace="cart") or {}
+            session_data[f"focused_variant_{product_id}"] = new_variant_data['variant_id']
+            session_data[f"focused_item_{product_id}"] = new_variant_data['item_id']
+            session_manager.set_user_session(self.chat_id, session_data, namespace="cart")
+
+            # بروزرسانی منو با سشن کامل
+            new_cart_menu = SendCart(
+                bot=self.bot,
+                message=call.message,
+                open_product_id=product_id  # محصول باز می‌ماند
+            )
+            new_cart_menu.edit(call.message.message_id)
+
+            self.bot.answer_callback_query(call.id, f"تغییر به: {new_variant_data['variant_info']}")
+
+        except Exception as e:
+            print(f"Error in _handle_variant_nav: {e}\n{traceback.format_exc()}")
+            self.bot.answer_callback_query(call.id, "خطا در تغییر واریانت", show_alert=True)
+
+
+
+
     def _generate_layout(self):
         """
         تولید طرح‌بندی (Layout) برای کیبورد اینلاین
@@ -2875,11 +2979,10 @@ class SendCart(SendMarkup):
     def _register_handlers(self):
         """ثبت هندلرهای مربوط به Callback Dataها"""
         handlers = {
-            "cart_prev_variant": self._handle_prev_variant,
-            "cart_next_variant": self._handle_next_variant,
+            # "cart_prev_variant": self._handle_prev_variant,
+            # "cart_next_variant": self._handle_next_variant,
             "cart_remove_product": self._handle_remove_product,
-            "cart_dec": self._handle_dec,
-            "cart_inc": self._handle_inc,
+            "cart_dec": self._handle_inc_dec,
             "cart_checkout": self._handle_checkout,
             "cart_ignore": lambda call, *args: None,
         }
@@ -2889,45 +2992,6 @@ class SendCart(SendMarkup):
         
         return handlers
 
-    async def _handle_prev_variant(self, call, product_id, item_id):
-        item = CartItem.objects.get(id=item_id)
-        product = item.product
-        variants = list(product.variants.all())
-
-        if not variants:
-            return await call.answer("این محصول واریانت ندارد.", show_alert=True)
-
-        current_index = variants.index(item.variant) if item.variant in variants else 0
-        new_index = (current_index - 1) % len(variants)
-
-        item.variant = variants[new_index]
-        item.save()
-
-        # ارسال مجدد منو
-        new_menu = SendCart(self.bot, call.message, open_product_id=product_id)
-        await new_menu.send(call.message)
-
-        await call.answer()
-
-
-    async def _handle_next_variant(self, call, product_id, item_id):
-        item = CartItem.objects.get(id=item_id)
-        product = item.product
-        variants = list(product.variants.all())
-
-        if not variants:
-            return await call.answer("این محصول واریانت ندارد.", show_alert=True)
-
-        current_index = variants.index(item.variant) if item.variant in variants else 0
-        new_index = (current_index + 1) % len(variants)
-
-        item.variant = variants[new_index]
-        item.save()
-
-        new_menu = SendCart(self.bot, call.message, open_product_id=product_id)
-        await new_menu.send(call.message)
-
-        await call.answer()
 
 
 
@@ -2939,22 +3003,30 @@ class SendCart(SendMarkup):
     def _handle_ignore(self, call):
         """هندل کردن دکمه‌های صرفاً نمایشی"""
         self.bot.answer_callback_query(call.id, "هندل کردن دکمه‌های صرفاً نمایشی")
-        
+    
     def _handle_toggle(self, call, product_id):
         """
         3. باز و بسته کردن منوی واریانت یک محصول
         """
         # اگر در حال حاضر باز است، آن را ببند (تنظیم روی None)
-        if self.open_product_id == product_id:
-            new_open_product_id = None
-        else:
-            # اگر بسته است یا محصول دیگری باز است، این محصول را باز کن
-            new_open_product_id = product_id
-            
-        # ساخت یک آبجکت جدید با وضعیت باز جدید
-        new_cart_menu = SendCart(self.bot, call.message, new_open_product_id)
-        new_cart_menu.edit(call.message.message_id)
-        self.bot.answer_callback_query(call.id)
+        try:   
+            data = session_manager.get_user_session(self.chat_id, namespace="cart")
+            if data.get("is_open") == product_id:
+                new_open_product_id = None
+
+            else:
+                # اگر بسته است یا محصول دیگری باز است، این محصول را باز کن
+                new_open_product_id = product_id
+    
+            # ساخت یک آبجکت جدید با وضعیت باز جدید
+            session_data = session_manager.get_user_session(self.chat_id, namespace="cart")
+            session_data["is_open"] = new_open_product_id 
+            session_manager.set_user_session(self.chat_id, session_data, namespace="cart")
+            new_cart_menu = SendCart(self.bot, call.message, new_open_product_id)
+            new_cart_menu.edit(call.message.message_id)
+            self.bot.answer_callback_query(call.id)
+        except:
+            print(traceback.format_exc())
         
     def _handle_remove_product(self, call, product_id):
         """
@@ -2977,38 +3049,46 @@ class SendCart(SendMarkup):
             
 
     def _handle_inc_dec(self, call, action, item_id):
-        """
-        4. افزایش و کاهش تعداد یک واریانت خاص
-        """
         try:
             item = CartItem.objects.get(id=item_id, cart=self.cart)
             old_quantity = item.quantity
-            
+
+            # افزایش یا کاهش
             if action == 'inc':
-                new_quantity = old_quantity + 1
+                max_stock = item.variant.stock if item.variant else item.product.stock
+                if old_quantity < max_stock:
+                    item.quantity += 1
+                    item.save()
+                    self.bot.answer_callback_query(call.id)
+                else:
+                    self.bot.answer_callback_query(call.id, f"⚠️ بیش از {max_stock} عدد موجود نیست!", show_alert=True)
+                    return
+
             elif action == 'dec':
                 new_quantity = old_quantity - 1
-            else:
-                return
-
-            if new_quantity <= 0:
-                # حذف آیتم اگر تعداد به صفر برسد
-                item.delete()
-                # بررسی می‌کنیم اگر آیتم دیگری از این محصول باقی نمانده باشد
-                if not self.cart.items.filter(product_id=item.product.id).exists():
-                    self.open_product_id = None # محصول را ببند
+                if new_quantity <= 0:
+                    item.delete()
+                    self.bot.answer_callback_query(call.id, "آیتم از سبد خرید حذف شد")
+                else:
+                    item.quantity = new_quantity
+                    item.save()
+                    self.bot.answer_callback_query(call.id)
                     
-                self.bot.answer_callback_query(call.id, "واریانت حذف شد.")
-            else:
-                # تلاش برای به‌روزرسانی (متد save شامل clean و اعتبارسنجی است)
-                item.quantity = new_quantity
-                item.save()
-                self.bot.answer_callback_query(call.id)
-                
-            # رفرش منو (حالت باز را حفظ می‌کند)
-            new_cart_menu = SendCart(self.bot, call.message, self.open_product_id)
+            # بررسی خالی بودن سبد خرید
+            if not self.cart.items.filter(quantity__gt=0).exists():
+                # سبد خرید خالی است، پیام موجود را ویرایش کن
+                self.bot.edit_message_text(
+                    chat_id=self.chat_id,
+                    message_id=call.message.message_id,
+                    text=t(call.message, "cart_empty"),
+                    reply_markup=None
+                )
+                return  # نیازی به SendCart جدید نیست
+
+            # اگر هنوز آیتمی وجود دارد، رفرش منو با حفظ open_product_id
+            new_cart_menu = SendCart(self.bot, call.message, item.product.id)
             new_cart_menu.edit(call.message.message_id)
-            
+
         except CartItem.DoesNotExist:
             self.bot.answer_callback_query(call.id, "آیتم پیدا نشد.", show_alert=True)
         except ValidationError as e:
@@ -3017,45 +3097,46 @@ class SendCart(SendMarkup):
         except Exception as e:
             print(f"Error handling cart item quantity: {traceback.format_exc()}")
             self.bot.answer_callback_query(call.id, "خطای نامشخص.", show_alert=True)
-            
-            
-    def _handle_variant_nav(self, call, product_id, current_item_id, direction):
-        """
-        5. پیمایش بین واریانت‌های مختلف یک محصول در سبد خرید
-        """
-        try:
-            # پیدا کردن تمام CartItem‌های مربوط به این Product در سبد
-            product_items = self.cart.items.filter(product_id=product_id).order_by('id')
-            if not product_items.exists():
-                self.bot.answer_callback_query(call.id, "هیچ آیتمی برای این کالا وجود ندارد.", show_alert=True)
-                return
 
-            item_list = list(product_items)
-            current_index = next((i for i, item in enumerate(item_list) if item.id == current_item_id), -1)
-            
-            if current_index == -1:
-                # آیتم فعلی پیدا نشد، به اولین آیتم برو
-                new_item = item_list[0]
-            else:
-                # محاسبه ایندکس جدید
-                num_items = len(item_list)
-                if direction == 'next':
-                    new_index = (current_index + 1) % num_items
-                else: # 'prev'
-                    new_index = (current_index - 1 + num_items) % num_items
-                
-                new_item = item_list[new_index]
-            
-            # --- بازسازی منو با واریانت جدید در فوکوس (این بخش نیاز به تغییر در SendCart دارد) ---
-            # NOTE: برای این کار، ما باید وضعیت آیتم فعال (focused_item_id) را در SendCart ذخیره کنیم.
-            # در حال حاضر، SendCart فقط اولین آیتم (index=0) را به عنوان "focused" در نظر می‌گیرد.
-            # برای پیاده‌سازی کامل این قابلیت، باید open_product_id را به یک tuple (product_id, focused_item_id) تغییر دهید.
-            
-            self.bot.answer_callback_query(call.id, "قابلیت پیمایش واریانت در حال پیاده‌سازی است.")
-            
-        except Exception as e:
-            print(f"Error handling variant navigation: {e}")
-            self.bot.answer_callback_query(call.id, "خطا در پیمایش واریانت.", show_alert=True)
+    
+    
+
+
+
+    def _get_variant_display_info(self, variant):
+        """دریافت اطلاعات نمایشی واریانت"""
+        if not variant:
+            return "بدون واریانت"
+        
+        value = []
+        for option_value in variant.values.all().order_by('option__name'):
+            value.append(f"{option_value.option.name}: {option_value.value}")
+
+        item = [ov.value for ov in variant.values.all().order_by('option__name')]
+        
+        values = "، ".join(value)
+        items = "/ ".join(item)
+        return values, items
+
+
+    def _get_product_variants_in_cart(self, product_id):
+        """دریافت واریانت‌های یک محصول که در سبد خرید موجود هستند"""
+        # if product_id in self._cached_product_variants:
+        #     return self._cached_product_variants[product_id]
+        
+        variants_in_cart = []
+        for item in self.cart.items.filter(product_id=product_id, quantity__gt=0):
+            if item.variant:
+                variants_in_cart.append({
+                    'item_id': item.id,
+                    'variant_id': item.variant.id,
+                    'variant_info': self._get_variant_display_info(item.variant)[0],
+                    'quantity': item.quantity
+                })
+        
+        # self._cached_product_variants[product_id] = variants_in_cart
+        return variants_in_cart
+
 
 
     def handle_callback(self, call):
@@ -4449,3 +4530,133 @@ class AdvancedProductExporter:
         """پاک کردن کش برای یک فروشگاه خاص"""
         cache_key = self.redis_manager._make_export_key(store_id)
         self.redis_manager.redis_client.delete(cache_key)
+
+
+
+################## VIDEO PROMPTS ################
+
+
+import functools
+import os
+from pathlib import Path
+import traceback
+
+
+class VideoPrompter:
+    """
+    دکوراتور برای نمایش ویدیو با دکمه "دیگر نمایش داده نشود"
+    
+    usage:
+    @VideoPrompter(video_path="videos/tutorial.mp4")
+    def my_function(message, *args, **kwargs):
+        # کدهای شما
+        pass
+    """
+    
+    def __init__(self, video_path: str, skip_callback_data: str = "skip_video_prompt"):
+        """
+        :param video_path: مسیر فایل ویدیو
+        :param skip_callback_data: callback_data برای دکمه رد کردن
+        """
+        self.video_path = video_path
+        self.skip_callback_data = skip_callback_data
+        
+    def __call__(self, func):
+        @functools.wraps(func)
+        def wrapper(message, *args, **kwargs):
+            try:
+                # بررسی اینکه آیا کاربر قبلاً ویدیو را رد کرده است
+                if self._has_user_skipped(message):
+                    # اگر رد کرده، ادامه بده بدون نمایش ویدیو
+                    return func(message, *args, **kwargs)
+                
+                # بررسی وجود فایل ویدیو
+                if not self._check_video_exists():
+                    print(f"Video file not found: {self.video_path}")
+                    return func(message, *args, **kwargs)
+                
+                # ارسال ویدیو با دکمه
+                self._send_video_with_button(message)
+                
+            except Exception as e:
+                print(f"Error in VideoPrompter: {e}\n{traceback.format_exc()}")
+                # در صورت خطا، ادامه بده
+                return func(message, *args, **kwargs)
+            
+            # ادامه اجرای تابع اصلی
+            return func(message, *args, **kwargs)
+        
+        return wrapper
+    
+    def _has_user_skipped(self, message) -> bool:
+        """بررسی اینکه آیا کاربر قبلاً این ویدیو را رد کرده است"""
+        from django.core.cache import cache
+        
+        user_id = message.chat.id
+        cache_key = f"video_skip_{user_id}_{self.video_path}"
+        return cache.get(cache_key, False)
+    
+    def _check_video_exists(self) -> bool:
+        """بررسی وجود فایل ویدیو"""
+        return os.path.exists(self.video_path)
+    
+    def _send_video_with_button(self, message):
+        """ارسال ویدیو با دکمه شیشه‌ای"""
+        try:
+            # خواندن فایل ویدیو
+            with open(self.video_path, 'rb') as video_file:
+                from telebot import types
+                
+                # دکمه شیشه‌ای
+                markup = types.InlineKeyboardMarkup()
+                skip_button = types.InlineKeyboardButton(
+                    text="🔕 دیگر نمایش داده نشود",
+                    callback_data=self.skip_callback_data
+                )
+                markup.add(skip_button)
+                
+                # ارسال ویدیو
+                app.send_video(
+                    chat_id=message.chat.id,
+                    video=video_file,
+                    caption="🎬 راهنمای آموزشی",
+                    reply_markup=markup,
+                    parse_mode="HTML"
+                )
+                
+                print(f"Video sent to user {message.chat.id}: {self.video_path}")
+                
+        except Exception as e:
+            print(f"Error sending video: {e}")
+            raise
+    
+    @staticmethod
+    def handle_skip_callback(call):
+        """هندلر برای دکمه 'دیگر نمایش داده نشود'"""
+        try:
+            user_id = call.message.chat.id
+            video_path = "welcome.mp4"  # یا از call.data بگیرید
+            
+            # ذخیره در کش
+            from django.core.cache import cache
+            cache_key = f"video_skip_{user_id}_{video_path}"
+            cache.set(cache_key, True, timeout=60*60*24*30)  # 30 روز
+            
+            # حذف دکمه‌ها
+            call.bot.edit_message_reply_markup(
+                chat_id=user_id,
+                message_id=call.message.message_id,
+                reply_markup=None
+            )
+            
+            # پاسخ به کاربر
+            call.bot.answer_callback_query(
+                call.id,
+                "✅ از این پس این راهنما نمایش داده نمی‌شود.",
+                show_alert=True
+            )
+            
+        except Exception as e:
+            print(f"Error handling skip callback: {e}")
+            call.bot.answer_callback_query(call.id, "خطا در پردازش درخواست!")
+#

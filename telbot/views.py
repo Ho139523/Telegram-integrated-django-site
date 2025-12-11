@@ -303,9 +303,14 @@ def handle_store_product_start(message):
         print(traceback.format_exc())
         app.send_message(message.chat.id, f"⚠ خطا در پردازش لینک خرید: {e}")
 
+# هندلر برای دکمه رد کردن
+@app.callback_query_handler(func=lambda call: call.data == "skip_video_prompt")
+def handle_skip_video(call):
+    VideoPrompter.handle_skip_callback(call)
 
 # Start handler
 @app.message_handler(commands=['start'])
+@VideoPrompter(video_path="./media/welcome.mp4")  # ✅ بدون message
 def start(message):
     try:
         tel_id = message.from_user.id

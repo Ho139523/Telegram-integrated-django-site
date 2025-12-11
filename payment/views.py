@@ -9,6 +9,7 @@ from telethon.sessions import StringSession
 from django.core.cache import cache
 from django.conf import settings
 from asgiref.sync import sync_to_async
+from AI.settings import current_site as settings_current_site
 
 # 🧩 مدل‌ها و پکیج‌های پروژه
 from .zarinpal import ZarinPal
@@ -23,7 +24,6 @@ from django.db import transaction as db_transaction
 pay = ZarinPal()
 bot = TeleBot(TOKEN)
 SESSION_STRING = settings.TG_SESSION_STRING
-CURRENT_SITE = "https://intelium.ir:8443"
 API_ID = api_id
 API_HASH = api_hash
 

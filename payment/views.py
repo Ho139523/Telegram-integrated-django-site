@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.conf import settings
 from asgiref.sync import sync_to_async
 from AI.settings import current_site as settings_current_site
+from telbot.sessions import SessionManager
 
 # 🧩 مدل‌ها و پکیج‌های پروژه
 from .zarinpal import ZarinPal
@@ -252,6 +253,8 @@ def verify(request):
             
             # پردازش موفقیت‌آمیز پرداخت
             handle_successful_payment(transaction)
+            session_manager = SessionManager()
+            session_manager.reset_user_session(transaction.profile.tel_id, namespace="cart")
             return render(request, "payment/tel_payment_success.html")
         else:
             transaction.mark_as_failed()

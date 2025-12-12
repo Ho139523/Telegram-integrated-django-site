@@ -1,5 +1,6 @@
 from pydoc import describe
 
+from click import command
 from markupsafe import Markup
 # from tkinter.font import names
 from utils.variables.TOKEN import TOKEN, BOT_ID
@@ -12,6 +13,8 @@ from telebot.storage import StateMemoryStorage
 from accounts.models import ProfileModel, Address
 from products.models import Product, Category, ProductImage, ProductAttribute, Store, ProductVariant
 from payment.models import Transaction, Sale, Cart, CartItem
+import functools
+from telbot.models import CachedMedia
 import os
 from django.conf import settings
 from AI.settings import current_site as settings_current_site
@@ -36,6 +39,8 @@ from accounts.models import ProfileModel
 from products.models import Store, Category
 from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.conf import settings
+from pathlib import Path
 
 # send_product_message function
 from telebot import types
@@ -2803,71 +2808,93 @@ class SendCart(SendMarkup):
         product_items = self._get_product_items()
         index_counter = 1
 
-        # گرفتن سشن کاربر
+        # session
         session_data = session_manager.get_user_session(self.chat_id, namespace="cart") or {}
 
         for product_id, data in product_items.items():
             product = data["product"]
             total_quantity = data["total_quantity"]
 
-            # آیا محصول باز است؟
+            # toggle open/close
             is_open = session_data.get("is_open") == product_id
-
-            # دکمه اصلی محصول
             arrow = "▲" if is_open else "▼"
-            button_text = f"{product.name} x {total_quantity} {arrow}"
-            buttons[button_text] = {
+
+            buttons[f"{product.name} x {total_quantity} {arrow}"] = {
                 'callback_data': f"cart_toggle:{product_id}",
                 'index': index_counter
             }
             index_counter += 1
 
             if not is_open:
-                continue  # اگر باز نیست، سراغ محصول بعدی برو
+                continue
 
-            # مرتب‌سازی آیتم‌ها
+            # sort items
             sorted_items = sorted(data["items"], key=lambda x: x.id)
 
-            # گرفتن آیتم فوکوس از سشن
+            # focused item
             focused_item_id = session_data.get(f"focused_item_{product_id}")
-
             focused_item = next((item for item in sorted_items if item.id == focused_item_id), None)
 
-            # اگر فوکوسی نبود، اولین آیتم را انتخاب کن
             if not focused_item and sorted_items:
                 focused_item = sorted_items[0]
                 session_data[f"focused_item_{product_id}"] = focused_item.id
                 session_manager.set_user_session(self.chat_id, session_data, namespace="cart")
 
             if not focused_item:
-                continue  # هیچ آیتمی برای نمایش وجود ندارد
+                continue
 
             item = focused_item
-            variant_info = self._get_variant_display_info(item.variant)[1]
 
-            # دکمه‌های پیمایش واریانت
-            buttons["<<"] = {
-                'callback_data': f"cart_prev_variant:{product_id}:{item.id}",
-                'index': index_counter,
-                'row': 'variant_nav'
-            }
-            index_counter += 1
+            # ========================================
+            #  کنترل variant و ساخت variant_info بدون خطا
+            # ========================================
+            variant = item.variant
+            product_variants = list(product.variants.all())
+            has_variants = len(product_variants) > 1
 
-            buttons[variant_info] = {
-                'callback_data': "cart_ignore",
-                'index': index_counter,
-                'row': 'variant_nav'
-            }
-            index_counter += 1
+            if not has_variants:
+                # محصول ساده → بدون واریانت
+                variant_info = "simple_product"
 
-            buttons[">>"] = {
-                'callback_data': f"cart_next_variant:{product_id}:{item.id}",
-                'index': index_counter,
-                'row': 'variant_nav'
-            }
-            index_counter += 1
+            else:
+                print('oh yse')
+                # محصول دارای واریانت است
+                if variant is None:
+                    # آیتم بدون واریانت → اولین واریانت انتخاب شود
+                    variant = product_variants[0]
 
-            # دکمه‌های کنترل تعداد
+                # اکنون variant همیشه مقدار دارد
+                variant_info = self._get_variant_display_info(variant)[1]
+
+            # ========================================
+            #  دکمه‌های پیمایش واریانت ONLY IF محصول واریانت دارد
+            # ========================================
+            if has_variants:
+                print("yes")
+                buttons["<<"] = {
+                    'callback_data': f"cart_prev_variant:{product_id}:{item.id}",
+                    'index': index_counter,
+                    'row': 'variant_nav'
+                }
+                index_counter += 1
+
+                buttons[variant_info] = {
+                    'callback_data': "cart_ignore",
+                    'index': index_counter,
+                    'row': 'variant_nav'
+                }
+                index_counter += 1
+
+                buttons[">>"] = {
+                    'callback_data': f"cart_next_variant:{product_id}:{item.id}",
+                    'index': index_counter,
+                    'row': 'variant_nav'
+                }
+                index_counter += 1
+
+            # ========================================
+            #  کنترل تعداد
+            # ========================================
             buttons["❌"] = {
                 'callback_data': f"cart_remove_product:{product_id}",
                 'index': index_counter,
@@ -2896,13 +2923,15 @@ class SendCart(SendMarkup):
             }
             index_counter += 1
 
-        # دکمه تکمیل خرید
+        # checkout button
         buttons[t(message, "checkout")] = {
             'callback_data': "cart_checkout",
             'index': index_counter
         }
 
         return buttons
+
+
 
 
     def _handle_variant_nav(self, call, product_id, current_item_id, direction):
@@ -3038,6 +3067,20 @@ class SendCart(SendMarkup):
             if removed_count[0] > 0:
                 self.bot.answer_callback_query(call.id, f"{removed_count[0]} آیتم حذف شد.")
                 # رفرش سبد خرید (حالت باز را به None تغییر می‌دهد)
+                session_data = session_manager.get_user_session(self.chat_id, namespace="cart")
+                if session_data.get("is_open") == product_id:
+                    session_data["is_open"] = None
+                    session_manager.set_user_session(self.chat_id, session_data, namespace="cart")
+                if not self.cart.items.filter(quantity__gt=0).exists():
+                    session_manager.reset_user_session(self.chat_id, namespace="cart")
+                    # سبد خرید خالی است، پیام موجود را ویرایش کن
+                    self.bot.edit_message_text(
+                        chat_id=self.chat_id,
+                        message_id=call.message.message_id,
+                        text=t(call.message, "cart_empty"),
+                        reply_markup=None
+                    )
+                    return
                 new_cart_menu = SendCart(self.bot, call.message, open_product_id=None)
                 new_cart_menu.edit(call.message.message_id)
             else:
@@ -3076,6 +3119,7 @@ class SendCart(SendMarkup):
                     
             # بررسی خالی بودن سبد خرید
             if not self.cart.items.filter(quantity__gt=0).exists():
+                session_manager.reset_user_session(self.chat_id, namespace="cart")
                 # سبد خرید خالی است، پیام موجود را ویرایش کن
                 self.bot.edit_message_text(
                     chat_id=self.chat_id,
@@ -4535,128 +4579,174 @@ class AdvancedProductExporter:
 
 ################## VIDEO PROMPTS ################
 
-
-import functools
-import os
-from pathlib import Path
-import traceback
-
-
-class VideoPrompter:
+class UltraVideoPrompter:
     """
-    دکوراتور برای نمایش ویدیو با دکمه "دیگر نمایش داده نشود"
-    
-    usage:
-    @VideoPrompter(video_path="videos/tutorial.mp4")
-    def my_function(message, *args, **kwargs):
-        # کدهای شما
-        pass
+    Decorator for language-based smart Telegram video sending:
+    - Detect user's language from ProfileModel
+    - Build video path dynamically: media/promptvideos/{lang}/{command}.mp4
+    - Use cache, forward, upload, store file_id
     """
-    
-    def __init__(self, video_path: str, skip_callback_data: str = "skip_video_prompt"):
-        """
-        :param video_path: مسیر فایل ویدیو
-        :param skip_callback_data: callback_data برای دکمه رد کردن
-        """
-        self.video_path = video_path
-        self.skip_callback_data = skip_callback_data
-        
+
+    CACHE_CHANNEL = "@Botshop_trainer"
+    SKIP_TIMEOUT = 60 * 60 * 24 * 30  # 30 days
+
+    def __init__(self, command: str, skip_data: str = "skip_video", app=None):
+        self.command = command
+        self.skip_data = f"{skip_data}|{self.command}"
+        self.app = app
+
+    # -----------------------------------------------------------------
+
     def __call__(self, func):
+
         @functools.wraps(func)
         def wrapper(message, *args, **kwargs):
+
             try:
-                # بررسی اینکه آیا کاربر قبلاً ویدیو را رد کرده است
-                if self._has_user_skipped(message):
-                    # اگر رد کرده، ادامه بده بدون نمایش ویدیو
-                    return func(message, *args, **kwargs)
-                
-                # بررسی وجود فایل ویدیو
-                if not self._check_video_exists():
-                    print(f"Video file not found: {self.video_path}")
-                    return func(message, *args, **kwargs)
-                
-                # ارسال ویدیو با دکمه
-                self._send_video_with_button(message)
-                
+                bot = self.app or app
+                user_id = message.chat.id
+
+                # === 1) دریافت زبان کاربر ===
+                try:
+                    profile = ProfileModel.objects.get(tel_id=user_id)
+                    lang = profile.lang
+                except ProfileModel.DoesNotExist:
+                    lang = "en"   # fallback
+
+                # === 2) ساخت مسیر ویدیو ===
+                video_path = Path(
+                    settings.BASE_DIR,
+                    f"media/promptvideos/{lang}/{self.command}.mp4"
+                )
+
+                # کلید skip با زبان و command متفاوت می‌شود
+                skip_key = f"skip_video_{user_id}_{lang}_{self.command}"
+
+                if not cache.get(skip_key):
+                    self._smart_send(message, bot, video_path, lang)
+                # else: قبلاً ویدیو را دیده → skip
+
             except Exception as e:
-                print(f"Error in VideoPrompter: {e}\n{traceback.format_exc()}")
-                # در صورت خطا، ادامه بده
-                return func(message, *args, **kwargs)
-            
-            # ادامه اجرای تابع اصلی
+                logger.exception(f"[Decorator] Exception: {e}")
+
             return func(message, *args, **kwargs)
-        
+
         return wrapper
-    
-    def _has_user_skipped(self, message) -> bool:
-        """بررسی اینکه آیا کاربر قبلاً این ویدیو را رد کرده است"""
-        from django.core.cache import cache
-        
+
+    # -----------------------------------------------------------------
+
+    def _smart_send(self, message, bot, video_path, lang):
         user_id = message.chat.id
-        cache_key = f"video_skip_{user_id}_{self.video_path}"
-        return cache.get(cache_key, False)
-    
-    def _check_video_exists(self) -> bool:
-        """بررسی وجود فایل ویدیو"""
-        return os.path.exists(self.video_path)
-    
-    def _send_video_with_button(self, message):
-        """ارسال ویدیو با دکمه شیشه‌ای"""
         try:
-            # خواندن فایل ویدیو
-            with open(self.video_path, 'rb') as video_file:
-                from telebot import types
-                
-                # دکمه شیشه‌ای
-                markup = types.InlineKeyboardMarkup()
-                skip_button = types.InlineKeyboardButton(
-                    text="🔕 دیگر نمایش داده نشود",
-                    callback_data=self.skip_callback_data
+            profile = ProfileModel.objects.get(tel_id=user_id)
+        except ProfileModel.DoesNotExist:
+            profile = None  # fallback
+
+        cached = CachedMedia.objects.filter(video_path=str(video_path)).first()
+        markup = self._build_button()
+
+        if cached and not cached.status:
+            return
+        # مرحله ۱: ارسال با file_id
+        if cached and cached.file_id:
+            return bot.send_video(
+                user_id,
+                cached.file_id,
+                caption="🎬 راهنمای آموزشی",
+                reply_markup=markup,
+                parse_mode="HTML"
+            )
+
+        # مرحله ۲: ارسال با forward
+        if cached and cached.channel_message_id:
+            try:
+                bot.forward_message(
+                    chat_id=user_id,
+                    from_chat_id=self.CACHE_CHANNEL,
+                    message_id=cached.channel_message_id
                 )
-                markup.add(skip_button)
-                
-                # ارسال ویدیو
-                app.send_video(
-                    chat_id=message.chat.id,
-                    video=video_file,
-                    caption="🎬 راهنمای آموزشی",
-                    reply_markup=markup,
-                    parse_mode="HTML"
+                return bot.send_message(
+                    user_id,
+                    "آیا این راهنما مفید بود؟",
+                    reply_markup=markup
                 )
-                
-                print(f"Video sent to user {message.chat.id}: {self.video_path}")
-                
-        except Exception as e:
-            print(f"Error sending video: {e}")
-            raise
-    
+            except Exception:
+                pass
+
+        # مرحله ۳: آپلود
+        if not os.path.exists(video_path):
+            return bot.send_message(user_id, "❌ ویدیو یافت نشد.")
+
+        with open(video_path, "rb") as v:
+            sent = bot.send_video(
+                chat_id=self.CACHE_CHANNEL,
+                video=v,
+                caption=f"{lang}-{self.command}.mp4"
+            )
+
+        # ایجاد رکورد CachedMedia با profile
+        if profile:
+            CachedMedia.objects.create(
+                profile=profile,
+                video_path=str(video_path),
+                file_id=sent.video.file_id,
+                channel_message_id=sent.message_id
+            )
+
+        bot.send_video(
+            user_id,
+            sent.video.file_id,
+            caption="🎬 راهنمای آموزشی",
+            reply_markup=markup,
+            parse_mode="HTML"
+        )
+
+    # -----------------------------------------------------------------
+
+    def _build_button(self):
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton("🔕 دیگر نمایش داده نشود", callback_data=self.skip_data)
+        markup.add(btn)
+        return markup
+
+
     @staticmethod
     def handle_skip_callback(call):
-        """هندلر برای دکمه 'دیگر نمایش داده نشود'"""
+        """
+        هندلر callback برای دکمه "دیگر نمایش داده نشود"
+        - تغییر status ویدیو به False برای تمام زبان‌ها
+        - پاسخ دادن به کاربر
+        """
+        bot = app  # یا self.app اگر instance باشد
+        user_id = call.message.chat.id
+
+        # callback_data فرمت: "skip_video|command"
+        data = call.data  # مثال: skip_video|start
+        if "|" not in data:
+            bot.answer_callback_query(call.id, "❌ خطا در داده دکمه")
+            return
+
+        _, command = data.split("|", 1)
+
+        # دریافت پروفایل کاربر
         try:
-            user_id = call.message.chat.id
-            video_path = "welcome.mp4"  # یا از call.data بگیرید
-            
-            # ذخیره در کش
-            from django.core.cache import cache
-            cache_key = f"video_skip_{user_id}_{video_path}"
-            cache.set(cache_key, True, timeout=60*60*24*30)  # 30 روز
-            
-            # حذف دکمه‌ها
-            call.bot.edit_message_reply_markup(
-                chat_id=user_id,
-                message_id=call.message.message_id,
-                reply_markup=None
-            )
-            
-            # پاسخ به کاربر
-            call.bot.answer_callback_query(
-                call.id,
-                "✅ از این پس این راهنما نمایش داده نمی‌شود.",
-                show_alert=True
-            )
-            
-        except Exception as e:
-            print(f"Error handling skip callback: {e}")
-            call.bot.answer_callback_query(call.id, "خطا در پردازش درخواست!")
-#
+            profile = ProfileModel.objects.get(tel_id=user_id)
+        except ProfileModel.DoesNotExist:
+            bot.answer_callback_query(call.id, "❌ پروفایل یافت نشد")
+            return
+
+        # جستجوی همه CachedMedia‌های مرتبط با این کاربر که نام ویدیو مطابق command است
+        cached_list = CachedMedia.objects.filter(
+            profile=profile,
+            video_path__icontains=f"{command}.mp4"  # هر زبان
+        )
+
+        if cached_list.exists():
+            cached_list.update(status=False)
+            bot.answer_callback_query(call.id, "✅ دیگر این ویدیو برای شما در تمام زبان‌ها نمایش داده نمی‌شود")
+        else:
+            bot.answer_callback_query(call.id, "❌ رکورد ویدیو یافت نشد")
+
+
+
+        

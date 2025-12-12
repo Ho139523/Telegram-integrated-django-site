@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from products.models import Product, Store  # Ensure you have a Product model
+from products.models import Product, Store
 import uuid
 from accounts.models import ProfileModel
 from django.core.validators import MinValueValidator

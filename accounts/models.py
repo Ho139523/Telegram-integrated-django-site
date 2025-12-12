@@ -156,6 +156,7 @@ class ProfileModel(models.Model):
         related_name="connected_profiles",
         verbose_name="Server Store"
     )
+    
 
     # ----------------------------
     # Address helper

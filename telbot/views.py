@@ -22,6 +22,8 @@ from django.conf import settings as sett
 from datetime import datetime
 from decouple import config
 import pycountry
+from django.conf import settings
+
 
 # support imports
 from telebot.storage import StateMemoryStorage
@@ -32,7 +34,7 @@ from telebot import custom_filters
 from utils.variables.TOKEN import TOKEN, BOT_ID
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
-from utils.telbot.functions import ProductHandler, SendCart, SendLocation, SendMarkup, t, AdvancedProductExporter
+from utils.telbot.functions import UltraVideoPrompter, ProductHandler, SendCart, SendLocation, SendMarkup, t, AdvancedProductExporter
 from utils.telbot.variables import customer_main_menu, extra_buttons, retun_menue, seller_main_menu, home_menu
 from bs4 import BeautifulSoup
 
@@ -303,14 +305,21 @@ def handle_store_product_start(message):
         print(traceback.format_exc())
         app.send_message(message.chat.id, f"⚠ خطا در پردازش لینک خرید: {e}")
 
+
+#################################
+
+
 # هندلر برای دکمه رد کردن
-@app.callback_query_handler(func=lambda call: call.data == "skip_video_prompt")
-def handle_skip_video(call):
-    VideoPrompter.handle_skip_callback(call)
+@app.callback_query_handler(func=lambda call: call.data and call.data.startswith("skip_video|"))
+def on_skip_callback(call):
+    print("hhh")
+    UltraVideoPrompter.handle_skip_callback(call)
+
+
 
 # Start handler
 @app.message_handler(commands=['start'])
-@VideoPrompter(video_path="./media/welcome.mp4")  # ✅ بدون message
+@UltraVideoPrompter(command="start")
 def start(message):
     try:
         tel_id = message.from_user.id
@@ -321,10 +330,12 @@ def start(message):
         response = requests.post(f"{current_site}/telbot/api/check-registration/", json={"tel_id": tel_id})
         print(response.status_code)
 
-        profile, created = ProfileModel.objects.get_or_create(tel_id=tel_id, telegram=tel_username,
-                                                              fname=tel_first_name, lname=tel_last_name)
-
-        
+        profile, created = ProfileModel.objects.get_or_create(
+            tel_id=tel_id,
+            telegram=tel_username,
+            fname=tel_first_name,
+            lname=tel_last_name
+        )
 
         if created:
             language_setting(message)
@@ -332,11 +343,8 @@ def start(message):
             home(message)
 
     except Exception as e:
-        error_details = traceback.format_exc()
-        custom_message = f"An error occurred in start handler: {e}\nDetails:\n{error_details}"
         app.send_message(message.chat.id, t(message, "start_error"))
-        print(custom_message)
-
+        print(traceback.format_exc())
 
 
 #####################################################################################################

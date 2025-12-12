@@ -156,7 +156,46 @@ class ProfileModel(models.Model):
         related_name="connected_profiles",
         verbose_name="Server Store"
     )
-    
+    hidden_videos = models.JSONField(default=dict)
+
+    # -------------------------
+    # helper methods for hidden_videos
+    # -------------------------
+    def is_video_hidden(self, command: str) -> bool:
+        """بررسی می‌کند آیا کاربر این command را مخفی کرده یا نه."""
+        try:
+            return bool(self.hidden_videos.get(command))
+        except Exception:
+            return False
+
+    def hide_video(self, command: str):
+        """
+        علامت‌گذاری یک command به عنوان 'مخفی'.
+        از transaction و select_for_update برای جلوگیری از race استفاده می‌کنیم.
+        """
+        from django.db import transaction
+        with transaction.atomic():
+            # lock this profile row to avoid concurrent writes
+            p = ProfileModel.objects.select_for_update().get(pk=self.pk)
+            data = dict(p.hidden_videos or {})
+            data[command] = True
+            p.hidden_videos = data
+            p.save(update_fields=['hidden_videos'])
+
+    def unhide_video(self, command: str):
+        with transaction.atomic():
+            p = ProfileModel.objects.select_for_update().get(pk=self.pk)
+            data = dict(p.hidden_videos or {})
+            if command in data:
+                data.pop(command)
+                p.hidden_videos = data
+                p.save(update_fields=['hidden_videos'])
+
+    def clear_hidden_videos(self):
+        with transaction.atomic():
+            p = ProfileModel.objects.select_for_update().get(pk=self.pk)
+            p.hidden_videos = {}
+            p.save(update_fields=['hidden_videos'])
 
     # ----------------------------
     # Address helper

@@ -312,8 +312,33 @@ def handle_store_product_start(message):
 # هندلر برای دکمه رد کردن
 @app.callback_query_handler(func=lambda call: call.data and call.data.startswith("skip_video|"))
 def on_skip_callback(call):
-    print("hhh")
-    UltraVideoPrompter.handle_skip_callback(call)
+    # انتظار فرمت skip_video|<command>
+    data = call.data or ""
+    try:
+        _prefix, command = data.split("|", 1)
+    except ValueError:
+        return app.answer_callback_query(call.id, "داده نامعتبر")  # ← از app استفاده کن
+
+    user_id = call.from_user.id
+    try:
+        profile = ProfileModel.objects.get(tel_id=user_id)
+    except ProfileModel.DoesNotExist:
+        return app.answer_callback_query(call.id, "پروفایل یافت نشد")  # ← از app استفاده کن
+
+    # hide for all languages
+    try:
+        profile.hide_video(command)
+        # اصلاح: از app استفاده کن نه call.bot
+        app.edit_message_reply_markup(
+            chat_id=call.message.chat.id, 
+            message_id=call.message.message_id, 
+            reply_markup=None
+        )
+        app.answer_callback_query(call.id, "✅ دیگر این ویدیو برای شما نمایش داده نخواهد شد", show_alert=True)
+    except Exception as e:
+        logger.exception("hide_video failed")
+        app.answer_callback_query(call.id, "خطا در ثبت درخواست", show_alert=True)
+
 
 
 

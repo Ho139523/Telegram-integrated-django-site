@@ -4580,172 +4580,199 @@ class AdvancedProductExporter:
 ################## VIDEO PROMPTS ################
 
 class UltraVideoPrompter:
-    """
-    Decorator for language-based smart Telegram video sending:
-    - Detect user's language from ProfileModel
-    - Build video path dynamically: media/promptvideos/{lang}/{command}.mp4
-    - Use cache, forward, upload, store file_id
-    """
-
     CACHE_CHANNEL = "@Botshop_trainer"
-    SKIP_TIMEOUT = 60 * 60 * 24 * 30  # 30 days
 
     def __init__(self, command: str, skip_data: str = "skip_video", app=None):
         self.command = command
-        self.skip_data = f"{skip_data}|{self.command}"
+        self.skip_data = f"{skip_data}|{command}"
         self.app = app
 
-    # -----------------------------------------------------------------
-
+    # ----------------------------------------------------------------
     def __call__(self, func):
 
         @functools.wraps(func)
         def wrapper(message, *args, **kwargs):
 
+            print("\n==============================")
+            print("=== UltraVideoPrompter wrapper executed ===")
+
+
+            bot = self.app or app
+            user_id = message.chat.id
+
+            print("User ID =", user_id)
+
+            # ---------------------------------------------------------
+            # 1) گرفتن پروفایل
             try:
-                bot = self.app or app
-                user_id = message.chat.id
+                profile = ProfileModel.objects.get(tel_id=user_id)
+                lang = profile.lang
+                print("Profile Loaded:", profile)
+            except ProfileModel.DoesNotExist:
+                profile = None
+                lang = "en"
+                print("Profile NOT FOUND -> using 'en'")
 
-                # === 1) دریافت زبان کاربر ===
-                try:
-                    profile = ProfileModel.objects.get(tel_id=user_id)
-                    lang = profile.lang
-                except ProfileModel.DoesNotExist:
-                    lang = "en"   # fallback
+            # ---------------------------------------------------------
+            # 2) چاپ وضعیت پروفایل
+            print("Language:", lang)
+            print("hidden_videos =", profile.hidden_videos if profile else None)
+            print("command =", self.command)
 
-                # === 2) ساخت مسیر ویدیو ===
-                video_path = Path(
-                    settings.BASE_DIR,
-                    f"media/promptvideos/{lang}/{self.command}.mp4"
-                )
+            # ---------------------------------------------------------
+            # 3) اگر hide فعال است → skip کن
+            if profile:
+                hidden_flag = profile.hidden_videos.get(self.command)
+                print("HIDDEN FLAG =", hidden_flag)
 
-                # کلید skip با زبان و command متفاوت می‌شود
-                skip_key = f"skip_video_{user_id}_{lang}_{self.command}"
+                if hidden_flag:
+                    print(">>> SKIP VIDEO (flag=True)")
+                    print("==============================\n")
+                    return func(message, *args, **kwargs)
 
-                if not cache.get(skip_key):
-                    self._smart_send(message, bot, video_path, lang)
-                # else: قبلاً ویدیو را دیده → skip
+            # ---------------------------------------------------------
+            # 4) مسیر ویدیو
+            video_path = Path(
+                settings.BASE_DIR,
+                f"media/promptvideos/{lang}/{self.command}.mp4"
+            )
 
-            except Exception as e:
-                logger.exception(f"[Decorator] Exception: {e}")
+            print("Video path:", video_path)
+            print("Exists:", os.path.exists(video_path))
 
+            # ---------------------------------------------------------
+            # 5) ارسال
+            self._smart_send(message, bot, video_path, lang)
+
+            print("==============================\n")
             return func(message, *args, **kwargs)
 
         return wrapper
 
-    # -----------------------------------------------------------------
-
+    # ----------------------------------------------------------------
     def _smart_send(self, message, bot, video_path, lang):
         user_id = message.chat.id
-        try:
-            profile = ProfileModel.objects.get(tel_id=user_id)
-        except ProfileModel.DoesNotExist:
-            profile = None  # fallback
+        print(">>> Enter _smart_send()")
 
-        cached = CachedMedia.objects.filter(video_path=str(video_path)).first()
         markup = self._build_button()
 
-        if cached and not cached.status:
-            return
-        # مرحله ۱: ارسال با file_id
+        # ---------------------------------------------------------
+        # 1) بررسی cache
+        cached = CachedMedia.objects.filter(video_path=str(video_path)).first()
+        print("Cached record:", cached)
+
+        if cached:
+            print("Cached file_id:", cached.file_id)
+
+        # ---------------------------------------------------------
+        # اگر cache موجود باشد
         if cached and cached.file_id:
-            return bot.send_video(
+            print(">>> Sending from CACHE to user")
+            try:
+                bot.send_video(
+                    user_id,
+                    cached.file_id,
+                    caption="🎬 راهنما",
+                    reply_markup=markup,
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                print("ERROR sending cached file:", e)
+            return
+
+        # ---------------------------------------------------------
+        # 2) فایل وجود ندارد؟
+        if not os.path.exists(video_path):
+            print("❌ ERROR: Video file does NOT exist!")
+            bot.send_message(user_id, "❌ ویدیو یافت نشد.")
+            return
+
+        # ---------------------------------------------------------
+        # 3) ارسال به کانال
+        print(">>> Uploading NEW video to CACHE CHANNEL...")
+
+        try:
+            with open(video_path, "rb") as f:
+                sent = bot.send_video(
+                    chat_id=self.CACHE_CHANNEL,
+                    video=f,
+                    caption=f"{lang}-{self.command}.mp4"
+                )
+            print("Upload success!")
+        except Exception as e:
+            print("❌ ERROR uploading to channel:", e)
+            bot.send_message(user_id, "❌ خطا در ارسال ویدیو به کانال اصلی.")
+            return
+
+        # ---------------------------------------------------------
+        # 4) ذخیره cache
+        try:
+            cache_record = CachedMedia.objects.create(
+                video_path=str(video_path),
+                file_id=sent.video.file_id,
+                channel_message_id=sent.message_id,
+                media_type="video"
+            )
+            print("CachedMedia SAVED:", cache_record)
+        except Exception as e:
+            print("❌ ERROR saving CachedMedia:", e)
+
+        # ---------------------------------------------------------
+        # 5) ارسال نهایی به کاربر
+        print(">>> Sending NEW video to user")
+        try:
+            bot.send_video(
                 user_id,
-                cached.file_id,
-                caption="🎬 راهنمای آموزشی",
+                sent.video.file_id,
+                caption="🎬 راهنما",
                 reply_markup=markup,
                 parse_mode="HTML"
             )
+        except Exception as e:
+            print("❌ ERROR sending final video to user:", e)
 
-        # مرحله ۲: ارسال با forward
-        if cached and cached.channel_message_id:
-            try:
-                bot.forward_message(
-                    chat_id=user_id,
-                    from_chat_id=self.CACHE_CHANNEL,
-                    message_id=cached.channel_message_id
-                )
-                return bot.send_message(
-                    user_id,
-                    "آیا این راهنما مفید بود؟",
-                    reply_markup=markup
-                )
-            except Exception:
-                pass
+        print(">>> _smart_send() finished")
 
-        # مرحله ۳: آپلود
-        if not os.path.exists(video_path):
-            return bot.send_message(user_id, "❌ ویدیو یافت نشد.")
-
-        with open(video_path, "rb") as v:
-            sent = bot.send_video(
-                chat_id=self.CACHE_CHANNEL,
-                video=v,
-                caption=f"{lang}-{self.command}.mp4"
-            )
-
-        # ایجاد رکورد CachedMedia با profile
-        if profile:
-            CachedMedia.objects.create(
-                profile=profile,
-                video_path=str(video_path),
-                file_id=sent.video.file_id,
-                channel_message_id=sent.message_id
-            )
-
-        bot.send_video(
-            user_id,
-            sent.video.file_id,
-            caption="🎬 راهنمای آموزشی",
-            reply_markup=markup,
-            parse_mode="HTML"
-        )
-
-    # -----------------------------------------------------------------
-
+    # ----------------------------------------------------------------
     def _build_button(self):
         markup = types.InlineKeyboardMarkup()
-        btn = types.InlineKeyboardButton("🔕 دیگر نمایش داده نشود", callback_data=self.skip_data)
+        btn = types.InlineKeyboardButton(
+            "🔕 دیگر نمایش داده نشود", callback_data=self.skip_data
+        )
         markup.add(btn)
         return markup
 
-
+    # ----------------------------------------------------------------
     @staticmethod
     def handle_skip_callback(call):
-        """
-        هندلر callback برای دکمه "دیگر نمایش داده نشود"
-        - تغییر status ویدیو به False برای تمام زبان‌ها
-        - پاسخ دادن به کاربر
-        """
-        bot = app  # یا self.app اگر instance باشد
+        bot = app
         user_id = call.message.chat.id
 
-        # callback_data فرمت: "skip_video|command"
-        data = call.data  # مثال: skip_video|start
-        if "|" not in data:
-            bot.answer_callback_query(call.id, "❌ خطا در داده دکمه")
-            return
+        print(">>> handle_skip_callback()")
+        print("callback data:", call.data)
 
-        _, command = data.split("|", 1)
-
-        # دریافت پروفایل کاربر
         try:
             profile = ProfileModel.objects.get(tel_id=user_id)
         except ProfileModel.DoesNotExist:
-            bot.answer_callback_query(call.id, "❌ پروفایل یافت نشد")
-            return
+            print("Profile not found")
+            return bot.answer_callback_query(call.id, "❌ پروفایل یافت نشد")
 
-        # جستجوی همه CachedMedia‌های مرتبط با این کاربر که نام ویدیو مطابق command است
-        cached_list = CachedMedia.objects.filter(
-            profile=profile,
-            video_path__icontains=f"{command}.mp4"  # هر زبان
+        if "|" not in call.data:
+            print("Invalid callback data")
+            return bot.answer_callback_query(call.id, "❌ خطا")
+
+        _, command = call.data.split("|", 1)
+        print("Skip command =", command)
+
+        profile.hidden_videos[command] = True
+        profile.save(update_fields=['hidden_videos'])
+
+        print("Hidden updated:", profile.hidden_videos)
+
+        bot.answer_callback_query(
+            call.id,
+            "🔕 این ویدیو دیگر برای شما نمایش داده نخواهد شد"
         )
-
-        if cached_list.exists():
-            cached_list.update(status=False)
-            bot.answer_callback_query(call.id, "✅ دیگر این ویدیو برای شما در تمام زبان‌ها نمایش داده نمی‌شود")
-        else:
-            bot.answer_callback_query(call.id, "❌ رکورد ویدیو یافت نشد")
 
 
 

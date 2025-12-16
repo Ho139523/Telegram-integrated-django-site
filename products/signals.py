@@ -165,9 +165,13 @@ def productvariant_values_changed(sender, instance, action, pk_set, **kwargs):
 
 @receiver(post_save, sender=ProductVariant)
 def update_product_stock_on_variant_save(sender, instance, **kwargs):
-    instance.product.update_stock_from_variants()
+    product = instance.product
+    product.sync_stock()
+    product.save(update_fields=["stock"])
 
 
 @receiver(post_delete, sender=ProductVariant)
 def update_product_stock_on_variant_delete(sender, instance, **kwargs):
-    instance.product.update_stock_from_variants()
+    product = instance.product
+    product.sync_stock()
+    product.save(update_fields=["stock"])

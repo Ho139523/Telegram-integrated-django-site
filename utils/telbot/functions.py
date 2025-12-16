@@ -2283,6 +2283,7 @@ class ProductHandler:
                     (t("message", "add_to_cart", chat_id=chat_id), f"addtocart_{self.product.code}", 1),
                     (t("message", "comments", chat_id=chat_id), f"comments_{self.product.code}", 0),
                 ])
+
                 
                 handlers.update({
                     f"addtocart_{self.product.code}": self.handle_add_to_cart,
@@ -2290,6 +2291,8 @@ class ProductHandler:
                 })
                 
                 button_layout = [2]
+
+                variant = None
 
             # متن اطلاع‌رسانی
             stock_info = variant.stock if variant else self.product.stock

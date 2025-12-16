@@ -5,9 +5,6 @@ from .models import User, ProfileModel, Address
 from django import forms
 import pycountry
 from utils.funcs.geonames_address import get_country_choices, load_geodata
-
-
-
 import requests
 
 

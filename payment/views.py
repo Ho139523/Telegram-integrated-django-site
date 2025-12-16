@@ -274,44 +274,66 @@ def handle_successful_payment(transaction):
         if transaction.status == "paid" and transaction.cart:
             print(f"\n💳 PAYMENT SUCCESS - Transaction: {transaction.id}")
             
-            # استفاده از transaction دیتابیس برای اطمینان از یکپارچگی داده‌ها
             with db_transaction.atomic():
                 sales = []
                 for cart_item in transaction.cart.items.all():
                     product = cart_item.product
+
+                    # اگر محصول واریانت دارد، موجودی واریانت را کاهش بده
+                    if product.has_variants() and hasattr(cart_item, "variant") and cart_item.variant:
+                        variant = cart_item.variant
+                        if variant.stock >= cart_item.quantity:
+                            variant.stock -= cart_item.quantity
+                            variant.save()  # sync_stock داخل save صدا زده می‌شود
+                            
+                            total_price = int(cart_item.total_price())
+                            sale = Sale.objects.create(
+                                transaction=transaction,
+                                product=product,
+                                seller=product.store,
+                                quantity=cart_item.quantity,
+                                unit_price=int(variant.final_price),
+                                total_price=total_price
+                            )
+                            sales.append(sale)
+                        else:
+                            raise ValueError(f"موجودی واریانت {variant} کافی نیست")
                     
-                    if product.stock >= cart_item.quantity:
-                        # کاهش موجودی
-                        product.stock -= cart_item.quantity
-                        product.save(update_fields=["stock"])
-                        
-                        # ایجاد فروش
-                        sale = Sale.objects.create(
-                            transaction=transaction,
-                            product=product,
-                            seller=product.store,
-                            quantity=cart_item.quantity,
-                            unit_price=int(product.final_price),
-                            total_price=int(cart_item.total_price())
-                        )
-                        sales.append(sale)
-                        
-                        # بررسی اتمام موجودی
-                        if product.stock == 0 and product.store.tel_channel:
-                            try:
-                                photos = []
-                                if product.main_image:
-                                    photos.append(product.main_image.path)
-                                photos += [img.image.path for img in product.images.all()]
-                                
-                                send_album_and_button(
-                                    channel_id=product.store.tel_channel,
-                                    product=product,
-                                    photos=photos,
-                                    out_of_stock=True
-                                )
-                            except Exception as ex:
-                                print(f"⚠️ Error sending out-of-stock album: {ex}")
+                    # اگر محصول واریانت ندارد
+                    else:
+                        if product.stock >= cart_item.quantity:
+                            product._system_stock_update = True  # دور زدن clean()
+                            product.stock -= cart_item.quantity
+                            product.save(update_fields=["stock"])
+                            
+                            sale = Sale.objects.create(
+                                transaction=transaction,
+                                product=product,
+                                seller=product.store,
+                                quantity=cart_item.quantity,
+                                unit_price=int(product.final_price),
+                                total_price=int(cart_item.total_price())
+                            )
+                            sales.append(sale)
+                        else:
+                            raise ValueError(f"موجودی محصول {product} کافی نیست")
+                    
+                    # ارسال آلبوم اتمام موجودی
+                    if product.stock == 0 and product.store.tel_channel:
+                        try:
+                            photos = []
+                            if product.main_image:
+                                photos.append(product.main_image.path)
+                            photos += [img.image.path for img in product.images.all()]
+                            
+                            send_album_and_button(
+                                channel_id=product.store.tel_channel,
+                                product=product,
+                                photos=photos,
+                                out_of_stock=True
+                            )
+                        except Exception as ex:
+                            print(f"⚠️ Error sending out-of-stock album: {ex}")
 
                 # ارسال پیام‌ها
                 send_payment_notifications(transaction, sales)
@@ -327,6 +349,7 @@ def handle_successful_payment(transaction):
 def send_payment_notifications(transaction, sales):
     """ارسال پیام‌های اطلاع‌رسانی پس از پرداخت موفق"""
     try:
+        print("ysss2")
         chat_id_buyer = transaction.profile.tel_id
         telegram_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
         
@@ -374,7 +397,133 @@ def send_payment_notifications(transaction, sales):
                 f"🏠 آدرس: {address_text}"
             )
             requests.post(telegram_url, json={"chat_id": chat_id_seller, "text": seller_message})
-
+        print("ysss3")
     except Exception as e:
         print(f"❌ Error sending notifications: {e}")
 
+
+
+
+################ SERIALISERS ##################
+
+from rest_framework import viewsets, permissions
+from .models import Cart, CartItem, Transaction, SplitPayment, Sale
+from .serializers import CartSerializer, CartItemSerializer, TransactionSerializer, SplitPaymentSerializer, SaleSerializer
+from rest_framework.permissions import IsAuthenticated
+
+
+class CartViewSet(viewsets.ModelViewSet):
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]  # فقط کاربران واردشده
+
+    def get_queryset(self):
+        # فقط کارت‌های کاربر جاری
+        user = self.request.user
+        try:
+            profile = user.profilemodel
+            return Cart.objects.filter(profile=profile)
+        except ProfileModel.DoesNotExist:
+            return Cart.objects.none()
+
+    def perform_create(self, serializer):
+        profile = self.request.user.profilemodel
+        serializer.save(profile=profile)
+
+
+class CartItemViewSet(viewsets.ModelViewSet):
+    queryset = CartItem.objects.all()
+    serializer_class = CartItemSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class TransactionViewSet(viewsets.ModelViewSet):
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated]  # فقط کاربران واردشده
+
+    def get_queryset(self):
+        user = self.request.user
+        try:
+            profile = user.profilemodel
+            return Transaction.objects.filter(profile=profile)
+        except ProfileModel.DoesNotExist:
+            return Transaction.objects.none()
+
+    def perform_create(self, serializer):
+        profile = self.request.user.profilemodel
+        serializer.save(profile=profile)
+
+
+
+class SplitPaymentViewSet(viewsets.ModelViewSet):
+    queryset = SplitPayment.objects.all()
+    serializer_class = SplitPaymentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class SaleViewSet(viewsets.ModelViewSet):
+    queryset = Sale.objects.all()
+    serializer_class = SaleSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+@csrf_exempt
+def refund_payment(request, transaction_id):
+    txn = Transaction.objects.get(id=transaction_id)
+    txn.refund()
+    return JsonResponse({"message": "تراکنش مرجوع شد"})
+
+
+#############################  ASYNCE PAYMENT #############################
+
+import redis.asyncio as aioredis
+import httpx
+from asgiref.sync import sync_to_async
+from django.http import JsonResponse
+from payment.models import Transaction
+
+REDIS_URL = "redis://localhost"
+
+async def async_verify_payment(request):
+    authority = request.GET.get("Authority")
+    status = request.GET.get("Status")
+
+    if not authority:
+        return JsonResponse({"error": "Missing authority"}, status=400)
+
+    try:
+        transaction = await sync_to_async(Transaction.objects.get)(authority=authority)
+    except Transaction.DoesNotExist:
+        return JsonResponse({"error": "Transaction not found"}, status=404)
+
+    if status != "OK":
+        await sync_to_async(transaction.mark_as_canceled)()
+        return JsonResponse({"message": "پرداخت لغو شد"})
+
+    # Async verify via httpx
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "https://www.zarinpal.com/pg/rest/WebGate/PaymentVerification.json",
+            json={"Authority": authority, "Amount": transaction.amount * 10}
+        )
+        data = await resp.json()
+
+    if data.get("Status") != 100:
+        await sync_to_async(transaction.mark_as_failed)()
+        return JsonResponse({"error": "پرداخت ناموفق"})
+
+    # Redis lock
+    redis = await aioredis.from_url(REDIS_URL)
+    lock_key = f"transaction_lock:{transaction.id}"
+    lock = redis.lock(lock_key, timeout=30)
+    acquired = await lock.acquire()
+    if not acquired:
+        await redis.close()
+        return JsonResponse({"error": "تراکنش در حال پردازش است"})
+
+    try:
+        # اجرای finalize با atomic و lock
+        await sync_to_async(transaction.finalize)()
+    finally:
+        await lock.release()
+        await redis.close()
+
+    return JsonResponse({"message": "پرداخت موفق و finalize شد", "ref_id": data.get("RefID")})
+    

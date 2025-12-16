@@ -3,7 +3,8 @@ from .models import Transaction, Sale, Cart, CartItem
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ('transaction_id', 'cart', 'amount', 'status', 'created_at')
+    list_display = ("transaction_id", "profile", "amount", "status", "created_at")
+    readonly_fields = ("transaction_id", "amount", "status")
     list_filter = ('status',)
     ordering = ['created_at']
 
@@ -24,6 +25,9 @@ class CartAdmin(admin.ModelAdmin):
 
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ('cart', 'product', 'quantity', 'total_price')
-    list_filter = ('product', )
-    # ordering = ['created_at']
+    list_display = ('cart', 'product', 'quantity', 'get_total_price')
+
+    def get_total_price(self, obj):
+        return obj.total_price()
+    
+    get_total_price.short_description = "Total Price"

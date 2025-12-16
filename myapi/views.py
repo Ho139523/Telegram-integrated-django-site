@@ -7,7 +7,7 @@ from .serializer import HeartSerializer
 
 # Shoe API
 from rest_framework import viewsets
-from products.serializer import ProductSerializer
+from products.serializers import ProductSerializer
 from products.models import Product
 
 # Check Telegram User Registration
@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from accounts.models import ProfileModel
-from accounts.serializer import ProfileModelSerializer
+from accounts.serializers import ProfileModelSerializer
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 import requests
@@ -26,7 +26,7 @@ import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from accounts.serializer import ProfileCreateSerializer
+from accounts.serializers import ProfileCreateSerializer
 from accounts.models import ProfileModel
 from aiobot.auth import BotSignaturePermission
 
@@ -167,7 +167,7 @@ class BotCreateProfileView(APIView):
 
 
 from rest_framework import generics
-from accounts.serializer import ProfileURDSerializer
+from accounts.serializers import ProfileURDSerializer
 
 class ProfileURDView(generics.RetrieveUpdateDestroyAPIView):
     queryset = ProfileModel.objects.all()

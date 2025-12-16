@@ -1,0 +1,5 @@
+Requirement already satisfied: redis in ./myenv/lib/python3.12/site-packages (4.3.4)
+Requirement already satisfied: deprecated>=1.2.3 in ./myenv/lib/python3.12/site-packages (from redis) (1.2.18)
+Requirement already satisfied: packaging>=20.4 in ./myenv/lib/python3.12/site-packages (from redis) (24.2)
+Requirement already satisfied: async-timeout>=4.0.2 in ./myenv/lib/python3.12/site-packages (from redis) (5.0.1)
+Requirement already satisfied: wrapt<2,>=1.10 in ./myenv/lib/python3.12/site-packages (from deprecated>=1.2.3->redis) (1.17.2)

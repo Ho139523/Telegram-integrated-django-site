@@ -154,48 +154,69 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
-
-    @property
-    def final_price(self):
-        if self.discount > 0:
-            discount_amount = (self.price * self.discount) / 100
-            return self.price - discount_amount
-        return self.price
-
+    
     class Meta:
         verbose_name = "Product"
         verbose_name_plural = "Products"
+    
+    @property
+    def final_price(self):
+        """
+        قیمت نهایی محصول بعد از اعمال تخفیف (بدون Variant)
+        """
+        if self.discount:
+            return float(self.price) * (1 - float(self.discount)/100)
+        return float(self.price)
+
+
+    def has_variants(self):
+        return self.variants.exists()
+
+    def sync_stock(self):
+        if self.has_variants():
+            self.stock = (
+                self.variants.aggregate(total=models.Sum("stock"))["total"] or 0
+            )
+            self._system_stock_update = True
+
+
+    def _manual_stock_change(self):
+        if not hasattr(self, "_old_stock"):
+            self._old_stock = Product.objects.only("stock").get(pk=self.pk).stock
+        return self.stock != self._old_stock 
+
 
     def clean(self):
         if self.category and self.category.get_next_layer_categories().exists():
-            raise ValidationError({'category': "This category includes subcategories. You can't add product to it."})
+            raise ValidationError({'category': "This category includes subcategories."})
+
         if self.price < 10000:
             raise ValidationError({'price': 'قیمت نمی‌تواند کمتر از 10000 باشد.'})
 
+        if (
+            self.pk
+            and self.has_variants()
+            and not getattr(self, "_system_stock_update", False)
+            and self._manual_stock_change()
+        ):
+            raise ValidationError({
+                "stock": "موجودی محصول دارای واریانت به‌صورت خودکار محاسبه می‌شود."
+            })
+
+
     def save(self, *args, **kwargs):
-        self.clean()
+        self.full_clean(exclude=["stock"])
+
         if not self.code:
-            product_code_counter, _ = ProductCodeCounter.objects.get_or_create(id=1)
-            self.code = product_code_counter.get_next_code()
+            counter, _ = ProductCodeCounter.objects.get_or_create(id=1)
+            self.code = counter.get_next_code()
+
+        self.sync_stock()
         super().save(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
-        if self.main_image and os.path.isfile(self.main_image.path):
-            os.remove(self.main_image.path)
-        for image in self.images.all():
-            if image.image and os.path.isfile(image.image.path):
-                os.remove(image.image.path)
-            image.delete()
-        super().delete(*args, **kwargs)
-
-    def total_stock(self):
-        """
-        موجودی کل محصول شامل تمام واریانت‌ها.
-        اگر محصول واریانت نداشته باشد، موجودی خود محصول را برمی‌گرداند.
-        """
-        if self.variants.exists():
-            return sum(variant.stock for variant in self.variants.all())
-        return self.stock
+        # پاک‌کردن فلگ سیستمی
+        if hasattr(self, "_system_stock_update"):
+            del self._system_stock_update
 
 
 # =========================
@@ -235,7 +256,6 @@ class ProductCodeCounter(models.Model):
 import hashlib
 from django.db import models
 from django.utils.text import slugify
-
 
 # =========================
 # VARIANT SYSTEM (PROFESSIONAL STRUCTURE)
@@ -279,6 +299,7 @@ class ProductVariant(models.Model):
         verbose_name = "Product Variant"
         verbose_name_plural = "Product Variants"
         indexes = [
+            models.Index(fields=["product"]),
             models.Index(fields=["sku"]),
         ]
 
@@ -289,6 +310,8 @@ class ProductVariant(models.Model):
     @property
     def final_price(self):
         return self.price_override if self.price_override else self.product.final_price
+
+    
 
     def generate_sku(self):
         """
@@ -320,14 +343,21 @@ class ProductVariant(models.Model):
                 self.save(update_fields=["sku"])
 
 
-    def total_stock(self):
-        """Return total available stock for this variant."""
-        return self.stock
+
 
     def save(self, *args, **kwargs):
-        """
-        save ساده — تولید SKU را انجام نمی‌دهد تا از مشکلات مربوط به M2M جلوگیری شود.
-        از ensure_sku یا سیگنال m2m_changed برای تولید SKU استفاده کنید.
-        """
-        super().save(*args, **kwargs)
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+
+            product = self.product
+            product.sync_stock()
+            product.save(update_fields=["stock"])
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            product = self.product
+            super().delete(*args, **kwargs)
+
+            product.sync_stock()
+            product.save(update_fields=["stock"])
 

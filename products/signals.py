@@ -21,6 +21,8 @@ from utils.variables.translate import translations
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
+from django.db.models.signals import post_delete
+
 
 # --- CONFIG ---
 API_ID = api_id
@@ -158,3 +160,14 @@ def productvariant_values_changed(sender, instance, action, pk_set, **kwargs):
         except Exception:
             # لاگ خطا در صورت نیاز
             pass
+
+
+
+@receiver(post_save, sender=ProductVariant)
+def update_product_stock_on_variant_save(sender, instance, **kwargs):
+    instance.product.update_stock_from_variants()
+
+
+@receiver(post_delete, sender=ProductVariant)
+def update_product_stock_on_variant_delete(sender, instance, **kwargs):
+    instance.product.update_stock_from_variants()

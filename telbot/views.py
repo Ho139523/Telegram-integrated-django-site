@@ -23,6 +23,7 @@ from datetime import datetime
 from decouple import config
 import pycountry
 from django.conf import settings
+from AI.settings import current_site as settings_current_site
 
 
 # support imports
@@ -83,8 +84,19 @@ logger = logging.getLogger(__name__)
 state_storage = StateMemoryStorage()
 
 # App setup
-app = TeleBot(token=TOKEN, state_storage=state_storage)
-current_site = 'https://intelleum.ir:8443'
+import telebot
+from telebot import apihelper
+
+apihelper.CONNECT_TIMEOUT = 300
+apihelper.READ_TIMEOUT = 600
+
+app = telebot.TeleBot(
+    TOKEN,
+    state_storage=state_storage,
+    threaded=True,
+    num_threads=5
+)
+current_site = settings_current_site
 
 # subscription instance
 subscription = SubscriptionClass(app)
@@ -295,7 +307,7 @@ def handle_store_product_start(message):
 
         product = Product.objects.get(code=product_id)
         attributes = product.attributes.all()
-        product_handler = ProductHandler(app, Product.objects.get(code=product_id), current_site, attributes=attributes)
+        product_handler = ProductHandler(app, Product.objects.get(code=product_id), current_site, attributes=attributes, chat_id=message.chat.id)
         product_handler.send_product_message(message.chat.id)
 
     except Product.DoesNotExist:
@@ -763,7 +775,7 @@ def handle_product_buttons(call):
             app.answer_callback_query(call.id, "محصول یافت نشد!", show_alert=True)
             return
 
-        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
+        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all(), chat_id=call.message.chat.id)
         
         # هندلرها خودشون variant_id رو از call.data استخراج می‌کنن
         if action == "addtocart":
@@ -786,7 +798,7 @@ def handle_variant_navigation(call):
             return
 
         product = Product.objects.get(code=product_code)
-        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
+        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all(), chat_id=call.message.chat.id)
         product_handler.handle_variant_navigation(call)
 
     except ObjectDoesNotExist:
@@ -807,7 +819,7 @@ def handle_comments(call):
             return
 
         product = Product.objects.get(code=product_code)
-        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
+        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all(), chat_id=call.message.chat.id)
         product_handler.handle_comments(call)
 
     except ObjectDoesNotExist:
@@ -929,7 +941,7 @@ def handle_ten_products(message):
 
         for product in products:
             try:
-                product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
+                product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all(), chat_id=message.chat.id)
                 product_handler.send_product_message(message.chat.id)
             except Exception as e:
                 app.send_message(message.chat.id, f"the error is: {e}")
@@ -1211,7 +1223,7 @@ def handle_product_code(message):
                 if Product.objects.filter(code=message.text, status=True, category__status=True).exists():
                     product = Product.objects.get(code=message.text, status=True, category__status=True)
                     try:
-                        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all())
+                        product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all(), chat_id=message.chat.id)
                         product_handler.send_product_message(message.chat.id)
                     except Exception as e:
                         app.send_message(message.chat.id, f"the error is: {e}")
@@ -1538,7 +1550,7 @@ def add_product_process_getout(message):
         print(session.get("code"))
         product_obj = Product.objects.get(code=session.get("code"))
         attributes = product_obj.attributes.all()
-        product_handler = ProductHandler(app, product_obj, current_site, attributes=attributes)
+        product_handler = ProductHandler(app, product_obj, current_site, attributes=attributes, chat_id=message.chat.id)
         product_handler.send_product_message(message.chat.id, buttons=False)
 
         session_manager.reset_user_session(message.chat.id, namespace="add_product")
@@ -1790,6 +1802,7 @@ def get_new_category(message):
 
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_categories"))
+@UltraVideoPrompter(command="category")
 def category_client(message):
     category_class = CategoryClass()
     category_class.handle_category(message)
@@ -1893,19 +1906,36 @@ def handle_message(message):
 @app.callback_query_handler(func=lambda call: call.data == "پاسخ")
 def answer(call):
     try:
-        pattern = r"Recived a message from \d+"
         clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
-        print( re.findall(pattern=pattern, string=clean_text))
-        user = re.findall(pattern=pattern, string=clean_text)[0].split()[4]
 
-        app.send_message(chat_id=call.message.chat.id, text=f"Send your answer to <code>{user}</code>:",
-                         reply_markup=types.ForceReply(), parse_mode="HTML")
+        pattern = r"Received a message from (\d+)"
+        match = re.search(pattern, clean_text)
 
-        app.set_state(user_id=call.from_user.id, state=Support.respond, chat_id=call.message.chat.id)
+        if not match:
+            app.send_message(
+                call.message.chat.id,
+                "خطا: شناسه کاربر پیدا نشد."
+            )
+            return
 
-    except Exception as e:
-        error_message = traceback.format_exc()
-        print(f"your error is: {error_message}")
+        user = int(match.group(1))
+
+        app.send_message(
+            chat_id=call.message.chat.id,
+            text=f"Send your answer to <code>{user}</code>:",
+            reply_markup=types.ForceReply(),
+            parse_mode="HTML"
+        )
+
+        app.set_state(
+            user_id=call.from_user.id,
+            state=Support.respond,
+            chat_id=call.message.chat.id
+        )
+
+    except Exception:
+        print(traceback.format_exc())
+
 
 
 # Handling the support agent's reply message which is saved in 'Support.respond' state
@@ -2245,3 +2275,27 @@ def save_shipping_address(message, shipping_line1, shipping_line2, shipping_coun
 
 
 app.add_custom_filter(custom_filters.StateFilter(app))
+
+
+
+###################### SERIALIZERS ########################
+
+
+from rest_framework import viewsets, permissions
+from .models import ConversationModel, MessageModel, CachedMedia
+from .serializers import ConversationSerializer, MessageSerializer, CachedMediaSerializer
+
+class ConversationViewSet(viewsets.ModelViewSet):
+    queryset = ConversationModel.objects.all()
+    serializer_class = ConversationSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class MessageViewSet(viewsets.ModelViewSet):
+    queryset = MessageModel.objects.all()
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class CachedMediaViewSet(viewsets.ModelViewSet):
+    queryset = CachedMedia.objects.all()
+    serializer_class = CachedMediaSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]

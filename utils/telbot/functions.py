@@ -73,14 +73,21 @@ from django.conf import settings as sett
 from utils.funcs.geonames_address import get_country_choices, get_province_choices, get_city_choices
 
 
-def t(msg, key, **kwargs):
-    try:        
+def t(msg, key, chat_id=None, **kwargs):
+    try:
         if isinstance(msg, types.Message):
             message = msg
-        else:
+        elif isinstance(msg, types.CallbackQuery):
             message = msg.message
+        else:
+            message = None
 
-        lang = ProfileModel.objects.get(tel_id=message.chat.id).lang
+        if chat_id:
+            pass
+        else:
+            chat_id = message.chat.id
+
+        lang = ProfileModel.objects.get(tel_id=chat_id).lang
         text = translations.get(key, {}).get(lang, translations[key]["en"])
         
         # جایگذاری متغیرها
@@ -88,7 +95,7 @@ def t(msg, key, **kwargs):
             text = text.format(**kwargs)
         return text
     except Exception as e:
-        print(e)
+        print(traceback.format_exc())
 
 
 
@@ -1689,7 +1696,7 @@ class ProductBot:
                     product = Product.objects.get(code=code)
                     attributes = product.attributes.all()
                     # ارسال پیام محصول به کاربر
-                    producthandler = ProductHandler(app=self.bot, product=product, current_site=settings.settings_current_site, attributes=attributes)
+                    producthandler = ProductHandler(app=self.bot, product=product, current_site=settings_current_site, attributes=attributes)
                     producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
                     # ذخیره اطلاعات محصول در Redis
@@ -1854,7 +1861,7 @@ from asgiref.sync import sync_to_async
 class ProductHandler:
     """مدیریت ارسال پیام و اطلاعات محصول - نسخه بهینه‌شده"""
     
-    def __init__(self, app, product, current_site, photos=None, attributes=None):
+    def __init__(self, app, product, current_site, photos=None, attributes=None, chat_id=None):
         self.app = app
         self.product = product
         self.current_site = settings_current_site
@@ -1862,6 +1869,7 @@ class ProductHandler:
         self.photos = photos or []
         self.attributes = attributes
         self._variants_data_cache = None
+        self.chat_id = chat_id
 
     def get_product_variants_data(self):
         """دریافت همه داده‌های واریانت در یک کوئری با کشینگ"""
@@ -1996,13 +2004,13 @@ class ProductHandler:
         if self.product.discount > 0:
             return (
                 f"🏃 {self.product.discount} % تخفیف\n"
-                f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
+                f"💵 {t('message', 'price', chat_id=self.chat_id)}: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
             )
-        return f"💵 قیمت: {formatted_price} تومان"
+        return f"💵 {t('message', 'price', chat_id=self.chat_id)}: {formatted_price} تومان"
 
     def generate_caption(self):
         """تولید کپشن محصول با بهینه‌سازی"""
-        brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
+        brand_text = f"🔖 {t('message', 'product_brand', chat_id=self.chat_id)}: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
 
         # مشخصات کالا (Attributes)
@@ -2023,13 +2031,12 @@ class ProductHandler:
 
         # متن نهایی کپشن
         return (
-            f"\n⭕️ نام کالا: {self.product.name}\n"
+            f"\n⭕️ {t('message', 'product_name', chat_id=self.chat_id)}: {self.product.name}\n"
             f"{brand_text}"
-            f"کد کالا: {self.product.code}\n\n"
+            f"{t('message', 'product_code', chat_id=self.chat_id)}: {self.product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
             f"{variants_text}"
-            f"📫 ارسال به تمام نقاط کشور\n\n"
             f"{self.format_price()}\n"
         )
 
@@ -2057,13 +2064,12 @@ class ProductHandler:
             variants_text = "✅ " + "\n✅ ".join(variant_lines) + "\n\n"
 
         return (
-            f"\n⭕️ نام کالا: {self.product.name}\n"
+            f"\n⭕️ {t('message', 'product_name', chat_id=self.chat_id)}: {self.product.name}\n"
             f"{brand_text}"
-            f"کد کالا: {self.product.code}\n\n"
+            f"{t('message', 'product_code', chat_id=self.chat_id)}: {self.product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
             f"{variants_text}"
-            f"📫 ارسال به تمام نقاط کشور\n\n"
             f"{self.format_price()}\n"
         )
 
@@ -2219,6 +2225,7 @@ class ProductHandler:
     def _send_buttons_from_data(self, chat_id, buttons_data):
         """ارسال فوری دکمه‌ها با داده‌های از پیش محاسبه شده"""
         try:
+            print(buttons_data)
             variant_states = buttons_data['variant_states']
             cart = buttons_data['cart']
             variants_dict = buttons_data['variants_dict']
@@ -2273,8 +2280,8 @@ class ProductHandler:
             else:
                 # حالت اولیه
                 buttons.extend([
-                    ("افزودن به 🛒", f"addtocart_{self.product.code}", 1),
-                    ("نظرات 💭", f"comments_{self.product.code}", 0),
+                    (t("message", "add_to_cart", chat_id=chat_id), f"addtocart_{self.product.code}", 1),
+                    (t("message", "comments", chat_id=chat_id), f"comments_{self.product.code}", 0),
                 ])
                 
                 handlers.update({
@@ -2286,7 +2293,7 @@ class ProductHandler:
 
             # متن اطلاع‌رسانی
             stock_info = variant.stock if variant else self.product.stock
-            text = f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی: {stock_info})"
+            text = t("message", "order_up_to_stock", chat_id=chat_id, stock_info=stock_info)
             
             # ارسال فوری
             markup = SendMarkup(
@@ -2320,7 +2327,7 @@ class ProductHandler:
             }
             
             stock_info = product.stock
-            text = f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی: {stock_info})"
+            text = t("message", "order_up_to_stock", chat_id=chat_id, stock_info=stock_info)
 
             markup = SendMarkup(
                 bot=self.app,
@@ -2580,7 +2587,7 @@ class ProductHandler:
                 button_layout = [3, 1]
 
             stock_info = variant.stock if variant else product.stock
-            text = f"به هر تعداد در انبار موجود باشه می‌تونی سفارش بدی! (موجودی: {stock_info})"
+            text = t("message", "order_up_to_stock", chat_id=chat_id, stock_info=stock_info)
 
             markup = SendMarkup(
                 bot=self.app,

@@ -5,6 +5,7 @@ app_name = 'payment'
 urlpatterns = [
     path('buy/', send_request, name='request'),
     path('verify/', verify, name='verify'),
+    path("verify-async/", async_verify_payment, name="verify-async"),
 ]
 
 

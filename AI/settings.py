@@ -17,9 +17,19 @@ DEBUG = True
 BASE_URL = config("BASE_URL")
 
 
-# ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=[], cast=lambda v: [s.strip() for s in v.split(',')]) 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']#config('ALLOWED_HOSTS', cast=Csv())
-CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'https://*.serveo.net', 'https://*.loca.lt', 'https://*.trycloudflare.com', BASE_URL]
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "intelleum.ir",
+    "intelleum.ir:8443",
+    "www.intelleum.ir",
+    "www.intelleum.ir:8443"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://intelleum.ir",
+    "https://intelleum.ir:8443",
+]
  
 
 current_site = 'https://intelleum.ir:8443'
@@ -39,7 +49,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Packages
-    "rest_framework", 
     'widget_tweaks',
     'allauth',
     'allauth.account',
@@ -50,6 +59,10 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'tailwind',
     'theme',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
+    'rest_framework_simplejwt.token_blacklist',
     
     # Apps
     "products",
@@ -151,10 +164,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware', 
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    # Disable CSRF temporarily (only for testing)
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+]
+
+
+CORS_ALLOWED_ORIGINS = [
+    "https://intelleum.ir:8443",
 ]
 
 
@@ -296,19 +312,31 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 
 #SECURE_SSL_REDIRECT = True
-#SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
-#SECURE_HSTS_SECONDS = 31536000
-#SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-#SECURE_HSTS_PRELOAD = True
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # میتوانید session auth هم اضافه کنید برای admin panel:
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '1000/day',
+        'anon': '100/day',
+    },
+}
 
 
-# DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
-# FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024  # 100MB
-
-# DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
-# FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB
 
 
 ZARINPAL = {
@@ -319,7 +347,7 @@ ZARINPAL = {
 
 
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
-CSRF_TRUSTED_ORIGINS = [BASE_URL,]
+FORCE_SCRIPT_NAME = ""
 
 
 # تنظیم کش
@@ -344,3 +372,27 @@ BOT_SIGNATURE_EXPIRES = config("BOT_SIGNATURE_EXPIRES", cast=int, default=60)
 BOT_NONCE_EXPIRES = config("BOT_NONCE_EXPIRES", cast=int, default=300)
 
 TG_SESSION_STRING = "1BJWap1wBu455l3Q-PYf0gQkifW8PZXBOYoCAPy-6f5Fa51tPiiuAve2RFuvTbKwz9tn5CLVm6MlgsyF9W_HBQELdfpUkglfWD_hy6l-KsAG9_TJy-jcB1Vnp_QocYvxjzDrIUNLT3WNa15l5NA8xl0WGFWPbkJ4uKEknu1P_GsH8QR33vojCPRo5EGJ_6qw5q0j2halPIbUAJRmOvzCluVQ1za5U9SvQzvmCZphzNz29Py3BzL9HfHzGZampY2m8RNvwtt7MmSjSvQcV9-wOk4UT_hyzOUHhnEXEy9A_HqHLAMVfygbWBGilPAB0lyHsFZSM-pcRIQFIn2EzAm2yijsHiu3TWU4="
+
+
+from urllib.parse import urlparse, urlunparse
+
+def force_port_in_url(request, url):
+    parsed = urlparse(url)
+    # اگر پورت نیست، اضافه کن
+    if parsed.port is None:
+        parsed = parsed._replace(netloc=f"{parsed.hostname}:8443")
+    return urlunparse(parsed)
+
+
+REST_FRAMEWORK['URL_FIELD_NAME'] = 'url'
+REST_FRAMEWORK['URL_TRANSFORM'] = force_port_in_url
+
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}

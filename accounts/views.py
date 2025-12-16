@@ -13,6 +13,7 @@ from .models import ProfileModel, Address
 from django.forms import inlineformset_factory
 from django.contrib.auth import get_user_model
 User = get_user_model()
+from AI.settings import current_site as settings_current_site
 
 
 from django.http import HttpResponse
@@ -59,11 +60,10 @@ def signup_user(request):
             # Create ProfileModel immediately after user creation
             ProfileModel.objects.create(user=user)
             
-            current_site = get_current_site(request)  
             mail_subject = 'Activation link has been sent to your email id'  
             message = render_to_string('registration/acc_active_email.html', {  
                 'user': user,  
-                'domain': current_site.domain,  
+                'domain': settings_current_site,  
                 'uid': urlsafe_base64_encode(force_bytes(user.pk)),  
                 'token': generate_token.make_token(user),  
             })  
@@ -147,18 +147,21 @@ def profile(request, username):
     address = profile.get_active_address()
 
     context = {
-        "user": user,
-        "profile": profile,
+        'user': user,
+        'profile': profile,
+        'view': 'Profile',  # <-- Add this
+        'sidebar': [("profile", "person"), ("settings", "settings")],  # example
+        'app_name': 'accounts:',
     }
 
     if address:
         context.update({
             "shipping_line1": address.shipping_line1,
             "shipping_line2": address.shipping_line2,
-            "city": address.city,
-            "province": address.province,
-            "country": address.country,
-            "postal_code": address.postal_code,
+            "city": address.shipping_city,
+            "province": address.shipping_province,
+            "country": address.shipping_country,
+            "postal_code": address.shipping_zip_code,
         })
     else:
         # Default empty values if no address exists yet
@@ -171,7 +174,7 @@ def profile(request, username):
             "postal_code": "",
         })
 
-    return render(request, "accounts/profile.html", context)
+    return render(request, "registration/dashboard/profile.html", context)
 
 
 
@@ -399,3 +402,65 @@ def get_cities(request):
 
     return JsonResponse({"cities": cities})
 
+
+
+
+from rest_framework import viewsets, permissions
+from .models import User, ProfileModel, Address
+from .serializers import UserSerializer, ProfileSerializer, AddressSerializer
+from rest_framework import generics
+from .serializers import RegisterSerializer
+from rest_framework.permissions import IsAuthenticated
+from utils.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class ProfileViewSet(viewsets.ModelViewSet):
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return ProfileModel.objects.all()
+        return ProfileModel.objects.filter(user=user)
+
+    def perform_update(self, serializer):
+        # اطمینان از اینکه کاربر فقط پروفایل خودش را تغییر میدهد
+        serializer.save()
+
+
+class AddressViewSet(viewsets.ModelViewSet):
+    queryset = Address.objects.all()
+    serializer_class = AddressSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+from rest_framework import generics
+from .serializers import RegisterSerializer
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
+
+class RegisterView(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
+
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .serializers import ProfileSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me(request):
+    profile = getattr(request.user, 'profilemodel', None)
+    return Response({
+        "user": request.user.username,
+        "email": request.user.email,
+        "profile": ProfileSerializer(profile).data if profile else None
+    })

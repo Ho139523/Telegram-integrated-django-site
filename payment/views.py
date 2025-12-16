@@ -271,85 +271,114 @@ def verify(request):
 # ==========================================================
 def handle_successful_payment(transaction):
     try:
-        if transaction.status == "paid" and transaction.cart:
-            print(f"\n💳 PAYMENT SUCCESS - Transaction: {transaction.id}")
-            
-            with db_transaction.atomic():
-                sales = []
-                for cart_item in transaction.cart.items.all():
-                    product = cart_item.product
+        if transaction.status != "paid" or not transaction.cart:
+            return
 
-                    # اگر محصول واریانت دارد، موجودی واریانت را کاهش بده
-                    if product.has_variants() and hasattr(cart_item, "variant") and cart_item.variant:
-                        variant = cart_item.variant
-                        if variant.stock >= cart_item.quantity:
-                            variant.stock -= cart_item.quantity
-                            variant.save()  # sync_stock داخل save صدا زده می‌شود
-                            
-                            total_price = int(cart_item.total_price())
-                            sale = Sale.objects.create(
-                                transaction=transaction,
-                                product=product,
-                                seller=product.store,
-                                quantity=cart_item.quantity,
-                                unit_price=int(variant.final_price),
-                                total_price=total_price
-                            )
-                            sales.append(sale)
-                        else:
-                            raise ValueError(f"موجودی واریانت {variant} کافی نیست")
-                    
-                    # اگر محصول واریانت ندارد
-                    else:
-                        if product.stock >= cart_item.quantity:
-                            product._system_stock_update = True  # دور زدن clean()
-                            product.stock -= cart_item.quantity
-                            product.save(update_fields=["stock"])
-                            
-                            sale = Sale.objects.create(
-                                transaction=transaction,
-                                product=product,
-                                seller=product.store,
-                                quantity=cart_item.quantity,
-                                unit_price=int(product.final_price),
-                                total_price=int(cart_item.total_price())
-                            )
-                            sales.append(sale)
-                        else:
-                            raise ValueError(f"موجودی محصول {product} کافی نیست")
-                    
-                    # ارسال آلبوم اتمام موجودی
-                    if product.stock == 0 and product.store.tel_channel:
-                        try:
-                            photos = []
-                            if product.main_image:
-                                photos.append(product.main_image.path)
-                            photos += [img.image.path for img in product.images.all()]
-                            
-                            send_album_and_button(
-                                channel_id=product.store.tel_channel,
-                                product=product,
-                                photos=photos,
-                                out_of_stock=True
-                            )
-                        except Exception as ex:
-                            print(f"⚠️ Error sending out-of-stock album: {ex}")
+        print(f"\n💳 PAYMENT SUCCESS - Transaction: {transaction.id}")
 
-                # ارسال پیام‌ها
-                send_payment_notifications(transaction, sales)
-                
-                # پاک کردن سبد خرید
-                transaction.cart.items.all().delete()
+        # جلوگیری از ارسال چندباره پیام اتمام موجودی
+        out_of_stock_products = set()
+
+        with db_transaction.atomic():
+            sales = []
+
+            for cart_item in transaction.cart.items.select_related(
+                "product", "variant"
+            ):
+                product = cart_item.product
+                quantity = cart_item.quantity
+
+                # ===============================
+                # 🧩 PRODUCT WITH VARIANT
+                # ===============================
+                if product.has_variants() and cart_item.variant:
+                    variant = cart_item.variant
+
+                    if variant.stock < quantity:
+                        raise ValueError(f"موجودی واریانت {variant} کافی نیست")
+
+                    # کاهش موجودی واریانت
+                    variant.stock -= quantity
+                    variant.save()
+
+                    # 🔥 خیلی مهم: sync شدن مقدار stock محصول
+                    product.refresh_from_db(fields=["stock"])
+
+                    sale = Sale.objects.create(
+                        transaction=transaction,
+                        product=product,
+                        seller=product.store,
+                        quantity=quantity,
+                        unit_price=int(variant.final_price),
+                        total_price=int(cart_item.total_price()),
+                    )
+                    sales.append(sale)
+
+                # ===============================
+                # 🧩 PRODUCT WITHOUT VARIANT
+                # ===============================
+                else:
+                    if product.stock < quantity:
+                        raise ValueError(f"موجودی محصول {product} کافی نیست")
+
+                    product._system_stock_update = True
+                    product.stock -= quantity
+                    product.save(update_fields=["stock"])
+
+                    sale = Sale.objects.create(
+                        transaction=transaction,
+                        product=product,
+                        seller=product.store,
+                        quantity=quantity,
+                        unit_price=int(product.final_price),
+                        total_price=int(cart_item.total_price()),
+                    )
+                    sales.append(sale)
+
+                # ===============================
+                # 📣 OUT OF STOCK NOTIFICATION
+                # ===============================
+                product.refresh_from_db(fields=["stock"])
+
+                if (
+                    product.stock == 0
+                    and product.store.tel_channel
+                    and product.id not in out_of_stock_products
+                ):
+                    out_of_stock_products.add(product.id)
+
+                    photos = []
+                    if product.main_image:
+                        photos.append(product.main_image.path)
+                    photos += [img.image.path for img in product.images.all()]
+
+                    try:
+                        send_album_and_button(
+                            channel_id=product.store.tel_channel,
+                            product=product,
+                            photos=photos,
+                            out_of_stock=True,
+                        )
+                    except Exception as ex:
+                        print(f"⚠️ Error sending out-of-stock album: {ex}")
+
+            # ===============================
+            # 📩 SEND NOTIFICATIONS
+            # ===============================
+            send_payment_notifications(transaction, sales)
+
+            # ===============================
+            # 🧹 CLEAR CART
+            # ===============================
+            transaction.cart.items.all().delete()
 
     except Exception as e:
         print(f"❌ [handle_successful_payment] Error: {e}")
         traceback.print_exc()
 
-
 def send_payment_notifications(transaction, sales):
     """ارسال پیام‌های اطلاع‌رسانی پس از پرداخت موفق"""
     try:
-        print("ysss2")
         chat_id_buyer = transaction.profile.tel_id
         telegram_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
         
@@ -397,7 +426,6 @@ def send_payment_notifications(transaction, sales):
                 f"🏠 آدرس: {address_text}"
             )
             requests.post(telegram_url, json={"chat_id": chat_id_seller, "text": seller_message})
-        print("ysss3")
     except Exception as e:
         print(f"❌ Error sending notifications: {e}")
 

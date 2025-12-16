@@ -1,3 +1,4 @@
+#functions.py
 from pydoc import describe
 
 from click import command
@@ -41,6 +42,8 @@ from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from pathlib import Path
+from asgiref.sync import sync_to_async
+from collections import defaultdict
 
 # send_product_message function
 from telebot import types
@@ -1289,36 +1292,49 @@ class ProductBot:
                 markup = send_menu(message, [t(message, "cancel_action")], message.text)
                 self.bot.send_message(chat_id, t(message, "enter_next_variant_key"), reply_markup=markup)
                 return
+            if text == t(message, "no"):
+                # یعنی گفته "خیر" → همه‌ی کلیدها جمع شدند
+                variants = session.get("variants")
+                keys = list(variants.keys())
+                values = list(variants.values())
 
-            # یعنی گفته "خیر" → همه‌ی کلیدها جمع شدند
-            variants = session.get("variants")
-            keys = list(variants.keys())
-            values = list(variants.values())
+                # تمام ترکیب‌ها از همه مقدارها ساخته می‌شوند
+                combinations = list(itertools.product(*values))
+                session["variant_combinations"] = combinations
+                session["variant_stock_index"] = 0
+                session["variants_stock"] = []
+                session["variants_stock_values"] = True
+                session["variant_add_key_answer"] = False
 
-            # تمام ترکیب‌ها از همه مقدارها ساخته می‌شوند
-            combinations = list(itertools.product(*values))
-            session["variant_combinations"] = combinations
-            session["variant_stock_index"] = 0
-            session["variants_stock"] = []
-            session["variants_stock_values"] = True
-            session["variant_add_key_answer"] = False
+                session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
-            session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+                # پیام مقدمه
+                readable_keys = "، ".join(keys)
+                markup = send_menu(message, [t(message, "cancel_action")], message.text)
+                self.bot.send_message(
+                    chat_id,
+                    t(message, "variant_stock_intro", keys=readable_keys),
+                    reply_markup=markup
+                )
 
-            # پیام مقدمه
-            readable_keys = "، ".join(keys)
-            markup = send_menu(message, [t(message, "cancel_action")], message.text)
-            self.bot.send_message(
-                chat_id,
-                t(message, "variant_stock_intro", keys=readable_keys),
-                reply_markup=markup
-            )
+                # ترکیب اول را آماده کنیم
+                first_combo = combinations[0]
+                combo_text = " ".join([f"{keys[i]}: {first_combo[i]}" for i in range(len(keys))])
 
-            # ترکیب اول را آماده کنیم
-            first_combo = combinations[0]
-            combo_text = " ".join([f"{keys[i]}: {first_combo[i]}" for i in range(len(keys))])
-
-            self.bot.send_message(chat_id, t(message, "enter_variant_stock", combo=combo_text))
+                self.bot.send_message(chat_id, t(message, "enter_variant_stock", combo=combo_text))
+            else:
+                markup = send_menu(
+                    message,
+                    [t(message, "yes"), t(message, "no")],
+                    "main menu",
+                    [t(message, "cancel_action")]
+                )
+                self.bot.send_message(
+                    message.chat.id,
+                    t(message, "choose_from_options"),
+                    reply_markup=markup
+                )
+                
         except Exception as e:
             print(traceback.format_exc())
 
@@ -2008,115 +2024,139 @@ class ProductHandler:
             )
         return f"💵 {t('message', 'price', chat_id=self.chat_id)}: {formatted_price} تومان"
 
+    
+    def build_attributes_text(self):
+        if not self.attributes:
+            return ""
+        return "\n".join(
+            [f"✨ {a.key}: {a.value}" if a.value else f"✅ {a.key}" for a in self.attributes]
+        ) + "\n\n"
+
+
+    def build_variants_text(self, variants_dict):
+        if not variants_dict:
+            return ""
+        lines = [
+            f"✅ {key}: {', '.join(values)}"
+            for key, values in variants_dict.items()
+        ]
+        return "\n".join(lines) + "\n\n"
+
+
+    async def async_get_product_variants_data(self):
+        variants = await sync_to_async(list)(
+            self.product.variants.all()
+        )
+
+        variants_dict = defaultdict(set)
+
+        for variant in variants:
+            options = await sync_to_async(list)(
+                variant.options.select_related("option", "value").all()
+            )
+
+            for opt in options:
+                variants_dict[opt.option.name].add(opt.value.value)
+
+        return {
+            "variants_dict": {k: list(v) for k, v in variants_dict.items()}
+        }
+
+
+
+    
     def generate_caption(self):
-        """تولید کپشن محصول با بهینه‌سازی"""
-        brand_text = f"🔖 {t('message', 'product_brand', chat_id=self.chat_id)}: {self.product.brand}\n" if self.product.brand else ""
+        brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
 
-        # مشخصات کالا (Attributes)
-        attribute_text = ""
-        if self.attributes:
-            attribute_text = "\n✨ ".join(
-                [f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in self.attributes]
-            )
-            attribute_text = f"✨ {attribute_text}\n\n"
+        attribute_text = self.build_attributes_text()
 
-        # واریانت‌ها (Variants)
-        variants_text = ""
         variants_data = self.get_product_variants_data()
+        variants_text = self.build_variants_text(variants_data.get("variants_dict"))
+        print(variants_text)
         
-        if variants_data['variants_dict']:
-            variant_lines = [f"{key}: {', '.join(values)}" for key, values in variants_data['variants_dict'].items()]
-            variants_text = "✅ " + "\n✅ ".join(variant_lines) + "\n\n"
+        product_name = t("message", "product_name", chat_id=self.chat_id)
+        product_code = t("message", "product_code", chat_id=self.chat_id)
 
-        # متن نهایی کپشن
+
         return (
-            f"\n⭕️ {t('message', 'product_name', chat_id=self.chat_id)}: {self.product.name}\n"
+            f"\n⭕️ {product_name}: {self.product.name}\n"
             f"{brand_text}"
-            f"{t('message', 'product_code', chat_id=self.chat_id)}: {self.product.code}\n\n"
+            f"{product_code}: {self.product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
             f"{variants_text}"
             f"{self.format_price()}\n"
         )
+
+
 
     async def async_generate_caption(self):
         brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
 
-        # Attributes سینک نیست → مشکلی ندارد
-        attribute_text = ""
-        if self.attributes:
-            attribute_text = "\n✅ ".join(
-                [f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in self.attributes]
-            )
-            attribute_text = f"✅ {attribute_text}\n\n"
+        attribute_text = self.build_attributes_text()
 
-        # --- واریانت‌ها (async) ---
         variants_data = await self.async_get_product_variants_data()
+        variants_text = self.build_variants_text(
+            variants_data.get("variants_dict")
+        )
 
-        variants_text = ""
-        if variants_data['variants_dict']:
-            variant_lines = [
-                f"{key}: {', '.join(values)}"
-                for key, values in variants_data['variants_dict'].items()
-            ]
-            variants_text = "✅ " + "\n✅ ".join(variant_lines) + "\n\n"
+        product_name = await t("message", "product_name", chat_id=self.chat_id)
+        product_code = await t("message", "product_code", chat_id=self.chat_id)
+
+        print("DEBUG variants_text:", variants_text)
 
         return (
-            f"\n⭕️ {t('message', 'product_name', chat_id=self.chat_id)}: {self.product.name}\n"
+            f"\n⭕️ {product_name}: {self.product.name}\n"
             f"{brand_text}"
-            f"{t('message', 'product_code', chat_id=self.chat_id)}: {self.product.code}\n\n"
+            f"{product_code}: {self.product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
             f"{variants_text}"
             f"{self.format_price()}\n"
         )
+
+
+
+
+
 
 
     async def send_product_channel(self, chat_id, buttons=True):
         try:
             caption = await self.async_generate_caption()
 
-            # اگر هیچ عکسی وجود نداشت
             if not self.photos:
                 await self.app.send_message(
                     chat_id,
                     caption,
                     parse_mode="html",
-                    buttons=[[Button.inline("🛒 همین حالا بخرش", b"buy_now")]] if buttons else None
+                    buttons=[[Button.inline("🛒 خرید", b"buy_now")]] if buttons else None
                 )
                 return
 
-            # --- آماده‌سازی فایل‌ها ---
-            files = []
-            for p in self.photos:
-                files.append(await self.app.upload_file(p))
+            files = [await self.app.upload_file(p) for p in self.photos]
 
-            print("✅ All product images added. Sending album...")
-
-            # --- ارسال آلبوم با کپشن روی تصویر اول ---
             await self.app.send_file(
                 chat_id,
                 files,
-                caption=caption,          # کپشن فقط روی اولین عکس قرار می‌گیرد
+                caption=caption,
                 parse_mode="html",
                 supports_streaming=True
             )
 
-            print("✅ Album sent successfully.")
-
-            # --- ارسال دکمه در پیام جدا ---
             if buttons:
                 await self.app.send_message(
                     chat_id,
-                    "برای مشاهده نظرات یا خرید این محصول کلیک کنید:",
-                    parse_mode="html",
-                    buttons=[[Button.inline("🛒 همین حالا بخرش", b"buy_now")]]
+                    "👇👇👇",
+                    buttons=[[Button.inline("🛒 خرید", b"buy_now")]]
                 )
 
         except Exception:
-            print("⚠ خطا در ارسال محصول:", traceback.format_exc())
+            print("❌ send_product_channel error:\n", traceback.format_exc())
+
+
 
     def send_product_message(self, chat_id, buttons=True):
         """ارسال محصول با دکمه‌های سریع"""
@@ -2392,7 +2432,7 @@ class ProductHandler:
                 )
 
             self.update_product_message(chat_id, message_id, product, cart)
-            self.app.answer_callback_query(call.id, "به سبد خرید اضافه شد")
+            # self.app.answer_callback_query(call.id, "به سبد خرید اضافه شد")
 
         except Exception as e:
             print(f"❌ Error in handle_add_to_cart: {traceback.format_exc()}")

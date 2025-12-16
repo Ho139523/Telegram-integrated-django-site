@@ -170,14 +170,22 @@ class Product(models.Model):
 
 
     def has_variants(self):
+        if not self.pk:
+            return False
         return self.variants.exists()
 
+
     def sync_stock(self):
+        # اگر هنوز ذخیره نشده، کاری نکن
+        if not self.pk:
+            return
+
         if self.has_variants():
-            self.stock = (
+            total_stock = (
                 self.variants.aggregate(total=models.Sum("stock"))["total"] or 0
             )
-            self._system_stock_update = True
+            self.stock = total_stock
+
 
 
     def _manual_stock_change(self):
@@ -203,20 +211,31 @@ class Product(models.Model):
                 "stock": "موجودی محصول دارای واریانت به‌صورت خودکار محاسبه می‌شود."
             })
 
-
     def save(self, *args, **kwargs):
-        self.full_clean(exclude=["stock"])
-
+        # اگر تغییر stock سیستمی است، فلگ را زودتر بشناس
+        system_update = getattr(self, "_system_stock_update", False)
+    
+        # validation
+        self.full_clean(exclude=["stock"] if system_update else [])
+    
+        # تولید کد محصول
         if not self.code:
             counter, _ = ProductCodeCounter.objects.get_or_create(id=1)
             self.code = counter.get_next_code()
-
-        self.sync_stock()
+    
+        is_creating = self.pk is None
+    
         super().save(*args, **kwargs)
-
+    
+        # فقط بعد از اینکه PK گرفت
+        if not is_creating and system_update:
+            self.sync_stock()
+            super().save(update_fields=["stock"])
+    
         # پاک‌کردن فلگ سیستمی
         if hasattr(self, "_system_stock_update"):
             del self._system_stock_update
+    
 
 
 # =========================
@@ -344,14 +363,19 @@ class ProductVariant(models.Model):
 
 
 
-
     def save(self, *args, **kwargs):
         with transaction.atomic():
             super().save(*args, **kwargs)
-
+    
             product = self.product
+            product._system_stock_update = True  # 🔴 خیلی مهم
             product.sync_stock()
             product.save(update_fields=["stock"])
+    
+    
+    
+    
+    
 
     def delete(self, *args, **kwargs):
         with transaction.atomic():

@@ -33,6 +33,34 @@ API_HASH = api_hash
 # 🧩 تابع ارسال آلبوم محصول (با حالت اتمام موجودی یا معمولی)
 # ==========================================================
 
+from collections import defaultdict
+from asgiref.sync import sync_to_async
+
+
+async def async_get_variants_text(product):
+    variants = await sync_to_async(list)(
+        product.variants.all()
+    )
+
+    variants_dict = defaultdict(set)
+
+    for variant in variants:
+        options = await sync_to_async(list)(
+            variant.values.select_related("option").all()
+        )
+        for opt in options:
+            variants_dict[opt.option.name].add(opt.value)
+
+    if not variants_dict:
+        return ""
+
+    lines = [
+        f"✅ {key}: {', '.join(values)}"
+        for key, values in variants_dict.items()
+    ]
+
+    return "\n".join(lines) + "\n\n"
+
 async def send_album_and_button_async(channel_id, product, photos, out_of_stock=False):
     """ارسال آلبوم محصول با کپشن مشابه ProductHandler و دکمه خرید یا درخواست موجود کردن"""
     print(f"\n🚀 [send_album_and_button_async] Sending product {product.name} | out_of_stock={out_of_stock}")
@@ -68,10 +96,12 @@ async def send_album_and_button_async(channel_id, product, photos, out_of_stock=
 
         attribute_text = ""
         if attributes:
-            attribute_text = "\n✅ ".join(
+            attribute_text = "\n✨ ".join(
                 [f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in attributes]
             )
-            attribute_text = f"✅ {attribute_text}\n\n"
+            attribute_text = f"✨ {attribute_text}\n\n"
+
+        variants_text = await async_get_variants_text(product)
 
         # اگر محصول تمام شده باشد
         if out_of_stock:
@@ -95,8 +125,10 @@ async def send_album_and_button_async(channel_id, product, photos, out_of_stock=
             f"<b>کد کالا:</b> {product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
+            f"{variants_text}"
             f"{price_text}\n"
         )
+
 
         # 🧩 ساخت دکمه
         markup = types.InlineKeyboardMarkup()

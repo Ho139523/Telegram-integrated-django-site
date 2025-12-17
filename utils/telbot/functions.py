@@ -1775,7 +1775,7 @@ class ProductBot:
                 product = Product.objects.get(code=code)
                 attributes = product.attributes.all()
                 # ارسال پیام محصول به کاربر
-                producthandler = ProductHandler(app=self.bot, product=product, current_site=settings.settings_current_site, attributes=attributes)
+                producthandler = ProductHandler(app=self.bot, product=product, current_site=settings_current_site, attributes=attributes)
                 producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
                 # ذخیره اطلاعات محصول در Redis
@@ -2045,35 +2045,34 @@ class ProductHandler:
 
     async def async_get_product_variants_data(self):
         variants = await sync_to_async(list)(
-            self.product.variants.all()
+            self.product.variants.prefetch_related("values__option").all()
         )
 
         variants_dict = defaultdict(set)
 
         for variant in variants:
-            options = await sync_to_async(list)(
-                variant.options.select_related("option", "value").all()
-            )
-
-            for opt in options:
-                variants_dict[opt.option.name].add(opt.value.value)
+            values = await sync_to_async(list)(variant.values.all())
+            for val in values:
+                variants_dict[val.option.name].add(val.value)
 
         return {
-            "variants_dict": {k: list(v) for k, v in variants_dict.items()}
+            "variants_dict": {
+                k: sorted(list(v)) for k, v in variants_dict.items()
+            }
         }
 
 
 
     
     def generate_caption(self):
-        brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
+        brand_text = f"🔖 {t("message", "product_brand", chat_id=self.chat_id)}: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
 
         attribute_text = self.build_attributes_text()
 
         variants_data = self.get_product_variants_data()
         variants_text = self.build_variants_text(variants_data.get("variants_dict"))
-        print(variants_text)
+
         
         product_name = t("message", "product_name", chat_id=self.chat_id)
         product_code = t("message", "product_code", chat_id=self.chat_id)
@@ -2092,7 +2091,7 @@ class ProductHandler:
 
 
     async def async_generate_caption(self):
-        brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
+        brand_text = f"🔖 {t("message", "product_brand", chat_id=self.chat_id)}: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
 
         attribute_text = self.build_attributes_text()
@@ -2116,8 +2115,6 @@ class ProductHandler:
             f"{variants_text}"
             f"{self.format_price()}\n"
         )
-
-
 
 
 

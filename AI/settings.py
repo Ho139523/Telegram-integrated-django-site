@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "telbot",
     "aiobot",
     "payment",
+    "ai_chat",
 ]
 
 

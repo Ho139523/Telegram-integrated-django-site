@@ -104,8 +104,10 @@ class Category(models.Model):
             categories_to_check.extend(children)
         return subcategories
 
-    def get_next_layer_categories(self):
-        return self.subcategories.filter(status=True)
+    def get_next_layer_categories(self, status=True, both=False):
+        if both:
+            return self.subcategories.filter()
+        return self.subcategories.filter(status=status)
 
     def to_dict(self):
         return {

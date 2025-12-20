@@ -41,8 +41,9 @@ def async_helper(product):
     دریافت tel_id و lang صاحب فروشگاه به صورت sync_to_async
     """
     store = product.store
-    
-    return store.owner.lang, store.id, product.code
+    chat_id = store.owner.tel_id
+
+    return store.owner.lang, store.id, product.code, chat_id
 
 
 async def t(lang, key, **kwargs):
@@ -85,15 +86,16 @@ async def send_album_and_button(channel_id, product, photos, attributes):
             print("⚠ Telethon session is not authorized.")
             return
 
-        # --- 1. ارسال آلبوم ---
-        handler = ProductHandler(client, product, CURRENT_SITE, photos=photos, attributes=attributes)
+        # --- 1. واکشی اطلاعات صاحب فروشگاه ---
+        owner_lang, store_id, product_id, chat_id = await async_helper(product)
+
+
+        # --- 2. ارسال آلبوم ---
+        handler = ProductHandler(client, product, CURRENT_SITE, photos=photos, attributes=attributes, chat_id=chat_id)
         await handler.send_product_channel(channel_id, buttons=False)
 
         await client.disconnect()
         print("✅ Album sent successfully.")
-
-        # --- 2. واکشی اطلاعات صاحب فروشگاه ---
-        owner_lang, store_id, product_id = await async_helper(product)
 
         # --- 3. ترجمه‌ی متن دکمه ---
         buy_now_text = await t(owner_lang, "buy_now")

@@ -1,3 +1,4 @@
+#./telbot/views.py
 # General imports
 from math import prod
 import re
@@ -386,6 +387,458 @@ def start(message):
 
 #####################################################################################################
 
+
+
+
+# from ai_chat.views import QwenOllamaClient
+# import traceback
+# import time
+# from threading import Thread, Lock
+# import asyncio
+# from queue import Queue
+# from typing import Dict, List, Optional, Union, Iterator  # این خط را اضافه کنید
+
+# import traceback
+# import time
+# import json
+# from threading import Thread, Lock
+# from queue import Queue
+# from typing import Dict, List, Optional, Union, Iterator
+
+# from ai_chat.views import QwenOllamaClient
+
+# # ایجاد کلاینت گلوبال - ابتدا تست می‌کنیم کدام مدل کار می‌کند
+# def init_qwen_client():
+#     """ایجاد کلاینت با تست اتصال"""
+#     models_to_try = [
+#         "qwen2.5:0.5b",    # سبک‌ترین
+#         "qwen2.5:1.5b",    # متوسط
+#         "my-qwen:latest",  # custom 7B
+#         "qwen2.5:7b"       # استاندارد 7B
+#     ]
+    
+#     for model in models_to_try:
+#         try:
+#             client = QwenOllamaClient(
+#                 default_model=model,
+#                 timeout=120
+#             )
+            
+#             # تست اتصال
+#             print(f"🔍 تست مدل: {model}")
+#             models = client.list_models()
+#             if models:
+#                 print(f"✅ مدل {model} کار می‌کند")
+#                 return client
+                
+#         except Exception as e:
+#             print(f"❌ مدل {model} خطا: {e}")
+#             continue
+    
+#     # اگر هیچ کدام کار نکرد، حداقل یک کلاینت ایجاد کن
+#     print("⚠️ هیچ مدلی کار نکرد، ایجاد کلاینت با تنظیمات پیش‌فرض")
+#     return QwenOllamaClient(default_model="qwen2.5:0.5b", timeout=120)
+
+# # ایجاد کلاینت
+# qwen_client = init_qwen_client()
+# print(f"🎯 مدل انتخاب شده: {qwen_client.default_model}")
+
+# # دیکشنری برای ذخیره وضعیت استریم هر کاربر
+# user_stream_status = {}
+# stream_locks = {}
+
+# class TelegramStreamHandler:
+#     """مدیریت استریم پاسخ برای تلگرام"""
+
+#     def __init__(self, chat_id, app):
+#         self.chat_id = chat_id
+#         self.app = app
+#         self.response_text = ""
+#         self.message_id = None
+#         self.is_streaming = True
+#         self.last_update_time = time.time()
+
+#     def update_message(self, text_chunk):
+#         """آپدیت پیام تلگرام با متن جدید"""
+#         try:
+#             if not self.message_id:
+#                 # ارسال اولین پیام
+#                 msg = self.app.send_message(self.chat_id, text_chunk[:200] + "..." if len(text_chunk) > 200 else text_chunk)
+#                 self.message_id = msg.message_id
+#             else:
+#                 # آپدیت پیام موجود
+#                 if len(text_chunk) > 4000:
+#                     text_chunk = text_chunk[:4000] + "..."
+#                 self.app.edit_message_text(
+#                     text_chunk,
+#                     chat_id=self.chat_id,
+#                     message_id=self.message_id
+#                 )
+#             self.last_update_time = time.time()
+#             return True
+#         except Exception as e:
+#             print(f"⚠️ خطا در آپدیت پیام: {e}")
+#             return False
+
+#     def add_chunk(self, chunk):
+#         """اضافه کردن بخش جدید به پاسخ"""
+#         if chunk:
+#             self.response_text += chunk
+            
+#             # آپدیت پیام هر 0.5 ثانیه یا اگر متن قابل توجهی اضافه شده
+#             current_time = time.time()
+#             if current_time - self.last_update_time >= 0.5 or len(chunk) > 30:
+#                 return self.update_message(self.response_text)
+#         return True
+
+#     def finalize(self):
+#         """پایان استریم"""
+#         self.is_streaming = False
+#         # آپدیت نهایی
+#         if len(self.response_text) > 4000:
+#             self.response_text = self.response_text[:4000] + "..."
+#         if self.message_id:
+#             try:
+#                 self.app.edit_message_text(
+#                     self.response_text,
+#                     chat_id=self.chat_id,
+#                     message_id=self.message_id
+#                 )
+#             except Exception as e:
+#                 print(f"⚠️ خطا در آپدیت نهایی: {e}")
+#                 # اگر آپدیت نشد، پیام جدید بفرست
+#                 try:
+#                     self.app.send_message(self.chat_id, self.response_text)
+#                 except:
+#                     pass
+#         return self.response_text
+
+# def create_prompt_for_story(user_input):
+#     """ایجاد پرامپت مخصوص داستان‌نویسی"""
+#     prompt = f"""تو یک نویسنده خلاق فارسی‌زبان هستی. کاربر این درخواست را دارد: "{user_input}"
+
+# یک داستان کوتاه و جذاب بنویس که:
+# 1. ابتدا و میانه و پایان مشخص داشته باشد
+# 2. شخصیت‌های جذاب داشته باشد
+# 3. توصیفات زیبا و تصویرسازی قوی داشته باشد
+# 4. پیام اخلاقی یا نکته آموزنده داشته باشد
+# 5. کاملاً به زبان فارسی و روان نوشته شود
+# 6. حدود 200-300 کلمه باشد
+
+# داستان:"""
+#     return prompt
+
+# def create_general_prompt(user_input):
+#     """ایجاد پرامپت برای سوالات عمومی"""
+#     prompt = f"""تو یک دستیار هوشمند، مفید و دوستانه فارسی‌زبان هستی.
+
+# سوال کاربر: {user_input}
+
+# لطفاً پاسخ خود را با این ویژگی‌ها بده:
+# - کاملاً به فارسی
+# - طبیعی و انسانی
+# - مفید و دقیق
+# - دوستانه و محترمانه
+# - اگر اطلاعات کافی نداری، صادقانه بگو
+
+# پاسخ:"""
+#     return prompt
+
+# def handle_stream_response(chat_id, text):
+#     """مدیریت پاسخ استریمی"""
+#     stream_handler = None
+
+#     try:
+#         # نمایش وضعیت "در حال تایپ"
+#         app.send_chat_action(chat_id, 'typing')
+
+#         # ایجاد هندلر
+#         stream_handler = TelegramStreamHandler(chat_id, app)
+#         user_stream_status[chat_id] = stream_handler
+
+#         print(f"📨 User ({chat_id}): {text}")
+
+#         # تشخیص نوع سوال و انتخاب پرامپت مناسب
+#         if any(keyword in text.lower() for keyword in ['داستان', 'قصه', 'روایت', 'ماجرا']):
+#             optimized_prompt = create_prompt_for_story(text)
+#             max_tokens = 1000  # برای داستان بیشتر
+#         else:
+#             optimized_prompt = create_general_prompt(text)
+#             max_tokens = 800
+
+#         # تنظیمات بهینه
+#         stream_options = {
+#             "temperature": 0.8,        # برای خلاقیت بیشتر
+#             "top_p": 0.9,
+#             "top_k": 50,
+#             "num_predict": max_tokens,
+#             "repeat_penalty": 1.1,
+#             "num_ctx": 2048,
+#             "seed": int(time.time()) % 1000  # seed تصادفی
+#         }
+
+#         # زمان‌سنجی
+#         start_time = time.time()
+
+#         # دریافت استریم پاسخ - استفاده از simple_generate_stream
+#         try:
+#             # اول سعی کن با stream
+#             for chunk in qwen_client.generate(
+#                 prompt=optimized_prompt,
+#                 model=qwen_client.default_model,
+#                 options=stream_options,
+#                 stream=True
+#             ):
+#                 if not stream_handler.is_streaming:
+#                     break
+
+#                 if chunk:
+#                     success = stream_handler.add_chunk(chunk)
+#                     if not success:
+#                         break
+                        
+#         except Exception as stream_error:
+#             print(f"⚠️ خطا در استریم، استفاده از روش مستقیم: {stream_error}")
+#             # اگر استریم کار نکرد، از روش مستقیم استفاده کن
+#             direct_response = get_direct_response(text, optimized_prompt)
+#             if direct_response:
+#                 stream_handler.response_text = direct_response
+#                 stream_handler.update_message(direct_response)
+
+#         # پایان استریم
+#         if stream_handler:
+#             final_response = stream_handler.finalize()
+#             elapsed_time = time.time() - start_time
+#             print(f"✅ Bot ({chat_id}): پاسخ در {elapsed_time:.1f} ثانیه")
+
+#     except Exception as e:
+#         error_msg = f"خطا: {str(e)[:100]}"
+#         print(f"❌ خطا در handle_stream_response: {error_msg}")
+
+#         try:
+#             # تلاش برای ارسال پیام خطا
+#             if stream_handler and stream_handler.message_id:
+#                 app.edit_message_text(
+#                     f"⚠️ خطا در پردازش: {error_msg}",
+#                     chat_id=chat_id,
+#                     message_id=stream_handler.message_id
+#                 )
+#             else:
+#                 app.send_message(chat_id, f"⚠️ خطا در پردازش درخواست")
+#         except:
+#             try:
+#                 app.send_message(chat_id, "⚠️ مشکل فنی رخ داده است")
+#             except:
+#                 pass
+
+#     finally:
+#         # پاک‌سازی
+#         if chat_id in user_stream_status:
+#             del user_stream_status[chat_id]
+
+#         # غیرفعال کردن حالت چت
+#         try:
+#             session = session_manager.get_user_session(chat_id, namespace="AIchat")
+#             session["chat"] = False
+#             session_manager.set_user_session(chat_id, session, namespace="AIchat")
+#         except:
+#             pass
+
+# def get_direct_response(question, prompt=None):
+#     """دریافت پاسخ مستقیم (بدون استریم)"""
+#     try:
+#         if prompt is None:
+#             prompt = create_general_prompt(question)
+        
+#         # تنظیمات برای پاسخ مستقیم
+#         options = {
+#             "temperature": 0.7,
+#             "num_predict": 600,
+#             "top_p": 0.85,
+#             "repeat_penalty": 1.1
+#         }
+        
+#         # استفاده از simple_generate اگر موجود باشد
+#         if hasattr(qwen_client, 'simple_generate'):
+#             response = qwen_client.simple_generate(prompt, max_tokens=600)
+#         else:
+#             # روش جایگزین
+#             response = qwen_client.generate(
+#                 prompt=prompt,
+#                 options=options,
+#                 stream=False
+#             )
+#             if isinstance(response, dict):
+#                 response = response.get('response', '')
+        
+#         return clean_response(str(response))
+        
+#     except Exception as e:
+#         print(f"❌ خطا در get_direct_response: {e}")
+#         return f"⚠️ خطا در تولید پاسخ: {str(e)[:50]}"
+
+# def clean_response(text):
+#     """پاک‌سازی پاسخ"""
+#     if not text:
+#         return "پاسخی دریافت نشد."
+    
+#     # حذف عبارات تکراری
+#     lines = text.split('\n')
+#     cleaned = []
+    
+#     for line in lines:
+#         line = line.strip()
+#         if not line:
+#             continue
+        
+#         # حذف خطوط تکراری
+#         if line not in cleaned:
+#             cleaned.append(line)
+    
+#     result = '\n'.join(cleaned)
+    
+#     # حذف پرامپت احتمالی
+#     unwanted_prefixes = ['پاسخ:', 'جواب:', 'داستان:', 'نتیجه:']
+#     for prefix in unwanted_prefixes:
+#         if result.startswith(prefix):
+#             result = result[len(prefix):].strip()
+    
+#     # اگر خیلی کوتاه است
+#     if len(result) < 10:
+#         result = "پاسخ کوتاه: متأسفانه نتوانستم پاسخ مناسبی تولید کنم. لطفاً سوال را واضح‌تر بیان کنید."
+    
+#     return result
+
+# def handle_telegram_message(chat_id, text):
+#     """پردازش پیام تلگرام"""
+#     chat_id_str = str(chat_id)
+
+#     # بررسی درخواست همزمان
+#     if chat_id_str in stream_locks and stream_locks[chat_id_str].locked():
+#         app.send_message(chat_id, "⏳ لطفاً منتظر بمانید، در حال پردازش درخواست قبلی...")
+#         return
+
+#     # ایجاد قفل
+#     if chat_id_str not in stream_locks:
+#         stream_locks[chat_id_str] = Lock()
+
+#     # اجرا در ترد جداگانه
+#     def run_stream():
+#         with stream_locks[chat_id_str]:
+#             handle_stream_response(chat_id, text)
+
+#     thread = Thread(target=run_stream, daemon=True)
+#     thread.start()
+
+# def send_quick_response(chat_id, text):
+#     """ارسال پاسخ سریع (بدون استریم)"""
+#     try:
+#         # ارسال پیام در حال پردازش
+#         msg = app.send_message(chat_id, "🔄 در حال پردازش...")
+        
+#         # دریافت پاسخ
+#         response = get_direct_response(text)
+        
+#         # آپدیت پیام
+#         app.edit_message_text(
+#             response,
+#             chat_id=chat_id,
+#             message_id=msg.message_id
+#         )
+        
+#     except Exception as e:
+#         app.send_message(chat_id, f"⚠️ خطا: {str(e)[:100]}")
+#     finally:
+#         # غیرفعال کردن حالت چت
+#         try:
+#             session = session_manager.get_user_session(chat_id, namespace="AIchat")
+#             session["chat"] = False
+#             session_manager.set_user_session(chat_id, session, namespace="AIchat")
+#         except:
+#             pass
+
+# @app.message_handler(func=lambda message: message.text == "AI")
+# def chat_with_me(message):
+#     """شروع مکالمه"""
+#     try:
+#         # متوقف کردن استریم قبلی
+#         if message.chat.id in user_stream_status:
+#             user_stream_status[message.chat.id].is_streaming = False
+#             time.sleep(0.5)
+
+#         # فعال کردن حالت چت
+#         session_manager.set_user_session(
+#             message.chat.id,
+#             {"chat": True},
+#             namespace="AIchat"
+#         )
+
+#         welcome_msg = f"""🤖 *دستیار هوشمند فعال شد*
+
+# • مدل: {qwen_client.default_model}
+# • پاسخ‌دهی فارسی روان
+# • پشتیبانی از داستان‌نویسی
+# • پردازش هوشمند
+
+# سوال یا درخواست خود را مطرح کنید..."""
+
+#         app.send_message(message.chat.id, welcome_msg, parse_mode='Markdown')
+
+#     except Exception as e:
+#         print(f"❌ خطا در شروع چت: {e}")
+#         app.send_message(message.chat.id, "✨ آماده پاسخگویی!")
+
+# @app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="AIchat").get("chat"))
+# def responseme(message):
+#     """پاسخ به پیام کاربر"""
+#     try:
+#         text = message.text.strip()
+#         if not text:
+#             return
+
+#         # دستورات مدیریتی
+#         if text.lower() in ['/stop', 'توقف', 'stop', 'بس']:
+#             if message.chat.id in user_stream_status:
+#                 user_stream_status[message.chat.id].is_streaming = False
+#                 app.send_message(message.chat.id, "⏹️ متوقف شد")
+#             return
+
+#         if text.lower() in ['/fast', 'سریع']:
+#             # استفاده از پاسخ سریع
+#             send_quick_response(message.chat.id, text)
+#             return
+
+#         # برای سوالات کوتاه از پاسخ سریع، برای داستان و طولانی‌تر از استریم
+#         if len(text) < 50 and not any(keyword in text.lower() for keyword in ['داستان', 'قصه', 'توضیح', 'شرح']):
+#             send_quick_response(message.chat.id, text)
+#         else:
+#             handle_telegram_message(message.chat.id, text)
+
+#     except Exception as e:
+#         print(f"❌ خطا در responseme: {e}")
+#         app.send_message(message.chat.id, "⚠️ خطای موقت، لطفاً دوباره تلاش کنید")
+
+# # دستور برای تست API
+# @app.message_handler(commands=['test_ai'])
+# def test_ai_command(message):
+#     """تست اتصال AI"""
+#     try:
+#         app.send_message(message.chat.id, "🔍 در حال تست اتصال به AI...")
+        
+#         # تست ساده
+#         test_response = get_direct_response("سلام، حالت چطوره؟")
+        
+#         if "خطا" in test_response:
+#             app.send_message(message.chat.id, f"❌ تست ناموفق: {test_response}")
+#         else:
+#             app.send_message(message.chat.id, f"✅ تست موفق!\nمدل: {qwen_client.default_model}\n\nپاسخ تست: {test_response[:200]}...")
+            
+#     except Exception as e:
+#         app.send_message(message.chat.id, f"❌ خطا در تست: {e}")
+
+
+#####################################################################################################
+
 # HOME
 @app.message_handler(func=lambda message: message.text == "🏡")
 def home(message, text=None):
@@ -527,97 +980,115 @@ from django.core.cache import cache
 import tempfile
 import gc
 
-def generate_sales_pdf(store, sales_data, message_text, font_path):
+def generate_sales_pdf(store, sales_data, font_path, chat_id):
     """تابع جداگانه برای تولید PDF در thread جداگانه"""
     try:
-        # ایجاد فایل موقت در حافظه
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
             file_path = temp_file.name
 
-        # تنظیمات PDF
         p = canvas.Canvas(file_path, pagesize=A4)
-        p.setFont("Vazir", 12)  # کاهش سایز فونت برای صرفه‌جویی در فضا
-        
-        border_margin = 20  # کاهش حاشیه
-        
+        p.setFont("Vazir", 12)
+
+        border_margin = 20
+
         def draw_header_footer(page_num):
             p.setStrokeColorRGB(0, 0, 0)
-            p.setLineWidth(2)  # کاهش ضخامت خط
-            p.rect(border_margin, border_margin, A4[0] - 2 * border_margin, A4[1] - 2 * border_margin)
-            
-            # حذف لوگو برای کاهش حجم فایل
-            title_text = get_display(arabic_reshaper.reshape(
-                message_text("sale_statistics_title", store_name=store.name)
-            ))
+            p.setLineWidth(2)
+            p.rect(
+                border_margin,
+                border_margin,
+                A4[0] - 2 * border_margin,
+                A4[1] - 2 * border_margin
+            )
+
+            title_text = get_display(
+                arabic_reshaper.reshape(
+                    t(
+                        "message",
+                        "sale_statistics_title",
+                        chat_id=chat_id
+                    ).format(store_name=store.name)
+                )
+            )
             p.drawCentredString(A4[0] / 2, A4[1] - 80, title_text)
-            
-            # شماره صفحه کوچک‌تر
+
             p.setFont("Vazir", 8)
             p.drawCentredString(A4[0] / 2, border_margin - 12, f"Page {page_num}")
             p.setFont("Vazir", 12)
 
-        # هدرهای جدول با ستون‌های بهینه‌شده
+        # هدرهای جدول
         headers = [
-            get_display(arabic_reshaper.reshape(message_text("sale_statistics_index"))),
-            get_display(arabic_reshaper.reshape(message_text("sale_statistics_date"))),
-            get_display(arabic_reshaper.reshape(message_text("sale_statistics_quantity"))),
-            get_display(arabic_reshaper.reshape(message_text("sale_statistics_total_cost"))),
-            get_display(arabic_reshaper.reshape(message_text("sale_statistics_product_name"))),
+            get_display(arabic_reshaper.reshape(
+                t("message", "sale_statistics_index", chat_id=chat_id)
+            )),
+            get_display(arabic_reshaper.reshape(
+                t("message", "sale_statistics_date", chat_id=chat_id)
+            )),
+            get_display(arabic_reshaper.reshape(
+                t("message", "sale_statistics_quantity", chat_id=chat_id)
+            )),
+            get_display(arabic_reshaper.reshape(
+                t("message", "sale_statistics_total_cost", chat_id=chat_id)
+            )),
+            get_display(arabic_reshaper.reshape(
+                t("message", "sale_statistics_product_name", chat_id=chat_id)
+            )),
         ]
-        
+
         data = [headers]
         total_amount = 0
-        max_rows_per_page = 25  # افزایش تعداد ردیف در هر صفحه
-        start_y = A4[1] - 120  # تنظیم موقعیت شروع
+        max_rows_per_page = 25
+        start_y = A4[1] - 120
         page_num = 1
-        
+
         draw_header_footer(page_num)
-        
-        # پردازش داده‌های فروش
+
         for idx, sale in enumerate(sales_data, start=1):
-            total_amount += sale['total_price']
+            total_amount += sale["total_price"]
+
             row = [
                 str(idx),
-                get_display(arabic_reshaper.reshape(sale['date'])),
-                str(sale['quantity']),
+                get_display(arabic_reshaper.reshape(sale["date"])),
+                str(sale["quantity"]),
                 f"{sale['total_price']:,.0f}",
-                get_display(arabic_reshaper.reshape(sale['product_name'][:30])),  # محدود کردن طول نام محصول
+                get_display(arabic_reshaper.reshape(sale["product_name"][:30])),
             ]
+
             data.append(row)
-            
-            # ایجاد صفحه جدید در صورت نیاز
+
             if len(data) > max_rows_per_page:
-                table = Table(data, colWidths=[40, 70, 50, 80, 120])  # عرض ستون‌های بهینه‌شده
+                table = Table(data, colWidths=[40, 70, 50, 80, 120])
                 table.setStyle(TableStyle([
                     ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),  # فونت کوچک‌تر
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),  # خطوط نازک‌تر
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                     ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
                 ]))
-                
+
                 table_x = border_margin + 10
-                table_y = start_y - (max_rows_per_page * 18) - 20  # کاهش فاصله
+                table_y = start_y - (max_rows_per_page * 18) - 20
                 table.wrapOn(p, A4[0], A4[1])
                 table.drawOn(p, table_x, table_y)
-                
+
                 p.showPage()
                 p.setFont("Vazir", 12)
                 page_num += 1
                 draw_header_footer(page_num)
                 data = [headers]
-        
+
         # ردیف مجموع
         total_row = [
-            "", 
-            "", 
-            "", 
-            f"{total_amount:,.0f}", 
-            get_display(arabic_reshaper.reshape(message_text("sale_statistics_total")))
+            "",
+            "",
+            "",
+            f"{total_amount:,.0f}",
+            get_display(arabic_reshaper.reshape(
+                t("message", "sale_statistics_total", chat_id=chat_id)
+            )),
         ]
         data.append(total_row)
-        
-        # جدول نهایی
+
         table = Table(data, colWidths=[40, 70, 50, 80, 120])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
@@ -628,20 +1099,20 @@ def generate_sales_pdf(store, sales_data, message_text, font_path):
             ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
             ('SPAN', (3, -1), (4, -1)),
         ]))
-        
+
         table_x = border_margin + 10
         table_y = start_y - (len(data) * 18) - 20
         table.wrapOn(p, A4[0], A4[1])
         table.drawOn(p, table_x, table_y)
-        
+
         p.save()
         return file_path
-        
-    except Exception as e:
-        # پاک‌سازی در صورت خطا
+
+    except Exception:
         if 'file_path' in locals() and os.path.exists(file_path):
             os.unlink(file_path)
-        raise e
+        raise
+
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_sale_statistics"))
 def sale_statistics(message):
@@ -707,7 +1178,7 @@ def sale_statistics(message):
                 pdfmetrics.registerFont(TTFont("Vazir", font_path))
                 
                 # تولید PDF در thread جداگانه
-                file_path = generate_sales_pdf(store, sales_data, t, font_path)
+                file_path = generate_sales_pdf(store, sales_data, font_path, chat_id)
                 
                 # ارسال فایل
                 with open(file_path, "rb") as pdf_file:
@@ -876,11 +1347,18 @@ def cart_CallBack(data):
 
         if not is_callback or data.data == "view_cart" or data.data == "finalize":
             # پاسخ به دستور متنی یا درخواست‌های ارسال مجدد منو
+            profile = ProfileModel.objects.get(tel_id=message.chat.id)
+            cart = Cart.objects.filter(profile=profile).first()
+            cart_items = cart.items.exists()
+            if not cart or not cart_items:
+                app.send_message(message.chat.id, t(message, "cart_empty"))
+                return
             cart_menu.send()
             
             # در صورتی که نیاز به مدیریت دکمه "finalize" دارید:
             if is_callback and data.data == "finalize":
                  # منطق انتقال به مرحله نهایی پرداخت (مثلاً تابع دیگری صدا زده شود)
+                 print("me")
                  pass
 
         elif is_callback:
@@ -1171,15 +1649,25 @@ def handle_back(message):
         try:
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             try:
+                print(f'beginging of handle back\nsession["current_menu"]: {session["current_menu"]}')
+                print(f'current_menu parent: {Category.objects.get(title__iexact=session["current_menu"], status=True).get_parents()}')
                 previous_category_title = Category.objects.get(
                     title__iexact=session["current_menu"], status=True
                 ).get_parents()[0].title
+
+                if session.get("category") and session.get("menu_add"):
+                    session["parent_for_new"] = previous_category_title
+                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
                 fake_message = message
                 fake_message.text = previous_category_title
                 subcategory(fake_message)
             except IndexError as e:
                 if "list index out of range" in str(e):
+                    print('meme')
+                    if session.get("category") and session.get("menu_add"):
+                        session["parent_for_new"] = None
+                        session_manager.set_user_session(message.chat.id, session, namespace="menu")
                     fake_message = message
                     fake_message.text = t(message, "menu_categories")
                     category_client(fake_message)
@@ -1764,9 +2252,13 @@ def get_new_category(message):
 
         # Decide parent
         parent_title = session.get("parent_for_new")
+        print(f"parent_title: {parent_title}")
         parent = None
         if parent_title:
             parent = Category.objects.filter(title__iexact=parent_title, status=True).first()
+        
+
+        print(f'parent: {parent}')
 
         # Create category
         cat = Category.objects.create(
@@ -1821,7 +2313,7 @@ def cat_delete(message):
     try:
         session = session_manager.get_user_session(message.chat.id, namespace="menu")
         if session_manager.get_user_session(message.chat.id, namespace="menu").get("delete_sure"):
-            cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
+            cat = Category.objects.get(title__iexact=session.get("current_menu"), store__owner__tel_id=message.chat.id)
             parent = cat.get_parents()
             cat.delete()
             category_class = CategoryClass()
@@ -1829,11 +2321,13 @@ def cat_delete(message):
                 category(message)
                 return
             if parent:
+                print(f"parent: {parent}")
                 if parent[0].get_all_subcategories():
                     message.text = parent[0].title
+                    category_class.handle_subcategory(message)
                 else:
-                    message.text = parent[1].title
-                category_class.handle_subcategory(message)
+                    message.text = parent[0].title
+                    category_class.handle_category(message)
             else:
                 category_class.handle_category(message)
         elif session_manager.get_user_session(message.chat.id, namespace="menu").get("deactivate_category_sure"):
@@ -1846,15 +2340,17 @@ def cat_delete(message):
                 return
             category_class = CategoryClass()
             if parent:
+                print(parent)
                 if [par for par in parent[0].get_all_subcategories() if par.status]:
                     message.text = parent[0].title
+                    category_class.handle_subcategory(message)
                 else:
-                    message.text = parent[1].title
-                category_class.handle_subcategory(message)
+                    message.text = parent[0].title
+                    category_class.handle_category(message)
             else:
                 category_class.handle_category(message)
         
-        session["menu_delete"] = False
+        session["menu_delete"] = True
         session["delete_sure"] = False
         session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
@@ -1891,6 +2387,10 @@ def confirm_deactivate_category(message):
 product_bot = ProductBot(app)
 product_bot.register_handle_finish_attributes()
 
+
+@app.message_handler(func=lambda message: message.text in [t(message, "edit"),])
+def edit(message):
+    app.send_message(message.chat.id, "قابلیت اصلاح اطلاعات کالا و دسته بندی به زودی اضافه خواهد شد.")
 
 ##################################### END CATEGROY #####################################
 
@@ -2299,3 +2799,5 @@ class CachedMediaViewSet(viewsets.ModelViewSet):
     queryset = CachedMedia.objects.all()
     serializer_class = CachedMediaSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+

@@ -626,7 +626,7 @@ class SendMarkup:
 
     def send(self):
         """ارسال پیام با هندل خطا"""
-        try:
+        try: 
             markup = self.generate_keyboard()
             self.bot.send_message(
                 chat_id=self.chat_id,
@@ -890,14 +890,23 @@ class CategoryClass:
     def handle_subcategory(self, message):
         try:
             if subscription.subscription_offer(message):
-                extra_menu = ["🔙", t(message, "cancel_action")]
-                current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
-                children = [child.title for child in current_category.get_next_layer_categories()]
-
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
                 session["current_menu"] = message.text.lower()
                 session_manager.set_user_session(message.chat.id, session, namespace="menu")
+
+                extra_menu = ["🔙", t(message, "cancel_action")]
+                current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
+                children = [child.title for child in current_category.get_next_layer_categories()]
+                
+                # when you want to delete you must be able to delete even deactivated cats
+                if session.get("category") and session.get("menu_delete"):
+                    current_category = Category.objects.get(title__iexact=message.text.title())
+                    children = [child.title for child in current_category.get_next_layer_categories(both=True)]
+                
+
+                print(children)
                 print(f"begining of handle_subcategory: {session}")
+                
 
                 if children == []:
                     if session.get("category") and session.get("menu_delete"):
@@ -988,7 +997,7 @@ class CategoryClass:
             extra_menu = [t(message, "cancel_action")]
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session["deactivate_category_sure"] = True
-            markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', extra_menu)
+            markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure')
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
             app.send_message(message.chat.id, t(message, "confirm_deactivate_category"), reply_markup=markup)
         except Exception as e:
@@ -999,7 +1008,7 @@ class CategoryClass:
             extra_menu = [t(message, "cancel_action")]
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session["delete_sure"] = True
-            markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure', extra_menu)
+            markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure')
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
             app.send_message(message.chat.id, t(message, "confirm_delete_category"), reply_markup=markup)
         except Exception as e:
@@ -1710,25 +1719,31 @@ class ProductBot:
                 code = message.text
                 try:
                     product = Product.objects.get(code=code)
-                    attributes = product.attributes.all()
-                    # ارسال پیام محصول به کاربر
-                    producthandler = ProductHandler(app=self.bot, product=product, current_site=settings_current_site, attributes=attributes)
-                    producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
-
-                    # ذخیره اطلاعات محصول در Redis
-                    session = session_manager.get_user_session(message.chat.id, namespace="delete_product")
-                    session['enter_product_code_to_delete'] = False
-                    session['delete_product_confirm'] = True
-                    session['code'] = code
-                    session_manager.set_user_session(message.chat.id, session, namespace="delete_product")
-
-                    menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
-                    markup = send_menu(message, menu, "main menu", home_menu)
-                    self.bot.send_message(message.chat.id, t(message, "confirm_delete_product"), reply_markup=markup)
-
                 except Product.DoesNotExist:
                     self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
                     return
+                try:
+                    product = Product.objects.get(code=code, store__owner__tel_id=message.chat.id)
+                except Product.DoesNotExist:
+                    self.bot.send_message(message.chat.id, t(message, "cannot_remove_other_store_item"))
+                    return
+
+                attributes = product.attributes.all()
+                # ارسال پیام محصول به کاربر
+                producthandler = ProductHandler(app=self.bot, product=product, current_site=settings_current_site, attributes=attributes, chat_id=message.chat.id)
+                producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
+
+                # ذخیره اطلاعات محصول در Redis
+                session = session_manager.get_user_session(message.chat.id, namespace="delete_product")
+                session['enter_product_code_to_delete'] = False
+                session['delete_product_confirm'] = True
+                session['code'] = code
+                session_manager.set_user_session(message.chat.id, session, namespace="delete_product")
+
+                menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
+                markup = send_menu(message, menu, "main menu", home_menu)
+                self.bot.send_message(message.chat.id, t(message, "confirm_delete_product"), reply_markup=markup)
+
         except Exception as e:
             error_message = traceback.format_exc()  # دریافت Traceback کامل
             print(f"Error in handle_buttons: {e}\n{error_message}")
@@ -1744,7 +1759,7 @@ class ProductBot:
             product_code = session['code']
             if product_code:
                 try:
-                    product = Product.objects.get(code=product_code)
+                    product = Product.objects.get(code=product_code, store__owner__tel_id=message.chat.id)
                     if message.text == t(message, "yes_im_sure"):
                         # حذف محصول از دیتابیس
                         product.delete()
@@ -1758,7 +1773,7 @@ class ProductBot:
 
                     session_manager.reset_user_session(message.chat.id, namespace="delete_product")
                 except Product.DoesNotExist:
-                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
+                    self.bot.send_message(message.chat.id, t(message, "cannot_remove_other_store_item"))
                     return
             else:
                 self.bot.send_message(message.chat.id, "کد محصول ذخیره نشده است.")
@@ -1773,30 +1788,36 @@ class ProductBot:
             code = message.text
             try:
                 product = Product.objects.get(code=code)
-                attributes = product.attributes.all()
-                # ارسال پیام محصول به کاربر
-                producthandler = ProductHandler(app=self.bot, product=product, current_site=settings_current_site, attributes=attributes)
-                producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
-
-                # ذخیره اطلاعات محصول در Redis
-                state_manager = RedisStateManager(message.chat.id)
-                state_manager.save_user_data("product_code", code)
-                session = {'deactivate_product_confirm': True, 'code': code}
-                session_manager.set_user_session(message.chat.id, session, namespace="deactivate_product")
-                session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                session["deavtivate_product"] = False
-                session["deactivate_product_confirm"] = True
-                session_manager.set_user_session(message.chat.id, session, namespace="menu")
-
-                menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
-                markup = send_menu(message, menu, "main menu", home_menu)
-                action_text = t(message, "deactivate") if product.status else t(message, "activate")
-                msg_text = t(message, "confirm_toggle_product", action=action_text)
-                self.bot.send_message(message.chat.id, msg_text, reply_markup=markup)
-
             except Product.DoesNotExist:
                 self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
                 return
+            try:
+                product = Product.objects.get(code=code, store__owner__tel_id=message.chat.id)
+            except Product.DoesNotExist:
+                self.bot.send_message(message.chat.id, t(message, "cannot_disable_other_store_item"))
+                return
+
+            attributes = product.attributes.all()
+            # ارسال پیام محصول به کاربر
+            producthandler = ProductHandler(app=self.bot, product=product, current_site=settings_current_site, attributes=attributes, chat_id=message.chat.id)
+            producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
+
+            # ذخیره اطلاعات محصول در Redis
+            state_manager = RedisStateManager(message.chat.id)
+            state_manager.save_user_data("product_code", code)
+            session = {'deactivate_product_confirm': True, 'code': code}
+            session_manager.set_user_session(message.chat.id, session, namespace="deactivate_product")
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            session["deavtivate_product"] = False
+            session["deactivate_product_confirm"] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
+
+            menu = [t(message, "yes_im_sure"), t(message, "cancel_action")]
+            markup = send_menu(message, menu, "main menu", home_menu)
+            action_text = t(message, "deactivate") if product.status else t(message, "activate")
+            msg_text = t(message, "confirm_toggle_product", action=action_text)
+            self.bot.send_message(message.chat.id, msg_text, reply_markup=markup)
+
         except Exception as e:
             error_message = traceback.format_exc()  # دریافت Traceback کامل
             print(f"Error in handle_buttons: {e}\n{error_message}")
@@ -1808,7 +1829,7 @@ class ProductBot:
             product_code = session.get("code")
             if product_code:
                 try:
-                    product = Product.objects.get(code=product_code)
+                    product = Product.objects.get(code=product_code, store__owner__tel_id=message.chat.id)
                     if message.text == t(message, "yes_im_sure"):
                         # حذف محصول از دیتابیس
                         if product.status:
@@ -1827,7 +1848,7 @@ class ProductBot:
                         return
 
                 except Product.DoesNotExist:
-                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
+                    self.bot.send_message(message.chat.id, t(message, "cannot_disable_other_store_item"))
                     return
             else:
                 self.bot.send_message(message.chat.id, "کد محصول ذخیره نشده است.")
@@ -2029,7 +2050,7 @@ class ProductHandler:
         if not self.attributes:
             return ""
         return "\n".join(
-            [f"✨ {a.key}: {a.value}" if a.value else f"✅ {a.key}" for a in self.attributes]
+            [f"✨ {a.key}: {a.value}" if a.value else f"✨ {a.key}" for a in self.attributes]
         ) + "\n\n"
 
 
@@ -2089,33 +2110,42 @@ class ProductHandler:
         )
 
 
-
     async def async_generate_caption(self):
-        brand_text = f"🔖 {t("message", "product_brand", chat_id=self.chat_id)}: {self.product.brand}\n" if self.product.brand else ""
+        brand_text = f"🔖 برند کالا: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
-
-        attribute_text = self.build_attributes_text()
-
+    
+        # Attributes
+        attribute_text = ""
+        if self.attributes:
+            attribute_text = "\n✨ ".join(
+                [f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in self.attributes]
+            )
+            attribute_text = f"✨ {attribute_text}\n\n"
+    
+        # واریانت‌ها
         variants_data = await self.async_get_product_variants_data()
-        variants_text = self.build_variants_text(
-            variants_data.get("variants_dict")
-        )
-
-        product_name = await t("message", "product_name", chat_id=self.chat_id)
-        product_code = await t("message", "product_code", chat_id=self.chat_id)
-
-        print("DEBUG variants_text:", variants_text)
-
+    
+        variants_text = ""
+        if variants_data['variants_dict']:
+            variant_lines = [
+                f"{key}: {', '.join(values)}"
+                for key, values in variants_data['variants_dict'].items()
+            ]
+            variants_text = "✅ " + "\n✅ ".join(variant_lines) + "\n\n"
+    
+        # قیمت (sync_to_async درست)
+        price_text = await sync_to_async(self.format_price)()
+        
         return (
-            f"\n⭕️ {product_name}: {self.product.name}\n"
+            f"\n⭕️ نام کالا: {self.product.name}\n"
             f"{brand_text}"
-            f"{product_code}: {self.product.code}\n\n"
+            f"کد کالا: {self.product.code}\n\n"
             f"{description_text}\n"
             f"{attribute_text}"
             f"{variants_text}"
-            f"{self.format_price()}\n"
+            f"📫 ارسال به تمام نقاط کشور\n\n"
+            f"{price_text}\n"
         )
-
 
 
 
@@ -4582,7 +4612,7 @@ class AdvancedProductExporter:
             'price': float(product.price),
             'discount': float(product.discount),
             'final_price': float(product.final_price),
-            'stock': product.total_stock(),
+            'stock': product.stock,
             'status': 'فعال' if product.status else 'غیرفعال',
             'unit_name': product.unit.name if product.unit else '',
             'unit_symbol': product.unit.symbol if product.unit else '',

@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 import os
 import hashlib
 from django.utils.text import slugify
+import pycountry
+
 
 
 
@@ -14,6 +16,16 @@ from django.utils.text import slugify
 # =========================
 
 class Store(models.Model):
+    # ----------------------------
+    # Language choices
+    # ----------------------------
+    def get_language_choices():
+        languages = []
+        for lang in pycountry.languages:
+            if hasattr(lang, 'alpha_2'):
+                languages.append((lang.alpha_2, lang.name))
+        return sorted(languages, key=lambda x: x[1])
+    
     owner = models.OneToOneField(ProfileModel, on_delete=models.CASCADE, related_name="owned_store", verbose_name="Owner Profile")
     name = models.CharField(max_length=100, verbose_name='Store Name')
     address = models.CharField(max_length=255, verbose_name='Address')
@@ -22,7 +34,7 @@ class Store(models.Model):
     logo = models.ImageField(upload_to="store_logos/", blank=True, null=True, verbose_name="Store Logo")
     tel_group = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram group ID")
     tel_channel = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram channel ID")
-
+    lang = models.CharField(max_length=10, choices=get_language_choices(), default='en', unique=False, null=False, blank=True)
     markant_id = models.CharField(max_length=36, verbose_name="Markant ID", unique=True, null=False, blank=False)
 
     def __str__(self):

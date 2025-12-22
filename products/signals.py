@@ -22,7 +22,7 @@ from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
 from django.db.models.signals import post_delete
-
+from AI.settings import current_site as settings_current_site
 
 # --- CONFIG ---
 API_ID = api_id
@@ -43,7 +43,7 @@ def async_helper(product):
     store = product.store
     chat_id = store.owner.tel_id
 
-    return store.owner.lang, store.id, product.code, chat_id
+    return store.lang, store.id, product.code, chat_id
 
 
 async def t(lang, key, **kwargs):
@@ -102,7 +102,7 @@ async def send_album_and_button(channel_id, product, photos, attributes):
 
         # --- 4. ارسال دکمه با TeleBot ---
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton( buy_now_text, url=f"https://t.me/{BOT_ID}?start=store_{store_id}_product_{product_id}" ))
+        markup.add(types.InlineKeyboardButton( buy_now_text, url=f"{settings_current_site}/pay/telegrambot/?start=store_{store_id}_product_{product_id}" ))
 
 
         bot.send_message(channel_id, "👇👇👇👇👇👇👇👇", reply_markup=markup)

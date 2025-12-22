@@ -2,8 +2,7 @@ import requests
 import sys
 import argparse
  
-TOKEN = '8019448982:AAEW-sHSuIqd2BaL5qM8rSlVPkP9eoTLRIM'
- 
+TOKEN = "8019448982:AAEW-sHSuIqd2BaL5qM8rSlVPkP9eoTLRIM"
 sub=''
  
 WEBHOOK_URL = f"https://intelleum.ir:8443/telbot/webhook/"
@@ -14,6 +13,8 @@ def delete(TOKEN=TOKEN):
     response = requests.post(url, data=params)
     print(response.json())
 
+from utils.variables.TOKEN import TOKEN
+print(TOKEN)
 def setting(sub, TOKEN=TOKEN):
     delete(TOKEN=TOKEN)
     TOKEN = str(TOKEN)

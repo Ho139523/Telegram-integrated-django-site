@@ -586,4 +586,104 @@ async def async_verify_payment(request):
         await redis.close()
 
     return JsonResponse({"message": "پرداخت موفق و finalize شد", "ref_id": data.get("RefID")})
-    
+   
+
+
+
+
+from django.shortcuts import redirect
+from django.views import View
+from django.conf import settings
+import urllib.parse
+from utils.variables.TOKEN import BOT_ID
+
+from django.http import HttpResponse
+from django.urls import reverse
+
+class TelegramBotRedirectView(View):
+    def get(self, request):
+        start_param = request.GET.get('start', '')
+        
+        if not start_param:
+            return redirect('mainpage:home')
+        
+        bot_id = BOT_ID  # یا از settings بیاورید
+        
+        if not bot_id:
+            return redirect('error_page')
+        
+        telegram_url = f"https://t.me/{bot_id}?start={urllib.parse.quote(start_param)}"
+        home_url = reverse('mainpage:home')
+        
+        # HTML با JavaScript برای باز کردن تلگرام در پس‌زمینه
+        html_content = f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>اتصال به ربات</title>
+                <script src="https://telegram.org/js/telegram-web-app.js"></script>
+            </head>
+            <body>
+                <div style="text-align:center; padding:20px;">
+                    <h2>در حال انتقال به ربات...</h2>
+                    
+                    <script>
+                        // بررسی اگر در WebView تلگرام هستیم
+                        if (window.Telegram && Telegram.WebApp) {{
+                            const tg = Telegram.WebApp;
+                            
+                            // تلاش برای باز کردن ربات از طریق Telegram WebApp
+                            try {{
+                                tg.openTelegramLink('{telegram_url}');
+                            }} catch (error) {{
+                                tg.openLink('{telegram_url}');
+                            }}
+                            
+                        }} else {{
+                            // اگر در WebView تلگرام نیستیم، روش عادی
+                            window.location.href = '{telegram_url}';
+                        }}
+                        
+                        // ===== مهم: بعد از 3 ثانیه صفحه را به سایت اصلی منتقل کن =====
+                        setTimeout(function() {{
+                            // این خط صفحه فعلی را به آدرس سایت اصلی منتقل می‌کند
+                            window.location.href = 'https://intelleum.ir:8443';
+                        }}, 3000);
+                        
+                    </script>
+                    
+                    <p style="margin-top:30px; color:#666; font-size:14px;">
+                        در صورت عدم انتقال خودکار:
+                        <br>
+                        <a href="{telegram_url}" style="display:inline-block; margin-top:10px; padding:8px 16px; background:#0088cc; color:white; text-decoration:none; border-radius:5px;">
+                            🔗 باز کردن ربات
+                        </a>
+                        <br>
+                        <a href="https://intelleum.ir:8443" style="display:inline-block; margin-top:10px; padding:8px 16px; background:#28a745; color:white; text-decoration:none; border-radius:5px;">
+                            🏠 رفتن به سایت اصلی
+                        </a>
+                    </p>
+                    
+                    <div style="margin-top:40px; font-size:12px; color:#999;">
+                        انتقال خودکار به سایت اصلی در <span id="countdown">3</span> ثانیه
+                    </div>
+                    
+                    <script>
+                        // شمارش معکوس نمایشی
+                        let seconds = 3;
+                        const countdownElement = document.getElementById('countdown');
+                        const countdownInterval = setInterval(function() {{
+                            seconds--;
+                            countdownElement.textContent = seconds;
+                            if (seconds <= 0) {{
+                                clearInterval(countdownInterval);
+                            }}
+                        }}, 1000);
+                    </script>
+                </div>
+            </body>
+            </html>
+            '''
+        return HttpResponse(html_content)

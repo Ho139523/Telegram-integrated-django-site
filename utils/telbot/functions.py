@@ -1,4 +1,5 @@
 #functions.py
+from email import message
 from pydoc import describe
 
 from click import command
@@ -626,7 +627,7 @@ class SendMarkup:
 
     def send(self):
         """ارسال پیام با هندل خطا"""
-        try: 
+        try:
             markup = self.generate_keyboard()
             self.bot.send_message(
                 chat_id=self.chat_id,
@@ -881,6 +882,8 @@ class CategoryClass:
                 else:
                     text = t(message, "category_deleted_successfully")
                 cats = Category.objects.filter(parent__isnull=True, status=True, store=store).values_list('title', flat=True)
+                if session.get("category") and session.get("category_deactivate"):
+                    cats = Category.objects.filter(parent__isnull=True, store=store).values_list('title', flat=True)
                 markup = send_menu(message, cats, message.text, extra_menu, extra_cols=1)
                 app.send_message(message.chat.id, text, reply_markup=markup)
             except Exception as e:
@@ -895,16 +898,21 @@ class CategoryClass:
                 session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
                 extra_menu = ["🔙", t(message, "cancel_action")]
-                current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
-                children = [child.title for child in current_category.get_next_layer_categories()]
                 
+                if session.get("category") and session.get("category_deactivate"):
+                    current_category = Category.objects.get(title__iexact=message.text.title())
+                    children = [child.title for child in current_category.get_next_layer_categories(both=True)]
+
                 # when you want to delete you must be able to delete even deactivated cats
-                if session.get("category") and session.get("menu_delete"):
+                elif session.get("category") and session.get("menu_delete"):
                     current_category = Category.objects.get(title__iexact=message.text.title())
                     children = [child.title for child in current_category.get_next_layer_categories(both=True)]
                 
+                else:
+                    current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
+                    children = [child.title for child in current_category.get_next_layer_categories()]
 
-                print(children)
+                
                 print(f"begining of handle_subcategory: {session}")
                 
 
@@ -942,7 +950,10 @@ class CategoryClass:
                             button = t(message, "delete_category_and_subcategories")
                             extra_menu.append(button) if button not in extra_menu else extra_menu
                         elif session.get("category_deactivate"):
-                            button = t(message, "deactivate_category")
+                            if not [child.title for child in current_category.get_next_layer_categories(status=True)]:
+                                button = t(message, "activate_category")
+                            else:
+                                button = t(message, "deactivate_category")
                             extra_menu.append(button) if button not in extra_menu else extra_menu
                     if session.get("category") and session.get("menu_delete") and session.get("delete_sure"):
                         text = t(message, "category_deleted_successfully")
@@ -951,7 +962,7 @@ class CategoryClass:
                     elif session.get("category") and session.get("menu_delete"):
                         text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
                     elif session.get("category") and session.get("category_deactivate"):
-                        text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
+                        text = f"{Category.objects.get(title__iexact=session['current_menu']).get_full_path()}"
                     else:
                         button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
                         for b in button:
@@ -998,8 +1009,12 @@ class CategoryClass:
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session["deactivate_category_sure"] = True
             markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure')
+            cat = Category.objects.get(title__iexact=session.get("current_menu"), store__owner__tel_id=message.chat.id)
+            if cat.status:
+                app.send_message(message.chat.id, t(message, "confirm_deactivate_category"), reply_markup=markup)
+            else:
+                app.send_message(message.chat.id, t(message, "confirm_activate_category"), reply_markup=markup)
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
-            app.send_message(message.chat.id, t(message, "confirm_deactivate_category"), reply_markup=markup)
         except Exception as e:
             print(traceback.format_exc())
 
@@ -1018,18 +1033,46 @@ class CategoryClass:
 ############################  ADD PRODUCT  ############################
 
 # ایجاد slug یکتا
-def generate_unique_slug(model, name):
+def generate_unique_slug(model, name, max_length=50):
     from django.utils.text import slugify
-
-    slug = slugify(name)
+    from django.utils.crypto import get_random_string
+    import re
+    
+    if not name or not isinstance(name, str):
+        # تولید slug تصادفی
+        return f"p-{get_random_string(10).lower()}"
+    
+    # حذف کاراکترهای خاص و تولید slug
+    slug = slugify(name, allow_unicode=False)
+    
+    # اگر slug خالی شد
+    if not slug:
+        # استفاده از حروف انگلیسی نام یا تولید تصادفی
+        # استخراج حروف انگلیسی از نام
+        english_chars = re.sub(r'[^a-zA-Z0-9]', '', name)
+        if english_chars:
+            slug = english_chars.lower()[:20]
+        else:
+            slug = f"p-{get_random_string(10).lower()}"
+    
+    # کوتاه کردن slug اگر طولانی باشد
+    if len(slug) > max_length:
+        slug = slug[:max_length-3]  # جای برای شماره می‌ماند
+    
     unique_slug = slug
     counter = 1
+    
+    # چک کردن تکراری نبودن
     while model.objects.filter(slug=unique_slug).exists():
         unique_slug = f"{slug}-{counter}"
         counter += 1
+        # اگر شماره هم اضافه کردیم و باز هم طولانی شد
+        if len(unique_slug) > max_length:
+            # کوتاه کردن بیشتر
+            slug = slug[:max_length-5]
+            unique_slug = f"{slug}-{counter}"
+    
     return unique_slug
-
-
 
 def download_and_save_image(file_id, bot):
     try:
@@ -1619,6 +1662,14 @@ class ProductBot:
             # Product basic info
             name = session.get("name_d")
             slug = generate_unique_slug(Product, name)
+            print(f"DEBUG: name='{name}', type={type(name)}")
+            print(f"DEBUG: Generated slug for '{name}': '{slug}'")  # اضافه کردن این خط
+            
+            # یا لاگ کامل
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Generating slug for product: name='{name}', slug='{slug}'")
+            
             price = session.get("price_d")
             discount = session.get("discount_d")
             stock = session.get("get_stock_d")
@@ -2336,7 +2387,7 @@ class ProductHandler:
 
                 # دکمه سبد خرید
                 total_cart_items = cart.total_items()
-                buttons.append((f"🛒 سبد خرید ({total_cart_items})", "view_cart", len(buttons) + 2))
+                buttons.append((f"{t("message", "menu_cart", chat_id=chat_id)} ({total_cart_items})", "view_cart", len(buttons) + 2))
                 
                 # لیآوت
                 if variants_dict:
@@ -2387,8 +2438,8 @@ class ProductHandler:
         """نمایش حالت اولیه"""
         try:
             buttons = [
-                ("افزودن به 🛒", f"addtocart_{product.code}", 1),
-                ("نظرات 💭", f"comments_{product.code}", 0),
+                (t("message", "add_to_cart", chat_id=chat_id), f"addtocart_{product.code}", 1),
+                (t("message", "comments", chat_id=chat_id), f"comments_{product.code}", 0),
             ]
             
             handlers = {
@@ -2558,7 +2609,7 @@ class ProductHandler:
                     elif cart_item.quantity == 0:
                         cart_item.delete()
                         should_show_initial = True
-                        self.app.answer_callback_query(call.id, "آیتم از سبد خرید حذف شد")
+                        self.app.answer_callback_query(call.id, t(call.message, "cart_item_removed"))
                 else:
                     should_show_initial = True
 
@@ -2648,7 +2699,7 @@ class ProductHandler:
 
             # دکمه سبد خرید
             total_cart_items = cart.total_items()
-            buttons.append((f"🛒 سبد خرید ({total_cart_items})", "view_cart", len(buttons) + 2))
+            buttons.append((f"{t("message", "menu_cart", chat_id=chat_id)} ({total_cart_items})", "view_cart", len(buttons) + 2))
             
             # لیآوت
             if variants_dict:
@@ -2805,7 +2856,7 @@ class SendCart(SendMarkup):
 
             # محاسبه قیمت کل و متن
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
-            self.text = f"🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{self.total_price:,.0f} تومان"
+            self.text = t(message, "cart_summary", total_price=self.total_price)
 
             # ایجاد دکمه‌ها و layout
             self.buttons = self._generate_buttons(self.message_obj)
@@ -2834,7 +2885,7 @@ class SendCart(SendMarkup):
         except Exception as e:
             print(f"Error in SendCart.__init__: {e}\n{traceback.format_exc()}")
             if hasattr(self, 'chat_id'):
-                self.bot.send_message(self.chat_id, "خطا در بارگذاری سبد خرید!")
+                self.bot.send_message(self.chat_id, t(message, "cart_load_error"))
             raise
             
     # --- متدهای کمکی برای تولید محتوا ---
@@ -2934,7 +2985,6 @@ class SendCart(SendMarkup):
                 variant_info = "simple_product"
 
             else:
-                print('oh yse')
                 # محصول دارای واریانت است
                 if variant is None:
                     # آیتم بدون واریانت → اولین واریانت انتخاب شود
@@ -2947,7 +2997,6 @@ class SendCart(SendMarkup):
             #  دکمه‌های پیمایش واریانت ONLY IF محصول واریانت دارد
             # ========================================
             if has_variants:
-                print("yes")
                 buttons["<<"] = {
                     'callback_data': f"cart_prev_variant:{product_id}:{item.id}",
                     'index': index_counter,
@@ -3188,7 +3237,7 @@ class SendCart(SendMarkup):
                 new_quantity = old_quantity - 1
                 if new_quantity <= 0:
                     item.delete()
-                    self.bot.answer_callback_query(call.id, "آیتم از سبد خرید حذف شد")
+                    self.bot.answer_callback_query(call.id, t(call.message, "cart_item_removed"))
                 else:
                     item.quantity = new_quantity
                     item.save()
@@ -3418,7 +3467,7 @@ class SendLocation:
             error_details = traceback.format_exc()
             custom_message = f"Error in SendLocation init: {e}\nDetails:\n{error_details}"
             print(custom_message)
-            self.app.send_message(self.chat_id, "خطایی در دریافت اطلاعات آدرس رخ داد")
+            self.app.send_message(self.chat_id, t("message", "error_address_info", chat_id=self.chat_id))
 
     def show_addresses(self, call=None):
         """
@@ -3452,7 +3501,7 @@ class SendLocation:
 
             # اضافه کردن هندلرهای آدرس‌ها
             for address in self.user_addresses:
-                handlers[f"address_{address.id}"] = lambda addr, c=address: self.show_single_address(addr, c)
+                handlers[f"address_{address.id}"] = lambda addr, c=address: self.show_single_address(addr, c, chat_id=call.message.chat.id)
 
             # ایجاد کیبورد
             markup = SendMarkup(
@@ -3473,9 +3522,9 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
 
-    def show_single_address(self, address, call=None):
+    def show_single_address(self, address, call=None, chat_id=None):
         """
         نمایش جزئیات یک آدرس خاص
         :param call: شیء callback
@@ -3483,20 +3532,20 @@ class SendLocation:
         """
         try:
             # متن پیام
-            text = f"📍 آدرس انتخابی:\n\n{address.shipping_line1}\n"
-            text += f"🏙 شهر: {address.shipping_city_name}\n"
-            text += f"🏛 استان: {address.shipping_province_name}\n"
-            text += f"🌍 کشور: {address.shipping_country_name}\n"
-            text += f"📮 کد پستی: {address.shipping_zip_code or 'ثبت نشده'}"
+            text = f"{t("message", "your_addresses", chat_id=chat_id)}{address.shipping_line1}\n\n"
+            text += f"{t("message", "city_label", chat_id=chat_id)} {address.shipping_city_name}\n"
+            text += f"{t("message", "province_label", chat_id=chat_id)} {address.shipping_province_name}\n"
+            text += f"{t("message", "country_label", chat_id=chat_id)} {address.shipping_country_name}\n"
+            text += f"{t("message", "postal_code_label", chat_id=chat_id)} {address.shipping_zip_code or t("message", "not_registered")}"
 
             # دکمه‌های مدیریت
             buttons = {
-                "🗺 تغییر موقعیت مکانی": (f"change_location_{address.id}", 1),
-                "ارسال خرید ها به این آدرس": (f"select_address_{address.id}", 2),
-                "✏️ تغییر آدرس": (f"change_address_{address.id}", 3),
-                "📝 تغییر کد پستی": (f"change_postal_{address.id}", 4),
-                "🔙 بازگشت": ("back_to_addresses", 5),
-                "🗑 حذف آدرس": (f"delete_address_{address.id}", 6)
+                t("message", 'change_location', chat_id=chat_id): (f'change_location_{address.id}', 1),
+                t("message", "send_to_this_address", chat_id=chat_id): (f"select_address_{address.id}", 2),
+                t("message", "edit_address", chat_id=chat_id): (f"change_address_{address.id}", 3),
+                t("message", "edit_postal_code", chat_id=chat_id): (f"change_postal_{address.id}", 4),
+                t("message", "back_button", chat_id=chat_id): ("back_to_addresses", 5),
+                t("message", "delete_address", chat_id=chat_id): (f"delete_address_{address.id}", 6)
             }
 
             markup = SendMarkup(
@@ -3524,18 +3573,18 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_single_address: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس رخ داد")
+            self.app.send_message(self.chat_id, t("message", "address_display_error", chat_id=chat_id))
 
     # --- متدهای مدیریت عملیات ---
 
     def handle_add_address(self, call):
         """افزودن آدرس جدید"""
         try:
-            self.app.send_message(call.message.chat.id, "لطفاً آدرس جدید را ارسال کنید:")
+            self.app.send_message(call.message.chat.id, t(call.message, "please_send_new_address"))
             # اینجا می‌توانید از register_next_step_handler استفاده کنید
         except Exception as e:
             print(f"Error in handle_add_address: {traceback.format_exc()}")
-            self.app.send_message(call.message.chat.id, "خطایی در افزودن آدرس رخ داد")
+            self.app.send_message(call.message.chat.id, t(call.message, "error_add_address"))
 
     def handle_close(self, call):
         """بستن پنجره آدرس‌ها"""
@@ -3549,36 +3598,36 @@ class SendLocation:
         """تغییر موقعیت مکانی"""
         try:
             self.app.send_message(call.message.chat.id,
-                                  "لطفاً موقعیت مکانی جدید را ارسال کنید:",
+                                  t(call.message, "change_location_prompt"),
                                   reply_markup=types.ReplyKeyboardMarkup(
                                       resize_keyboard=True
-                                  ).add(types.KeyboardButton("اشتراک گذاری موقعیت", request_location=True)))
+                                  ).add(types.KeyboardButton(t(call.message, "share_location"), request_location=True)))
             # ذخیره آدرس برای مرحله بعد
             # اینجا می‌توانید از register_next_step_handler استفاده کنید
         except Exception as e:
             print(f"Error in change_location: {traceback.format_exc()}")
-            self.app.send_message(call.message.chat.id, "خطایی در تغییر موقعیت رخ داد")
+            self.app.send_message(call.message.chat.id, t(call.message, "change_location_error"))
 
 
     def delete_address(self, call, address):
         """حذف آدرس"""
         try:
             address.delete()
-            self.app.answer_callback_query(call.id, "آدرس با موفقیت حذف شد")
+            self.app.answer_callback_query(call.id, t(call.message, "address_deleted"))
             self.show_addresses(call)
         except Exception as e:
             print(f"Error in delete_address: {traceback.format_exc()}")
-            self.app.answer_callback_query(call.id, "خطا در حذف آدرس")
+            self.app.answer_callback_query(call.id, t(call.message, "address_delete_error"))
 
     def add_new_address(self, call):
         try:
 
-            text = "نحوه وارد کردن آدرس را انتخاب کنید"
+            text = t(call.message, "choose_address_input_method")
 
 
             buttons = {
-                "وارد کردن دستی": (f"manual_add_address", 1),
-                "ارسال موقعیت مکانی": (f"send_location_add_address", 2),
+                t(call.message, "manual_entry"): (f"manual_add_address", 1),
+                t(call.message, "send_location"): (f"send_location_add_address", 2),
             }
 
             handlers = {
@@ -3607,11 +3656,11 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in add_new_address: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
 
     def manual_add_address(self, call):
         try:
-            text = "ساکن کدام کشور هستید؟"
+            text = t(call.message, "select_country")
             items = [item for item in get_country_choices(self.profile.lang)]
             items_name = [item[1] for item in get_country_choices(self.profile.lang)]
             items_code = [item[0] for item in get_country_choices(self.profile.lang)]
@@ -3628,7 +3677,7 @@ class SendLocation:
             buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
             handlers["_back"] = self.handle_previous
 
-            buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
+            buttons[t(call.message, "close")] = {'callback_data': 'address_close', 'index': len(buttons)+2}
             handlers["address_close"] = self.handle_close
             layout.append(2)
 
@@ -3658,7 +3707,7 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
 
 
     def handle_prev(self, call):
@@ -3670,7 +3719,7 @@ class SendLocation:
             paginator.prev_page()
             handlers = {"prev": self.handle_prev, "next": self.handle_next}
             if session['state'] == "address_selection_country":
-                text = "ساکن کدام کشور هستید؟"
+                text = t(call.message, "select_country")
                 items = [item for item in get_country_choices(self.profile.lang)]
                 buttons, layout = paginator.get_buttons_for_sendmarkup()
                 for code, country in items:
@@ -3679,7 +3728,7 @@ class SendLocation:
                         handlers[f'country_{code}'] = self.handle_picked_country
 
             elif session['state'] == "address_selection_province":
-                text = "ساکن کدام استان هستید؟"
+                text = t(call.message, "select_province")
                 items = [item for item in get_province_choices(session["selected_country"], self.profile.lang)]
                 buttons, layout = paginator.get_buttons_for_sendmarkup()
                 for code, province in items:
@@ -3688,7 +3737,7 @@ class SendLocation:
                         handlers[f'province_{code}'] = self.handle_picked_province
 
             elif session['state'] == "address_selection_city":
-                text = "ساکن کدام شهر هستید؟"
+                text = t(call.message, "select_city")
                 items = [item for item in get_city_choices(session["selected_country"], session["selected_province"], self.profile.lang)]
                 buttons, layout = paginator.get_buttons_for_sendmarkup()
                 for code, city in items:
@@ -3699,7 +3748,7 @@ class SendLocation:
             buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
             handlers["_back"] = self.handle_previous
 
-            buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
+            buttons[t(call.message, "close")] = {'callback_data': 'address_close', 'index': len(buttons)+2}
             handlers["address_close"] = self.handle_close
             layout.append(2)
 
@@ -3711,7 +3760,7 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
 
     def handle_next(self, call):
         try:
@@ -3720,7 +3769,7 @@ class SendLocation:
             paginator.next_page()
             handlers = {"prev": self.handle_prev, "next": self.handle_next}
             if data['state'] == "address_selection_country":
-                text = "ساکن کدام کشور هستید؟"
+                text = t(call.message, "select_country")
                 items = [item for item in get_country_choices(self.profile.lang)]
                 buttons, layout = paginator.get_buttons_for_sendmarkup()
                 for code, country in items:
@@ -3729,7 +3778,7 @@ class SendLocation:
                         handlers[f'country_{code}'] = self.handle_picked_country
 
             elif data['state'] == "address_selection_province":
-                text = "ساکن کدام استان هستید؟"
+                text = t(call.message, "select_province")
                 items = [item for item in get_province_choices(data["selected_country"], self.profile.lang)]
                 buttons, layout = paginator.get_buttons_for_sendmarkup()
                 for code, province in items:
@@ -3738,7 +3787,7 @@ class SendLocation:
                         handlers[f'province_{code}'] = self.handle_picked_province
 
             elif data['state'] == "address_selection_city":
-                text = "ساکن کدام شهر هستید؟"
+                text = t(call.message, "select_city")
                 items = [item for item in get_city_choices(data["selected_country"], data["selected_province"], self.profile.lang)]
                 buttons, layout = paginator.get_buttons_for_sendmarkup()
                 for code, city in items:
@@ -3749,7 +3798,7 @@ class SendLocation:
             buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
             handlers["_back"] = self.handle_previous
 
-            buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
+            buttons[t(call.message, "close")] = {'callback_data': 'address_close', 'index': len(buttons)+2}
             handlers["address_close"] = self.handle_close
             layout.append(2)
 
@@ -3761,7 +3810,7 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
 
     def handle_picked_country(self, call):
         import math
@@ -3785,7 +3834,7 @@ class SendLocation:
             items_code = [item[0] for item in get_province_choices(country, self.profile.lang)]
             handlers = {"prev": self.handle_prev, "next": self.handle_next}
             buttons = {}
-            text = 'ساکن کدام استان هستید؟'
+            text = t(call.message, "select_province")
 
             if len(items)>per_page:
                 paginator = InlineKeyboardPaginator(user_id=self.user_id, items=items_name, per_page=per_page, row_size=row_size, remember_last_page=True)
@@ -3812,7 +3861,7 @@ class SendLocation:
             buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
             handlers["_back"] = self.handle_previous
 
-            buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
+            buttons[t(call.message, "close")] = {'callback_data': 'address_close', 'index': len(buttons)+2}
             handlers["address_close"] = self.handle_close
             layout.append(2)
 
@@ -3832,7 +3881,7 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
   
 
 
@@ -3855,7 +3904,7 @@ class SendLocation:
             items_code = [item[0] for item in get_city_choices(data["selected_country"], province, self.profile.lang)]
             handlers = {"prev": self.handle_prev, "next": self.handle_next}
             buttons = {}
-            text = "ساکن کدام شهر هستید؟"
+            text = t(call.message, "select_city")
 
             if len(items)>per_page:
                 paginator = InlineKeyboardPaginator(user_id=self.user_id, items=items_name, per_page=per_page, row_size=row_size, remember_last_page=True)
@@ -3881,7 +3930,7 @@ class SendLocation:
             buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
             handlers["_back"] = self.handle_previous
 
-            buttons['❌ بستن'] = {'callback_data': 'address_close', 'index': len(buttons)+2}
+            buttons[t(call.message, "close")] = {'callback_data': 'address_close', 'index': len(buttons)+2}
             handlers["address_close"] = self.handle_close
             layout.append(2)
 
@@ -3904,7 +3953,7 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
 
 
     def handle_picked_city(self, call):
@@ -3920,7 +3969,7 @@ class SendLocation:
         self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
 
 
-        text = "جزییات آدرس خود را وارد کنید. (خیابان، کوچه، پلاک)"
+        text = t(call.message, "enter_address_details")
 
         markup = SendMarkup(
                 bot=self.app,
@@ -3948,7 +3997,7 @@ class SendLocation:
 
         self.session_manager.set_user_session(message.chat.id, data, namespace="address")
 
-        text = "لطفا کد پستی آدرس خود را وارد کنید"
+        text = t(message, "enter_zip_code")
         
         self.app.delete_message(message.chat.id, message.message_id)
         self.app.delete_message(message.chat.id, data["old_message"])
@@ -3972,7 +4021,6 @@ class SendLocation:
                 address.save()
 
             else:
-                print('ya')
                 data["state"] = "address_selection_zipcode"
                 data["selected_zipcode"] = f"{message.text}"
 
@@ -3996,7 +4044,7 @@ class SendLocation:
                     self.app.delete_message(message.chat.id, data["old_message"])
 
             if (type(data.get("change_postal")) == list) and (data.get("change_postal")[0]):
-                self.show_single_address(address=address)
+                self.show_single_address(address=address, chat_id=message.chat.id)
                 data['change_postal'] = None
                 self.session_manager.set_user_session(message.chat.id, data, namespace="address")   
                 return
@@ -4009,12 +4057,12 @@ class SendLocation:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در نمایش آدرس‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(message, "address_display_error"))
 
 
     def select_address(self, call, address):
         try:
-            self.app.answer_callback_query(call.id, "این آدرس به عنوان آدرس فعال انتخاب شد.", show_alert=True)
+            self.app.answer_callback_query(call.id, t(call.message, "address_set_active"), show_alert=True)
             address.shipping_is_active = True
             address.save()
         except Exception as e:
@@ -4059,12 +4107,12 @@ class SendPhone:
             error_details = traceback.format_exc()
             custom_message = f"Error in SendPhone init: {e}\nDetails:\n{error_details}"
             print(custom_message)
-            self.app.send_message(self.chat_id, "خطایی در دریافت اطلاعات تماس رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "contact_info_error"))
 
     def take_phone(self, call):
         try:
-            text = "لطفا شماره تماس خود را وارد کنید. \n\n"
-            text += "مثال: 09123456789"
+            text = t(call.message, "enter_phone_number")
+            text += t(call.message, "phone_example")
 
             markup = SendMarkup(
                 bot=self.app,
@@ -4090,7 +4138,7 @@ class SendPhone:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در گرفتن شماره تماس تابع اول‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(call.message, "contact_info_error"))
 
 
     def really_take_phone(self, message):
@@ -4117,7 +4165,7 @@ class SendPhone:
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, "خطایی در گرفتن شماره تماس تابع دوم‌ها رخ داد")
+            self.app.send_message(self.chat_id, t(message, "contact_info_error"))
 
 
 ##############################################    PRODUCT LIST    ##############################################

@@ -81,9 +81,12 @@ class ProfileModel(models.Model):
         return ["menu_cart"]
 
     def default_settings_menu():
-        return ["menu_become_seller", "menu_my_address", "menu_profile"]
+        return ["menu_become_seller", "menu_my_address", "menu_profile", "menu_store"]
 
     def default_profile_menu():
+        return ["menu_language"]
+    
+    def default_store_menu():
         return ["menu_language"]
 
     def get_default_store():
@@ -138,6 +141,7 @@ class ProfileModel(models.Model):
     seller_mode = models.BooleanField(default=False, blank=False, null=False)
     settings_menu = models.JSONField(default=default_settings_menu, blank=True, null=False)
     profile_menu = models.JSONField(default=default_profile_menu, blank=True, null=False)
+    store_menu = models.JSONField(default=default_store_menu, blank=True, null=False)
     lang = models.CharField(
         max_length=10,
         choices=get_language_choices(),
@@ -224,11 +228,13 @@ class ProfileModel(models.Model):
             ["menu_cart"],
             ["menu_become_seller", "menu_my_address", "menu_profile"],
             ["menu_language"],
+            ["menu_language"],
         ],
         'green': [
             ["menu_balance", "menu_buy_by_code", "menu_categories", "menu_support", "menu_settings"],
             ["menu_cart"],
             ["menu_become_seller", "menu_my_address", "menu_profile"],
+            ["menu_language"],
             ["menu_language"],
         ],
         'silver': [
@@ -236,17 +242,20 @@ class ProfileModel(models.Model):
             ["menu_cart"],
             ["menu_become_seller", "menu_my_address", "menu_profile"],
             ["menu_language"],
+            ["menu_language"],
         ],
         'gold': [
             ["menu_financial_report", "menu_advanced_buy", "menu_analytics"],
             ["menu_cart"],
             ["menu_become_seller", "menu_my_address", "menu_profile"],
             ["menu_language"],
+            ["menu_language"],
         ],
         'seller': [
             ["product", "category", "menu_financial_report", "menu_analytics", "menu_settings"],
             ["menu_sale_statistics"],
-            ["menu_back_to_buyer", "menu_change_warehouse", "menu_profile"],
+            ["menu_back_to_buyer", "menu_change_warehouse", "menu_profile", "menu_store"],
+            ["menu_language"],
             ["menu_language"],
         ],
     }
@@ -278,6 +287,8 @@ class ProfileModel(models.Model):
             self.extra_button_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][1])
             self.settings_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][2])
             self.profile_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][3])
+            self.store_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][4])
+
         else:
             # پروفایل موجود
             old_instance = ProfileModel.objects.get(pk=self.pk)
@@ -288,6 +299,7 @@ class ProfileModel(models.Model):
                 self.extra_button_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][1])
                 self.settings_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][2])
                 self.profile_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][3])
+                self.store_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][4])
 
             # تغییر حالت فروشنده
             if old_instance.seller_mode != self.seller_mode:
@@ -297,12 +309,14 @@ class ProfileModel(models.Model):
                     self.extra_button_menu = translate_menu_keys(self.LEVEL_MENUS["seller"][1])
                     self.settings_menu = translate_menu_keys(self.LEVEL_MENUS["seller"][2])
                     self.profile_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][3])
+                    self.store_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][4])
                 else:
                     # برگشت از حالت فروشنده
                     self.tel_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][0])
                     self.extra_button_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][1])
                     self.settings_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][2])
                     self.profile_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][3])
+                    self.store_menu = translate_menu_keys(self.LEVEL_MENUS[self.user_level][4])
 
             # اگر زبان تغییر کرده باشه، فقط sync با user انجام بده (ترجمه تو send_menu)
             if old_instance.lang != self.lang and self.user:

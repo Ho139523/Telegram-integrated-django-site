@@ -897,6 +897,20 @@ def profile_setting(message):
                            home_menue)
         app.send_message(message.chat.id, t(message, "profile_settings"), reply_markup=markup)
 
+
+@app.message_handler(func=lambda message: message.text == t(message, "menu_store"))
+def store_setting(message):
+    if subscription.subscription_offer(message):
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        session["store_lang"] = True
+        home_menue = ["🏡"]
+        markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).store_menu, "store",
+                           home_menue)
+        app.send_message(message.chat.id, t(message, "store_settings"), reply_markup=markup)
+        session_manager.set_user_session(message.chat.id, session, namespace="menu")
+
+
+
 # balance
 @app.message_handler(func=lambda message: message.text == translations["menu_balance"][ProfileModel.objects.get(tel_id=message.chat.id).lang])
 def balance_menue(message):
@@ -963,6 +977,11 @@ def back_to_buyer(message):
         home(message)
 
 
+from reportlab.platypus import (
+    SimpleDocTemplate, Table, TableStyle, Paragraph,    
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
 import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -973,145 +992,119 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from django.core.cache import cache
 import tempfile
 import gc
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+import re
+from datetime import datetime
+
+def safe_filename(text: str) -> str:
+    """
+    حذف کاراکترهای غیرمجاز برای نام فایل
+    """
+    text = re.sub(r'[\\/*?:"<>|]', '', text)
+    return text.strip().replace(" ", "_")
+
+
+def rtl(text: str) -> str:
+    return get_display(arabic_reshaper.reshape(str(text)))
+
 
 def generate_sales_pdf(store, sales_data, font_path, chat_id):
-    """تابع جداگانه برای تولید PDF در thread جداگانه"""
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-            file_path = temp_file.name
+    # ---------- filename ----------
+    today = datetime.now().strftime("%Y-%m-%d")
+    store_name = safe_filename(store.name)
+    filename = f"{store_name}_{today}.pdf"
 
-        p = canvas.Canvas(file_path, pagesize=A4)
-        p.setFont("Vazir", 12)
+    temp_dir = tempfile.gettempdir()
+    file_path = os.path.join(temp_dir, filename)
 
-        border_margin = 20
+    # ---------- font ----------
+    if "Vazir" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("Vazir", font_path))
 
-        def draw_header_footer(page_num):
-            p.setStrokeColorRGB(0, 0, 0)
-            p.setLineWidth(2)
-            p.rect(
-                border_margin,
-                border_margin,
-                A4[0] - 2 * border_margin,
-                A4[1] - 2 * border_margin
-            )
+    doc = SimpleDocTemplate(
+        file_path,
+        pagesize=A4,
+        rightMargin=24,
+        leftMargin=24,
+        topMargin=30,
+        bottomMargin=30
+    )
 
-            title_text = get_display(
-                arabic_reshaper.reshape(
-                    t(
-                        "message",
-                        "sale_statistics_title",
-                        chat_id=chat_id
-                    ).format(store_name=store.name)
-                )
-            )
-            p.drawCentredString(A4[0] / 2, A4[1] - 80, title_text)
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name="RTLTitle",
+        fontName="Vazir",
+        fontSize=14,
+        alignment=TA_CENTER,
+        spaceAfter=16
+    ))
 
-            p.setFont("Vazir", 8)
-            p.drawCentredString(A4[0] / 2, border_margin - 12, f"Page {page_num}")
-            p.setFont("Vazir", 12)
+    elements = []
 
-        # هدرهای جدول
-        headers = [
-            get_display(arabic_reshaper.reshape(
-                t("message", "sale_statistics_index", chat_id=chat_id)
-            )),
-            get_display(arabic_reshaper.reshape(
-                t("message", "sale_statistics_date", chat_id=chat_id)
-            )),
-            get_display(arabic_reshaper.reshape(
-                t("message", "sale_statistics_quantity", chat_id=chat_id)
-            )),
-            get_display(arabic_reshaper.reshape(
-                t("message", "sale_statistics_total_cost", chat_id=chat_id)
-            )),
-            get_display(arabic_reshaper.reshape(
-                t("message", "sale_statistics_product_name", chat_id=chat_id)
-            )),
-        ]
+    title_text = rtl(
+        t("message", "sale_statistics_title", chat_id=chat_id)
+        .format(store_name=store.name)
+    )
+    elements.append(Paragraph(title_text, styles["RTLTitle"]))
+    elements.append(Spacer(1, 12))
 
-        data = [headers]
-        total_amount = 0
-        max_rows_per_page = 25
-        start_y = A4[1] - 120
-        page_num = 1
+    headers = [
+        rtl(t("message", "sale_statistics_index", chat_id=chat_id)),
+        rtl(t("message", "sale_statistics_date", chat_id=chat_id)),
+        rtl(t("message", "sale_statistics_quantity", chat_id=chat_id)),
+        rtl(t("message", "sale_statistics_total_cost", chat_id=chat_id)),
+        rtl(t("message", "sale_statistics_product_name", chat_id=chat_id)),
+    ]
 
-        draw_header_footer(page_num)
+    table_data = [headers]
+    total_amount = 0
 
-        for idx, sale in enumerate(sales_data, start=1):
-            total_amount += sale["total_price"]
+    for idx, sale in enumerate(sales_data, start=1):
+        total_amount += sale["total_price"]
+        table_data.append([
+            idx,
+            rtl(sale["date"]),
+            sale["quantity"],
+            f"{sale['total_price']:,.0f}",
+            rtl(sale["product_name"][:35]),
+        ])
 
-            row = [
-                str(idx),
-                get_display(arabic_reshaper.reshape(sale["date"])),
-                str(sale["quantity"]),
-                f"{sale['total_price']:,.0f}",
-                get_display(arabic_reshaper.reshape(sale["product_name"][:30])),
-            ]
+    table_data.append([
+        "",
+        "",
+        "",
+        f"{total_amount:,.0f}",
+        rtl(t("message", "sale_statistics_total", chat_id=chat_id)),
+    ])
 
-            data.append(row)
+    table = Table(
+        table_data,
+        colWidths=[40, 75, 55, 90, 200],
+        repeatRows=1
+    )
 
-            if len(data) > max_rows_per_page:
-                table = Table(data, colWidths=[40, 70, 50, 80, 120])
-                table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ]))
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.whitesmoke),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.grey),
+        ('SPAN', (3, -1), (4, -1)),
+    ]))
 
-                table_x = border_margin + 10
-                table_y = start_y - (max_rows_per_page * 18) - 20
-                table.wrapOn(p, A4[0], A4[1])
-                table.drawOn(p, table_x, table_y)
+    elements.append(table)
+    doc.build(elements)
 
-                p.showPage()
-                p.setFont("Vazir", 12)
-                page_num += 1
-                draw_header_footer(page_num)
-                data = [headers]
+    return file_path
 
-        # ردیف مجموع
-        total_row = [
-            "",
-            "",
-            "",
-            f"{total_amount:,.0f}",
-            get_display(arabic_reshaper.reshape(
-                t("message", "sale_statistics_total", chat_id=chat_id)
-            )),
-        ]
-        data.append(total_row)
 
-        table = Table(data, colWidths=[40, 70, 50, 80, 120])
-        table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), 'Vazir'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
-            ('SPAN', (3, -1), (4, -1)),
-        ]))
 
-        table_x = border_margin + 10
-        table_y = start_y - (len(data) * 18) - 20
-        table.wrapOn(p, A4[0], A4[1])
-        table.drawOn(p, table_x, table_y)
-
-        p.save()
-        return file_path
-
-    except Exception:
-        if 'file_path' in locals() and os.path.exists(file_path):
-            os.unlink(file_path)
-        raise
 
 
 @app.message_handler(func=lambda message: message.text == t(message, "menu_sale_statistics"))
@@ -1170,37 +1163,38 @@ def sale_statistics(message):
         processing_msg = app.send_message(chat_id, "📊 در حال تولید گزارش...")
 
         def generate_and_send_pdf():
-            try:
-                font_path = os.path.join(sett.MEDIA_ROOT, "fonts", "Vazir.ttf")
-                if not os.path.exists(font_path):
-                    raise FileNotFoundError("فونت Vazir یافت نشد")
+            from django.conf import settings
+            file_path = None
 
-                pdfmetrics.registerFont(TTFont("Vazir", font_path))
-                
-                # تولید PDF در thread جداگانه
-                file_path = generate_sales_pdf(store, sales_data, font_path, chat_id)
-                
-                # ارسال فایل
-                with open(file_path, "rb") as pdf_file:
-                    app.send_document(chat_id, pdf_file, 
-                                    caption=t(message, "sale_statistics_ready"))
-                
-                # حذف فایل موقت
-                os.unlink(file_path)
-                
-                # پاک‌سازی حافظه
-                gc.collect()
-                
-            except Exception as e:
+            try:
+                font_path = os.path.join(settings.MEDIA_ROOT, "fonts", "Vazir.ttf")
+
+                file_path = generate_sales_pdf(
+                    store=store,
+                    sales_data=sales_data,
+                    font_path=font_path,
+                    chat_id=chat_id
+                )
+
+                with open(file_path, "rb") as f:
+                    app.send_document(
+                        chat_id,
+                        f,
+                        caption=t(message, "sale_statistics_ready")
+                    )
+
+            except Exception:
                 app.send_message(chat_id, t(message, "sale_statistics_error"))
-                print(f"Error generating PDF: {traceback.format_exc()}")
+                print(traceback.format_exc())
+
             finally:
-                # حذف پیام در حال پردازش و پاک‌سازی کش
-                try:
-                    app.delete_message(chat_id, processing_msg.message_id)
-                except:
-                    pass
+                # 🔥 حذف فایل از سرور
+                if file_path and os.path.exists(file_path):
+                    os.unlink(file_path)
+
                 cache.delete(cache_key)
+
+
 
         # اجرای تولید PDF در thread جداگانه
         import threading
@@ -1350,8 +1344,8 @@ def cart_CallBack(data):
             profile = ProfileModel.objects.get(tel_id=message.chat.id)
             cart = Cart.objects.filter(profile=profile).first()
             cart_items = cart.items.exists()
-            if not cart or not cart_items:
-                app.send_message(message.chat.id, t(message, "cart_empty"))
+            if is_callback and (not cart or not cart_items):
+#                app.send_message(message.chat.id, t(message, "cart_empty"))
                 return
             cart_menu.send()
             
@@ -1521,7 +1515,7 @@ def unified_address_handler(data):
         elif call_data.startswith("show_address_"):
             address_id = int(call_data.split("_")[-1])
             address = Address.objects.get(id=address_id)
-            loc.show_single_address(address, data)
+            loc.show_single_address(address, data, chat_id=message.chat.id)
         elif call_data.startswith("address_"):
             pass# loc.show_single_address(data, address)
         
@@ -1623,20 +1617,36 @@ def change_postal(call):
 @app.message_handler(func=lambda message: message.text in ('🇮🇷 فارسی', '🇬🇧  English', '🇨🇳  中国人', '🇷🇺  русский', '🇵🇸  عربیة',))
 def change_lang(message):
     try:
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
         profile = ProfileModel.objects.get(tel_id=message.chat.id)
-        if 'فارسی' in message.text:
-            profile.lang = 'fa'
-        elif 'English' in message.text:
-            profile.lang = 'en'
-        elif "中国人" in message.text:
-            profile.lang = 'zh'
-        elif "русский" in message.text:
-            profile.lang = 'ru'
-        elif "عربیة" in message.text:
-            profile.lang = 'ar'
-        profile.save()
+        if session["store_lang"]:
+            store = Store.objects.filter(owner=profile).first()
+            if 'فارسی' in message.text:
+                store.lang = 'fa'
+            elif 'English' in message.text:
+                store.lang = 'en'
+            elif "中国人" in message.text:
+                store.lang = 'zh'
+            elif "русский" in message.text:
+                store.lang = 'ru'
+            elif "عربیة" in message.text:
+                store.lang = 'ar'
+            store.save()
+        else:
+            if 'فارسی' in message.text:
+                profile.lang = 'fa'
+            elif 'English' in message.text:
+                profile.lang = 'en'
+            elif "中国人" in message.text:
+                profile.lang = 'zh'
+            elif "русский" in message.text:
+                profile.lang = 'ru'
+            elif "عربیة" in message.text:
+                profile.lang = 'ar'
+            profile.save()
         app.delete_message(message.chat.id, message.message_id)
-        home(message, text=t(message, "your_lang_changed"))
+        text = t(message, "store_language_changed") if session["store_lang"] else t(message, "your_lang_changed")
+        home(message, text=text)
         
     except Exception as e:
         print(f"Error in change language handler: {e}\n{traceback.format_exc()}")
@@ -2233,7 +2243,7 @@ def delete_handler(message):
 
 
 @app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in Category.objects.annotate(
-    lower_title=Lower('title')).filter(lower_title=message.text.lower(), status=True).values_list('title', flat=True)]
+    lower_title=Lower('title')).filter(lower_title=message.text.lower()).values_list('title', flat=True)]
     and not session_manager.get_user_session(message.chat.id, namespace="menu").get("add_product"))
 def subcategory(message):
     category_class = CategoryClass()
@@ -2330,28 +2340,33 @@ def cat_delete(message):
                     category_class.handle_category(message)
             else:
                 category_class.handle_category(message)
+            session["menu_delete"] = True
+            session["delete_sure"] = False
         elif session_manager.get_user_session(message.chat.id, namespace="menu").get("deactivate_category_sure"):
-            cat = Category.objects.get(title__iexact=session.get("current_menu"), status=True)
-            cat.status = False
+            cat = Category.objects.get(title__iexact=session.get("current_menu"), store__owner__tel_id=message.chat.id)
+            if cat.status:
+                cat.status = False
+            else:
+                cat.status = True
             cat.save()
             parent = cat.get_parents()
-            if not [c for c in cat.store.categories.all() if c.status]:
-                category(message)
-                return
+            # if not [c for c in cat.store.categories.all() if c.status]:
+            #     category(message)
+            #     return
             category_class = CategoryClass()
             if parent:
-                print(parent)
-                if [par for par in parent[0].get_all_subcategories() if par.status]:
+                if [par for par in parent[0].get_all_subcategories()]:
                     message.text = parent[0].title
+                    print(message.text)
                     category_class.handle_subcategory(message)
                 else:
                     message.text = parent[0].title
                     category_class.handle_category(message)
             else:
                 category_class.handle_category(message)
+
+            session["deactivate_category_sure"] = False
         
-        session["menu_delete"] = True
-        session["delete_sure"] = False
         session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
     except Exception as e:
@@ -2384,13 +2399,14 @@ def confirm_deactivate_category(message):
     category_class = CategoryClass()
     category_class.deactivate_category_sure(message)
 
+
 product_bot = ProductBot(app)
 product_bot.register_handle_finish_attributes()
 
 
 @app.message_handler(func=lambda message: message.text in [t(message, "edit"),])
 def edit(message):
-    app.send_message(message.chat.id, "قابلیت اصلاح اطلاعات کالا و دسته بندی به زودی اضافه خواهد شد.")
+    app.send_message(message.chat.id, t(message, "edit_product_category_soon"))
 
 ##################################### END CATEGROY #####################################
 
@@ -2406,9 +2422,12 @@ def handle_message(message):
 @app.callback_query_handler(func=lambda call: call.data == "پاسخ")
 def answer(call):
     try:
-        clean_text = BeautifulSoup(call.message.text, "html.parser").get_text()
+        clean_text = BeautifulSoup(
+            call.message.text, "html.parser"
+        ).get_text()
 
-        pattern = r"Received a message from (\d+)"
+        pattern = t(call, "received_message_pattern")
+
         match = re.search(pattern, clean_text)
 
         if not match:
@@ -2422,7 +2441,7 @@ def answer(call):
 
         app.send_message(
             chat_id=call.message.chat.id,
-            text=f"Send your answer to <code>{user}</code>:",
+            text=t(call.message, "send_answer_to", user_id=user),
             reply_markup=types.ForceReply(),
             parse_mode="HTML"
         )
@@ -2440,44 +2459,141 @@ def answer(call):
 
 # Handling the support agent's reply message which is saved in 'Support.respond' state
 @app.message_handler(state=Support.respond,
-                     func=lambda message: message.reply_to_message.text.startswith("Send your answer to"))
+                     func=lambda message: message.reply_to_message and 
+                                          message.reply_to_message.text and 
+                                          message.reply_to_message.text.startswith(t(message, "send_answer_to", chat_id=message.chat.id)[:10]))
 def answer_text(message):
-    try:
-        pattern = r"Send your answer to \d+"
+    try:        
+        # بررسی reply_to_message
+        if not message.reply_to_message:
+            print("❌ ERROR: No reply_to_message")
+            app.send_message(message.chat.id, "خطا: این پیام باید در پاسخ به پیام قبلی ارسال شود.")
+            home(message)
+            return
+                    
+        # پردازش متن
         clean_text = BeautifulSoup(message.reply_to_message.text, "html.parser").get_text()
-        user = int(re.findall(pattern=pattern, string=clean_text)[0].split()[4])
-
+        
+        # نرمال‌سازی
+        normalized_text = re.sub(r'\s+', ' ', clean_text).strip()
+        
+        # دریافت الگو - با دیباگ بیشتر
         try:
-            user_message = texts[user]
-            app.send_message(chat_id=user,
-                             text=f"Your message:\n<i>{escape_special_characters(user_message)}</i>\n\nSupport answer:\n<b>{escape_special_characters(message.text)}</b>",
-                             parse_mode="HTML")
-            app.send_message(chat_id=message.chat.id, text="پیام شما ارسال شد!")
-
-            del texts[user]
+            pattern = t(message, "pattern")
+            
+            # بررسی خود تابع t
+            try:
+                # بررسی زبان کاربر
+                lang = ProfileModel.objects.get(tel_id=message.from_user.id).lang
+                
+                # بررسی ترجمه‌ها
+                if "pattern" in translations:
+                    pattern_dict = translations["pattern"]
+            except Exception as e:
+                print(f"Error checking translations: {e}")
+                
+        except Exception as t_error:
+            print(f"❌ ERROR in t() function: {t_error}")
+            import traceback
+            traceback.print_exc()
+            # Fallback pattern
+            pattern = r"Send your answer to \d+"
+            print(f"Using fallback pattern: '{pattern}'")
+        
+        # تست تطابق الگو
+        
+        match = re.search(pattern, normalized_text)
+        
+        if match:            
+            # استخراج عدد
+            number_match = re.search(r"\d+", match.group())
+            if number_match:
+                user_id = number_match.group()
+            else:
+                # جستجوی مستقیم
+                all_numbers = re.findall(r"\d+", normalized_text)
+                if all_numbers:
+                    user_id = all_numbers[0]
+                else:
+                    raise ValueError("No user ID found")
+        else:
+            print("❌ PATTERN NOT MATCHED!")
+            # جستجوی مستقیم برای عدد
+            all_numbers = re.findall(r"\d+", normalized_text)
+            print(f"All numbers in text: {all_numbers}")
+            
+            if all_numbers:
+                user_id = all_numbers[0]
+                print(f"Using first number: {user_id}")
+            else:
+                print("❌❌ NO NUMBERS FOUND!")
+                raise ValueError("No user ID found in message")
+        
+        # تبدیل به عدد
+        try:
+            user = int(user_id)
+        except ValueError:
+            raise ValueError(f"Invalid user ID: {user_id}")
+                
+        
+        try:
+            user_message = texts.get(user)
+            if user_message:
+                
+                response_text = t(message, "support_reply_with_message", user_message=escape_special_characters(user_message), support_answer=escape_special_characters(message.text))
+                app.send_message(chat_id=user, text=response_text, parse_mode="HTML")
+                
+                # حذف از حافظه
+                del texts[user]
+            else:
+                print(f"⚠️ No original message found for user {user}")
+                response_text = f"Support answer:\n<b>{escape_special_characters(message.text)}</b>"
+                app.send_message(chat_id=user, text=response_text, parse_mode="HTML")
+                print("✅ Message sent without original text")
+            
+            # ارسال تأیید
+            confirmation_msg = t(message, "message_sent")
+            app.send_message(chat_id=message.chat.id, text=confirmation_msg)
+            
+            # حذف state
             app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
-
-        except:
-            app.send_message(chat_id=user, text=f"Support answer:\n<b>{escape_special_characters(message.text)}</b>",
-                             parse_mode="HTML")
-            app.send_message(chat_id=message.chat.id, text="پاسخ شما ارسال شد!")
-
-            app.delete_state(user_id=message.from_user.id, chat_id=message.chat.id)
-
+            
+        except Exception as process_error:
+            print(f"❌ Error in processing: {process_error}")
+            raise
+        
+        print("=" * 60)
+        
     except Exception as e:
-        app.send_message(chat_id=message.chat.id, text=f"Something goes wrong...\n\nException:\n<code>{e}</code>",
-                         parse_mode="HTML")
+        print(f"\n❌❌❌ FINAL EXCEPTION IN answer_text:")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        print(f"Full traceback:")
+        import traceback
+        traceback.print_exc()
+        
+        # پیام خطای واضح‌تر
+        if "No user ID found" in str(e):
+            error_msg = "خطا: شناسه کاربر در پیام یافت نشد. لطفاً دوباره تلاش کنید."
+        elif "Invalid user ID" in str(e):
+            error_msg = f"خطا: شناسه کاربر نامعتبر است."
+        else:
+            error_msg = f"خطا در پردازش:\n<code>{type(e).__name__}: {str(e)[:100]}</code>"
+        
+        app.send_message(chat_id=message.chat.id, text=error_msg, parse_mode="HTML")
+    
+    finally:
+        home(message)
 
-    markup = send_menu(message, main_menu, "main_menu", extra_buttons)
-    app.send_message(message.chat.id, "لطفا یکی از گزینه های زیر را انتخاب کنید:", reply_markup=markup)
 
 
-@app.callback_query_handler(func=lambda call: call.data == "پایان مکالمه")
+
+@app.callback_query_handler(func=lambda call: call.data == t(call.message, "conversation_ended"))
 def terminate_chat(call):
     if subscription.subscription_offer(call.message):
         try:
             app.delete_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
-            app.send_message(chat_id=call.message.chat.id, text=f"مکالمه شما پایان یافت.")
+            app.send_message(chat_id=call.message.chat.id, text=t(call.message, "conversation_ended"))
         except Exception as e:
             error_message = traceback.format_exc()
             print(f"your error is: {error_message}")

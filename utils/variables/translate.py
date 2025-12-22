@@ -84,6 +84,15 @@ translations = {
         "zh": "您可以在这里修改您的个人资料：",
         "ar": "هنا يمكنك تعديل ملفك الشخصي:"
     },
+    
+    # store settings handler
+    "store_settings": {
+        "fa": "اینجا می‌تونی تنظیمات فروشگاه خودتون رو تغییر بدی:",
+        "en": "Here you can change your store settings:",
+        "ru": "Здесь вы можете изменить настройки своего магазина:",
+        "zh": "您可以在这里更改您的商店设置：",
+        "ar": "هنا يمكنك تغيير إعدادات متجرك:"
+    },
 
     # balance menue
     "balance_menue": {
@@ -102,12 +111,21 @@ translations = {
         "zh": "请选择您偏好的语言：",
         "ar": "يرجى اختيار لغتك المفضلة:"
     },
+
     "your_lang_changed": {
         "fa": "زبان شما با موفقیت تغییر کرد.",
         "en": "Your language has been changed successfully.",
         "ru": "Ваш язык был успешно изменен.",
         "zh": "您的语言已成功更改。",
         "ar": "تم تغيير لغتك بنجاح."
+    },
+
+    "store_language_changed": {
+        "fa": "زبان فروشگاه شما با موفقیت تغییر کرد.",
+        "en": "Your store language has been successfully changed.",
+        "ru": "Язык вашего магазина был успешно изменён.",
+        "zh": "您的商店语言已成功更改。",
+        "ar": "تم تغيير لغة متجرك بنجاح."
     },
 
     # become_a_seller
@@ -1165,6 +1183,13 @@ translations = {
         "zh": "您确定要禁用此类别吗？",
         "ar": "هل أنت متأكد أنك تريد تعطيل هذه الفئة؟"
     },
+    "confirm_activate_category": {
+        "fa": "آیا از فعال‌سازی این دسته بندی اطمینان دارید؟",
+        "en": "Are you sure you want to activate this category?",
+        "ru": "Вы уверены, что хотите активировать эту категорию?",
+        "zh": "您确定要激活此类别吗？",
+        "ar": "هل أنت متأكد من تفعيل هذه الفئة؟"
+    },
     "buy_now": {
         "fa": "🛒 همین حالا بخرش",
         "en": "🛒 Buy Now",
@@ -1962,5 +1987,327 @@ translations = {
         "ru": "Товар, который вы пытаетесь отключить, принадлежит другому магазину, и вы не можете выполнить это действие.",
         "zh": "您尝试停用的商品属于其他商店，您无权进行此操作。",
         "ar": "المنتج الذي تحاول تعطيله تابع لمتجر آخر ولا يمكنك القيام بذلك."
+    },
+    "message_sent": {
+        "fa": "پیام شما ارسال شد!",
+        "en": "Your message has been sent!",
+        "ru": "Ваше сообщение отправлено!",
+        "zh": "您的消息已发送！",
+        "ar": "تم إرسال رسالتك!"
+    },
+    "conversation_ended": {
+        "fa": "مکالمه شما پایان یافت.",
+        "en": "Your conversation has ended.",
+        "ru": "Ваш разговор завершён.",
+        "zh": "您的对话已结束。",
+        "ar": "انتهت محادثتك."
+    },
+    "pattern": {
+        "fa": "پاسخ خود را به \\d+ ارسال کنید",
+        "en": "Send your answer to \\d+",
+        "ru": "Отправьте свой ответ на \\d+",
+        "zh": "请将您的回复发送至 \\d+",
+        "ar": "أرسل إجابتك إلى \\d+"
+    },
+    "received_message_pattern": {
+        "fa": "پیامی از (\\d+) با نام کاربری @[\\w\\d_]+ دریافت شد",
+        "en": "Received a message from (\\d+)",
+        "ru": "Получено сообщение от (\\d+)",
+        "zh": "收到来自 (\\d+) 的消息",
+        "ar": "تم استلام رسالة من (\\d+)"
+    },
+    "answer": {
+        "fa": "پاسخ",
+        "en": "Answer",
+        "ru": "Ответ",
+        "zh": "回复",
+        "ar": "رد"
+    },
+    "send_answer_to": {
+        "fa": "پاسخ خود را به <code>{user_id}</code> ارسال کنید:",
+        "en": "Send your answer to <code>{user_id}</code>:",
+        "ru": "Отправьте свой ответ на <code>{user_id}</code>:",
+        "zh": "请将您的回复发送至 <code>{user_id}</code>:",
+        "ar": "أرسل إجابتك إلى <code>{user_id}</code>:"
+    },
+    "support_reply_with_message": {
+        "fa": "پیام شما:\n<i>{user_message}</i>\n\nپاسخ پشتیبانی:\n<b>{support_answer}</b>",
+        "en": "Your message:\n<i>{user_message}</i>\n\nSupport answer:\n<b>{support_answer}</b>",
+        "ru": "Ваше сообщение:\n<i>{user_message}</i>\n\nОтвет поддержки:\n<b>{support_answer}</b>",
+        "zh": "您的消息:\n<i>{user_message}</i>\n\n支持回复:\n<b>{support_answer}</b>",
+        "ar": "رسالتك:\n<i>{user_message}</i>\n\nرد الدعم:\n<b>{support_answer}</b>"
+    },
+    "cart_item_removed": {
+        "fa": "آیتم از سبد خرید حذف شد",
+        "en": "Item removed from cart",
+        "ru": "Элемент удалён из корзины",
+        "zh": "购物车中的商品已被移除",
+        "ar": "تمت إزالة العنصر من السلة"
+    },
+    "cart_summary": {
+        "fa": "🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{total_price:,.0f} تومان",
+        "en": "🛒 Your cart:\n\n💰 Total payable amount:\t{total_price:,.0f} Toman",
+        "ru": "🛒 Ваша корзина:\n\n💰 Общая сумма к оплате:\t{total_price:,.0f} Toman",
+        "zh": "🛒 您的购物车：\n\n💰 应付总额：\t{total_price:,.0f} 托曼",
+        "ar": "🛒 سلة التسوق الخاصة بك:\n\n💰 إجمالي المبلغ المستحق:\t{total_price:,.0f} تومان"
+    },
+    "cart_load_error": {
+        "fa": "خطا در بارگذاری سبد خرید!",
+        "en": "Error loading the cart!",
+        "ru": "Ошибка при загрузке корзины!",
+        "zh": "购物车加载出错！",
+        "ar": "خطأ في تحميل سلة التسوق!"
+    },
+    "choose_address_input_method": {
+        "fa": "نحوه وارد کردن آدرس را انتخاب کنید",
+        "en": "Please choose how to enter the address",
+        "ru": "Выберите способ ввода адреса",
+        "zh": "请选择输入地址的方式",
+        "ar": "اختر طريقة إدخال العنوان"
+    },
+    "manual_entry": {
+        "fa": "وارد کردن دستی",
+        "en": "Manual entry",
+        "ru": "Ввод вручную",
+        "zh": "手动输入",
+        "ar": "الإدخال اليدوي"
+    },
+    "send_location": {
+        "fa": "ارسال موقعیت مکانی",
+        "en": "Send location",
+        "ru": "Отправить местоположение",
+        "zh": "发送位置",
+        "ar": "إرسال الموقع"
+    },
+    "address_display_error": {
+        "fa": "خطایی در نمایش آدرس‌ها رخ داد",
+        "en": "An error occurred while displaying addresses",
+        "ru": "Произошла ошибка при отображении адресов",
+        "zh": "显示地址时出错",
+        "ar": "حدث خطأ أثناء عرض العناوين"
+    },
+    "select_country": {
+        "fa": "ساکن کدام کشور هستید؟",
+        "en": "Which country do you reside in?",
+        "ru": "В какой стране вы проживаете?",
+        "zh": "您居住在哪个国家？",
+        "ar": "في أي دولة تقيم؟"
+    },
+    "error_address_info": {
+        "fa": "خطایی در دریافت اطلاعات آدرس رخ داد",
+        "en": "Error occurred while fetching address information",
+        "ru": "Произошла ошибка при получении информации об адресе",
+        "zh": "获取地址信息时出错",
+        "ar": "حدث خطأ أثناء جلب معلومات العنوان"
+    },
+    "address_display_error": {
+        "fa": "خطایی در نمایش آدرس‌ها رخ داد",
+        "en": "An error occurred while displaying addresses",
+        "ru": "Произошла ошибка при отображении адресов",
+        "zh": "显示地址时出错",
+        "ar": "حدث خطأ أثناء عرض العناوين"
+    },
+    "address_deleted": {
+        "fa": "آدرس با موفقیت حذف شد",
+        "en": "Address successfully deleted",
+        "ru": "Адрес успешно удален",
+        "zh": "地址已成功删除",
+        "ar": "تم حذف العنوان بنجاح"
+    },
+    "address_delete_error": {
+        "fa": "خطا در حذف آدرس",
+        "en": "Error deleting address",
+        "ru": "Ошибка при удалении адреса",
+        "zh": "删除地址时出错",
+        "ar": "خطأ في حذف العنوان"
+    },
+    "address_display_error": {
+        "fa": "خطایی در نمایش آدرس‌ها رخ داد",
+        "en": "An error occurred while displaying addresses",
+        "ru": "Произошла ошибка при отображении адресов",
+        "zh": "显示地址时出错",
+        "ar": "حدث خطأ أثناء عرض العناوين"
+    },
+    "city_label": {
+        "fa": "🏙 شهر:",
+        "en": "🏙 City:",
+        "ru": "🏙 Город:",
+        "zh": "🏙 城市：",
+        "ar": "🏙 المدينة:"
+    },
+    "province_label": {
+        "fa": "🏛 استان:",
+        "en": "🏛 Province:",
+        "ru": "🏛 Провинция:",
+        "zh": "🏛 省：",
+        "ar": "🏛 المحافظة:"
+    },
+    "country_label": {
+        "fa": "🌍 کشور:",
+        "en": "🌍 Country:",
+        "ru": "🌍 Страна:",
+        "zh": "🌍 国家：",
+        "ar": "🌍 الدولة:"
+    },
+    "postal_code_label": {
+        "fa": "📮 کد پستی",
+        "en": "📮 Postal Code",
+        "ru": "📮 Почтовый индекс",
+        "zh": "📮 邮政编码",
+        "ar": "📮 الرمز البريدي"
+    },
+    "change_location": {
+        "fa": "🗺 تغییر موقعیت مکانی",
+        "en": "🗺 Change location",
+        "ru": "🗺 Изменить местоположение",
+        "zh": "🗺 更改位置",
+        "ar": "🗺 تغيير الموقع"
+    },
+    "send_to_this_address": {
+        "fa": "ارسال خرید ها به این آدرس",
+        "en": "Send purchases to this address",
+        "ru": "Отправить покупки на этот адрес",
+        "zh": "将购买发送到此地址",
+        "ar": "إرسال المشتريات إلى هذا العنوان"
+    },
+    "edit_address": {
+        "fa": "✏️ تغییر آدرس",
+        "en": "✏️ Edit address",
+        "ru": "✏️ Изменить адрес",
+        "zh": "✏️ 编辑地址",
+        "ar": "✏️ تعديل العنوان"
+    },
+    "edit_postal_code": {
+        "fa": "📝 تغییر کد پستی",
+        "en": "📝 Edit postal code",
+        "ru": "📝 Изменить почтовый индекс",
+        "zh": "📝 编辑邮政编码",
+        "ar": "📝 تعديل الرمز البريدي"
+    },
+    "back_button": {
+        "fa": "🔙 بازگشت",
+        "en": "🔙 Back",
+        "ru": "🔙 Назад",
+        "zh": "🔙 返回",
+        "ar": "🔙 العودة"
+    },
+    "delete_address": {
+        "fa": "🗑 حذف آدرس",
+        "en": "🗑 Delete address",
+        "ru": "🗑 Удалить адрес",
+        "zh": "🗑 删除地址",
+        "ar": "🗑 حذف العنوان"
+    },
+    "not_registered": {
+        "fa": "ثبت نشده",
+        "en": "Not registered",
+        "ru": "Не указано",
+        "zh": "未登记",
+        "ar": "غير مسجل"
+    },
+    "please_send_new_address": {
+        "fa": "لطفاً آدرس جدید را ارسال کنید:",
+        "en": "Please send the new address:",
+        "ru": "Пожалуйста, отправьте новый адрес:",
+        "zh": "请发送新的地址：",
+        "ar": "يرجى إرسال العنوان الجديد:"
+    },
+    "error_add_address": {
+        "fa": "خطایی در افزودن آدرس رخ داد",
+        "en": "An error occurred while adding the address",
+        "ru": "Произошла ошибка при добавлении адреса",
+        "zh": "添加地址时发生错误",
+        "ar": "حدث خطأ أثناء إضافة العنوان"
+    },
+    "share_location": {
+        "fa": "اشتراک گذاری موقعیت",
+        "en": "Share location",
+        "ru": "Поделиться местоположением",
+        "zh": "分享位置",
+        "ar": "مشاركة الموقع"
+    },
+    "change_location_error": {
+        "fa": "خطایی در تغییر موقعیت رخ داد",
+        "en": "An error occurred while changing the location",
+        "ru": "Произошла ошибка при изменении местоположения",
+        "zh": "更改位置时发生错误",
+        "ar": "حدث خطأ أثناء تغيير الموقع"
+    },
+    "select_province": {
+        "fa": "ساکن کدام استان هستید؟",
+        "en": "Which province do you live in?",
+        "ru": "В какой провинции вы проживаете?",
+        "zh": "您居住在哪个省？",
+        "ar": "في أي محافظة تسكن؟"
+    },
+    "select_city": {
+        "fa": "ساکن کدام شهر هستید؟",
+        "en": "Which city do you live in?",
+        "ru": "В каком городе вы проживаете?",
+        "zh": "您居住在哪个城市？",
+        "ar": "في أي مدينة تسكن؟"
+    },
+    "enter_address_details": {
+        "fa": "جزییات آدرس خود را وارد کنید. (خیابان، کوچه، پلاک)",
+        "en": "Please enter your address details (street, alley, building number)",
+        "ru": "Пожалуйста, введите данные адреса (улица, переулок, номер здания)",
+        "zh": "请输入您的地址详情（街道、巷道、门牌号）",
+        "ar": "يرجى إدخال تفاصيل عنوانك (الشارع، الزقاق، رقم المبنى)"
+    },
+    "enter_zip_code": {
+        "fa": "لطفا کد پستی آدرس خود را وارد کنید",
+        "en": "Please enter your postal code",
+        "ru": "Пожалуйста, введите ваш почтовый индекс",
+        "zh": "请输入您的邮政编码",
+        "ar": "يرجى إدخال الرمز البريدي الخاص بك"
+    },
+    "address_set_active": {
+        "fa": "این آدرس به عنوان آدرس فعال انتخاب شد.",
+        "en": "This address has been set as the active address.",
+        "ru": "Этот адрес был выбран как активный.",
+        "zh": "该地址已被设置为当前使用地址。",
+        "ar": "تم تعيين هذا العنوان كعنوان نشط."
+    },
+    "contact_info_error": {
+        "fa": "خطایی در دریافت اطلاعات تماس رخ داد",
+        "en": "An error occurred while retrieving contact information.",
+        "ru": "Произошла ошибка при получении контактной информации.",
+        "zh": "获取联系信息时发生错误。",
+        "ar": "حدث خطأ أثناء جلب معلومات الاتصال."
+    },
+    "enter_phone_number": {
+        "fa": "لطفا شماره تماس خود را وارد کنید. \n\n",
+        "en": "Please enter your phone number. \n\n",
+        "ru": "Пожалуйста, введите ваш номер телефона. \n\n",
+        "zh": "请输入您的电话号码。 \n\n",
+        "ar": "يرجى إدخال رقم هاتفك. \n\n"
+    },
+    "phone_example": {
+        "fa": "مثال: 09123456789",
+        "en": "Example: 09123456789",
+        "ru": "Пример: 09123456789",
+        "zh": "示例：09123456789",
+        "ar": "مثال: 09123456789"
+    },
+    "phone_error_second_function": {
+        "fa": "خطایی در گرفتن شماره تماس تابع دوم‌ها رخ داد",
+        "en": "Error occurred while fetching phone number in the second function",
+        "ru": "Произошла ошибка при получении номера телефона во второй функции",
+        "zh": "在第二个函数获取电话号码时发生错误",
+        "ar": "حدث خطأ أثناء الحصول على رقم الهاتف في الدالة الثانية"
+    },
+    "edit_product_category_soon": {
+        "fa": "قابلیت اصلاح اطلاعات کالا و دسته بندی به زودی اضافه خواهد شد.",
+        "en": "The ability to edit product and category information will be added soon.",
+        "ru": "Возможность редактирования информации о товаре и категории будет добавлена скоро.",
+        "zh": "编辑商品和类别信息的功能将很快添加。",
+        "ar": "سيتم إضافة إمكانية تعديل معلومات المنتج والفئة قريبًا."
+    },
+    "menu_store": {
+        "fa": "تنظیمات فروشگاه ⚙️",
+        "en": "Store Settings ⚙️",
+        "ru": "Настройки магазина ⚙️",
+        "zh": "商店设置 ⚙️",
+        "ar": "إعدادات المتجر ⚙️"
     },
 }

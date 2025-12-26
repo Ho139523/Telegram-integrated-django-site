@@ -325,38 +325,193 @@ class ProfileModel(models.Model):
 
         super().save(*args, **kwargs)
 
+   # ----------------------------
+    # Address helper
+    # ----------------------------
+    def get_active_address(self):
+        """آدرس فعال پروفایل را برمی‌گرداند"""
+        return self.addresses.filter(shipping_is_active=True).first()
+    
+    def get_all_addresses(self):
+        """همه آدرس‌های پروفایل را برمی‌گرداند"""
+        return self.addresses.all()
+    
+    def set_active_address(self, address_id):
+        """تنظیم آدرس فعال برای پروفایل"""
+        try:
+            # ابتدا همه آدرس‌ها را غیرفعال کن
+            self.addresses.update(shipping_is_active=False)
+            
+            # آدرس مورد نظر را فعال کن
+            address = self.addresses.get(id=address_id)
+            address.shipping_is_active = True
+            address.save()
+            return True
+        except Address.DoesNotExist:
+            return False
+        except Exception as e:
+            # لاگ خطا
+            print(f"Error setting active address: {e}")
+            return False
+
 
 
 class Address(models.Model):
-    profile = models.ForeignKey(ProfileModel, on_delete=models.CASCADE, related_name="addresses")
+    """
+    مدل آدرس مشترک برای پروفایل‌ها و فروشگاه‌ها
+    - هر پروفایل می‌تواند چندین آدرس داشته باشد (یک آدرس فعال)
+    - هر فروشگاه فقط می‌تواند یک آدرس داشته باشد
+    """
+    profile = models.ForeignKey(
+        "ProfileModel",  # استفاده از string reference برای جلوگیری از circular import
+        on_delete=models.CASCADE, 
+        related_name="addresses",
+        null=True,      # برای آدرس‌های فروشگاه null است
+        blank=True,     # برای آدرس‌های فروشگاه blank است
+        verbose_name="Profile"
+    )
+    store = models.OneToOneField(
+        "products.Store",  # استفاده از string reference
+        on_delete=models.CASCADE,
+        related_name="store_address",
+        null=True,      # برای آدرس‌های پروفایل null است
+        blank=True,     # برای آدرس‌های پروفایل blank است
+        verbose_name="Store",
+        unique=True     # مهم: این تضمین می‌کند هر فروشگاه فقط یک آدرس داشته باشد
+    )
+    
+    # فیلدهای آدرس
     shipping_line1 = models.CharField(max_length=100, verbose_name="Address Line 1")
-    shipping_line2 = models.CharField(max_length=100, blank=True, null=True, verbose_name="Address Line 2")
-
-    # فقط CharField بدون choices
+    shipping_line2 = models.CharField(max_length=100, blank=True, null=True, verbose_name="Address Line 2")     
     shipping_country = models.CharField(max_length=50, verbose_name="Country")
     shipping_province = models.CharField(max_length=50, blank=True, null=True, verbose_name="Province")
     shipping_city = models.CharField(max_length=50, blank=True, null=True, verbose_name="City")
-
     shipping_zip_code = models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
     shipping_home_phone = models.CharField(max_length=15, blank=True, null=True, verbose_name="Residential Phone Number")
-
+    
+    # فقط برای آدرس‌های پروفایل معنی دارد
     shipping_is_active = models.BooleanField(default=False, verbose_name="Active Address")
 
+
+
+    class Meta:
+        verbose_name = "Address"
+        verbose_name_plural = "Addresses"
+        constraints = [
+            # محدودیت مهم: یا profile پر باشد یا store، نه هر دو
+            models.CheckConstraint(
+                check=(
+                    models.Q(profile__isnull=False, store__isnull=True) | 
+                    models.Q(profile__isnull=True, store__isnull=False)
+                ),
+                name="address_owner_check",
+                violation_error_message="آدرس باید یا متعلق به پروفایل باشد یا فروشگاه، نه هر دو"
+            ),
+            # محدودیت: shipping_is_active فقط برای آدرس‌های پروفایل می‌تواند True باشد
+            models.CheckConstraint(
+                check=(
+                    models.Q(profile__isnull=False, shipping_is_active=True) |
+                    models.Q(profile__isnull=False, shipping_is_active=False) |
+                    models.Q(profile__isnull=True, shipping_is_active=False)
+                ),
+                name="active_address_only_for_profiles",
+                violation_error_message="آدرس فعال فقط برای پروفایل‌ها معتبر است"
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['profile', 'shipping_is_active']),
+            models.Index(fields=['store']),
+        ]
+
     def save(self, *args, **kwargs):
-        if self.shipping_is_active:
-            Address.objects.filter(profile=self.profile, shipping_is_active=True).update(shipping_is_active=False)
+        """
+        ذخیره آدرس با اعتبارسنجی و منطق business
+        """
+        # اعتبارسنجی قبل از ذخیره
+        self._validate_ownership()
+        
+        # مدیریت آدرس فعال برای پروفایل‌ها
+        if self.profile and self.shipping_is_active:
+            # غیرفعال کردن سایر آدرس‌های فعال این پروفایل
+            Address.objects.filter(
+                profile=self.profile, 
+                shipping_is_active=True
+            ).exclude(pk=self.pk).update(shipping_is_active=False)
+        
         super().save(*args, **kwargs)
 
+    def _validate_ownership(self):
+        """
+        اعتبارسنجی مالکیت آدرس
+        """
+        from django.core.exceptions import ValidationError
+        
+        # آدرس باید یا متعلق به پروفایل باشد یا فروشگاه
+        if not self.profile and not self.store:
+            raise ValidationError("آدرس باید متعلق به یک پروفایل یا فروشگاه باشد.")
+        
+        # نمی‌تواند همزمان متعلق به هر دو باشد
+        if self.profile and self.store:
+            raise ValidationError("آدرس نمی‌تواند همزمان متعلق به پروفایل و فروشگاه باشد.")
+        
+        # shipping_is_active فقط برای آدرس‌های پروفایل معنی دارد
+        if self.shipping_is_active and not self.profile:
+            raise ValidationError("آدرس فعال فقط برای پروفایل‌ها قابل تعریف است.")
+
+    def clean(self):
+        """
+        اعتبارسنجی کامل برای فرم‌ها
+        """
+        self._validate_ownership()
+        super().clean()
+
     def __str__(self):
-        user_info = self.profile.user.username if hasattr(self.profile, 'user') and self.profile.user else self.profile.tel_id
-        return f"{user_info} - {self.shipping_line1} ({'Active' if self.shipping_is_active else 'Inactive'})"
-
-
-
+        if self.profile:
+            user_info = self.profile.user.username if hasattr(self.profile, 'user') and self.profile.user else self.profile.tel_id
+            return f"Profile: {user_info} - {self.shipping_line1} ({'Active' if self.shipping_is_active else 'Inactive'})"
+        elif self.store:
+            return f"Store: {self.store.name} - {self.shipping_line1}"
+        return f"Address: {self.shipping_line1}"
 
     @property
+    def owner_type(self):
+        """نوع مالک آدرس را برمی‌گرداند"""
+        if self.profile:
+            return "profile"
+        elif self.store:
+            return "store"
+        return "unknown"
+
+    @property
+    def owner_name(self):
+        """نام مالک آدرس را برمی‌گرداند"""
+        if self.profile:
+            if self.profile.user:
+                return self.profile.user.username
+            return self.profile.tel_id or f"Profile {self.profile.pk}"
+        elif self.store:
+            return self.store.name
+        return "Unknown"
+
+    @property 
     def shipping_country_name(self):
-        return self._get_translated_name('country', self.shipping_country)
+        """بررسی دیباگ"""
+        print(f"DEBUG shipping_country_name called")
+        print(f"  - Country code: {self.shipping_country}")
+        print(f"  - Profile: {self.profile}")
+        print(f"  - Store: {self.store}")
+        
+        if self.store:
+            print(f"  - Store owner: {self.store.owner}")
+            if self.store.owner:
+                print(f"  - Store owner lang: {self.store.owner.lang}")
+        
+        if self.profile:
+            print(f"  - Profile lang: {self.profile.lang}")
+        
+        result = self._get_translated_name('country', self.shipping_country)
+        print(f"  - Result: {result}")
+        return result
 
     @property
     def shipping_province_name(self):
@@ -375,11 +530,20 @@ class Address(models.Model):
         with open(settings.BASE_DIR / './utils/Data/countries_full_multilang.json', 'r', encoding='utf-8') as f:
             countries_data = json.load(f)
 
-        # تشخیص زبان کاربر
+        # تشخیص زبان
         try:
-            language = self.profile.lang # فرض می‌کنیم فیلد language در ProfileModel وجود دارد
-        except:
-            language = 'en'  # زبان پیش‌فرض
+            if self.store and self.store.owner:
+                language = self.store.owner.lang  # ✅ اول از صاحب فروشگاه
+                print(f"  - Language from store owner: {language}")
+            elif self.profile:
+                language = self.profile.lang  # ✅ سپس از پروفایل
+                print(f"  - Language from profile: {language}")
+            else:
+                language = 'en'  # ✅ پیش‌فرض
+                print(f"  - Default language: {language}")
+        except Exception as e:
+            print(f"  - Error getting language: {e}")
+            language = 'en'
 
         # نگاشت زبان‌های ممکن به کدهای موجود در JSON
         language_map = {
@@ -412,10 +576,12 @@ class Address(models.Model):
         except KeyError:
             # اگر داده‌ای یافت نشد، مقدار اصلی را برگردان
             if entity_type == 'country':
-                return country_code
+                return country_name
             elif entity_type == 'province':
                 return province_name
             elif entity_type == 'city':
                 return city_name
 
         return None
+
+

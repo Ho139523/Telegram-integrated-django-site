@@ -878,6 +878,11 @@ def visit_website(message):
         send_website_link(message)
 
 
+@app.message_handler(func=lambda message: message.text=="hello")
+def yank(message):
+    store_info = SendStore(app)
+    store_info.show_store_info(message)
+
 # settings handler
 @app.message_handler(func=lambda message: message.text == t(message, "menu_settings"))
 def settings(message):
@@ -1619,7 +1624,7 @@ def change_lang(message):
     try:
         session = session_manager.get_user_session(message.chat.id, namespace="menu")
         profile = ProfileModel.objects.get(tel_id=message.chat.id)
-        if session["store_lang"]:
+        if session.get("store_lang", None):
             store = Store.objects.filter(owner=profile).first()
             if 'فارسی' in message.text:
                 store.lang = 'fa'
@@ -1645,7 +1650,7 @@ def change_lang(message):
                 profile.lang = 'ar'
             profile.save()
         app.delete_message(message.chat.id, message.message_id)
-        text = t(message, "store_language_changed") if session["store_lang"] else t(message, "your_lang_changed")
+        text = t(message, "store_language_changed") if session.get("store_lang", None) else t(message, "your_lang_changed")
         home(message, text=text)
         
     except Exception as e:
@@ -2407,6 +2412,7 @@ product_bot.register_handle_finish_attributes()
 @app.message_handler(func=lambda message: message.text in [t(message, "edit"),])
 def edit(message):
     app.send_message(message.chat.id, t(message, "edit_product_category_soon"))
+
 
 ##################################### END CATEGROY #####################################
 

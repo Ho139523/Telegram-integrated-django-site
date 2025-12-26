@@ -132,7 +132,7 @@ async def send_album_and_button_async(channel_id, product, photos, out_of_stock=
 
         # 🧩 ساخت دکمه
         markup = types.InlineKeyboardMarkup()
-        owner_lang, store_id, product_id = await async_helper(product)
+        owner_lang, store_id, product_id, chat_id = await async_helper(product)
 
         if out_of_stock:
             #ترجمه‌ی متن دکمه ---

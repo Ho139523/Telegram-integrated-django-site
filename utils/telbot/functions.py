@@ -75,6 +75,8 @@ from django.conf import settings as sett
 
 
 from utils.funcs.geonames_address import get_country_choices, get_province_choices, get_city_choices
+from pathlib import Path
+from AI.settings import MEDIA_URL
 
 
 def t(msg, key, chat_id=None, **kwargs):
@@ -2618,6 +2620,14 @@ class ProductHandler:
             else:
                 self.update_product_message(chat_id, message_id, product, cart)
 
+        except ValidationError as ve:
+            max_stock = variant.stock if variant else product.stock
+            self.app.answer_callback_query(
+                call.id, 
+                f"متاسفانه، بیشتر از {max_stock} عدد در انبار موجود نیست!", 
+                show_alert=True
+            )
+            return
         except Exception as e:
             print(f"Error in handle_buttons: {traceback.format_exc()}")
 
@@ -4901,4 +4911,169 @@ class UltraVideoPrompter:
 
 
 
+class SendPhotoWithMarkup(SendMarkup):
+    def __init__(self, bot, chat_id, photo_path=None, photo_url=None, caption=None, buttons=None, button_layout=None, handlers=None):
+        super().__init__(bot, chat_id, caption, buttons, button_layout, handlers)
+        self.photo_path = photo_path
+        self.photo_url = photo_url
         
+    def send(self):
+        """ارسال عکس با caption و keyboard"""
+        try:
+            markup = self.generate_keyboard()
+            
+            # ارسال عکس از مسیر فایل
+            if self.photo_path:
+                with open(self.photo_path, 'rb') as photo:
+                    self.bot.send_photo(
+                        chat_id=self.chat_id,
+                        photo=photo,
+                        caption=self.text,
+                        reply_markup=markup,
+                        parse_mode="HTML"
+                    )
+            
+            # ارسال عکس از URL
+            elif self.photo_url:
+                self.bot.send_photo(
+                    chat_id=self.chat_id,
+                    photo=self.photo_url,
+                    caption=self.text,
+                    reply_markup=markup,
+                    parse_mode="HTML"
+                )
+            else:
+                print("هیچ منبع عکسی مشخص نشده است")
+                
+        except Exception as e:
+            print(f"Error in SendPhotoWithMarkup.send: {traceback.format_exc()}")
+            # تلاش برای ارسال بدون عکس در صورت خطا
+            try:
+                super().send()
+            except Exception as e2:
+                print(f"Error sending without photo: {e2}")
+    
+    def edit(self, message_id):
+        """ویرایش عکس و caption"""
+        try:
+            markup = self.generate_keyboard()
+            
+            # ویرایش caption عکس
+            self.bot.edit_message_caption(
+                chat_id=self.chat_id,
+                message_id=message_id,
+                caption=self.text,
+                reply_markup=markup,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            if "message is not modified" not in str(e):
+                print(f"Error in SendPhotoWithMarkup.edit: {traceback.format_exc()}")
+                # تلاش برای ویرایش بدون keyboard
+                try:
+                    self.bot.edit_message_caption(
+                        chat_id=self.chat_id,
+                        message_id=message_id,
+                        caption=self.text,
+                        parse_mode="HTML"
+                    )
+                except Exception as e2:
+                    print(f"Error editing without keyboard: {e2}")
+
+
+
+class SendStore:
+    
+    def __init__(self, bot: TeleBot):
+        self.bot = bot
+
+    def _generate_caption(self):
+        pass
+
+    def _generate_buttons(self, chat_id=None):
+
+        buttons = {}
+        profile = ProfileModel.objects.get(tel_id=chat_id)
+        store = Store.objects.filter(owner=profile).first()
+        addr = store.get_address()
+        
+        # دیباگ مقادیر
+        print(f"Country: {addr.shipping_country_name}")
+        print(f"Province (raw): {addr.shipping_province_name}")
+        print(f"City (raw): {addr.shipping_city_name}")
+        print(f"Country name: {addr.shipping_country_name}")
+        print(f"Province name: {addr.shipping_province_name}")
+        print(f"City name: {addr.shipping_city_name}")
+        
+        # بررسی مستقیم JSON
+        import json
+        from django.conf import settings
+        
+        with open(settings.BASE_DIR / './utils/Data/countries_full_multilang.json', 'r', encoding='utf-8') as f:
+            countries_data = json.load(f)
+        
+        country_code = addr.shipping_country  # احتمالاً 'IR'
+        province_name = addr.shipping_province  # احتمالاً 'Fars'
+        city_name = addr.shipping_city  # احتمالاً 'Fasa'
+        
+        print(f"\nChecking JSON:")
+        print(f"Country '{country_code}' in JSON: {country_code in countries_data}")
+        
+        if country_code in countries_data:
+            print(f"Provinces in {country_code}: {list(countries_data[country_code]['provinces'].keys())}")
+            
+            if province_name:
+                print(f"Looking for province '{province_name}': {province_name in countries_data[country_code]['provinces']}")
+                if province_name in countries_data[country_code]['provinces']:
+                    province_data = countries_data[country_code]['provinces'][province_name]
+                    print(f"Province data: {province_data}")
+                    if 'names' in province_data:
+                        print(f"English name: {province_data['names'].get('en')}")
+                        print(f"Persian name: {province_data['names'].get('fa')}")
+        if profile.lang == 'fa':
+            addr_text = f"{addr.shipping_country_name}، {addr.shipping_province_name}، {addr.shipping_city_name} ..."
+        else:
+            print(f"fffffffffffffffffffff {addr.shipping_province}")
+            addr_text = f"{addr.shipping_city_name}، {addr.shipping_province_name}، {addr.shipping_country_name} ..."
+        buttons[f"{t("message", "store_name", chat_id=chat_id)}: {store.name}"] = {"callback_data": "buy_product", "index": 1}
+        buttons[f"{t('message', 'address', chat_id=chat_id, address_text=addr_text)}"] = {"callback_data": "buy_product", "index": 1}
+        
+        return buttons
+
+    def _generate_handlers(self):
+        pass
+
+    def _generate_layout(self):
+        pass
+
+    def _logo_path(self, chat_id=None):
+        profile = ProfileModel.objects.get(tel_id=chat_id)
+        store = Store.objects.filter(owner=profile).first()
+        return MEDIA_URL + str(store.logo)
+    
+    def show_store_info(self, message: Message):
+        try:
+            buttons = self._generate_buttons(chat_id=message.chat.id)
+            print(buttons)
+            button_layout = [1, 1]
+            handlers = {
+                "buy_product": lambda call: self.bot.answer_callback_query(call.id, "خرید با موفقیت ثبت شد!"),
+                "buy_product": lambda call: self.bot.answer_callback_query(call.id, "ﺥﺮﯾﺩ ﺏﺍ ﻡﻮﻔﻘﯿﺗ ﺚﺒﺗ ﺵﺩ!"),
+            }
+            photo_markup = SendPhotoWithMarkup(
+                bot=self.bot,
+                chat_id=message.chat.id,
+                photo_path= self._logo_path(chat_id=message.chat.id),
+                caption="<b>محصول جدید</b>\n\n"
+                    "توضیحات کامل محصول در اینجا قرار می‌گیرد.\n"
+                    "💰 قیمت: ۵۰,۰۰۰ تومان\n\n"
+                    "برای اقدام روی دکمه‌های زیر کلیک کنید:",
+                buttons=buttons,
+                button_layout=button_layout,
+                handlers=handlers
+            )
+            
+            # ارسال عکس
+            photo_markup.send()
+        except:
+            print(traceback.format_exc())

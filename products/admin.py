@@ -116,8 +116,8 @@ class ProductAdmin(admin.ModelAdmin):
 ### ----------------------------
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'city', 'province', 'markant_id')
-    search_fields = ('name', 'owner__tel_id', 'city', 'province', 'markant_id')
+    list_display = ('name', 'owner', 'markant_id')
+    search_fields = ('name', 'owner__tel_id', 'markant_id')
 
 
 ### ----------------------------

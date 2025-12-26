@@ -14,7 +14,6 @@ import pycountry
 # =========================
 #  STORE MODEL
 # =========================
-
 class Store(models.Model):
     # ----------------------------
     # Language choices
@@ -25,12 +24,14 @@ class Store(models.Model):
             if hasattr(lang, 'alpha_2'):
                 languages.append((lang.alpha_2, lang.name))
         return sorted(languages, key=lambda x: x[1])
-    
-    owner = models.OneToOneField(ProfileModel, on_delete=models.CASCADE, related_name="owned_store", verbose_name="Owner Profile")
+
+    owner = models.OneToOneField(
+        ProfileModel, 
+        on_delete=models.CASCADE, 
+        related_name="owned_store", 
+        verbose_name="Owner Profile"
+    )
     name = models.CharField(max_length=100, verbose_name='Store Name')
-    address = models.CharField(max_length=255, verbose_name='Address')
-    city = models.CharField(max_length=50, verbose_name='City')
-    province = models.CharField(max_length=50, verbose_name='Province')
     logo = models.ImageField(upload_to="store_logos/", blank=True, null=True, verbose_name="Store Logo")
     tel_group = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram group ID")
     tel_channel = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram channel ID")
@@ -43,6 +44,83 @@ class Store(models.Model):
     class Meta:
         verbose_name = "Store"
         verbose_name_plural = "Stores"
+
+    # متدهای کمکی برای آدرس
+    def get_address(self):
+        """آدرس فروشگاه را برمی‌گرداند (از مدل Address)"""
+        if hasattr(self, 'store_address'):
+            return self.store_address
+        return None
+
+    def set_address(self, address_data):
+        """تنظیم آدرس برای فروشگاه"""
+        from django.core.exceptions import ValidationError
+        
+        # حذف آدرس قبلی اگر وجود داشته باشد
+        if hasattr(self, 'store_address'):
+            self.store_address.delete()
+        
+        # ایجاد آدرس جدید
+        try:
+            address = Address.objects.create(
+                store=self,
+                **address_data
+            )
+            return address
+        except Exception as e:
+            raise ValidationError(f"خطا در ایجاد آدرس: {str(e)}")
+
+    @property
+    def full_address(self):
+        """آدرس کامل فروشگاه را به صورت متنی برمی‌گرداند"""
+        addr = self.get_address()
+        if addr:
+            parts = []
+            if addr.shipping_line1:
+                parts.append(addr.shipping_line1)
+            if addr.shipping_line2:
+                parts.append(addr.shipping_line2)
+            if addr.shipping_city:
+                parts.append(addr.shipping_city)
+            if addr.shipping_province:
+                parts.append(addr.shipping_province)
+            if addr.shipping_country:
+                parts.append(addr.shipping_country)
+            if addr.shipping_zip_code:
+                parts.append(f"کد پستی: {addr.shipping_zip_code}")
+            
+            return "، ".join(parts)
+        # Fallback به فیلدهای قدیمی
+        parts = []
+        if self.address:
+            parts.append(self.address)
+        if self.city:
+            parts.append(self.city)
+        if self.province:
+            parts.append(self.province)
+        
+        if self.owner.lang == "fa":
+            return "، ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
+        else:
+            return ", ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
+
+
+
+    @property
+    def short_address(self):
+        addr = self.get_address()
+        if addr:
+            parts = []
+            if addr.shipping_country:
+                parts.append(addr.shipping_country_name)
+            if addr.shipping_province:
+                parts.append(addr.shipping_province_name)
+            if addr.shipping_city:
+                parts.append(addr.shipping_city_name)
+        if self.owner.lang == "fa":
+            return "، ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
+        else:
+            return ", ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
 
 
 # =========================

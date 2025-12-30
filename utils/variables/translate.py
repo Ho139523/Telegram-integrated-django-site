@@ -2317,5 +2317,25 @@ translations = {
         "zh": "商店名称",
         "ar": "اسم المتجر"
     },
-    
+    "submit_information": {
+        "fa": "ثبت اطلاعات",
+        "en": "Submit Information",
+        "ru": "Отправить данные",
+        "zh": "提交信息",
+        "ar": "تسجيل المعلومات"
+    },
+    "max_stock_limit": {
+        "fa": "متاسفانه، بیشتر از {max_stock} عدد در انبار موجود نیست!",
+        "en": "Unfortunately, no more than {max_stock} items are available in stock!",
+        "ru": "К сожалению, на складе доступно не более {max_stock} единиц!",
+        "zh": "很遗憾，库存中最多只有 {max_stock} 件商品！",
+        "ar": "للأسف، لا يتوفر في المخزون أكثر من {max_stock} قطعة!"
+    },
+    "video_hidden": {
+        "fa": "🔕 این ویدیو دیگر برای شما نمایش داده نخواهد شد",
+        "en": "🔕 This video will no longer be shown to you",
+        "ru": "🔕 Это видео больше не будет отображаться для вас",
+        "zh": "🔕 此视频将不再向您显示",
+        "ar": "🔕 لن يتم عرض هذا الفيديو لك مرة أخرى"
+    },
 }

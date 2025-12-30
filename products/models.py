@@ -260,12 +260,23 @@ class Product(models.Model):
             return float(self.price) * (1 - float(self.discount)/100)
         return float(self.price)
 
-
     def has_variants(self):
+        """
+        بررسی می‌کند که آیا محصول واقعاً واریانت فعال دارد
+        """
         if not self.pk:
             return False
-        return self.variants.exists()
+        
+        # بررسی مستقیم از دیتابیس (بدون کش)
+        from .models import ProductVariant  # import در داخل تابع برای جلوگیری از circular import
+        return ProductVariant.objects.filter(product=self).exists()
 
+    def get_active_variants_count(self):
+        """تعداد واریانت‌های فعال را برمی‌گرداند"""
+        if not self.pk:
+            return 0
+        from .models import ProductVariant
+        return ProductVariant.objects.filter(product=self).count()
 
     def sync_stock(self):
         # اگر هنوز ذخیره نشده، کاری نکن
@@ -278,13 +289,10 @@ class Product(models.Model):
             )
             self.stock = total_stock
 
-
-
     def _manual_stock_change(self):
         if not hasattr(self, "_old_stock"):
             self._old_stock = Product.objects.only("stock").get(pk=self.pk).stock
         return self.stock != self._old_stock 
-
 
     def clean(self):
         if self.category and self.category.get_next_layer_categories().exists():
@@ -293,10 +301,12 @@ class Product(models.Model):
         if self.price < 10000:
             raise ValidationError({'price': 'قیمت نمی‌تواند کمتر از 10000 باشد.'})
 
+        system_update = getattr(self, "_system_stock_update", False)
+        
         if (
             self.pk
             and self.has_variants()
-            and not getattr(self, "_system_stock_update", False)
+            and not system_update
             and self._manual_stock_change()
         ):
             raise ValidationError({
@@ -304,30 +314,28 @@ class Product(models.Model):
             })
 
     def save(self, *args, **kwargs):
-        # اگر تغییر stock سیستمی است، فلگ را زودتر بشناس
-        system_update = getattr(self, "_system_stock_update", False)
-    
+        # گرفتن system_update از kwargs یا attribute
+        system_update = kwargs.pop('system_update', getattr(self, "_system_stock_update", False))
+        
+        # ست کردن system_update روی آبجکت
+        self._system_stock_update = system_update
+
         # validation
         self.full_clean(exclude=["stock"] if system_update else [])
-    
+
         # تولید کد محصول
         if not self.code:
             counter, _ = ProductCodeCounter.objects.get_or_create(id=1)
             self.code = counter.get_next_code()
-    
+
         is_creating = self.pk is None
-    
+
         super().save(*args, **kwargs)
-    
+
         # فقط بعد از اینکه PK گرفت
         if not is_creating and system_update:
             self.sync_stock()
-            super().save(update_fields=["stock"])
-    
-        # پاک‌کردن فلگ سیستمی
-        if hasattr(self, "_system_stock_update"):
-            del self._system_stock_update
-    
+            super().save(update_fields=["stock"])   
 
 
 # =========================

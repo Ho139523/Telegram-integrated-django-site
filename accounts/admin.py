@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group
 from .models import User, ProfileModel, Address
 from django import forms
 import pycountry
-from utils.funcs.geonames_address import get_country_choices, load_geodata
+from utils.funcs.geonames_address import get_country_choices, load_geodata, get_province_choices, get_city_choices
 import requests
 
 
@@ -23,12 +23,6 @@ class CustomUserAdmin(UserAdmin):
 
 
 class AddressAdminForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        self.request = kwargs.pop("request", None)
-        self.lang = getattr(self.request.user, "lang", "en") if self.request else "en"
-        super().__init__(*args, **kwargs)
-
-
     
     shipping_country = forms.ChoiceField(
         required=False,
@@ -89,19 +83,19 @@ class AddressAdminForm(forms.ModelForm):
         self.fields["shipping_province"].choices = province_choices
         self.fields["shipping_city"].choices = city_choices
 
-    def clean(self):
-        cleaned_data = super().clean()
+    # def clean(self):
+    #     cleaned_data = super().clean()
 
-        province_code = cleaned_data.get("shipping_province")
-        city_code = cleaned_data.get("shipping_city")
+    #     province_code = cleaned_data.get("shipping_province")
+    #     city_code = cleaned_data.get("shipping_city")
 
-        if province_code in self.province_code_to_name:
-            cleaned_data["shipping_province"] = self.province_code_to_name[province_code]
+    #     if province_code in self.province_code_to_name:
+    #         cleaned_data["shipping_province"] = self.province_code_to_name[province_code]
 
-        if city_code in self.city_code_to_name:
-            cleaned_data["shipping_city"] = self.city_code_to_name[city_code]
+    #     if city_code in self.city_code_to_name:
+    #         cleaned_data["shipping_city"] = self.city_code_to_name[city_code]
 
-        return cleaned_data
+    #     return cleaned_data
 
     class Meta:
         model = Address

@@ -1,5 +1,6 @@
 #functions.py
 from email import message
+import profile
 from pydoc import describe
 
 from click import command
@@ -89,6 +90,7 @@ def t(msg, key, chat_id=None, **kwargs):
             message = None
 
         if chat_id:
+            print(chat_id)
             pass
         else:
             chat_id = message.chat.id
@@ -1947,7 +1949,7 @@ from django.core.cache import cache
 import threading
 from asgiref.sync import sync_to_async
 
-#@add_performance_monitoring_to_class
+# @add_performance_monitoring_to_class
 class ProductHandler:
     """مدیریت ارسال پیام و اطلاعات محصول - نسخه بهینه‌شده"""
     
@@ -2416,6 +2418,7 @@ class ProductHandler:
 
             # متن اطلاع‌رسانی
             stock_info = variant.stock if variant else self.product.stock
+            print("_send_buttons_from_data")
             text = t("message", "order_up_to_stock", chat_id=chat_id, stock_info=stock_info)
             
             # ارسال فوری
@@ -2450,6 +2453,7 @@ class ProductHandler:
             }
             
             stock_info = product.stock
+            print("initail state")
             text = t("message", "order_up_to_stock", chat_id=chat_id, stock_info=stock_info)
 
             markup = SendMarkup(
@@ -2588,6 +2592,11 @@ class ProductHandler:
                         quantity=1
                     )
                 else:
+                    if not variant:
+                        a = {}
+                        for i, (key, values) in enumerate(variants_dict.items()):
+                            a[key] = values[0]
+                        variant = self.get_variant_by_selected_values(product, a)
                     max_stock = variant.stock if variant else product.stock
                     if cart_item.quantity < max_stock:
                         cart_item.quantity += 1
@@ -2595,7 +2604,7 @@ class ProductHandler:
                     else:
                         self.app.answer_callback_query(
                             call.id, 
-                            f"متاسفانه، بیشتر از {max_stock} عدد در انبار موجود نیست!", 
+                            t(call.message, "max_stock_limit", max_stock=max_stock),
                             show_alert=True
                         )
                         return
@@ -2624,7 +2633,7 @@ class ProductHandler:
             max_stock = variant.stock if variant else product.stock
             self.app.answer_callback_query(
                 call.id, 
-                f"متاسفانه، بیشتر از {max_stock} عدد در انبار موجود نیست!", 
+                t(call.message, "max_stock_limit", max_stock=max_stock), 
                 show_alert=True
             )
             return
@@ -2645,6 +2654,7 @@ class ProductHandler:
             selected_values = {}
             
             for i, key in enumerate(variants_dict.keys()):
+                print(variant_states)
                 if str(i) in variant_states:
                     values_list = list(variants_dict[key])
                     selected_index = variant_states[str(i)]
@@ -2718,6 +2728,13 @@ class ProductHandler:
                 button_layout = [3, 1]
 
             stock_info = variant.stock if variant else product.stock
+            if not variant:
+                a = {}
+                for i, (key, values) in enumerate(variants_dict.items()):
+                    a[key] = values[0]
+                variant = self.get_variant_by_selected_values(product, a)
+            stock_info = variant.stock if variant else product.stock
+
             text = t("message", "order_up_to_stock", chat_id=chat_id, stock_info=stock_info)
 
             markup = SendMarkup(
@@ -4906,7 +4923,7 @@ class UltraVideoPrompter:
 
         bot.answer_callback_query(
             call.id,
-            "🔕 این ویدیو دیگر برای شما نمایش داده نخواهد شد"
+            t(call.message, "video_hidden")
         )
 
 
@@ -4981,7 +4998,7 @@ class SendPhotoWithMarkup(SendMarkup):
                     print(f"Error editing without keyboard: {e2}")
 
 
-
+# @add_performance_monitoring_to_class
 class SendStore:
     
     def __init__(self, bot: TeleBot):
@@ -4993,52 +5010,28 @@ class SendStore:
     def _generate_buttons(self, chat_id=None):
 
         buttons = {}
-        profile = ProfileModel.objects.get(tel_id=chat_id)
-        store = Store.objects.filter(owner=profile).first()
-        addr = store.get_address()
-        
-        # دیباگ مقادیر
-        print(f"Country: {addr.shipping_country_name}")
-        print(f"Province (raw): {addr.shipping_province_name}")
-        print(f"City (raw): {addr.shipping_city_name}")
-        print(f"Country name: {addr.shipping_country_name}")
-        print(f"Province name: {addr.shipping_province_name}")
-        print(f"City name: {addr.shipping_city_name}")
-        
-        # بررسی مستقیم JSON
-        import json
-        from django.conf import settings
-        
-        with open(settings.BASE_DIR / './utils/Data/countries_full_multilang.json', 'r', encoding='utf-8') as f:
-            countries_data = json.load(f)
-        
-        country_code = addr.shipping_country  # احتمالاً 'IR'
-        province_name = addr.shipping_province  # احتمالاً 'Fars'
-        city_name = addr.shipping_city  # احتمالاً 'Fasa'
-        
-        print(f"\nChecking JSON:")
-        print(f"Country '{country_code}' in JSON: {country_code in countries_data}")
-        
-        if country_code in countries_data:
-            print(f"Provinces in {country_code}: {list(countries_data[country_code]['provinces'].keys())}")
+
+        if self._has_store(chat_id):
+            profile = ProfileModel.objects.get(tel_id=chat_id)
+            store = Store.objects.filter(owner=profile).first()
+            addr = store.get_address()
             
-            if province_name:
-                print(f"Looking for province '{province_name}': {province_name in countries_data[country_code]['provinces']}")
-                if province_name in countries_data[country_code]['provinces']:
-                    province_data = countries_data[country_code]['provinces'][province_name]
-                    print(f"Province data: {province_data}")
-                    if 'names' in province_data:
-                        print(f"English name: {province_data['names'].get('en')}")
-                        print(f"Persian name: {province_data['names'].get('fa')}")
-        if profile.lang == 'fa':
-            addr_text = f"{addr.shipping_country_name}، {addr.shipping_province_name}، {addr.shipping_city_name} ..."
+            
+            if profile.lang == 'fa':
+                addr_text = f"{addr.shipping_country_name}، {addr.shipping_province_name}، {addr.shipping_city_name} ..."
+            else:
+                print(f"fffffffffffffffffffff {addr.shipping_province}")
+                addr_text = f"{addr.shipping_city_name}، {addr.shipping_province_name}، {addr.shipping_country_name} ..."
+            buttons[f"{t("message", "store_name", chat_id=chat_id)}: {store.name}"] = {"callback_data": "buy_product", "index": 1}
+            buttons[f"{t('message', 'address', chat_id=chat_id, address_text=addr_text)}"] = {"callback_data": "buy_product", "index": 1}
+            
+            return buttons
+
         else:
-            print(f"fffffffffffffffffffff {addr.shipping_province}")
-            addr_text = f"{addr.shipping_city_name}، {addr.shipping_province_name}، {addr.shipping_country_name} ..."
-        buttons[f"{t("message", "store_name", chat_id=chat_id)}: {store.name}"] = {"callback_data": "buy_product", "index": 1}
-        buttons[f"{t('message', 'address', chat_id=chat_id, address_text=addr_text)}"] = {"callback_data": "buy_product", "index": 1}
-        
-        return buttons
+            buttons[f"{t("message", "store_name", chat_id=chat_id)}: --- "] = {"callback_data": "buy_product", "index": 1}
+            buttons[f"{t('message', 'address', chat_id=chat_id, address_text=' --- ')}"] = {"callback_data": "buy_product", "index": 1}
+            buttons[f"{t('message', 'submit_information', chat_id=chat_id)}"] = {"callback_data": "submit_info", "index": 1}
+            return buttons
 
     def _generate_handlers(self):
         pass
@@ -5051,19 +5044,29 @@ class SendStore:
         store = Store.objects.filter(owner=profile).first()
         return MEDIA_URL + str(store.logo)
     
+    def _has_store(self, chat_id):
+        profile = ProfileModel.objects.get(tel_id=chat_id)
+        store = Store.objects.filter(owner=profile).first()
+        if store:
+            return True
+        else:
+            return False
+
+
     def show_store_info(self, message: Message):
         try:
+            profile = ProfileModel.objects.get(tel_id=message.chat.id)
             buttons = self._generate_buttons(chat_id=message.chat.id)
-            print(buttons)
             button_layout = [1, 1]
             handlers = {
                 "buy_product": lambda call: self.bot.answer_callback_query(call.id, "خرید با موفقیت ثبت شد!"),
                 "buy_product": lambda call: self.bot.answer_callback_query(call.id, "ﺥﺮﯾﺩ ﺏﺍ ﻡﻮﻔﻘﯿﺗ ﺚﺒﺗ ﺵﺩ!"),
             }
+            print(profile.lang)
             photo_markup = SendPhotoWithMarkup(
                 bot=self.bot,
                 chat_id=message.chat.id,
-                photo_path= self._logo_path(chat_id=message.chat.id),
+                photo_path= self._logo_path(chat_id=message.chat.id) if self._has_store(message.chat.id) else os.path.join(MEDIA_URL, f'store_logos/{profile.lang}-default-store-logo.png'),
                 caption="<b>محصول جدید</b>\n\n"
                     "توضیحات کامل محصول در اینجا قرار می‌گیرد.\n"
                     "💰 قیمت: ۵۰,۰۰۰ تومان\n\n"

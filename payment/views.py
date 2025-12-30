@@ -20,6 +20,7 @@ from payment.models import Transaction, Sale, Cart, CartItem
 from utils.variables.TOKEN import TOKEN, api_id, api_hash, BOT_ID
 from products.signals import t, async_helper
 from django.db import transaction as db_transaction
+from django.db import models
 
 # 🟩 تنظیمات عمومی
 pay = ZarinPal()
@@ -303,39 +304,107 @@ def verify(request):
 # ==========================================================
 def handle_successful_payment(transaction):
     try:
+        print("1. شروع پردازش تراکنش")
         if transaction.status != "paid" or not transaction.cart:
+            print("❌ تراکنش paid نیست یا سبد خرید ندارد")
             return
+        print(f"2. پردازش تراکنش: {transaction.id}")
 
-        print(f"\n💳 PAYMENT SUCCESS - Transaction: {transaction.id}")
-
-        # جلوگیری از ارسال چندباره پیام اتمام موجودی
         out_of_stock_products = set()
-
+        print("3. شروع تراکنش دیتابیس")
+        
         with db_transaction.atomic():
             sales = []
+            cart_items = list(transaction.cart.items.select_related("product", "variant"))
 
-            for cart_item in transaction.cart.items.select_related(
-                "product", "variant"
-            ):
+            print(f"4. تعداد آیتم‌های سبد خرید: {len(cart_items)}")
+            
+            for index, cart_item in enumerate(cart_items):
                 product = cart_item.product
                 quantity = cart_item.quantity
-
+                print(f"\n{'='*50}")
+                print(f"آیتم {index + 1}: {product.name} (ID: {product.id})")
+                print(f"تعداد: {quantity}")
+                
+                # 🔥 بررسی مستقیم از دیتابیس برای اطمینان
+                from payment.models import ProductVariant
+                actual_has_variants = ProductVariant.objects.filter(product=product).exists()
+                print(f"has_variants() نتیجه: {product.has_variants()}")
+                print(f"بررسی مستقیم دیتابیس: {actual_has_variants}")
+                print(f"واریانت در cart_item: {cart_item.variant}")
+                print(f"تعداد واریانت‌ها در دیتابیس: {product.get_active_variants_count()}")
+                
+                variant = cart_item.variant
+                
                 # ===============================
-                # 🧩 PRODUCT WITH VARIANT
+                # 🧩 منطق اصلی با قابلیت انتخاب خودکار واریانت
                 # ===============================
-                if product.has_variants() and cart_item.variant:
-                    variant = cart_item.variant
-
+                
+                # اگر در دیتابیس واقعاً واریانت دارد
+                if actual_has_variants:
+                    print("5. محصول در دیتابیس واریانت دارد")
+                    
+                    # اگر واریانت انتخاب نشده، سعی کن یکی انتخاب کنی
+                    if not variant:
+                        print("⚠️ واریانت انتخاب نشده - جستجوی واریانت مناسب")
+                        
+                        # گزینه 1: اولین واریانت با موجودی کافی
+                        available_variants = product.variants.filter(stock__gte=quantity)
+                        
+                        if available_variants.exists():
+                            variant = available_variants.first()
+                            print(f"   ✅ واریانت پیدا شد: {variant} (موجودی: {variant.stock})")
+                            
+                            # آپدیت cart_item با واریانت پیدا شده
+                            cart_item.variant = variant
+                            cart_item.save(update_fields=["variant"])
+                            print(f"   CartItem آپدیت شد با واریانت ID: {variant.id}")
+                        else:
+                            # گزینه 2: اولین واریانت موجود
+                            first_variant = product.variants.first()
+                            if first_variant:
+                                print(f"   ⚠️ واریانت با موجودی کافی یافت نشد، استفاده از اولین واریانت: {first_variant}")
+                                print(f"   موجودی واریانت: {first_variant.stock}, درخواست: {quantity}")
+                                
+                                if first_variant.stock < quantity:
+                                    error_msg = f"موجودی واریانت '{first_variant}' کافی نیست (موجودی: {first_variant.stock}, درخواست: {quantity})"
+                                    print(f"❌ {error_msg}")
+                                    raise ValueError(error_msg)
+                                
+                                variant = first_variant
+                                cart_item.variant = variant
+                                cart_item.save(update_fields=["variant"])
+                                print(f"   CartItem آپدیت شد با واریانت ID: {variant.id}")
+                            else:
+                                error_msg = f"هیچ واریانتی برای محصول '{product.name}' یافت نشد!"
+                                print(f"❌ {error_msg}")
+                                raise ValueError(error_msg)
+                    
+                    # اکنون variant حتماً مقدار دارد
+                    print(f"6. پردازش واریانت: {variant} (ID: {variant.id})")
+                    print(f"   موجودی واریانت قبل: {variant.stock}")
+                    
                     if variant.stock < quantity:
-                        raise ValueError(f"موجودی واریانت {variant} کافی نیست")
-
+                        error_msg = f"موجودی واریانت {variant} کافی نیست (موجودی: {variant.stock}, درخواست: {quantity})"
+                        print(f"❌ {error_msg}")
+                        raise ValueError(error_msg)
+                    
                     # کاهش موجودی واریانت
                     variant.stock -= quantity
                     variant.save()
-
-                    # 🔥 خیلی مهم: sync شدن مقدار stock محصول
+                    print(f"7. واریانت ذخیره شد - موجودی بعد: {variant.stock}")
+                    
+                    # sync موجودی محصول اصلی
+                    print("8. شروع sync موجودی محصول اصلی")
                     product.refresh_from_db(fields=["stock"])
-
+                    print(f"   موجودی محصول قبل از sync: {product.stock}")
+                    
+                    # استفاده از system_update=True در save
+                    product.save(system_update=True)
+                    
+                    print(f"   موجودی محصول بعد از sync: {product.stock}")
+                    
+                    # ایجاد رکورد فروش
                     sale = Sale.objects.create(
                         transaction=transaction,
                         product=product,
@@ -345,18 +414,26 @@ def handle_successful_payment(transaction):
                         total_price=int(cart_item.total_price()),
                     )
                     sales.append(sale)
-
-                # ===============================
-                # 🧩 PRODUCT WITHOUT VARIANT
-                # ===============================
+                    print(f"9. فروش ثبت شد - Sale ID: {sale.id}")
+                
                 else:
+                    print("10. محصول واقعاً بدون واریانت است")
+                    
+                    print(f"   موجودی محصول قبل: {product.stock}")
+                    
                     if product.stock < quantity:
-                        raise ValueError(f"موجودی محصول {product} کافی نیست")
-
-                    product._system_stock_update = True
+                        error_msg = f"موجودی محصول {product} کافی نیست (موجودی: {product.stock}, درخواست: {quantity})"
+                        print(f"❌ {error_msg}")
+                        raise ValueError(error_msg)
+                    
+                    # کاهش موجودی محصول
                     product.stock -= quantity
-                    product.save(update_fields=["stock"])
-
+                    product.save(system_update=True)
+                    
+                    print(f"   موجودی محصول بعد: {product.stock}")
+                    print("12. محصول ذخیره شد")
+                    
+                    # ایجاد رکورد فروش
                     sale = Sale.objects.create(
                         transaction=transaction,
                         product=product,
@@ -366,47 +443,76 @@ def handle_successful_payment(transaction):
                         total_price=int(cart_item.total_price()),
                     )
                     sales.append(sale)
-
+                    print(f"13. فروش ثبت شد - Sale ID: {sale.id}")
+                
                 # ===============================
                 # 📣 OUT OF STOCK NOTIFICATION
                 # ===============================
-                product.refresh_from_db(fields=["stock"])
-
+                print("14. بررسی اتمام موجودی")
+                product.refresh_from_db()
+                print(f"   محصول: {product.name}")
+                print(f"   موجودی در دیتابیس: {product.stock}")
+                
+                # بررسی موجودی صفر
+                stock_to_check = product.stock
+                if actual_has_variants:
+                    total_variant_stock = product.variants.aggregate(total=models.Sum("stock"))["total"] or 0
+                    stock_to_check = total_variant_stock
+                    print(f"   مجموع موجودی واریانت‌ها: {total_variant_stock}")
+                
+                print(f"   موجودی برای بررسی: {stock_to_check}")
+                
                 if (
-                    product.stock == 0
+                    stock_to_check == 0
                     and product.store.tel_channel
                     and product.id not in out_of_stock_products
                 ):
+                    print("15. محصول تمام شده است - ارسال اعلان")
                     out_of_stock_products.add(product.id)
 
                     photos = []
                     if product.main_image:
                         photos.append(product.main_image.path)
-                    photos += [img.image.path for img in product.images.all()]
+                        print(f"   تصویر اصلی: {product.main_image.path}")
+                    
+                    product_images = [img.image.path for img in product.images.all()]
+                    photos += product_images
+                    print(f"   تعداد تصاویر اضافی: {len(product_images)}")
 
                     try:
+                        print("16. ارسال آلبوم به کانال")
+                        print(f"   کانال: {product.store.tel_channel}")
+                        print(f"   محصول: {product.name}")
+                        
                         send_album_and_button(
                             channel_id=product.store.tel_channel,
                             product=product,
                             photos=photos,
                             out_of_stock=True,
                         )
+                        print("17. آلبوم ارسال شد")
                     except Exception as ex:
-                        print(f"⚠️ Error sending out-of-stock album: {ex}")
+                        print(f"⚠️ خطا در ارسال آلبوم اتمام موجودی: {ex}")
+                        traceback.print_exc()
 
-            # ===============================
-            # 📩 SEND NOTIFICATIONS
-            # ===============================
+            print(f"\n{'='*50}")
+            print("پردازش تمام آیتم‌ها تکمیل شد")
+            
+            print("ارسال نوتیفیکیشن‌ها...")
             send_payment_notifications(transaction, sales)
 
-            # ===============================
-            # 🧹 CLEAR CART
-            # ===============================
+            print("پاک کردن سبد خرید...")
             transaction.cart.items.all().delete()
+            print("✅ پردازش تراکنش با موفقیت کامل شد")
 
     except Exception as e:
-        print(f"❌ [handle_successful_payment] Error: {e}")
+        print(f"\n❌❌❌ خطا در handle_successful_payment: {e}")
+        print(f"❌ تراکنش: {transaction.id if transaction else 'N/A'}")
         traceback.print_exc()
+        raise
+
+
+
 
 def send_payment_notifications(transaction, sales):
     """ارسال پیام‌های اطلاع‌رسانی پس از پرداخت موفق"""

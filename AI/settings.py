@@ -23,7 +23,8 @@ ALLOWED_HOSTS = [
     "intelleum.ir",
     "intelleum.ir:8443",
     "www.intelleum.ir",
-    "www.intelleum.ir:8443"
+    "www.intelleum.ir:8443",
+    "37.148.9.135"
 ]
 
 CSRF_TRUSTED_ORIGINS = [

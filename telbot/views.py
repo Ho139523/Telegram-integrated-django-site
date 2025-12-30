@@ -878,11 +878,6 @@ def visit_website(message):
         send_website_link(message)
 
 
-@app.message_handler(func=lambda message: message.text=="hello")
-def yank(message):
-    store_info = SendStore(app)
-    store_info.show_store_info(message)
-
 # settings handler
 @app.message_handler(func=lambda message: message.text == t(message, "menu_settings"))
 def settings(message):
@@ -2412,6 +2407,12 @@ product_bot.register_handle_finish_attributes()
 @app.message_handler(func=lambda message: message.text in [t(message, "edit"),])
 def edit(message):
     app.send_message(message.chat.id, t(message, "edit_product_category_soon"))
+
+
+@app.message_handler(commands=['build_shop'])
+def yank(message):
+    store_info = SendStore(app)
+    store_info.show_store_info(message)
 
 
 ##################################### END CATEGROY #####################################

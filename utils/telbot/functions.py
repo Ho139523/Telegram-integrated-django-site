@@ -469,7 +469,7 @@ import threading
 from django.core.cache import cache
 
 class SendMarkup:
-    def __init__(self, bot, chat_id, text=None, buttons=None, button_layout=None, handlers=None):
+    def __init__(self, bot, chat_id, text=None, buttons=None, button_layout=None, handlers=None, message=None):
         self.bot = bot
         self.chat_id = chat_id
         self.text = text
@@ -477,6 +477,7 @@ class SendMarkup:
         self.button_layout = button_layout or []
         self.handlers = handlers or {}
         self._keyboard_cache = None
+        self.message = message
 
     def _validate_button(self, text, callback_data, is_url=False):
         """اعتبارسنجی دکمه قبل از ساخت"""
@@ -652,29 +653,33 @@ class SendMarkup:
                 print(f"Error sending without buttons: {e2}")
 
     def edit(self, message_id):
-        """ویرایش پیام با هندل خطا"""
+        """ویرایش هوشمند پیام (text یا caption)"""
         try:
             markup = self.generate_keyboard()
-            self.bot.edit_message_text(
-                chat_id=self.chat_id,
-                message_id=message_id,
-                text=self.text,
-                reply_markup=markup,
-                parse_mode="HTML"
-            )
+
+            # اگر message داریم و پیام photo است → caption
+            if self.message and getattr(self.message, "content_type", None) == "photo":
+                self.bot.edit_message_caption(
+                    chat_id=self.chat_id,
+                    message_id=message_id,
+                    caption=self.text,
+                    reply_markup=markup,
+                    parse_mode="HTML"
+                )
+            else:
+                # حالت پیش‌فرض: text
+                self.bot.edit_message_text(
+                    chat_id=self.chat_id,
+                    message_id=message_id,
+                    text=self.text,
+                    reply_markup=markup,
+                    parse_mode="HTML"
+                )
+
         except Exception as e:
             if "message is not modified" not in str(e):
                 print(f"Error in SendMarkup.edit: {traceback.format_exc()}")
-                # تلاش برای ویرایش بدون دکمه در صورت خطا
-                try:
-                    self.bot.edit_message_text(
-                        chat_id=self.chat_id,
-                        message_id=message_id,
-                        text=self.text,
-                        parse_mode="HTML"
-                    )
-                except Exception as e2:
-                    print(f"Error editing without buttons: {e2}")
+
 
     def handle_callback(self, call):
         """مدیریت کلیک روی دکمه‌ها"""
@@ -1078,6 +1083,10 @@ def generate_unique_slug(model, name, max_length=50):
     
     return unique_slug
 
+import os
+import traceback
+from django.conf import settings
+
 def download_and_save_image(file_id, bot):
     try:
         # دانلود فایل
@@ -1085,16 +1094,20 @@ def download_and_save_image(file_id, bot):
         downloaded_file = bot.download_file(file_info.file_path)
 
         # مسیر ذخیره‌سازی
-        save_dir = os.path.join(sett.MEDIA_ROOT, "product_images")
+        save_dir = os.path.join(settings.MEDIA_ROOT, "product_images")
         os.makedirs(save_dir, exist_ok=True)  # ایجاد مسیر در صورت عدم وجود
 
-        file_path = os.path.join(save_dir, file_info.file_path.split('/')[-1])
+        file_name = file_info.file_path.split('/')[-1]  # نام فایل از فایل‌پث استخراج می‌شود
+        file_path = os.path.join(save_dir, file_name)
 
         # ذخیره فایل در سیستم
         with open(file_path, 'wb') as new_file:
             new_file.write(downloaded_file)
 
-        return file_path  # مسیر ذخیره‌شده را برمی‌گرداند
+        # بازگشت به مسیر نسبی برای Django
+        relative_file_path = os.path.join("product_images", file_name)
+
+        return relative_file_path  # مسیر نسبی برای استفاده در قالب
     except Exception as e:
         print(f"خطا در ذخیره تصویر: {traceback.format_exc()}")
         return None
@@ -2242,14 +2255,14 @@ class ProductHandler:
 
     def send_product_message(self, chat_id, buttons=True):
         """ارسال محصول با دکمه‌های سریع"""
+        from AI.settings import BASE_DIR
         try:
             photos = [
-                types.InputMediaPhoto(open(self.product.main_image.path, 'rb'), caption=self.generate_caption(), parse_mode='HTML')
+                types.InputMediaPhoto(open(os.path.join(BASE_DIR, self.product.main_image.path), 'rb'), caption=self.generate_caption(), parse_mode='HTML')
             ] + [
-                types.InputMediaPhoto(open(i.image.path, 'rb')) for i in self.product.images.all()
+                types.InputMediaPhoto(open(os.path.join(BASE_DIR, i.image.path), 'rb')) for i in self.product.images.all()
             ]
             
-            print(photos)
 
             if len(photos) > 10:
                 photos = photos[:10]
@@ -4998,85 +5011,191 @@ class SendPhotoWithMarkup(SendMarkup):
                     print(f"Error editing without keyboard: {e2}")
 
 
-# @add_performance_monitoring_to_class
+def t(msg, key, chat_id=None, profile=None, lang=None, **kwargs):
+    try:
+        if isinstance(msg, types.Message):
+            message = msg
+        elif isinstance(msg, types.CallbackQuery):
+            message = msg.message
+        else:
+            message = None
+
+        if chat_id is None and message:
+            chat_id = message.chat.id
+
+        # استفاده از profile یا lang اگر داده شده
+        if profile:
+            lang = profile.lang
+        elif lang is None and chat_id:
+            lang = ProfileModel.objects.get(tel_id=chat_id).lang
+
+        text = translations.get(key, {}).get(lang, translations.get(key, {}).get("en", key))
+
+        if kwargs:
+            text = text.format(**kwargs)
+
+        return text
+    except Exception:
+        print(traceback.format_exc())
+        return key
+
+
+@add_performance_monitoring_to_class
 class SendStore:
-    
+    """
+    Optimized & Stateless Store Sender
+    - Only ONE DB query for Profile + Store
+    - No duplicated logic
+    - Clean separation of concerns
+    """
+
     def __init__(self, bot: TeleBot):
         self.bot = bot
 
-    def _generate_caption(self):
-        pass
-
-    def _generate_buttons(self, chat_id=None):
-
-        buttons = {}
-
-        if self._has_store(chat_id):
-            profile = ProfileModel.objects.get(tel_id=chat_id)
-            store = Store.objects.filter(owner=profile).first()
-            addr = store.get_address()
-            
-            
-            if profile.lang == 'fa':
-                addr_text = f"{addr.shipping_country_name}، {addr.shipping_province_name}، {addr.shipping_city_name} ..."
-            else:
-                print(f"fffffffffffffffffffff {addr.shipping_province}")
-                addr_text = f"{addr.shipping_city_name}، {addr.shipping_province_name}، {addr.shipping_country_name} ..."
-            buttons[f"{t("message", "store_name", chat_id=chat_id)}: {store.name}"] = {"callback_data": "buy_product", "index": 1}
-            buttons[f"{t('message', 'address', chat_id=chat_id, address_text=addr_text)}"] = {"callback_data": "buy_product", "index": 1}
-            
-            return buttons
-
-        else:
-            buttons[f"{t("message", "store_name", chat_id=chat_id)}: --- "] = {"callback_data": "buy_product", "index": 1}
-            buttons[f"{t('message', 'address', chat_id=chat_id, address_text=' --- ')}"] = {"callback_data": "buy_product", "index": 1}
-            buttons[f"{t('message', 'submit_information', chat_id=chat_id)}"] = {"callback_data": "submit_info", "index": 1}
-            return buttons
-
-    def _generate_handlers(self):
-        pass
-
-    def _generate_layout(self):
-        pass
-
-    def _logo_path(self, chat_id=None):
-        profile = ProfileModel.objects.get(tel_id=chat_id)
-        store = Store.objects.filter(owner=profile).first()
-        return MEDIA_URL + str(store.logo)
-    
-    def _has_store(self, chat_id):
-        profile = ProfileModel.objects.get(tel_id=chat_id)
-        store = Store.objects.filter(owner=profile).first()
-        if store:
-            return True
-        else:
-            return False
-
-
+    # =============================
+    # Public API
+    # =============================
     def show_store_info(self, message: Message):
         try:
-            profile = ProfileModel.objects.get(tel_id=message.chat.id)
-            buttons = self._generate_buttons(chat_id=message.chat.id)
-            button_layout = [1, 1]
-            handlers = {
-                "buy_product": lambda call: self.bot.answer_callback_query(call.id, "خرید با موفقیت ثبت شد!"),
-                "buy_product": lambda call: self.bot.answer_callback_query(call.id, "ﺥﺮﯾﺩ ﺏﺍ ﻡﻮﻔﻘﯿﺗ ﺚﺒﺗ ﺵﺩ!"),
-            }
-            print(profile.lang)
-            photo_markup = SendPhotoWithMarkup(
+            chat_id = message.chat.id
+
+            profile, store = self._load_context(chat_id)
+
+            buttons = self._generate_buttons(profile, store)
+
+            SendPhotoWithMarkup(
                 bot=self.bot,
-                chat_id=message.chat.id,
-                photo_path= self._logo_path(chat_id=message.chat.id) if self._has_store(message.chat.id) else os.path.join(MEDIA_URL, f'store_logos/{profile.lang}-default-store-logo.png'),
-                caption="<b>محصول جدید</b>\n\n"
-                    "توضیحات کامل محصول در اینجا قرار می‌گیرد.\n"
-                    "💰 قیمت: ۵۰,۰۰۰ تومان\n\n"
-                    "برای اقدام روی دکمه‌های زیر کلیک کنید:",
+                chat_id=chat_id,
+                photo_path=self._get_logo_path(profile, store),
+                caption=self._generate_caption(profile, store),
                 buttons=buttons,
-                button_layout=button_layout,
-                handlers=handlers
-            )
-            
-            # ارسال عکس
-            photo_markup.send()
-        except:
+                button_layout=[1, 1],
+                handlers=self._generate_handlers(profile)
+            ).send()
+
+        except Exception:
             print(traceback.format_exc())
+
+    # =============================
+    # Context Loader (ONE DB HIT)
+    # =============================
+    def _load_context(self, chat_id):
+        profile = ProfileModel.objects.get(tel_id=chat_id)
+
+        store = (
+            Store.objects
+            .select_related("owner")
+            .prefetch_related("store_address")
+            .filter(owner=profile)
+            .first()
+        )
+
+        return profile, store
+
+    # =============================
+    # UI Builders (NO DB)
+    # =============================
+    def _generate_buttons(self, profile, store):
+        buttons = {}
+
+        if not store:
+            buttons[f"{t('message','store_name', profile=profile)}: ---"] = {
+                "callback_data": "store_name", "index": 1
+            }
+            buttons[t(
+                'message', 'address',
+                profile=profile,
+                address_text=' --- '
+            )] = {"callback_data": "noop", "index": 1}
+
+            buttons[t('message', 'submit_information', profile=profile)] = {
+                "callback_data": "submit_info", "index": 1
+            }
+
+            return buttons
+
+        addr = store.get_address()
+
+        addr_text = self._format_address(addr, profile.lang)
+
+        buttons[f"{t('message','store_name', profile=profile)}: {store.name}"] = {
+            "callback_data": "store_name", "index": 1
+        }
+
+        buttons[t('message', 'address', profile=profile, address_text=addr_text)] = {
+            "callback_data": "buy_product", "index": 1
+        }
+
+        return buttons
+
+    def _generate_caption(self, profile, store):
+        return (
+            "<b>محصول جدید</b>\n\n"
+            "توضیحات کامل محصول در اینجا قرار می‌گیرد.\n"
+            "💰 قیمت: ۵۰,۰۰۰ تومان\n\n"
+            "برای اقدام روی دکمه‌های زیر کلیک کنید:"
+        )
+
+    def _generate_handlers(self, profile):
+        if profile.lang == "fa":
+            msg = "خرید با موفقیت ثبت شد!"
+        else:
+            msg = "Purchase completed successfully!"
+
+        return {
+            "buy_product": lambda call: self.bot.answer_callback_query(call.id, msg)
+        }
+
+    # =============================
+    # Helpers (Pure Logic)
+    # =============================
+    def _get_logo_path(self, profile, store):
+        if store and store.logo:
+            return store.logo.path
+
+        return os.path.join(
+            MEDIA_URL,
+            f"store_logos/{profile.lang}-default-store-logo.png"
+        )
+
+    @staticmethod
+    def _format_address(addr, lang):
+        if not addr:
+            return "---"
+
+        if lang == "fa":
+            return f"{addr.shipping_country_name}، {addr.shipping_province_name}، {addr.shipping_city_name} ..."
+        else:
+            return f"{addr.shipping_city_name}, {addr.shipping_province_name}, {addr.shipping_country_name} ..."
+
+
+    def take_name(self, call):
+        try:
+            profile, store = self._load_context(call.message.chat.id)
+            text = t('message','enter_store_name', profile=profile)
+
+            markup = SendMarkup(
+                bot=self.bot,
+                chat_id=call.message.chat.id,
+                text=text,
+                buttons=None,
+                button_layout=None,
+                handlers=None, 
+                message=call.message
+            )
+
+            # data = {"state": "take_phone", "old_message": call.message.message_id}
+            # self.session_manager.set_user_session(call.message.chat.id, data, namespace="phone")
+
+
+
+            # ارسال یا ویرایش پیام
+            if call:
+                markup.edit(call.message.message_id)  # ویرایش پیام موجود
+            else:
+                markup.send()  # ارسال پیام جدید
+
+
+        except Exception as e:
+            error_details = traceback.format_exc()
+            print(f"Error in take_name: {e}\n{error_details}")

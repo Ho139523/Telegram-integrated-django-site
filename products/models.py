@@ -37,6 +37,32 @@ class Store(models.Model):
     tel_channel = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram channel ID")
     lang = models.CharField(max_length=10, choices=get_language_choices(), default='en', unique=False, null=False, blank=True)
     markant_id = models.CharField(max_length=36, verbose_name="Markant ID", unique=True, null=False, blank=False)
+    tagline = models.CharField(max_length=120, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+    banner_image = models.ImageField(upload_to="store_banners/", blank=True, null=True)
+    intro_video = models.FileField(upload_to="store_intro_videos/", blank=True, null=True)  # یا URLField
+
+    website = models.URLField(blank=True, null=True)
+    support_phone = models.CharField(max_length=30, blank=True, null=True)
+    support_email = models.EmailField(blank=True, null=True)
+
+    is_verified = models.BooleanField(default=False)
+    verification_level = models.CharField(max_length=20, default="basic")  # basic/verified/premium
+
+    legal_name = models.CharField(max_length=200, blank=True, null=True)
+    company_type = models.CharField(max_length=20, blank=True, null=True)  # individual/company
+    tax_id = models.CharField(max_length=50, blank=True, null=True)
+
+    min_order_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    lead_time_days = models.PositiveIntegerField(default=1)
+
+    payment_terms = models.TextField(blank=True, null=True)
+    return_policy = models.TextField(blank=True, null=True)
+
+    # اگر دوست داری لینک‌ها را راحت نگه داری:
+    social_links = models.JSONField(default=dict, blank=True)  # {"instagram":"...", "linkedin":"..."}
+
 
     def __str__(self):
         return self.name

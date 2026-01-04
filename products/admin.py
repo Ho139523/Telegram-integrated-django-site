@@ -116,8 +116,48 @@ class ProductAdmin(admin.ModelAdmin):
 ### ----------------------------
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'markant_id')
-    search_fields = ('name', 'owner__tel_id', 'markant_id')
+    list_display = (
+        "name",
+        "owner",
+        "markant_id",
+        "lang",
+        "tel_channel",
+        "tel_group",
+        "is_verified",        # اگر اضافه کردی
+        "verification_level", # اگر اضافه کردی
+    )
+
+    search_fields = (
+        "name",
+        "markant_id",
+        "owner__tel_id",
+        "owner__user__username",
+        "owner__user__email",
+    )
+
+    list_filter = (
+        "lang",
+        "is_verified",        # اگر اضافه کردی
+        "verification_level", # اگر اضافه کردی
+    )
+
+    ordering = ("name",)
+
+    # نمایش بهتر در فرم ادمین
+    fieldsets = (
+        ("اطلاعات اصلی", {
+            "fields": ("owner", "name", "logo", "markant_id", "lang")
+        }),
+        ("راه‌های ارتباطی", {
+            "fields": ("tel_group", "tel_channel")
+        }),
+        ("معرفی فروشگاه", {  # اگر اضافه کردی
+            "fields": ("tagline", "description", "banner_image", "intro_video")
+        }),
+        ("اعتبارسنجی", {     # اگر اضافه کردی
+            "fields": ("is_verified", "verification_level")
+        }),
+    )
 
 
 ### ----------------------------

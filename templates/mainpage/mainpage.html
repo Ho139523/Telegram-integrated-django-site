@@ -2,785 +2,549 @@
 {% load static %}
 
 
+{% block main %}
+  <main>
 
-{% block content %}
-
-    <section class="hero-section  d-sm-flex">
-        <video autoplay muted loop playsinline id="heroImg">
-        <source src="{% static 'mainpage/assets/video/hero-video.mp4' %}" type="video/mp4">
-    </video>
-        <img src="{% static 'mainpage/assets/img/hero-bg_2.jpg' %}" alt="" id="heroImg">
-        <div class="container text-center">
-            <h1 class="fw-bold display-4 mb-0 title">
-            </h1>
-            <div class="mt-5 d-flex flex-wrap align-items justify-content-center">
-                <div class="position-relative mw-100 hero-search-container" data-bs-toggle="modal" data-bs-target="#searchModal" aria-label="باز کردن جست و جو">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="#cecece" style="z-index: 1;right: 13px;top: 10px;" class="position-absolute">
-                        <path
-                            d="M17.7531 16.7188L13.5656 12.5312C14.4719 11.4219 14.9719 10.025 14.9719 8.5C14.9719 4.90937 12.0616 2 8.47188 2C4.88219 2 2 4.91031 2 8.5C2 12.0897 4.91001 15 8.47188 15C9.99657 15 11.3953 14.4716 12.5031 13.5925L16.6906 17.78C16.8656 17.9281 17.0594 18 17.25 18C17.4406 18 17.6338 17.9268 17.7803 17.7803C18.0719 17.4875 18.0719 17.0125 17.7531 16.7188ZM3.50001 8.5C3.50001 5.74312 5.74313 3.5 8.50001 3.5C11.2569 3.5 13.5 5.74312 13.5 8.5C13.5 11.2569 11.2569 13.5 8.50001 13.5C5.74313 13.5 3.50001 11.2563 3.50001 8.5Z"
-                            fill="#cecece"></path>
-                    </svg>
-                    <input type="text" class="form-control px-4" name="" id="" placeholder="Tell me what you are looking for ...">
-                </div>
-            </div>
+    <!-- =========================
+         Best Seller as Slideshow
+         FIX #4: Replace top arrows with "دیدن بیشتر"
+         ========================= -->
+    <section class="section">
+      <div class="section-title">
+        <div>
+          <h3 class="fw-bold mb-1">محصولات پرفروش</h3>
+          <small>اسلایدشو کارت‌ها (Responsive)</small>
         </div>
-        <a href="#road-map" class="rounded-circle next-section p-0 position-absolute">
-            <div class='scrolldown'>
-                <div class="chevrons">
-                    <div class='chevrondown'></div>
-                    <div class='chevrondown'></div>
-                </div>
-            </div>
+        <a class="btn btn-outline-secondary" href="#">
+          دیدن بیشتر <i class="bi bi-arrow-left ms-2"></i>
         </a>
-    </section>
+      </div>
 
+      <div id="bestSellerCarousel" class="carousel slide products-carousel" data-bs-ride="carousel" data-bs-interval="3500">
+        <div class="carousel-inner">
 
-
-
-
-
-
-
-
-
-
-
-    <section class="section-height-fit my-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-xl-6 col-md-12">
-                    <h2 class="fm-morabba title fw-bold more-about-codena-title">
-                        We Intend to ...
-                    </h2>
-
-                    <p class="text-justify text-secondary lh-lg">
-					
-						Hello, my dear friend! Welcome! Before you move on, I highly recommend you watch this video to understand what’s going on here. To help you make the right decision for your learning journey, I suggest you open the page of each roadmap you're interested in and watch the videos. Looking forward to celebrating your success together :)
-					
-					</p>
-                </div>
-                <div class="col-xl-6 col-md-12 mt-3 text-center" style="min-height: 200px;" id="videoContainer">
-
-
-                    <div class="video-container" id="AboutVideo">
-                        <video crossorigin="anonymous" playsinline poster="{% static 'mainpage/assets/img/hero-bg_2.jpg' %}" primary-src="https://c145143.parspack.net/c145143/%D9%88%DB%8C%D8%AF%DB%8C%D9%88%20%D9%87%D8%A7%DB%8C%20%D8%B1%D8%B3%D9%85%DB%8C%20%D8%B3%D8%A7%DB%8C%D8%AA/%D9%85%D8%B9%D8%B1%D9%81%DB%8C%20%DA%A9%D8%AF%D9%86%D8%A7~%D8%AD%D8%AC%D9%85%20%DA%A9%D9%85.mp4"
-                            src="{% static 'mainpage/assets/video/intro.mp4' %}" class="video" id="videoCourse">
-                                </video>
-                        <div class="controllers show">
-                            <div class="top-controllers">
-                                <div class="logo">
-                                    <a href="">
-                                                <img src="{% static 'mainpage/assets/img/logo-footer.webp' %}" alt="">
-                                            </a>
-                                </div>
-                            </div>
-                            <div class="bottom-controllers">
-                                <div class="times">
-                                    <span class="current-time"></span> / <span class="duration"></span>
-                                </div>
-                                <div class="progress-video">
-                                    <div class="progress-hidden"></div>
-                                    <div id="progressMarker"></div>
-                                    <div class="buffered"></div>
-                                    <div id="timeProgress"></div>
-                                </div>
-                                <div class="bottom-controllers-tools">
-                                    <div class="tool-section-right">
-                                        <button class="control" id="fullscreen">
-                                                    <svg width="19px" height="19px" viewBox="0 0 14 14">
-                                                        <g stroke="none" stroke-width="1" fill="none"
-                                                           fill-rule="evenodd">
-                                                            <g transform="translate(-173.000000, -3481.000000)">
-                                                                <g transform="translate(100.000000, 3378.000000)">
-                                                                    <g transform="translate(68.000000, 98.000000)">
-                                                                        <g>
-                                                                            <polygon points="0 0 24 0 24 24 0 24">
-                                                                            </polygon>
-                                                                            <path
-                                                                                    d="M7,14 L5,14 L5,19 L10,19 L10,17 L7,17 L7,14 Z M5,10 L7,10 L7,7 L10,7 L10,5 L5,5 L5,10 Z M17,17 L14,17 L14,19 L19,19 L19,14 L17,14 L17,17 Z M14,5 L14,7 L17,7 L17,10 L19,10 L19,5 L14,5 Z"
-                                                                                    fill="#fff"></path>
-                                                                        </g>
-                                                                    </g>
-                                                                </g>
-                                                            </g>
-                                                        </g>
-                                                    </svg>
-                                                    <span class="control-tooltip start-0"> Full Screen (F)</span>
-                                                </button>
-                                        <button class="control" id="setting">
-                                                    <svg width="21px" height="21px" viewBox="0 0 1024 1024">
-                                                        <path fill="#fff"
-                                                              d="M600.704 64a32 32 0 0 1 30.464 22.208l35.2 109.376c14.784 7.232 28.928 15.36 42.432 24.512l112.384-24.192a32 32 0 0 1 34.432 15.36L944.32 364.8a32 32 0 0 1-4.032 37.504l-77.12 85.12a357.12 357.12 0 0 1 0 49.024l77.12 85.248a32 32 0 0 1 4.032 37.504l-88.704 153.6a32 32 0 0 1-34.432 15.296L708.8 803.904c-13.44 9.088-27.648 17.28-42.368 24.512l-35.264 109.376A32 32 0 0 1 600.704 960H423.296a32 32 0 0 1-30.464-22.208L357.696 828.48a351.616 351.616 0 0 1-42.56-24.64l-112.32 24.256a32 32 0 0 1-34.432-15.36L79.68 659.2a32 32 0 0 1 4.032-37.504l77.12-85.248a357.12 357.12 0 0 1 0-48.896l-77.12-85.248A32 32 0 0 1 79.68 364.8l88.704-153.6a32 32 0 0 1 34.432-15.296l112.32 24.256c13.568-9.152 27.776-17.408 42.56-24.64l35.2-109.312A32 32 0 0 1 423.232 64H600.64zm-23.424 64H446.72l-36.352 113.088-24.512 11.968a294.113 294.113 0 0 0-34.816 20.096l-22.656 15.36-116.224-25.088-65.28 113.152 79.68 88.192-1.92 27.136a293.12 293.12 0 0 0 0 40.192l1.92 27.136-79.808 88.192 65.344 113.152 116.224-25.024 22.656 15.296a294.113 294.113 0 0 0 34.816 20.096l24.512 11.968L446.72 896h130.688l36.48-113.152 24.448-11.904a288.282 288.282 0 0 0 34.752-20.096l22.592-15.296 116.288 25.024 65.28-113.152-79.744-88.192 1.92-27.136a293.12 293.12 0 0 0 0-40.256l-1.92-27.136 79.808-88.128-65.344-113.152-116.288 24.96-22.592-15.232a287.616 287.616 0 0 0-34.752-20.096l-24.448-11.904L577.344 128zM512 320a192 192 0 1 1 0 384 192 192 0 0 1 0-384zm0 64a128 128 0 1 0 0 256 128 128 0 0 0 0-256z"/>
-                                                    </svg>
-                                                </button>
-                                    </div>
-                                    <div class="tool-section-center">
-                                        <button class="control" id="plusSecond">
-                                                    <svg viewBox="0 0 26 26" width="21" height="21">
-                                                        <g fill="currentcolor" data-viewbox="0 0 24 24">
-                                                            <path
-                                                                    d="M8.42 11.5v5a.5.5 0 00.5.5.5.5 0 00.5-.5v-5a.5.5 0 00-.5-.5.5.5 0 00-.5.5zM10.83 11a.5.5 0 00-.5.5v4a1.5 1.5 0 001.5 1.5H12a1.5 1.5 0 001-.38 1.5 1.5 0 002.5-1.12v-2A2.5 2.5 0 0013 11zm3.67 2.5v2a.5.5 0 01-1 0v-1a.5.5 0 00-1 0v1a.5.5 0 01-.5.5h-.17a.5.5 0 01-.5-.5V12H13a1.5 1.5 0 011.5 1.5z">
-                                                            </path>
-                                                            <path
-                                                                    d="M19.5 12a1 1 0 00-1 1 6.51 6.51 0 01-2.4 5.05 6.58 6.58 0 01-5.51 1.3 6.44 6.44 0 01-4.94-4.94A6.58 6.58 0 017 8.9a6.49 6.49 0 014.5-2.37v2a1 1 0 00.55.89 1 1 0 001-.09l4-3a1 1 0 00.4-.8 1 1 0 00-.4-.8l-4-3a1 1 0 00-1.6.8v2a8.49 8.49 0 109 8.47 1 1 0 00-.95-1z">
-                                                            </path>
-                                                        </g>
-                                                    </svg>
-                                                    <span class="control-tooltip">+15 (L)</span>
-                                                </button>
-                                        <button class="control" id="playPause">
-                                                    <svg width="21px" height="21px" viewBox="0 0 11 14">
-                                                        <g stroke="none" stroke-width="1" fill="none"
-                                                           fill-rule="evenodd">
-                                                            <g transform="translate(-753.000000, -955.000000)">
-                                                                <g transform="translate(100.000000, 852.000000)">
-                                                                    <g transform="translate(646.000000, 98.000000)">
-                                                                        <g>
-                                                                            <rect x="0" y="0" width="24" height="24">
-                                                                            </rect>
-                                                                            <path
-                                                                                    d="M7,6.82 L7,17.18 C7,17.97 7.87,18.45 8.54,18.02 L16.68,12.84 C17.3,12.45 17.3,11.55 16.68,11.15 L8.54,5.98 C7.87,5.55 7,6.03 7,6.82 Z"
-                                                                                    fill="#fff"></path>
-                                                                        </g>
-                                                                    </g>
-                                                                </g>
-                                                            </g>
-                                                        </g>
-                                                    </svg>
-                                                    <span class="control-tooltip">Play (K)</span>
-                                                </button>
-                                        <button class="control" id="minusSecond">
-                                                    <svg viewBox="0 0 26 26" width="21" height="21">
-                                                        <g fill="currentcolor" data-viewbox="0 0 24 24">
-                                                            <path
-                                                                    d="M9.42 16.5v-5a.5.5 0 00-.5-.5.5.5 0 00-.5.5v5a.5.5 0 00.5.5.5.5 0 00.5-.5zM12 17a1.5 1.5 0 001-.38 1.5 1.5 0 002.5-1.12v-2A2.5 2.5 0 0013 11h-2.17a.5.5 0 00-.5.5v4a1.5 1.5 0 001.5 1.5zm-.67-1.5V12H13a1.5 1.5 0 011.5 1.5v2a.5.5 0 01-1 0v-1a.5.5 0 00-1 0v1a.5.5 0 01-.5.5h-.17a.5.5 0 01-.5-.5z">
-                                                            </path>
-                                                            <path
-                                                                    d="M18.6 7.64a8.49 8.49 0 00-6.1-3.11v-2a1 1 0 00-1.6-.8l-4 3a1 1 0 00-.4.8 1 1 0 00.4.8l4 3a1 1 0 001 .09 1 1 0 00.55-.89v-2a6.49 6.49 0 014.6 2.37 6.58 6.58 0 011.3 5.51 6.44 6.44 0 01-4.94 4.94 6.58 6.58 0 01-5.51-1.3A6.51 6.51 0 015.5 13a1 1 0 00-2 0 8.49 8.49 0 008.5 8.5 8.5 8.5 0 006.6-13.86z">
-                                                            </path>
-                                                        </g>
-                                                    </svg>
-                                                    <span class="control-tooltip">15- (J)</span>
-                                                </button>
-                                    </div>
-                                    <div class="tool-section-left">
-                                        <div id="volumeContainer">
-                                            <input type="range" name="" id="volumeRange" min="0" max="1" step="0.01" value="1">
-                                            <button class="control" id="volumeBtn">
-                                                        <svg viewBox="0 2 24 20" width="21" height="21">
-                                                            <g fill="currentcolor" data-viewbox="0 0 24 24">
-                                                                <path
-                                                                        d="M12 4.12a1 1 0 00-1 0L5.71 7.5H2.5a1 1 0 00-1 1v7a1 1 0 001 1h3.21L11 19.84a1 1 0 00.54.16 1 1 0 001-1V5a1 1 0 00-.54-.88zM19.57 4.72a1 1 0 10-1.44 1.39 8.5 8.5 0 010 11.78 1 1 0 000 1.42 1 1 0 00.7.27 1 1 0 00.72-.3 10.51 10.51 0 000-14.56z">
-                                                                </path>
-                                                                <path
-                                                                        d="M16.46 7.28a1 1 0 10-1.37 1.45 4.5 4.5 0 010 6.54 1 1 0 101.37 1.45 6.48 6.48 0 000-9.44z">
-                                                                </path>
-                                                            </g>
-                                                        </svg>
-                                                        <span class="control-tooltip end-0">Mute (M)</span>
-                                                    </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="loading">
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                        </div>
-                        <div class="user-information">
-
-                        </div>
-                        <div class="setting-panel">
-                            <div class="setting-panel-header d-flex align-items-center justify-content-between">
-                                <h5 class="mb-0">Settings</h5>
-                                <button class="btn btn-danger rounded-circle d-flex align-items-center justify-content-center p-0" id="closeSetting" style="width: 25px;height: 25px;">
-                                            <svg width="10px" height="20px" viewBox="0 0 1024 1024">
-                                                <path id="closeNavIcon"
-                                                      d="M195.2 195.2a64 64 0 0 1 90.496 0L512 421.504 738.304 195.2a64 64 0 0 1 90.496 90.496L602.496 512 828.8 738.304a64 64 0 0 1-90.496 90.496L512 602.496 285.696 828.8a64 64 0 0 1-90.496-90.496L421.504 512 195.2 285.696a64 64 0 0 1 0-90.496z">
-                                                </path>
-                                            </svg>
-                                        </button>
-                            </div>
-                            <div class="setting-panel-content mt-3 align-items-start d-flex gap-3 flex-column">
-                                <button class="control" id="screenshot">
-                                            <svg width="21px" height="21px" viewBox="0 0 20 20">
-                                                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                                    <g transform="translate(-272.000000, -2770.000000)">
-                                                        <g transform="translate(100.000000, 2626.000000)">
-                                                            <g transform="translate(170.000000, 142.000000)">
-                                                                <g>
-                                                                    <polygon points="0 0 24 0 24 24 0 24"></polygon>
-                                                                    <path
-                                                                            d="M13.81,2.86 C13.98,2.56 13.81,2.16 13.46,2.12 C10.84,1.75 8.16,2.4 6.02,3.98 C5.83,4.13 5.77,4.41 5.9,4.63 L8.91,9.85 C9.1,10.18 9.58,10.18 9.78,9.85 L13.81,2.86 Z M21.3,8.33 C20.32,5.86 18.38,3.87 15.95,2.83 C15.72,2.73 15.45,2.83 15.32,3.05 L12.31,8.26 C12.12,8.58 12.36,9 12.75,9 L20.83,9 C21.18,9 21.43,8.65 21.3,8.33 Z M21.37,10 L15.17,10 C14.79,10 14.54,10.42 14.74,10.75 L19,18.14 C19.17,18.44 19.6,18.49 19.82,18.22 C21.56,16.04 22.3,13.19 21.87,10.43 C21.84,10.18 21.62,10 21.37,10 Z M4.18,5.79 C2.45,7.98 1.7,10.81 2.13,13.58 C2.16,13.82 2.38,14 2.63,14 L8.83,14 C9.21,14 9.46,13.58 9.26,13.25 L5,5.87 C4.82,5.57 4.39,5.52 4.18,5.79 Z M2.7,15.67 C3.68,18.14 5.62,20.13 8.05,21.17 C8.28,21.27 8.55,21.17 8.68,20.95 L11.69,15.74 C11.88,15.41 11.64,14.99 11.26,14.99 L3.17,14.99 C2.82,15 2.57,15.35 2.7,15.67 Z M10.53,21.89 C13.15,22.26 15.83,21.61 17.97,20.03 C18.17,19.88 18.23,19.59 18.1,19.37 L15.09,14.15 C14.9,13.82 14.42,13.82 14.22,14.15 L10.18,21.14 C10.01,21.44 10.19,21.84 10.53,21.89 Z"
-                                                                            fill="#fff"></path>
-                                                                </g>
-                                                            </g>
-                                                        </g>
-                                                    </g>
-                                                </g>
-                                            </svg>
-                                            Snap Shot
-                                        </button>
-                                <button class="control ms-0" id="grayVideoToggle">
-                                            <svg x="0px" y="0px" viewBox="0 0 32 32" width="21" height="21">
-                                                <style type="text/css">
-                                                    .st0 {
-                                                        fill: none;
-                                                        stroke: #fff;
-                                                        stroke-width: 2;
-                                                        stroke-linecap: round;
-                                                        stroke-linejoin: round;
-                                                        stroke-miterlimit: 10;
-                                                    }
-
-                                                    .st1 {
-                                                        fill: none;
-                                                        stroke: #fff;
-                                                        stroke-width: 2;
-                                                        stroke-linejoin: round;
-                                                        stroke-miterlimit: 10;
-                                                    }
-                                                </style>
-                                                <path class="st0" d="M17,5c-0.27,0-0.54,0.02-0.8,0.04C19.05,6.55,21,9.55,21,13c0,4.97-4.03,9-9,9c-2.74,0-5.19-1.23-6.85-3.17
-                  C6.04,24.59,11,29,17,29c6.63,0,12-5.37,12-12S23.63,5,17,5z"/>
-                                                <g>
-                                                    <path class="st0"
-                                                          d="M11,9c-2.58,0.62-3.38,1.42-4,4c-0.62-2.58-1.42-3.38-4-4c2.58-0.62,3.38-1.42,4-4C7.62,7.58,8.42,8.38,11,9z"/>
-                                                </g>
-                                                <line class="st0" x1="12" y1="14" x2="12" y2="16"/>
-                                                <line class="st0" x1="11" y1="15" x2="13" y2="15"/>
-                                            </svg>
-                                            Black and White
-                                        </button>
-                                <button class="control ms-0" id="pictureInPicture">
-                                            <svg width="21px" height="21px" viewBox="0 0 22 18">
-                                                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                                    <g transform="translate(-237.000000, -333.000000)">
-                                                        <g transform="translate(100.000000, 100.000000)">
-                                                            <g transform="translate(136.000000, 230.000000)">
-                                                                <g>
-                                                                    <polygon points="0 0 24 0 24 24 0 24">
-                                                                    </polygon>
-                                                                    <path
-                                                                            d="M19,11 L11,11 L11,17 L19,17 L19,11 Z M17,15 L13,15 L13,13 L17,13 L17,15 Z M21,3 L3,3 C1.9,3 1,3.88 1,4.98 L1,19 C1,20.1 1.9,21 3,21 L21,21 C22.1,21 23,20.1 23,19 L23,4.98 C23,3.88 22.1,3 21,3 Z M21,19.02 L3,19.02 L3,4.97 L21,4.97 L21,19.02 Z"
-                                                                            fill="#fff"></path>
-                                                                    <polygon fill="#fff"
-                                                                             points="13 13 17 13 17 15 13 15">
-                                                                    </polygon>
-                                                                </g>
-                                                            </g>
-                                                        </g>
-                                                    </g>
-                                                </g>
-                                            </svg>
-                                            Picture in Picture
-                                        </button>
-                                <button class="control ms-0" id="setPlaybackRate">
-                                            1x
-                                            speed
-                                        </button>
-                                <p class="mb-0" style="margin-right: 5px;">Intelleum video player</p>
-                            </div>
-                        </div>
+          <!-- Slide 1 -->
+          <div class="carousel-item active">
+            <div class="row g-3">
+              <div class="col-12 col-sm-6 col-lg-3">
+                <div class="product-card">
+                  <div class="thumb" style="background-image:url('https://picsum.photos/seed/bs1/1200/700'); background-size:cover; background-position:center;"></div>
+                  <div class="p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge-soft"><i class="bi bi-star me-1"></i> محبوب</span>
+                      <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                        <i class="bi bi-bookmark"></i>
+                      </button>
                     </div>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-
-
-
-
-
-
-    <section class="category-road-map section-height-fit">
-        <div class="container">
-            <h1 class="text-light fw-bold fm-morabba d-flex align-items-center gap-3">
-                <div width="56px" height="56px" style="background-color: #ff8b00;box-shadow: 0 0 #0000, 0 0 #0000, -12px 12px 24px 0px rgb(255 139 0 / 31%);" class="rounded-4 d-flex align-items-center">
-                    <svg width="56px" height="56px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-                        <g data-name="road tracking">
-                            <path fill="#fff"
-                                d="m8 56 2.11-7L8 42l13 7-13 7zM47.5 50H24a1 1 0 0 1 0-2h23.5a4.5 4.5 0 0 0 0-9h-31a6.5 6.5 0 1 1 0-13H40a1 1 0 0 1 0 2H16.5a4.5 4.5 0 0 0 0 9h31a6.5 6.5 0 0 1 0 13zM43 25a1 1 0 0 1-1-1V8a1 1 0 0 1 2 0v16a1 1 0 0 1-1 1z" />
-                            <path fill="#fff" d="M43 16h10l-3-3.96L53 8H43v8z" />
-                            <circle cx="43" fill="#fff" cy="27" r="3" />
-                        </g>
-                    </svg>
-                </div>
-                Road Map
-            </h1>
-            <div class="row justify-content-center">
-
-                <div class="col-auto my-3">
-                    <a href="/roadmap-3/">
-						<img src="{% static 'mainpage/media/cosmetic.jpg' %}" class="rounded-4 roade-map-img img-fluid"
-							alt=" img-fluid">
-					</a>
-                </div>
-
-                <div class="col-auto my-3">
-                    <a href="/roadmap-2/">
-						<img src="{% static 'mainpage/media/shoe.jpg' %}" class="rounded-4 roade-map-img img-fluid"
-							alt=" img-fluid">
-					</a>
-                </div>
-
-                <div class="col-auto my-3">
-					<a href="/roadmap-1/">
-						<img src="{% static 'mainpage/media/perfume.jpg' %}" class="rounded-4 roade-map-img img-fluid"
-							alt=" img-fluid">
-					</a>
-                </div>
-
-                <div class="col-auto my-3">
-                    <a href="/roadmap-4/">
-						<img src="{% static 'mainpage/media/gold.jpg' %}" class="rounded-4 roade-map-img img-fluid"
-							alt=" img-fluid">
-					</a>
-                </div>
-
-
-                
-
-
-
-            </div>
-        </div>
-    </section>
-
-
-
-
-
-    <section id="road-map">
-        <div class="container p-3">
-            <div class="d-flex flex-column gap-3">
-                <div class="d-flex align-items-center justify-content-between title-and-show-more">
-                    <h1 class="text-light fw-bold fm-morabba d-flex align-items-center gap-3">
-                        <div width="56px" height="56px" style="background-color: #146da5;box-shadow: 0 0 #0000, 0 0 #0000, -12px 12px 24px 0px rgb(20 109 165 / 30%);" class="rounded-4 d-flex align-items-center">
-                            <svg width="56px" height="56px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                    d="M16.8311 15.6402C17.5011 15.2002 18.3811 15.6802 18.3811 16.4802V17.7702C18.3811 19.0402 17.3911 20.4002 16.2011 20.8002L13.0111 21.8602C12.4511 22.0502 11.5411 22.0502 10.9911 21.8602L7.80109 20.8002C6.60109 20.4002 5.62109 19.0402 5.62109 17.7702V16.4702C5.62109 15.6802 6.50109 15.2002 7.16109 15.6302L9.22109 16.9702C10.0111 17.5002 11.0111 17.7602 12.0111 17.7602C13.0111 17.7602 14.0111 17.5002 14.8011 16.9702L16.8311 15.6402Z"
-                                    fill="#fff"/>
-                            <path
-                                    d="M19.9795 6.45859L13.9895 2.52859C12.9095 1.81859 11.1295 1.81859 10.0495 2.52859L4.02953 6.45859C2.09953 7.70859 2.09953 10.5386 4.02953 11.7986L5.62953 12.8386L10.0495 15.7186C11.1295 16.4286 12.9095 16.4286 13.9895 15.7186L18.3795 12.8386L19.7495 11.9386V14.9986C19.7495 15.4086 20.0895 15.7486 20.4995 15.7486C20.9095 15.7486 21.2495 15.4086 21.2495 14.9986V10.0786C21.6495 8.78859 21.2395 7.28859 19.9795 6.45859Z"
-                                    fill="#fff"/>
-                        </svg>
-                        </div>
-                        Top Tutorials
-                    </h1>
-                    <a href='/courses/' class="btn btn-secondary more-btn">See all tutorials</a>
-                </div>
-                <div class="row">
-
-				{% for tutorial in tutorials %}
-                    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 my-2">
-                        <div class="card new-card h-100">
-                            <div class="half-price-internet px-2 position-absolute start-0 end-0 d-flex align-items-center justify-content-center gap-0 m-2">
-                                <svg width="11" height="11" viewBox="0 0 25 25">
-                                    <path
-                                            d="M12.5,0A12.5,12.5,0,1,0,25,12.5,12.52,12.52,0,0,0,12.5,0Zm5.26,12.92-8,5A.56.56,0,0,1,9.5,18a.5.5,0,0,1-.24-.06A.51.51,0,0,1,9,17.5V7.5a.51.51,0,0,1,.26-.44.49.49,0,0,1,.51,0l8,5a.49.49,0,0,1,0,.84Z"
-                                            fill="#fff"/>
-                                </svg>
-                                <span class='px-2'>Watch with half-price internet</span>
-                            </div>
-
-
-
-
-                            <a href="/courses/3/hacker">
-                                <img class="lazy card-img-top rounded-4" src="{% static 'mainpage/assets/img/lazy-img.webp' %}"
-                                     data-src="{{ tutorial.poster.url }}" alt="...">
-                            </a>
-                            <div class="card-body d-flex flex-column">
-                                <h2 class="card-title fs-4 fw-bold">
-                                    <a class="text-light" href="">
-                                        {{ tutorial.title }}
-                                    </a>
-                                </h2>
-                                <p class="card-text text-justify">
-                                    By completing this course, it certifies that you are a hack...
-                                </p>
-                                <div class="d-flex justify-content-between align-items-center text-light card-data mt-auto">
-                                    <a href="/courses/3/hacker" class="btn btn-success">
-                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
-                                             xmlns="http://www.w3.org/2000/svg">
-                                            <g clip-path="url(#clip0_33_9)">
-                                                <path
-                                                        d="M14.578 5.92604C14.74 5.00135 14.0284 4.1543 13.0897 4.1543H5.34804C4.40927 4.1543 3.69773 5.00135 3.85975 5.92604"
-                                                        stroke="white" stroke-width="1.13391"/>
-                                                <path
-                                                        d="M13.1168 4.15431C13.1369 3.9707 13.147 3.87887 13.1471 3.80304C13.1488 3.0776 12.6023 2.46807 11.881 2.39066C11.8056 2.38257 11.7132 2.38257 11.5285 2.38257H6.9094C6.72469 2.38257 6.63232 2.38257 6.55692 2.39066C5.83562 2.46807 5.28919 3.0776 5.29077 3.80304C5.29094 3.87887 5.30099 3.97068 5.3211 4.15431"
-                                                        stroke="white" stroke-width="1.13391"/>
-                                                <path
-                                                        d="M15.7344 12.8664C15.4865 14.6246 15.3626 15.5037 14.7268 16.0302C14.091 16.5566 13.1531 16.5566 11.2775 16.5566H7.16053C5.28493 16.5566 4.34713 16.5566 3.7113 16.0302C3.07546 15.5037 2.95152 14.6246 2.70363 12.8664L2.40387 10.7403C2.08777 8.49829 1.92973 7.37731 2.60146 6.65173C3.2732 5.92615 4.46906 5.92615 6.86077 5.92615H11.5773C13.969 5.92615 15.1649 5.92615 15.8366 6.65173C16.3673 7.22496 16.3801 8.045 16.2062 9.46963"
-                                                        stroke="white" stroke-width="1.13391"
-                                                        stroke-linecap="round"/>
-                                                <path
-                                                        d="M11.0484 10.6147C11.4442 10.8601 11.4442 11.4951 11.0484 11.7405L8.659 13.2217C8.27439 13.4601 7.80176 13.1498 7.80176 12.6589V9.6963C7.80176 9.20539 8.27439 8.89505 8.659 9.13346L11.0484 10.6147Z"
-                                                        stroke="white" stroke-width="1.13391"/>
-                                            </g>
-                                            <defs>
-                                                <clipPath id="clip0_33_9">
-                                                    <rect width="17.0087" height="17.0087" fill="white"
-                                                          transform="translate(0.714844 0.96521)"/>
-                                                </clipPath>
-                                            </defs>
-                                        </svg>
-                                        Watch it now
-                                    </a>
-
-
-                                    <span class="price">
-										${{tutorial.price}}
-                                        <!-- <svg width="18" height="19" viewBox="0 0 18 19" fill="none" -->
-                                            <!-- xmlns="http://www.w3.org/2000/svg"> -->
-                                            <!-- <path fill-rule="evenodd" clip-rule="evenodd" -->
-                                                <!-- d="M3.15675 1.86792L4.26846 0.788086L5.40345 1.87956L4.27428 2.95794L3.15675 1.86792ZM7.85678 5.47706C7.85678 6.38226 7.62396 7.0939 7.16124 7.61199C6.86876 7.93361 6.48897 8.17955 6.02188 8.34691C5.51377 8.51454 4.98091 8.59475 4.44598 8.58413H3.63839C3.02578 8.58413 2.47284 8.47643 1.98101 8.2596C1.44967 8.03601 0.994706 7.66289 0.6714 7.18558C0.326736 6.64351 0.150049 6.01161 0.163563 5.36937C0.163563 5.28351 0.165018 5.1991 0.169383 5.11324C0.213037 4.31282 0.466228 3.428 0.933322 2.4544L2.52668 3.15877C2.15271 3.93299 1.949 4.61407 1.91698 5.20056C1.91407 5.25877 1.91116 5.31698 1.91116 5.37519C1.91116 5.74193 1.99119 6.04172 2.15271 6.27457C2.32636 6.52726 2.58427 6.70989 2.88027 6.78974C3.00396 6.83049 3.13928 6.8596 3.2848 6.87706C3.39975 6.89161 3.51762 6.89743 3.63839 6.89743H4.44598C5.11243 6.89743 5.56497 6.77956 5.80361 6.54234C6.00733 6.34005 6.10918 5.98496 6.10918 5.47852V2.27249H7.85533V5.47706H7.85678ZM15.7625 10.1107L14.7148 9.09203L15.7464 8.06459L16.816 9.09348L15.7625 10.1107ZM11.6066 10.559C12.3953 10.559 13.0225 10.8355 13.4881 11.387C13.9203 11.8906 14.1356 12.5178 14.1356 13.2687V13.7985H14.3975V13.7926H14.9941C15.3157 13.7926 15.5427 13.7519 15.6737 13.6704C15.809 13.5904 15.8774 13.4667 15.8774 13.2949V13.1945C15.8832 12.8409 15.9021 11.6752 15.8774 11.5719L17.625 11.048V13.3386C17.6294 13.792 17.4825 14.234 17.2074 14.5945C16.7621 15.1839 16.0375 15.4779 15.032 15.4779H14.1196C14.0309 16.5446 13.4881 17.3072 12.4943 17.7671C12.1057 17.9446 11.6503 18.0727 11.1308 18.1527C10.6907 18.22 10.246 18.2526 9.80082 18.2502V16.5635C10.6914 16.5635 11.3607 16.4442 11.8089 16.2041C12.1727 16.012 12.356 15.7704 12.356 15.4779H11.6066C10.9722 15.4779 10.4323 15.3134 9.98708 14.9845C9.45305 14.5872 9.18676 14.0139 9.18676 13.2673C9.18676 12.5571 9.36429 11.9561 9.72079 11.4627C10.1515 10.8588 10.7801 10.5575 11.6066 10.5575V10.559ZM12.3822 13.7985V13.2687C12.3822 12.9529 12.3124 12.7026 12.1741 12.5178C12.1087 12.4298 12.0229 12.359 11.924 12.3116C11.8251 12.2641 11.7162 12.2415 11.6066 12.2457C11.4958 12.2418 11.3858 12.2645 11.2855 12.3119C11.1853 12.3592 11.0978 12.4298 11.0304 12.5178C10.8918 12.7066 10.8219 12.9372 10.8325 13.1712C10.8323 13.2038 10.8337 13.2363 10.8369 13.2687C10.8485 13.4507 10.9329 13.5889 11.0944 13.6806C11.2298 13.7592 11.4 13.797 11.6066 13.797L12.3822 13.7985ZM12.5321 9.09348L13.5798 10.1122L14.6333 9.09348L13.5638 8.06459L12.5321 9.09348ZM2.79151 16.207H2.83516C3.46523 16.1924 3.91923 16.0527 4.19861 15.785C4.23353 15.8024 4.29319 15.8359 4.37323 15.8839L4.4809 15.9407L4.59877 16.0018C4.79521 16.108 4.97856 16.1953 5.15026 16.2637C5.65228 16.4762 6.12519 16.5839 6.57191 16.5839C6.80512 16.589 7.03703 16.5478 7.25429 16.4629C7.47155 16.378 7.66988 16.251 7.83787 16.0891C8.2744 15.6743 8.49122 15.05 8.49122 14.2176C8.48604 13.6277 8.31729 13.0509 8.00375 12.5513C7.56867 11.8862 6.9386 11.5544 6.11209 11.5544C5.38162 11.5544 4.7792 11.8338 4.30484 12.3912C4.14041 12.5833 3.99926 12.8045 3.87703 13.0548C3.83047 13.145 3.78972 13.2367 3.7548 13.3328C3.73713 13.3693 3.72253 13.4073 3.71115 13.4463C3.69992 13.4752 3.68925 13.5043 3.67913 13.5336C3.52926 13.9833 3.43031 14.2394 3.38083 14.3049C3.27607 14.4359 3.06944 14.5087 2.7595 14.5188C2.58052 14.5116 2.45538 14.4752 2.38699 14.4082C2.30404 14.3297 2.2633 14.1856 2.2633 13.976V9.51989L0.515702 8.79224V13.976C0.515702 14.3558 0.585548 14.6978 0.723784 14.9991C0.827098 15.229 0.968244 15.4299 1.14577 15.6001C1.32475 15.7719 1.53283 15.9072 1.77147 16.0076C2.05958 16.1299 2.38262 16.1968 2.73913 16.2055V16.207H2.79151ZM6.796 14.7313C6.85673 14.5673 6.87864 14.3915 6.86003 14.2176C6.84853 13.971 6.76506 13.7332 6.61993 13.5336C6.47442 13.3386 6.30417 13.2411 6.11064 13.2411C5.84872 13.2411 5.63045 13.391 5.4602 13.6922C5.39909 13.7956 5.34379 13.9222 5.29432 14.0735C5.27341 14.1312 5.254 14.1894 5.23611 14.2482L5.21429 14.3253L5.19246 14.3922C5.39909 14.564 5.66246 14.7066 5.98404 14.8186C6.24597 14.9089 6.45696 14.9525 6.61411 14.9525C6.67814 14.9525 6.73925 14.8798 6.796 14.7313Z" -->
-                                                <!-- fill="white" /> -->
-                                        <!-- </svg> -->
-                                    </span>
-
-
-                                </div>
-                            </div>
-				
-                            <div class="card-footer border-light d-flex align-items-center justify-content-between">
-								<div>
-									{% if tutorial.installment %}
-										<p class="mb-0">Three phase installment purchase</p>
-									{% endif %}
-								</div>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-natural" id="bookmarkCourse">
-                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
-                                             xmlns="http://www.w3.org/2000/svg">
-                                            <g clip-path="url(#clip0_20_111)">
-                                                <path
-                                                        d="M2.66602 8.59976V12.2329C2.66602 14.486 2.66602 15.6125 3.20015 16.1047C3.45489 16.3395 3.77643 16.487 4.11896 16.5262C4.83717 16.6084 5.67589 15.8665 7.35329 14.3829C8.09474 13.7271 8.46552 13.3992 8.89444 13.3128C9.10566 13.2703 9.32307 13.2703 9.53429 13.3128C9.9632 13.3992 10.334 13.7271 11.0754 14.3829C12.7529 15.8665 13.5916 16.6084 14.3098 16.5262C14.6523 16.487 14.9739 16.3395 15.2286 16.1047C15.7627 15.6125 15.7627 14.486 15.7627 12.2329V8.59976C15.7627 5.4794 15.7627 3.91922 14.8037 2.94984C13.8448 1.98047 12.3013 1.98047 9.21436 1.98047C6.12744 1.98047 4.58398 1.98047 3.625 2.94984C3.03767 3.54354 2.81005 4.35884 2.72184 5.61844"
-                                                        stroke="white" stroke-width="1.74623"
-                                                        stroke-linecap="round"/>
-                                                <path d="M11.3971 4.89087H7.03149" stroke="white"
-                                                      stroke-width="2.61934"
-                                                      stroke-linecap="round"/>
-                                            </g>
-                                            <defs>
-                                                <clipPath id="clip0_20_111">
-                                                    <rect width="17.4623" height="17.4623" fill="white"
-                                                          transform="translate(0.483154 0.525269)"/>
-                                                </clipPath>
-                                            </defs>
-                                        </svg>
-                                    </button>
-                                    <button class="btn btn-natural" id="likeCourse">
-                                        <svg style="fill: transparent; stroke: #fff; stroke-width: 2px;"
-                                             width="21px"
-                                             height="21px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path
-                                                    d="M20.808,11.079C19.829,16.132,12,20.5,12,20.5s-7.829-4.368-8.808-9.421C2.227,6.1,5.066,3.5,8,3.5a4.444,4.444,0,0,1,4,2,4.444,4.444,0,0,1,4-2C18.934,3.5,21.773,6.1,20.808,11.079Z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="fw-bold mb-1">اسمارت‌واچ سری S</div>
+                    <div class="muted small mb-3">سنسور سلامتی · ضدآب</div>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="price">2,450,000 تومان</span>
+                      <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
                     </div>
-				{% endfor %}
-                    
-
-
-
-
-                           
-
-
-
+                  </div>
                 </div>
-            </div>
-        </div>
-    </section>
+              </div>
 
-
-
-
-
-    <script>
-        function addCommas(number) {
-            var numString = number.toString();
-            var result = "";
-            var count = 0;
-
-            for (var i = numString.length - 1; i >= 0; i--) {
-                result = numString.charAt(i) + result;
-                count++;
-                if (count % 3 === 0 && i !== 0) {
-                    result = "," + result;
-                }
-            }
-
-            return result;
-        }
-
-        const numbersElem = document.querySelectorAll("[data-num]")
-        numbersElem.forEach(el => {
-            let inputNum = el.getAttribute("data-num")
-            let outPutNum = addCommas(inputNum)
-            el.innerHTML = outPutNum
-        })
-    </script>
-
-
-
-
-
-
-
-    <section>
-        <div class="container  ">
-            <div class="text-center card flat-card p-3 my-5  section-height-fit">
-                <h1 class="display-3 title fw-bold fm-morabba">
-                    AI takes you on!
-                </h1>
-                <div class="row align-items-center mt-5">
-                    <div class="col-xl-5">
-                        <div class="text-start">
-                            <p class="text-secondary fs-4 mt-4 text-justify">
-                                Unlock the power of AI and Deep Learning in petroleum engineering! From optimizing drilling processes to predictive maintenance, our cutting-edge solutions drive innovation and efficiency. Explore the future of oil & gas with our advanced technologies😉👇
-							</p>
-                            <a href="/editor/" class="d-block text-center btn fs-4 my-3">Give it a go!</a>
-                        </div>
+              <!-- Discount card sample -->
+              <div class="col-12 col-sm-6 col-lg-3">
+                <div class="product-card">
+                  <div class="thumb" style="background-image:url('https://picsum.photos/seed/bs2/1200/700'); background-size:cover; background-position:center;">
+                    <span class="discount-badge">٪25-</span>
+                  </div>
+                  <div class="p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge-soft"><i class="bi bi-lightning-charge me-1"></i> تخفیف ویژه</span>
+                      <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                        <i class="bi bi-bookmark"></i>
+                      </button>
                     </div>
-					<div class="col-xl-7">
-                        <img src="{% static 'mainpage/assets/img/editor.webp' %}" class="img-fluid rounded-4" alt="">
+                    <div class="fw-bold mb-1">هدفون بی‌سیم مدل X</div>
+                    <div class="muted small mb-3">کیفیت صدا عالی · باتری قوی</div>
+
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div class="d-flex flex-column">
+                        <span class="old-price">2,520,000 تومان</span>
+                        <span class="price">1,890,000 تومان</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="discount-pill"><i class="bi bi-percent"></i> 25%</span>
+                        <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                      </div>
                     </div>
+                  </div>
                 </div>
-            </div>
-        </div>
-    </section>
+              </div>
 
-
-
-
-
-
-
-    <section class="section-height-fit blog">
-        <div class="container">
-            <div class="d-flex align-items-center justify-content-between title-and-show-more">
-                <h1 class="text-light fw-bold fm-morabba d-flex align-items-center gap-3">
-                    <svg id="news" width="45" height="45">
-                        <path d="M43,11H40V39a3,3,0,0,0,6,0V14A3,3,0,0,0,43,11Z" />
-                        <rect x="8" y="15" width="9" height="8" />
-                        <path
-                            d="M38,39V10a4,4,0,0,0-4-4H6a4,4,0,0,0-4,4V39a3,3,0,0,0,3,3H39.026A4.948,4.948,0,0,1,38,39ZM6,15a2,2,0,0,1,2-2h9a2,2,0,0,1,2,2v8a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2ZM33,35H7a1,1,0,0,1,0-2H33a1,1,0,0,1,0,2Zm0-5H7a1,1,0,0,1,0-2H33a1,1,0,0,1,0,2Zm0-5H23a1,1,0,0,1,0-2H33a1,1,0,0,1,0,2Zm0-5H23a1,1,0,0,1,0-2H33a1,1,0,0,1,0,2Zm0-5H23a1,1,0,0,1,0-2H33a1,1,0,0,1,0,2Z" />
-                    </svg> Articles
-                </h1>
-                <button onclick="window.location.href='/blog/'" class="btn more-btn">See all articles</button>
-            </div>
-            <div class="row mt-3">
-
-				{% for article in articles %}
-
-                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 my-2">
-                    <div class="card">
-                        <a href="/blog/31/What-is-AWS">
-                                <img src="{{article.poster.url}}" data-src="{{article.poster.url}}"
-                                    class="lazy card-img-top rounded-4" alt="...">
-                            </a>
-                        <div class="card-body d-flex flex-column">
-                            <h2 class="card-title fs-4 fw-bold">
-                                <a class="text-light" href="/blog/31/What-is-AWS">
-                                        {{ article.title }}
-                                    </a>
-                            </h2>
-                            <p class="card-text text-justify">
-							{{ article.context|truncatewords:25 }}
-                            </p>
-                            <a href="" class="link-light">
-                                <div class="blog-card-footer d-flex align-items-center gap-2">
-                                    <img class="rounded-circle blog-card-footer-avatar" src="{{article.author.profilemodel.avatar.url}}" alt="">
-                                    <span>{{ article.author.profilemodel.fname }} {{article.author.profilemodel.lname}}</span>
-                                </div>
-                            </a>
-                        </div>
+              <div class="col-12 col-sm-6 col-lg-3">
+                <div class="product-card">
+                  <div class="thumb" style="background-image:url('https://picsum.photos/seed/bs3/1200/700'); background-size:cover; background-position:center;"></div>
+                  <div class="p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge-soft"><i class="bi bi-award me-1"></i> پیشنهادی</span>
+                      <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                        <i class="bi bi-bookmark"></i>
+                      </button>
                     </div>
+                    <div class="fw-bold mb-1">چراغ خواب هوشمند</div>
+                    <div class="muted small mb-3">کنترل با اپ · نور ملایم</div>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="price">690,000 تومان</span>
+                      <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                {% endfor %}
-
-
-
-
-            </div>
-        </div>
-    </section>
-
-
-
-
-    <section class="section-height-fit mt-5">
-        <div class="container">
-            <div class="d-flex align-items-center justify-content-between">
-                <a href="" class="text-decoration-none"><h1 class="text-light fw-bold fm-morabba d-flex align-items-center gap-3">
-                    <svg width="45" height="45" viewBox="0 0 24 24">
-                    <g clip-path="url(#clip0_1_2557)">
-                        <g>
-                            <path clip-rule="evenodd"
-                                  d="M7.75024 5C7.75024 2.65279 9.65303 0.75 12.0002 0.75C14.3475 0.75 16.2502 2.65279 16.2502 5V12C16.2502 14.3472 14.3475 16.25 12.0002 16.25C9.65303 16.25 7.75024 14.3472 7.75024 12V5Z"
-                                  fill="#fff"/>
-                            <path clip-rule="evenodd"
-                                  d="M12.0002 17.75C12.4145 17.75 12.7502 18.0858 12.7502 18.5V22.5C12.7502 22.9142 12.4145 23.25 12.0002 23.25C11.586 23.25 11.2502 22.9142 11.2502 22.5V18.5C11.2502 18.0858 11.586 17.75 12.0002 17.75Z"
-                                  fill="#fff"/>
-                            <path clip-rule="evenodd"
-                                  d="M5.00024 10.75C5.41446 10.75 5.75024 11.0858 5.75024 11.5C5.75024 12.3208 5.91191 13.1335 6.226 13.8918C6.54009 14.6501 7.00046 15.3391 7.58083 15.9194C8.16119 16.4998 8.85019 16.9602 9.60847 17.2742C10.3668 17.5883 11.1795 17.75 12.0002 17.75C12.821 17.75 13.6337 17.5883 14.392 17.2742C15.1503 16.9602 15.8393 16.4998 16.4197 15.9194C17 15.3391 17.4604 14.6501 17.7745 13.8918C18.0886 13.1335 18.2502 12.3208 18.2502 11.5C18.2502 11.0858 18.586 10.75 19.0002 10.75C19.4145 10.75 19.7502 11.0858 19.7502 11.5C19.7502 12.5177 19.5498 13.5255 19.1603 14.4658C18.7708 15.4061 18.2 16.2604 17.4803 16.9801C16.7607 17.6997 15.9063 18.2706 14.966 18.6601C14.0258 19.0495 13.018 19.25 12.0002 19.25C10.9825 19.25 9.97472 19.0495 9.03445 18.6601C8.09417 18.2706 7.23982 17.6997 6.52017 16.9801C5.80051 16.2604 5.22965 15.4061 4.84018 14.4658C4.4507 13.5255 4.25024 12.5177 4.25024 11.5C4.25024 11.0858 4.58603 10.75 5.00024 10.75Z"
-                                  fill="#fff"/>
-                        </g>
-                    </g>
-                </svg> Castelleum
-                </h1></a>
-            </div>
-            <div class="row mt-4">
-
-
-
-
-
-
+              <div class="col-12 col-sm-6 col-lg-3">
+                <div class="product-card">
+                  <div class="thumb" style="background-image:url('https://picsum.photos/seed/bs4/1200/700'); background-size:cover; background-position:center;"></div>
+                  <div class="p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge-soft"><i class="bi bi-fire me-1"></i> پرفروش</span>
+                      <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                        <i class="bi bi-bookmark"></i>
+                      </button>
+                    </div>
+                    <div class="fw-bold mb-1">پاوربانک ۲۰۰۰۰</div>
+                    <div class="muted small mb-3">شارژ سریع · دو پورت</div>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="price">980,000 تومان</span>
+                      <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
             </div>
-            <button class="btn mt-4 d-block mx-auto">See All</button>
+          </div>
+
+          <!-- Slide 2 -->
+          <div class="carousel-item">
+            <div class="row g-3">
+              <div class="col-12 col-sm-6 col-lg-3">
+                <div class="product-card">
+                  <div class="thumb" style="background-image:url('https://picsum.photos/seed/bs5/1200/700'); background-size:cover; background-position:center;">
+                    <span class="discount-badge">٪15-</span>
+                  </div>
+                  <div class="p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge-soft"><i class="bi bi-lightning-charge me-1"></i> تخفیف ویژه</span>
+                      <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                        <i class="bi bi-bookmark"></i>
+                      </button>
+                    </div>
+                    <div class="fw-bold mb-1">کیبورد مکانیکی K</div>
+                    <div class="muted small mb-3">RGB · سوئیچ نرم</div>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div class="d-flex flex-column">
+                        <span class="old-price">1,320,000 تومان</span>
+                        <span class="price">1,120,000 تومان</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="discount-pill"><i class="bi bi-percent"></i> 15%</span>
+                        <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-sm-6 col-lg-3">
+                <div class="product-card">
+                  <div class="thumb" style="background-image:url('https://picsum.photos/seed/bs6/1200/700'); background-size:cover; background-position:center;"></div>
+                  <div class="p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge-soft"><i class="bi bi-star me-1"></i> منتخب</span>
+                      <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                        <i class="bi bi-bookmark"></i>
+                      </button>
+                    </div>
+                    <div class="fw-bold mb-1">اسپیکر بلوتوث</div>
+                    <div class="muted small mb-3">بیس قوی · قابل حمل</div>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="price">1,350,000 تومان</span>
+                      <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-sm-6 col-lg-3">
+                <div class="product-card">
+                  <div class="thumb" style="background-image:url('https://picsum.photos/seed/bs7/1200/700'); background-size:cover; background-position:center;"></div>
+                  <div class="p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge-soft"><i class="bi bi-award me-1"></i> پیشنهادی</span>
+                      <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                        <i class="bi bi-bookmark"></i>
+                      </button>
+                    </div>
+                    <div class="fw-bold mb-1">کیف لپتاپ ۱۵.۶</div>
+                    <div class="muted small mb-3">ضدآب · سبک</div>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="price">620,000 تومان</span>
+                      <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-sm-6 col-lg-3">
+                <div class="product-card">
+                  <div class="thumb" style="background-image:url('https://picsum.photos/seed/bs8/1200/700'); background-size:cover; background-position:center;"></div>
+                  <div class="p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge-soft"><i class="bi bi-fire me-1"></i> پرفروش</span>
+                      <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                        <i class="bi bi-bookmark"></i>
+                      </button>
+                    </div>
+                    <div class="fw-bold mb-1">موس گیمینگ</div>
+                    <div class="muted small mb-3">DPI بالا · ارگونومیک</div>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="price">540,000 تومان</span>
+                      <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
-    </section>
 
-
-
-    <style>
-        #descriptionsContianer {
-            max-height: 230px;
-            overflow: hidden;
-        }
-
-        #descriptionsContianer.open {
-            max-height: fit-content;
-        }
-
-        .descriptionsShadow {
-            background-image: linear-gradient(to top, #101113, #10111332);
-            height: 100px;
-        }
-
-        #descriptionsContianer.open .descriptionsShadow {
-            display: none;
-        }
-
-        .footer-light {
-            margin-top: 100px;
-        }
-    </style>
-    <section class="section-height-fit mt-5 about-codena">
-        <div class="container position-relative" id="descriptionsContianer">
-            <h1 class="text-light fw-bold fm-morabba d-flex align-items-center gap-3">
-                <svg width="45px" height="45px" viewBox="0 0 512 512">
-                    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                        <g fill="#fff" transform="translate(42.666667, 42.666667)">
-                            <path
-                                d="M213.333333,3.55271368e-14 C331.154987,3.55271368e-14 426.666667,95.51168 426.666667,213.333333 C426.666667,331.153707 331.154987,426.666667 213.333333,426.666667 C95.51296,426.666667 3.55271368e-14,331.153707 3.55271368e-14,213.333333 C3.55271368e-14,95.51168 95.51296,3.55271368e-14 213.333333,3.55271368e-14 Z M234.713387,192 L192.04672,192 L192.04672,320 L234.713387,320 L234.713387,192 Z M213.55008,101.333333 C197.99616,101.333333 186.713387,112.5536 186.713387,127.704107 C186.713387,143.46752 197.698773,154.666667 213.55008,154.666667 C228.785067,154.666667 240.04672,143.46752 240.04672,128 C240.04672,112.5536 228.785067,101.333333 213.55008,101.333333 Z">
-                            </path>
-                        </g>
-                    </g>
-                </svg> About Intelleum
-            </h1>
-            <p class="text-secondary lh-lg fs-5 mb-0 text-secondary text-justify mt-3">
-			Lorem ipsum odor amet, consectetuer adipiscing elit. Vivamus magnis rhoncus nisl enim hendrerit tincidunt risus. Curabitur maximus maximus; aptent porta rutrum maecenas. Neque lacinia vel placerat bibendum litora parturient? Sit curae curae malesuada urna habitant diam amet. Conubia platea massa ipsum cubilia varius massa.
-
-			Ad nostra sed volutpat ligula convallis. Varius semper fames tristique varius; nibh ad eros. Faucibus purus risus integer interdum penatibus ad hendrerit commodo. Taciti nisi luctus nec elementum laoreet finibus. Primis habitant netus aliquam cras varius. Gravida convallis ad purus tortor quam eros justo nunc. Eleifend per senectus vel ornare suspendisse montes. Ante sagittis phasellus nascetur feugiat, fermentum sociosqu curae. Justo curae sociosqu nam facilisis dictum curabitur dictum.
-
-			Tristique imperdiet semper id ut morbi est. Elit accumsan nam id netus aenean ante magnis. Nec ex erat phasellus metus nullam tempus; integer natoque himenaeos. Commodo magna cubilia proin euismod lorem proin leo hac egestas. Tincidunt adipiscing suscipit mattis rutrum lorem lectus. Velit penatibus sit est; ante ultrices fusce curabitur. At potenti consectetur adipiscing malesuada; congue nam nec mollis mus. Nisi pellentesque metus maximus rutrum accumsan. Class nibh parturient tellus porta tristique suspendisse.</p>
-			<p class="text-secondary lh-lg fs-5 mb-0 text-secondary text-justify mt-3"> Felis gravida gravida imperdiet viverra tellus accumsan senectus.
-
-			Viverra euismod enim platea; neque purus nascetur. Hac primis imperdiet platea amet porta. Nisl augue lacus phasellus litora primis facilisi. Senectus nulla aenean id ad; cras justo cras congue. Quis sed mollis nunc potenti dolor nunc nibh pharetra! Sit feugiat neque justo viverra pulvinar. Fames in id sed ridiculus scelerisque nunc? Sagittis rutrum aenean sagittis porta ut praesent, class duis. Ultrices congue maecenas quam bibendum vitae diam.
-
-			Id aliquet ligula condimentum vulputate; commodo faucibus feugiat fringilla. Dictumst ridiculus luctus vehicula blandit eros. Faucibus elementum nisl donec; dignissim sociosqu pulvinar dapibus. Scelerisque ipsum aliquet pretium faucibus semper vel at efficitur. Imperdiet interdum libero ultricies netus ultrices dis efficitur habitasse. Posuere vulputate laoreet nam; inceptos eros volutpat! Consequat ligula egestas amet nostra nibh ac. Habitasse netus facilisis; facilisi id iaculis aenean sed.
-            </p>
-            <div class="descriptionsShadow start-0 end-0 bottom-0 position-absolute"></div>
-        </div>
-        <button class="btn btn-lg mx-auto d-flex align-items-center justify-content-center gap-2 mt-3" id="showMore">
-            More
-            <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" style="rotate: 180deg;">
-                <path
-                    d="M12 7V17M12 7L16 11M12 7L8 11M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                    stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+        <!-- keep controls for usability (optional) -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#bestSellerCarousel" data-bs-slide="prev" aria-label="قبلی">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
         </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#bestSellerCarousel" data-bs-slide="next" aria-label="بعدی">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        </button>
+      </div>
     </section>
 
-    <script>
-        var descriptionsContianer = document.getElementById("descriptionsContianer");
-        var showMoreBtn = document.getElementById("showMore");
+    <!-- PAGINATED SHOWCASES -->
+    <section class="section">
+      <div class="section-title">
+        <div>
+          <h3 class="fw-bold mb-1">جدیدترین محصولات</h3>
+          <small>ویترین با صفحه‌بندی (Pagination)</small>
+        </div>
+      </div>
 
-        showMoreBtn.onclick = function() {
-            if (descriptionsContianer.className == "container open") {
-                //shrink the box
-                descriptionsContianer.className = "container position-relative";
-                showMoreBtn.innerHTML = "نمایش بیشتر" + `
-                    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" style="rotate: 180deg;">
-                        <path
-                            d="M12 7V17M12 7L16 11M12 7L8 11M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                            stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                `;
-            } else {
-                //expand the box
-                descriptionsContianer.className = "container open";
-                showMoreBtn.innerHTML = "نمایش کمتر" + `
-                    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="M12 7V17M12 7L16 11M12 7L8 11M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                            stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                `;
-            }
-        };
-    </script>
-	
-	<div id="testimonialCarousel" class="mt-5 carousel slide relative w-full max-w-2xl mx-auto p-4" data-bs-ride="carousel">
-		<!-- Indicators/dots -->
-		<div class="carousel-indicators absolute bottom-0 left-0 right-0 flex justify-center p-0 mb-4">
-			{% for user in users %}
-				<button type="button" data-bs-target="#testimonialCarousel" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}" aria-current="{% if forloop.first %}true{% endif %}" aria-label="{{ user.username }}"></button>
-			{% endfor %}
-		</div>
+      {# ======= NEWEST PRODUCTS (Server-side / Django) ======= #}
+      <div class="glass p-3 p-md-4">
 
-		<!-- Slides -->
-		<div class="carousel-inner relative overflow-hidden">
-			{% for user in users %}
-				<!-- Each Slide -->
-				<a href="{% url 'cv:cv' user.username %}" class="nav-link dropdown-toggle carousel-item {% if forloop.first %}active{% endif %} transition-transform duration-3 ease-in-out">
-					<div class="flex flex-col items-center text-center p-8 bg-gray-100 rounded-lg shadow-lg">
-					<img src="{{ user.profilemodel.avatar.url }}" alt="{{ user.profilemodel.fname }} {{ user.profilemodel.lname }}" class="img-fluid rounded-circle mb-4" style="width: 196px; height: 200px; object-fit: cover;">
-						<h4 class="mt-4 text-lg font-bold text-gray-900">{{ user.profilemodel.fname }} {{ user.profilemodel.lname }}</h4>
-						<p class="text-sm font-medium text-gray-500">Backend Developer</p>
-					</div>
-				</a>
-			{% endfor %}
-		</div>
+        <div class="row g-3" id="newest">
+          {% for p in newest_page %}
+            <div class="col-12 col-sm-6 col-lg-3">
+              <div class="product-card">
+                <div class="thumb"
+                    style="
+                      background-image:url('{% if p.main_image %}{{ p.main_image.url }}{% else %}https://picsum.photos/seed/new{{ forloop.counter }}/1200/700{% endif %}');
+                      background-size:cover;
+                      background-position:center;
+                    ">
+                  {% if p.discount_percent %}
+                    <span class="discount-badge">٪{{ p.discount_percent }}-</span>
+                  {% endif %}
+                </div>
 
-		<!-- Controls -->
-		<button class="carousel-control-prev absolute top-0 bottom-0 left-0 flex items-center justify-center p-0 text-center border-0" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
-			<span class="carousel-control-prev-icon bg-dark rounded-full" aria-hidden="true"></span>
-			<span class="visually-hidden">Previous</span>
-		</button>
-		<button class="carousel-control-next absolute top-0 bottom-0 right-0 flex items-center justify-center p-0 text-center border-0" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
-			<span class="carousel-control-next-icon bg-dark rounded-full" aria-hidden="true"></span>
-			<span class="visually-hidden">Next</span>
-		</button>
-	</div>
+                <div class="p-3">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge-soft">
+                      <i class="bi {{ p.badge_icon|default:'bi-sparkles' }} me-1"></i>
+                      {{ p.badge|default:'جدید' }}
+                    </span>
+                    <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                      <i class="bi bi-bookmark"></i>
+                    </button>
+                  </div>
 
+                  <div class="fw-bold mb-1">{{ p.name }}</div>
+                  <div class="muted small mb-3">{{ p.description }}</div>
 
+                  {% if p.discount_percent %}
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div class="d-flex flex-column">
+                        <span class="old-price">{{ p.price_original|default:"0" }} تومان</span>
+                        <span class="price">{{ p.price_final }} تومان</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="discount-pill"><i class="bi bi-percent"></i> {{ p.discount_percent }}%</span>
+                        <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                      </div>
+                    </div>
+                  {% else %}
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="price">{{ p.price_final|default:p.price }} تومان</span>
+                      <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="col-12">
+              <div class="alert alert-secondary mb-0">محصولی برای نمایش وجود ندارد.</div>
+            </div>
+          {% endfor %}
+        </div>
 
+        <nav class="mt-4" aria-label="صفحه‌بندی جدیدترین محصولات">
+          <ul class="pagination justify-content-center mb-0">
 
+            {# قبلی #}
+            <li class="page-item {% if not newest_page.has_previous %}disabled{% endif %}">
+              <a class="page-link"
+                href="{% if newest_page.has_previous %}?np={{ newest_page.previous_page_number }}#newest{% else %}#{% endif %}">
+                قبلی
+              </a>
+            </li>
 
-{% endblock %}}}
+            {# 1 2 ... (n-1) n مثل JS شما #}
+            {% with total=newest_page.paginator.num_pages current=newest_page.number %}
+              {% if total <= 5 %}
+                {% for num in newest_page.paginator.page_range %}
+                  {% if num == current %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                  {% else %}
+                    <li class="page-item"><a class="page-link" href="?np={{ num }}#newest">{{ num }}</a></li>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                {# 1 #}
+                <li class="page-item {% if current == 1 %}active{% endif %}">
+                  {% if current == 1 %}
+                    <span class="page-link">1</span>
+                  {% else %}
+                    <a class="page-link" href="?np=1#newest">1</a>
+                  {% endif %}
+                </li>
+
+                {# 2 #}
+                <li class="page-item {% if current == 2 %}active{% endif %}">
+                  {% if current == 2 %}
+                    <span class="page-link">2</span>
+                  {% else %}
+                    <a class="page-link" href="?np=2#newest">2</a>
+                  {% endif %}
+                </li>
+
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+
+                {# total-1 #}
+                {% with total_minus_1=total|add:"-1" %}
+                  <li class="page-item {% if current == total_minus_1 %}active{% endif %}">
+                    {% if current == total_minus_1 %}
+                      <span class="page-link">{{ total_minus_1 }}</span>
+                    {% else %}
+                      <a class="page-link" href="?np={{ total_minus_1 }}#newest">{{ total_minus_1 }}</a>
+                    {% endif %}
+                  </li>
+                {% endwith %}
+
+                {# total #}
+                <li class="page-item {% if current == total %}active{% endif %}">
+                  {% if current == total %}
+                    <span class="page-link">{{ total }}</span>
+                  {% else %}
+                    <a class="page-link" href="?np={{ total }}#newest">{{ total }}</a>
+                  {% endif %}
+                </li>
+              {% endif %}
+            {% endwith %}
+
+            {# بعدی #}
+            <li class="page-item {% if not newest_page.has_next %}disabled{% endif %}">
+              <a class="page-link"
+                href="{% if newest_page.has_next %}?np={{ newest_page.next_page_number }}#newest{% else %}#{% endif %}">
+                بعدی
+              </a>
+            </li>
+
+          </ul>
+        </nav>
+
+      </div>
+      {# ======= /NEWEST PRODUCTS ======= #}
+
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <div>
+          <h3 class="fw-bold mb-1">پیشنهادهای ویژه خانه و آشپزخانه</h3>
+          <small>ویترین دوم با صفحه‌بندی (Pagination)</small>
+        </div>
+      </div>
+
+      {# ======= HOME & KITCHEN (Server-side / Django) ======= #}
+      <div class="glass p-3 p-md-4">
+
+        <div class="row g-3" id="home">
+          {% for p in home_page %}
+            <div class="col-12 col-sm-6 col-lg-3">
+              <div class="product-card">
+                <div class="thumb"
+                    style="
+                      background-image:url('{% if p.image %}{{ p.image.url }}{% else %}https://picsum.photos/seed/home{{ forloop.counter }}/1200/700{% endif %}');
+                      background-size:cover;
+                      background-position:center;
+                    ">
+                  {% if p.discount_percent %}
+                    <span class="discount-badge">٪{{ p.discount_percent }}-</span>
+                  {% endif %}
+                </div>
+
+                <div class="p-3">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge-soft">
+                      <i class="bi {{ p.badge_icon|default:'bi-award' }} me-1"></i>
+                      {{ p.badge|default:'منتخب' }}
+                    </span>
+                    <button class="btn btn-sm btn-outline-secondary" title="ذخیره برای بعدا">
+                      <i class="bi bi-bookmark"></i>
+                    </button>
+                  </div>
+
+                  <div class="fw-bold mb-1">{{ p.title }}</div>
+                  <div class="muted small mb-3">{{ p.desc }}</div>
+
+                  {% if p.discount_percent %}
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div class="d-flex flex-column">
+                        <span class="old-price">{{ p.price_original }} تومان</span>
+                        <span class="price">{{ p.price_final }} تومان</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="discount-pill"><i class="bi bi-percent"></i> {{ p.discount_percent }}%</span>
+                        <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                      </div>
+                    </div>
+                  {% else %}
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="price">{{ p.price_final|default:p.price }} تومان</span>
+                      <button class="btn btn-sm btn-grad"><i class="bi bi-cart-plus"></i></button>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="col-12">
+              <div class="alert alert-secondary mb-0">محصولی برای نمایش وجود ندارد.</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <nav class="mt-4" aria-label="صفحه‌بندی خانه و آشپزخانه">
+          <ul class="pagination justify-content-center mb-0">
+
+            {# قبلی #}
+            <li class="page-item {% if not home_page.has_previous %}disabled{% endif %}">
+              <a class="page-link"
+                href="{% if home_page.has_previous %}?hp={{ home_page.previous_page_number }}#home{% else %}#{% endif %}">
+                قبلی
+              </a>
+            </li>
+
+            {# 1 2 ... (n-1) n مثل قبلی #}
+            {% with total=home_page.paginator.num_pages current=home_page.number %}
+              {% if total <= 5 %}
+                {% for num in home_page.paginator.page_range %}
+                  {% if num == current %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                  {% else %}
+                    <li class="page-item"><a class="page-link" href="?hp={{ num }}#home">{{ num }}</a></li>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <li class="page-item {% if current == 1 %}active{% endif %}">
+                  {% if current == 1 %}
+                    <span class="page-link">1</span>
+                  {% else %}
+                    <a class="page-link" href="?hp=1#home">1</a>
+                  {% endif %}
+                </li>
+
+                <li class="page-item {% if current == 2 %}active{% endif %}">
+                  {% if current == 2 %}
+                    <span class="page-link">2</span>
+                  {% else %}
+                    <a class="page-link" href="?hp=2#home">2</a>
+                  {% endif %}
+                </li>
+
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+
+                {% with total_minus_1=total|add:"-1" %}
+                  <li class="page-item {% if current == total_minus_1 %}active{% endif %}">
+                    {% if current == total_minus_1 %}
+                      <span class="page-link">{{ total_minus_1 }}</span>
+                    {% else %}
+                      <a class="page-link" href="?hp={{ total_minus_1 }}#home">{{ total_minus_1 }}</a>
+                    {% endif %}
+                  </li>
+                {% endwith %}
+
+                <li class="page-item {% if current == total %}active{% endif %}">
+                  {% if current == total %}
+                    <span class="page-link">{{ total }}</span>
+                  {% else %}
+                    <a class="page-link" href="?hp={{ total }}#home">{{ total }}</a>
+                  {% endif %}
+                </li>
+              {% endif %}
+            {% endwith %}
+
+            {# بعدی #}
+            <li class="page-item {% if not home_page.has_next %}disabled{% endif %}">
+              <a class="page-link"
+                href="{% if home_page.has_next %}?hp={{ home_page.next_page_number }}#home{% else %}#{% endif %}">
+                بعدی
+              </a>
+            </li>
+
+          </ul>
+        </nav>
+
+      </div>
+      {# ======= /HOME & KITCHEN ======= #}
+
+    </section>
+
+    {% block store_intro %}
+    <!-- ABOUT + VIDEO (Above footer) -->
+    <section class="section">
+      <div class="glass about">
+        <div class="row g-4 align-items-center">
+          <div class="col-12 col-lg-7">
+            <h3 class="fw-bold mb-2">درباره فروشگاه</h3>
+            <p>
+             {{ store.description|linebreaksbr }}
+            </p>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+              <a class="btn btn-grad px-4" href="#"><i class="bi bi-info-circle me-2"></i> بیشتر بدانید</a>
+              <a class="btn btn-outline-secondary px-4" href="#"><i class="bi bi-geo-alt me-2"></i> شعب و انبارها</a>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-5">
+            <div class="video-card">
+              <video controls preload="metadata" poster="{{ store.logo.url }}">
+                <source src="{{ store.intro_video.url }}" type="video/mp4" />
+                مرورگر شما از ویدیو پشتیبانی نمی‌کند.
+              </video>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+    {% endblock %}
+
+{% endblock %}

@@ -1761,7 +1761,7 @@ def sup_text(message):
         client_markup = types.InlineKeyboardMarkup()
 
         sup_markup.add(types.InlineKeyboardButton(text=t(message, "reply"), callback_data="پاسخ"))
-        client_markup.add(types.InlineKeyboardButton(text=t(message, "end_chat"), callback_data="پایان مکالمه"))
+        client_markup.add(types.InlineKeyboardButton(text=t(message, "end_chat"), callback_data=t(message, "end_chat")))
 
         app.send_message(chat_id=5629898030,
                          text=t(message, "user_message_received", user_id=message.from_user.id, username=message.from_user.username, text=escape_special_characters(message.text))
@@ -2410,10 +2410,15 @@ def edit(message):
 
 
 @app.message_handler(commands=['build_shop'])
-def yank(message):
+def build_shop(message):
     store_info = SendStore(app)
     store_info.show_store_info(message)
 
+
+@app.callback_query_handler(func=lambda call: call.data == "store_name")
+def build_shop(call):
+    build_store = SendStore(app)
+    build_store.take_name(call)
 
 ##################################### END CATEGROY #####################################
 
@@ -2461,6 +2466,21 @@ def answer(call):
 
     except Exception:
         print(traceback.format_exc())
+
+
+
+
+@app.callback_query_handler(func=lambda call: call.data == t(call.message, "end_chat"))
+def terminate_chat(call):
+    if subscription.subscription_offer(call.message):
+        print("hello")
+        try:
+            app.delete_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
+            app.send_message(chat_id=call.message.chat.id, text=t(call.message, "conversation_ended"))
+        except Exception as e:
+            error_message = traceback.format_exc()
+            print(f"your error is: {error_message}")
+
 
 
 
@@ -2592,18 +2612,6 @@ def answer_text(message):
     finally:
         home(message)
 
-
-
-
-@app.callback_query_handler(func=lambda call: call.data == t(call.message, "conversation_ended"))
-def terminate_chat(call):
-    if subscription.subscription_offer(call.message):
-        try:
-            app.delete_state(user_id=call.from_user.id, chat_id=call.message.chat.id)
-            app.send_message(chat_id=call.message.chat.id, text=t(call.message, "conversation_ended"))
-        except Exception as e:
-            error_message = traceback.format_exc()
-            print(f"your error is: {error_message}")
 
 
 ##################################

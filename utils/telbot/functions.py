@@ -781,7 +781,7 @@ class SubscriptionClass:
         channel_markup.add(channel_subscription_button, group_subscription_button)
         channel_markup.add(check_subscription_button)
 
-        if not self.check_subscription(user=message.from_user.id):
+        if not self.check_subscription(user=message.chat.id):
             self.bot.send_message(message.chat.id, t(message, "verify_membership"), reply_markup=channel_markup)
             return False
         return True
@@ -3741,8 +3741,6 @@ class SendLocation:
 
             markup.edit(call.message.message_id)
 
-            print(self.session_manager.get_user_session(call.message.chat.id, namespace="address"))
-
 
         except Exception as e:
             error_details = traceback.format_exc()
@@ -3753,7 +3751,6 @@ class SendLocation:
     def handle_prev(self, call):
         try:
             session = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-            print(self.session_manager.get_user_session(call.message.chat.id, namespace="address"))
 
             paginator = InlineKeyboardPaginator.load_from_redis(self.user_id)
             paginator.prev_page()
@@ -3795,7 +3792,6 @@ class SendLocation:
 
             SendMarkup(bot=self.app, chat_id=self.chat_id, text=text, buttons=buttons, button_layout=layout, handlers=handlers).edit(
                 call.message.message_id)
-            print(self.session_manager.get_user_session(call.message.chat.id, namespace="address"))
 
         except Exception as e:
             error_details = traceback.format_exc()
@@ -3845,7 +3841,6 @@ class SendLocation:
 
             SendMarkup(bot=self.app, chat_id=call.message.chat.id, text=text, buttons=buttons, button_layout=layout, handlers=handlers).edit(call.message.message_id)
             data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-            print(data)
 
         except Exception as e:
             error_details = traceback.format_exc()
@@ -3862,7 +3857,6 @@ class SendLocation:
         else:
             country = call.data.split("_")[-1]
         data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-        print(self.session_manager.get_user_session(call.message.chat.id, namespace="address"))
         data["state"] = "address_selection_province"
         data["selected_country"] = f"{country}"
         self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
@@ -3988,7 +3982,6 @@ class SendLocation:
 
             markup.edit(call.message.message_id)
             data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-            print(data)
 
         except Exception as e:
             error_details = traceback.format_exc()
@@ -4023,8 +4016,6 @@ class SendLocation:
 
         markup.edit(call.message.message_id) 
         data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
-        print(data)
-
 
 
         
@@ -4147,7 +4138,7 @@ class SendPhone:
             error_details = traceback.format_exc()
             custom_message = f"Error in SendPhone init: {e}\nDetails:\n{error_details}"
             print(custom_message)
-            self.app.send_message(self.chat_id, t(call.message, "contact_info_error"))
+            self.app.send_message(self.chat_id, t(message_or_call.message, "contact_info_error"))
 
     def take_phone(self, call):
         try:
@@ -4190,7 +4181,6 @@ class SendPhone:
             except Cart.DoesNotExist:
                 app.send_message(message.chat.id, t(message, "cart_is_empty"))
                 return
-            print(message.text)
             data = self.session_manager.get_user_session(message.chat.id, namespace="phone")
             self.app.delete_message(self.chat_id, message.message_id)
             self.app.delete_message(self.chat_id, data["old_message"])
@@ -5040,7 +5030,7 @@ def t(msg, key, chat_id=None, profile=None, lang=None, **kwargs):
         return key
 
 
-@add_performance_monitoring_to_class
+# @add_performance_monitoring_to_class
 class SendStore:
     """
     Optimized & Stateless Store Sender
@@ -5069,7 +5059,7 @@ class SendStore:
                 photo_path=self._get_logo_path(profile, store),
                 caption=self._generate_caption(profile, store),
                 buttons=buttons,
-                button_layout=[1, 1],
+                button_layout=[1, 1, 1, 1],
                 handlers=self._generate_handlers(profile)
             ).send()
 
@@ -5099,14 +5089,19 @@ class SendStore:
         buttons = {}
 
         if not store:
-            buttons[f"{t('message','store_name', profile=profile)}: ---"] = {
+            session = session_manager.get_user_session(profile.tel_id, namespace="createshop")
+            text = f"{t('message','store_name', profile=profile)}: {session.get("take_name_d") if session.get("take_name_d" or None) else ' --- '}"
+            buttons[f"{text}"] = {
                 "callback_data": "store_name", "index": 1
             }
+
             buttons[t(
                 'message', 'address',
                 profile=profile,
                 address_text=' --- '
             )] = {"callback_data": "noop", "index": 1}
+
+            buttons[f"{t('message', 'set_store_logo', profile=profile)}"] = {"callback_data": "set_store_logo", "index": 1}
 
             buttons[t('message', 'submit_information', profile=profile)] = {
                 "callback_data": "submit_info", "index": 1
@@ -5125,6 +5120,8 @@ class SendStore:
         buttons[t('message', 'address', profile=profile, address_text=addr_text)] = {
             "callback_data": "buy_product", "index": 1
         }
+
+        buttons[f"{t('message', 'change_store_logo', profile=profile)}"] = {"callback_data": "set_store_logo", "index": 1}
 
         return buttons
 
@@ -5150,13 +5147,32 @@ class SendStore:
     # Helpers (Pure Logic)
     # =============================
     def _get_logo_path(self, profile, store):
+
+        session = session_manager.get_user_session(profile.tel_id, namespace="createshop")
+
         if store and store.logo:
             return store.logo.path
+        
+        # elif session.get("take_logo_d" or None):
+        #     return session.get("take_logo_d")
 
-        return os.path.join(
-            MEDIA_URL,
-            f"store_logos/{profile.lang}-default-store-logo.png"
+        # Use MEDIA_ROOT for filesystem operations
+        from django.conf import settings
+        
+        default_logo_filename = f"{profile.lang}-default-store-logo.png"
+        default_logo_path = os.path.join(
+            settings.MEDIA_ROOT,
+            "store_logos",
+            default_logo_filename
         )
+        
+        
+        # Check if the file exists
+        if not os.path.exists(default_logo_path):
+            print(f"Warning: Default logo not found at {default_logo_path}")
+            # You might want to return a fallback or raise an error
+        
+        return default_logo_path
 
     @staticmethod
     def _format_address(addr, lang):
@@ -5171,30 +5187,32 @@ class SendStore:
 
     def take_name(self, call):
         try:
+            session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
             profile, store = self._load_context(call.message.chat.id)
             text = t('message','enter_store_name', profile=profile)
+            self.bot.delete_message(call.message.chat.id, call.message.message_id)
+            self.bot.send_message(call.message.chat.id, text)
+            session["take_name"] = True
+            session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
 
-            markup = SendMarkup(
-                bot=self.bot,
-                chat_id=call.message.chat.id,
-                text=text,
-                buttons=None,
-                button_layout=None,
-                handlers=None, 
-                message=call.message
-            )
-
-            # data = {"state": "take_phone", "old_message": call.message.message_id}
-            # self.session_manager.set_user_session(call.message.chat.id, data, namespace="phone")
+        except Exception as e:
+            error_details = traceback.format_exc()
+            print(f"Error in take_name: {e}\n{error_details}")
 
 
-
-            # ارسال یا ویرایش پیام
-            if call:
-                markup.edit(call.message.message_id)  # ویرایش پیام موجود
-            else:
-                markup.send()  # ارسال پیام جدید
-
+    def take_logo(self, call):
+        try:
+            session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
+            profile, store = self._load_context(call.message.chat.id)
+            text = t('message','get_store_logo', profile=profile)
+            self.bot.delete_message(call.message.chat.id, call.message.message_id)
+            cancel_text = t("message", "cancel_action", profile=profile)
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            markup.add(types.KeyboardButton(cancel_text))
+            msg = self.bot.send_message(call.message.chat.id, text, reply_markup=markup)
+            session["take_logo"] = True
+            session["msg_id"] = msg.message_id
+            session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
 
         except Exception as e:
             error_details = traceback.format_exc()

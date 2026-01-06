@@ -91,6 +91,8 @@ async def send_album_and_button(channel_id, product, photos, attributes):
 
 
         # --- 2. ارسال آلبوم ---
+        print(f"channel ID: {channel_id}")
+        print(f"chat ID: {chat_id   }")
         handler = ProductHandler(client, product, CURRENT_SITE, photos=photos, attributes=attributes, chat_id=chat_id)
         await handler.send_product_channel(channel_id, buttons=False)
 

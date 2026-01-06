@@ -4,6 +4,7 @@ from math import prod
 import re
 import trace
 from traceback import format_exc
+from tailwind import build
 from telebot import TeleBot, types
 from collections import defaultdict
 import requests
@@ -863,6 +864,7 @@ def home(message, text=None):
         session_manager.reset_user_session(message.chat.id, namespace="add_product")
         session_manager.reset_user_session(message.chat.id, namespace="delete_product")
         session_manager.reset_user_session(message.chat.id, namespace="phone")
+        session_manager.reset_user_session(message.chat.id, namespace="createshop")
 
         profile = ProfileModel.objects.get(tel_id=id)
         markup = send_menu(message, profile.tel_menu, "main_menu", profile.extra_button_menu)
@@ -872,10 +874,11 @@ def home(message, text=None):
 
 
 # Visit website
-@app.message_handler(func=lambda message: message.text == t(message, "visit_website"))
-def visit_website(message):
-    if subscription.subscription_offer(message):
-        send_website_link(message)
+# @app.message_handler(func=lambda message: message.text == t(message, "visit_website"))
+# def visit_website(message):
+#     if subscription.subscription_offer(message):
+#         send_website_link(message)
+
 
 
 # settings handler
@@ -883,7 +886,7 @@ def visit_website(message):
 def settings(message):
     if subscription.subscription_offer(message):
         home_menue = ["🏡"]
-        markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).settings_menu, "settings",
+        markup = send_menu(message, ProfileModel.objects.get(tel_id=message.chat.id).settings_menu, "settings",
                            home_menue, 2)
         app.send_message(message.chat.id, t(message, "settings_message"), reply_markup=markup)
 
@@ -1252,6 +1255,7 @@ def handle_product_buttons(call):
         error_message = traceback.format_exc()
         print(f"Error in handle_product_buttons: {e}\n{error_message}")
         app.answer_callback_query(call.id, "خطا در پردازش درخواست!", show_alert=True)
+
 
 @app.callback_query_handler(func=lambda call: "VarPrev_" in call.data or "VarNext_" in call.data)
 def handle_variant_navigation(call):
@@ -1859,7 +1863,7 @@ def add_product(message):
         error_details = traceback.format_exc()
         print(f"{error_details}")
 
-@app.message_handler(func=lambda message: message.text == t(message, "cancel_action"))
+@app.message_handler(func=lambda message: message.text == t(message, "cancel_action") and session_manager.get_user_session(message.chat.id, namespace='createshop').get("take_logo")==False)
 def cancel_action(message):
     try:
         session = session_manager.get_user_session(message.chat.id, namespace="menu")
@@ -2408,17 +2412,82 @@ product_bot.register_handle_finish_attributes()
 def edit(message):
     app.send_message(message.chat.id, t(message, "edit_product_category_soon"))
 
+#####################################   BUILD SHOP  #####################################
 
 @app.message_handler(commands=['build_shop'])
 def build_shop(message):
+    session = session_manager.get_user_session(message.chat.id, namespace="createshop")
+    msg_id = session.get("msg_id" or None)
+    if msg_id:
+        app.delete_message(message.chat.id, msg_id)
     store_info = SendStore(app)
     store_info.show_store_info(message)
 
 
 @app.callback_query_handler(func=lambda call: call.data == "store_name")
-def build_shop(call):
+def take_name(call):
     build_store = SendStore(app)
     build_store.take_name(call)
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="createshop").get("take_name" or None))
+def take_name_d(message):
+    build_store = SendStore(app)
+    profile, store = build_store._load_context(message.chat.id)
+    session = session_manager.get_user_session(message.chat.id, namespace="createshop")
+    if store:
+        store.name = message.text
+        store.save()
+    
+    else:
+        session["take_name_d"] = message.text
+    
+    session["take_name"] = False
+    session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+    build_shop(message)
+
+       
+@app.callback_query_handler(func=lambda call: call.data == "set_store_logo")
+def take_logo(call):
+    build_store = SendStore(app)
+    build_store.take_logo(call)
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="createshop").get("take_logo" or None), content_types=['photo'])
+def take_logo_d(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="createshop")
+        build_store = SendStore(app)
+        profile, store = build_store._load_context(message.chat.id)
+        if store:
+            file_id = message.photo[-1].file_id
+            file_info = app.get_file(file_id)
+            downloaded_file = app.download_file(file_info.file_path)
+            store.logo = ContentFile(downloaded_file, name=f'logo_{store.id}.jpg')
+            store.save()
+        else:
+            file_id = message.photo[-1].file_id
+            session["take_logo_d"] = file_id
+        
+        session["take_logo"] = False
+        session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+        build_shop(message)
+    
+    except:
+       print(traceback.format_exc())
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="createshop").get("take_logo" or None))
+def take_logo_d_text(message):
+    session = session_manager.get_user_session(message.chat.id, namespace="createshop")
+    if message.text == t(message, "cancel_action"):
+        session["take_logo"] = False
+        session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+        build_shop(message)
+        return
+    app.reply_to(message, t(message, "send_only_logo_image"))
+    session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+
 
 ##################################### END CATEGROY #####################################
 

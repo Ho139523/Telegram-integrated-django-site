@@ -27,19 +27,57 @@ echo "⚙️ پیکربندی nginx..."
 # ایجاد فایل default اگر وجود ندارد
 if [ ! -f /etc/nginx/sites-available/default ]; then
     sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX_EOF'
+# Redirect HTTP to HTTPS
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    
-    root /var/www/html;
-    index index.html index.htm;
-    
-    server_name _;
-    
-    location / {
-        try_files $uri $uri/ =404;
-    }
+    listen 80;
+    listen [::]:80;
+    server_name intellium.ir www.intellium.ir;
+
+    return 301 https://$host$request_uri;
 }
+
+# Django on HTTPS
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name intellium.ir www.intellium.ir;
+
+    ssl_certificate /etc/letsencrypt/live/intellium.ir/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/intellium.ir/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+    client_max_body_size 20M;
+
+
+    # ---- Static Files ----
+    location /static/ {
+        alias /var/www/intelleum/staticfiles/;
+        expires 30d;
+        access_log off;
+    }
+
+    location /media/ {
+        alias /var/www/intelleum/media/;
+        expires 30d;
+        access_log off;
+    }
+
+
+    # ---- Django ----
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+}
+
 NGINX_EOF
 fi
 

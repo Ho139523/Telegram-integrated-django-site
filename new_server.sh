@@ -1,17 +1,52 @@
-#!/bin/bash
-set -e  # با اولین خطا متوقف شود
+ANSWER="$1"
+
+set -e  
 
 echo -e "\n\n🔧 SYSTEM FIX\n\n"
-# رفع dependencyهای شکسته
+
 sudo apt --fix-broken install -y 2>/dev/null || true
 sudo dpkg --configure -a 2>/dev/null || true
 
-# حذف لینک خراب nginx اگر وجود دارد
+
 sudo rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
 
+
+
 echo -e "\n\n🔄 SYSTEM UPDTAE \n\n"
-sudo apt-get update
-sudo apt-get upgrade -y
+
+
+
+
+
+if [ -z "$ANSWER" ]; then
+    read -p "Do you want to continue? (yes/no): " ANSWER
+fi
+
+# نرمال‌سازی ورودی (حروف بزرگ/کوچک مهم نباشد)
+ANSWER=$(echo "$ANSWER" | tr '[:upper:]' '[:lower:]')
+
+if [ "$ANSWER" = "yes" ]; then
+    echo "SYSTEM UPDATE AND UPGRADE..."
+    
+    sudo apt-get update
+    sudo apt-get upgrade -y
+
+elif [ "$ANSWER" = "no" ]; then
+    echo "SKIPPING SYSTEM UPDDATE AND UPGRADE"
+
+else
+    echo "⚠️ Invalid input: $ANSWER"
+    echo "Please use 'yes' or 'no'"
+
+    # ----- کدهای ELSE -----
+    exit 1
+fi
+
+
+
+
+
+
 
 echo -e "\n\n📦 PACKAGE INSTALLATION\n\n"
 # نصب بدون reconfigure مجدد
@@ -81,16 +116,25 @@ server {
 NGINX_EOF
 fi
 
-# فعال کردن سایت
 sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
 
-# تست و راه‌اندازی nginx
 sudo nginx -t
 sudo systemctl enable nginx
 sudo systemctl restart nginx
 
+
+if systemctl is-active --quiet nginx; then
+    echo "✅ NGINX IS ACTIVE"
+else
+    echo "❌ NGINX IS NOT ACTIVE"
+fi
+
+
+
 echo -e "\n\n🔐 UPDATE PASSWORD\n\n"
 echo "root:139523" | sudo chpasswd
+
+
 
 echo -e "\n\n📥 RECIEVING PROJECT\n\n"
 mkdir -p ~/intelleum
@@ -98,9 +142,9 @@ cd ~/intelleum
 
 if [ ! -d .git ]; then
     git init
-    git remote add origin https://github.com/ho139523/telegram-integrated-django-site
+    git remote add origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
 else
-    git remote set-url origin https://github.com/ho139523/telegram-integrated-django-site
+    git remote set-url origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
 fi
 
 git pull origin master --force
@@ -112,6 +156,7 @@ ls -la
 
 echo -e "\n\n FIREWALL SETUP\n\n"
 echo "y" | sudo ufw enable
+sudo ufw allow 22
 sudo ufw allow 443
 sudo ufw status
 sudo ufw status numbered

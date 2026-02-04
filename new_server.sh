@@ -19,10 +19,9 @@ echo -e "\n\n🔄 SYSTEM UPDTAE \n\n"
 
 
 if [ -z "$ANSWER" ]; then
-    read -p "Do you want to continue? (yes/no): " ANSWER
+    read -p "Do you want to UPDATE AND UPGRADE system? (yes/no): " ANSWER
 fi
 
-# نرمال‌سازی ورودی (حروف بزرگ/کوچک مهم نباشد)
 ANSWER=$(echo "$ANSWER" | tr '[:upper:]' '[:lower:]')
 
 if [ "$ANSWER" = "yes" ]; then

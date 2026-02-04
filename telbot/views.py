@@ -842,7 +842,7 @@ def start(message):
 
 # HOME
 @app.message_handler(func=lambda message: message.text == "🏡")
-def home(message, text=None):
+def home(message, text=None, *args, **kwargs):
     try:
         if isinstance(message, types.Message):
             message = message
@@ -859,18 +859,21 @@ def home(message, text=None):
         print(f"{custom_message}")
 
     if subscription.subscription_offer(message):
-        session_manager.reset_user_session(message.chat.id, namespace="address")
-        session_manager.reset_user_session(message.chat.id, namespace="menu")
-        session_manager.reset_user_session(message.chat.id, namespace="add_product")
-        session_manager.reset_user_session(message.chat.id, namespace="delete_product")
-        session_manager.reset_user_session(message.chat.id, namespace="phone")
-        session_manager.reset_user_session(message.chat.id, namespace="createshop")
+        session_list = ["address", "menu", "add_product", "delete_product", "phone", "createshop"]
+        if kwargs.get("session_delete"): # session_delete must be a tuple
+            for i in session_list:
+                if i in kwargs.get("session_delete"):
+                    continue
+                session_manager.reset_user_session(message.chat.id, namespace=i)
+        else:
+            for i in session_list:
+                session_manager.reset_user_session(message.chat.id, namespace=i)
 
         profile = ProfileModel.objects.get(tel_id=id)
         markup = send_menu(message, profile.tel_menu, "main_menu", profile.extra_button_menu)
         if not text:
             text = t(message, "home_message")
-        app.send_message(message.chat.id, text, reply_markup=markup)
+        return app.send_message(message.chat.id, text, reply_markup=markup)
 
 
 # Visit website
@@ -955,8 +958,8 @@ def language_setting(message):
 def become_a_seller(message):
     if subscription.subscription_offer(message):
         try:
-            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
-            Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.from_user.id))
+            profile = ProfileModel.objects.get(tel_id=message.chat.id)
+            Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.chat.id))
             profile.seller_mode = True
             profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
             profile.save()
@@ -1863,7 +1866,7 @@ def add_product(message):
         error_details = traceback.format_exc()
         print(f"{error_details}")
 
-@app.message_handler(func=lambda message: message.text == t(message, "cancel_action") and session_manager.get_user_session(message.chat.id, namespace='createshop').get("take_logo")==False)
+@app.message_handler(func=lambda message: message.text == t(message, "cancel_action") and session_manager.get_user_session(message.chat.id, namespace='createshop').get("take_data")==False)
 def cancel_action(message):
     try:
         session = session_manager.get_user_session(message.chat.id, namespace="menu")
@@ -2416,12 +2419,28 @@ def edit(message):
 
 @app.message_handler(commands=['build_shop'])
 def build_shop(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="createshop")
+        store_info = SendStore(app)
+        profile, store = store_info._load_context(message.chat.id)
+        if store:
+            text = t("message", "store_settings_panel", profile=profile)
+        else:
+            text = t("message", "store_opening_panel", profile=profile)
+        msg = home(message, text=text, **{"session_delete": ('createshop')})
+        session["msg_id"] = msg.message_id
+        session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+        store_info.show_store_info(message)
+    except:
+        print(traceback.format_exc())
+
+
+@app.message_handler(func=lambda message: message.text == t(message, "cancel_action") and session_manager.get_user_session(message.chat.id, namespace="createshop").get("take_data" or None))
+def cancle_store_change(message):
     session = session_manager.get_user_session(message.chat.id, namespace="createshop")
-    msg_id = session.get("msg_id" or None)
-    if msg_id:
-        app.delete_message(message.chat.id, msg_id)
-    store_info = SendStore(app)
-    store_info.show_store_info(message)
+    session["take_data"] = False
+    session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+    build_shop(message)
 
 
 @app.callback_query_handler(func=lambda call: call.data == "store_name")
@@ -2438,11 +2457,11 @@ def take_name_d(message):
     if store:
         store.name = message.text
         store.save()
-    
     else:
         session["take_name_d"] = message.text
     
     session["take_name"] = False
+    session["take_data"] = False
     session_manager.set_user_session(message.chat.id, session, namespace="createshop")
     build_shop(message)
 
@@ -2470,6 +2489,7 @@ def take_logo_d(message):
             session["take_logo_d"] = file_id
         
         session["take_logo"] = False
+        session["take_data"] = False
         session_manager.set_user_session(message.chat.id, session, namespace="createshop")
         build_shop(message)
     
@@ -2487,6 +2507,101 @@ def take_logo_d_text(message):
         return
     app.reply_to(message, t(message, "send_only_logo_image"))
     session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+
+@app.callback_query_handler(func=lambda call: call.data == "store_description")
+def take_description(call):
+    build_store = SendStore(app)
+    build_store.take_description(call)
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="createshop").get("take_description" or None))
+def take_description_d(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="createshop")
+        build_store = SendStore(app)
+        profile, store = build_store._load_context(message.chat.id)
+        if store:
+            store.description = message.text
+            store.save()
+        else:
+            session["take_description_d"] = message.text
+        
+        session["take_description"] = False
+        session["take_data"] = False
+        session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+        build_shop(message)
+    
+    except:
+       print(traceback.format_exc())
+
+
+
+@app.callback_query_handler(func=lambda call: call.data == "store_telegram_channel")
+def take_telegram_channel(call):
+    build_store = SendStore(app)
+    build_store.take_telegram_channel(call)
+
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="createshop").get("take_telegram_channel" or None))
+def take_telegram_channel_d(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="createshop")
+        build_store = SendStore(app)
+        profile, store = build_store._load_context(message.chat.id)
+        if store:
+            store.tel_channel = message.text
+            store.save()
+        else:
+            session["take_telegram_channel_d"] = message.text
+        
+        session["take_telegram_channel"] = False
+        session["take_data"] = False
+        session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+        build_shop(message)
+    
+    except:
+       print(traceback.format_exc())
+
+
+@app.callback_query_handler(func=lambda call: call.data == "submit_info")
+def submit_store(call):
+    try:
+        session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
+        build_store = SendStore(app)
+        profile, store = build_store._load_context(call.message.chat.id)
+        msg = {"take_logo_d": t("message", "store_logo", profile=profile),
+               "take_name_d": t("message", "name", profile=profile),
+               "teke_telegram_channel_d": t("message", "telegram_channel", profile=profile),
+               "take_description_d": t("message", "store_description", profile=profile),
+               }
+
+        for i in msg:
+            if not session.get(f"{i}"):
+                item = str(msg[i])
+                msg_info = t("message", "store_info_not_filled_yet", profile=profile, item=item)
+                app.answer_callback_query(call.id, msg_info, show_alert=True)
+                print(f"{i}")
+                print(session.get(f"{i}"))
+                return
+        
+        file_id = session.get("take_logo_d")
+        file_info = app.get_file(file_id)
+        downloaded_file = app.download_file(file_info.file_path)
+        store = Store.objects.create(
+                owner = profile,
+                name=session.get("take_name_d"),
+                tel_channel=session.get("teke_telegram_channel_d"),
+                lang=profile.lang,
+                description=session.get("take_description_d")
+                )
+        store.logo=ContentFile(downloaded_file, name=f'logo_{store.id}.jpg')
+        store.save()
+        app.send_message(call.message.chat.id, t("message", "store_registered_successfully", profile=profile))
+        session["take_data"] = False
+        session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")  
+        become_a_seller(call.message)
+
+    except:
+        print(traceback.format_exc())
 
 
 ##################################### END CATEGROY #####################################

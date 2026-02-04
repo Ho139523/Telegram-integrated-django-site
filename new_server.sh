@@ -25,19 +25,18 @@ fi
 ANSWER=$(echo "$ANSWER" | tr '[:upper:]' '[:lower:]')
 
 if [ "$ANSWER" = "yes" ]; then
-    echo "SYSTEM UPDATE AND UPGRADE..."
+    echo "\n\nSYSTEM UPDATE AND UPGRADE...\n\n"
     
     sudo apt-get update
     sudo apt-get upgrade -y
 
 elif [ "$ANSWER" = "no" ]; then
-    echo "SKIPPING SYSTEM UPDDATE AND UPGRADE"
+    echo "\n\nSKIPPING SYSTEM UPDDATE AND UPGRADE\n\n"
 
 else
-    echo "⚠️ Invalid input: $ANSWER"
+    echo "\n\n⚠️ Invalid input: $ANSWER"
     echo "Please use 'yes' or 'no'"
 
-    # ----- کدهای ELSE -----
     exit 1
 fi
 
@@ -123,9 +122,9 @@ sudo systemctl restart nginx
 
 
 if systemctl is-active --quiet nginx; then
-    echo "✅ NGINX IS ACTIVE"
+    echo "\n\n✅ NGINX IS ACTIVE\n\n"
 else
-    echo "❌ NGINX IS NOT ACTIVE"
+    echo "\n\n❌ NGINX IS NOT ACTIVE\n\n"
 fi
 
 
@@ -148,6 +147,10 @@ fi
 
 git pull origin master --force
 
+
+
+
+
 echo -e "\n\n✅ SERVER SETUP ACCOMPLISHED\n\n"
 echo -e "\n\n📁 DIRECTORY CONTENT\n\n"
 ls -la
@@ -159,3 +162,8 @@ sudo ufw allow 22
 sudo ufw allow 443
 sudo ufw status
 sudo ufw status numbered
+
+
+
+
+

@@ -1,5 +1,8 @@
-from decouple import config
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
  
 # Build paths inside the project like this: BASE_DIR / 'subdir'. 
 BASE_DIR = Path(__file__).resolve().parent.parent 
@@ -9,12 +12,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/ 
  
 # SECURITY WARNING: keep the secret key used in production secret! 
-SECRET_KEY = config('SECRET_KEY') 
+SECRET_KEY = os.environ.get('SECRET_KEY')
  
 # SECURITY WARNING: don't run with debug turned on in production! 
 DEBUG = True 
 
-BASE_URL = config("BASE_URL")
+BASE_URL = os.environ.get("BASE_URL")
 
 
 ALLOWED_HOSTS = [
@@ -208,8 +211,8 @@ WSGI_APPLICATION = 'AI.wsgi.application'
  
 DATABASES = { 
     'default': { 
-        'ENGINE': config("engine"), 
-        'NAME': BASE_DIR / config("db_dir"), 
+        'ENGINE': os.environ.get("engine"), 
+        'NAME': BASE_DIR / os.environ.get("db_dir"), 
     } 
 } 
  
@@ -257,30 +260,30 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
  
-MEDIA_URL = config('MEDIA_URL') 
-MEDIA_ROOT = BASE_DIR / config('MEDIA_ROOT') 
+MEDIA_URL = os.environ.get('MEDIA_URL') 
+MEDIA_ROOT = BASE_DIR / os.environ.get('MEDIA_ROOT') 
  
 # Default primary key field type 
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field 
  
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField' 
-AUTH_USER_MODEL = config('AUTH_USER_MODEL') 
+AUTH_USER_MODEL = os.environ.get('AUTH_USER_MODEL') 
  
  
-EMAIL_BACKEND = config('EMAIL_BACKEND') 
-EMAIL_HOST = config('EMAIL_HOST') 
-EMAIL_USE_TLS = config('EMAIL_USE_TLS') 
-EMAIL_PORT = config('EMAIL_PORT') 
-EMAIL_HOST_USER = config('EMAIL_HOST_USER') 
-EMAIL_HOST_PASSWORD =config('EMAIL_HOST_PASSWORD')
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND') 
+EMAIL_HOST = os.environ.get('EMAIL_HOST') 
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS') 
+EMAIL_PORT = os.environ.get('EMAIL_PORT') 
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER') 
+EMAIL_HOST_PASSWORD =os.environ.get('EMAIL_HOST_PASSWORD')
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # Default backend
     'allauth.account.auth_backends.AuthenticationBackend',  # Allauth backend
 ]
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")  # از گوگل بگیر
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")  # از گوگل بگیر
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")  # از گوگل بگیر
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")  # از گوگل بگیر
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'https://your-domain.com/socials/complete/google-oauth2/'  # مسیر redirect واقعی سایت
 
 
@@ -356,7 +359,7 @@ REST_FRAMEWORK = {
 
 
 ZARINPAL = {
-    'MERCHANT_ID': config('MECHANT_ID'),  # مرچنت کد شما
+    'MERCHANT_ID': os.environ.get('MECHANT_ID'),  # مرچنت کد شما
     'CALLBACK_URL': BASE_URL + '/verify/',  # آدرس بازگشت
     'SANDBOX': True,  # برای محیط تست (False برای محیط واقعی)
 }
@@ -383,9 +386,9 @@ INTERNAL_IPS = ["127.0.0.1"]
 
 ##################################### AIOGRAM Security
 
-BOT_SECRET_KEY = config("BOT_SECRET_KEY", default="please-change-me-in-prod")
-BOT_SIGNATURE_EXPIRES = config("BOT_SIGNATURE_EXPIRES", cast=int, default=60)
-BOT_NONCE_EXPIRES = config("BOT_NONCE_EXPIRES", cast=int, default=300)
+BOT_SECRET_KEY = os.environ.get("BOT_SECRET_KEY", "please-change-me-in-prod")
+BOT_SIGNATURE_EXPIRES = int(os.environ.get("BOT_SIGNATURE_EXPIRES", "60"))
+BOT_NONCE_EXPIRES = int(os.environ.get("BOT_NONCE_EXPIRES", "300"))
 
 TG_SESSION_STRING = "1BJWap1wBu455l3Q-PYf0gQkifW8PZXBOYoCAPy-6f5Fa51tPiiuAve2RFuvTbKwz9tn5CLVm6MlgsyF9W_HBQELdfpUkglfWD_hy6l-KsAG9_TJy-jcB1Vnp_QocYvxjzDrIUNLT3WNa15l5NA8xl0WGFWPbkJ4uKEknu1P_GsH8QR33vojCPRo5EGJ_6qw5q0j2halPIbUAJRmOvzCluVQ1za5U9SvQzvmCZphzNz29Py3BzL9HfHzGZampY2m8RNvwtt7MmSjSvQcV9-wOk4UT_hyzOUHhnEXEy9A_HqHLAMVfygbWBGilPAB0lyHsFZSM-pcRIQFIn2EzAm2yijsHiu3TWU4="
 

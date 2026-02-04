@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 import json
 from django.utils.translation import get_language
 from django.conf import settings
+from django.db.models import Q
 
 
 class User(AbstractUser):
@@ -397,31 +398,32 @@ class Address(models.Model):
     class Meta:
         verbose_name = "Address"
         verbose_name_plural = "Addresses"
+    
         constraints = [
-            # محدودیت مهم: یا profile پر باشد یا store، نه هر دو
+            # یا profile یا store — نه هر دو
             models.CheckConstraint(
-                check=(
-                    models.Q(profile__isnull=False, store__isnull=True) | 
-                    models.Q(profile__isnull=True, store__isnull=False)
+                condition=(
+                    Q(profile__isnull=False, store__isnull=True) |
+                    Q(profile__isnull=True, store__isnull=False)
                 ),
                 name="address_owner_check",
-                violation_error_message="آدرس باید یا متعلق به پروفایل باشد یا فروشگاه، نه هر دو"
             ),
-            # محدودیت: shipping_is_active فقط برای آدرس‌های پروفایل می‌تواند True باشد
+    
+            # آدرس فعال فقط برای پروفایل‌ها
             models.CheckConstraint(
-                check=(
-                    models.Q(profile__isnull=False, shipping_is_active=True) |
-                    models.Q(profile__isnull=False, shipping_is_active=False) |
-                    models.Q(profile__isnull=True, shipping_is_active=False)
+                condition=(
+                    Q(profile__isnull=False) |
+                    Q(shipping_is_active=False)
                 ),
                 name="active_address_only_for_profiles",
-                violation_error_message="آدرس فعال فقط برای پروفایل‌ها معتبر است"
             ),
         ]
+    
         indexes = [
-            models.Index(fields=['profile', 'shipping_is_active']),
-            models.Index(fields=['store']),
-        ]
+            models.Index(fields=["profile", "shipping_is_active"]),
+            models.Index(fields=["store"]),
+        ] 
+
 
     def save(self, *args, **kwargs):
         """
@@ -460,10 +462,25 @@ class Address(models.Model):
 
     def clean(self):
         """
-        اعتبارسنجی کامل برای فرم‌ها
+        اعتبارسنجی منطقی برای فرم‌ها و admin
         """
-        self._validate_ownership()
         super().clean()
+    
+        # یا profile یا store — نه هر دو
+        if self.profile and self.store:
+            raise ValidationError(
+                "آدرس نمی‌تواند همزمان متعلق به پروفایل و فروشگاه باشد."
+            )
+    
+        # آدرس فعال فقط برای پروفایل
+        if self.shipping_is_active and not self.profile:
+            raise ValidationError(
+                "آدرس فعال فقط برای پروفایل‌ها مجاز است."
+            )
+    
+        # اگر متد جداگانه داری، اینجا صدا بزن
+        if hasattr(self, "_validate_ownership"):
+            self._validate_ownership() 
 
     def __str__(self):
         if self.profile:

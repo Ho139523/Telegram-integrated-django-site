@@ -103,4 +103,9 @@ urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 
+from ai_chat.views import GenerateResponse
+
+urlpatterns += [
+    path('generate/', GenerateResponse.as_view(), name='generate-response'),
+]
 

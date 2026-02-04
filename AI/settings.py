@@ -31,6 +31,8 @@ ALLOWED_HOSTS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://intelleum.ir",
     "https://intelleum.ir:8443",
+    "https://192.168.1.141:8443",
+    "http://192.168.1.141:8443"
 ]
  
 

@@ -4932,10 +4932,11 @@ class UltraVideoPrompter:
 
 
 class SendPhotoWithMarkup(SendMarkup):
-    def __init__(self, bot, chat_id, photo_path=None, photo_url=None, caption=None, buttons=None, button_layout=None, handlers=None):
+    def __init__(self,bot,chat_id,photo_path=None,photo_url=None,file_id=None,caption=None,buttons=None,button_layout=None,handlers=None):
         super().__init__(bot, chat_id, caption, buttons, button_layout, handlers)
         self.photo_path = photo_path
         self.photo_url = photo_url
+        self.file_id = file_id
         
     def send(self):
         """ارسال عکس با caption و keyboard"""
@@ -4943,7 +4944,16 @@ class SendPhotoWithMarkup(SendMarkup):
             markup = self.generate_keyboard()
             
             # ارسال عکس از مسیر فایل
-            if self.photo_path:
+            if self.file_id:
+                self.bot.send_photo(
+                    chat_id=self.chat_id,
+                    photo=self.file_id,
+                    caption=self.text,
+                    reply_markup=markup,
+                    parse_mode="HTML"
+                )
+
+            elif self.photo_path:
                 with open(self.photo_path, 'rb') as photo:
                     self.bot.send_photo(
                         chat_id=self.chat_id,
@@ -4952,8 +4962,7 @@ class SendPhotoWithMarkup(SendMarkup):
                         reply_markup=markup,
                         parse_mode="HTML"
                     )
-            
-            # ارسال عکس از URL
+
             elif self.photo_url:
                 self.bot.send_photo(
                     chat_id=self.chat_id,
@@ -4962,6 +4971,7 @@ class SendPhotoWithMarkup(SendMarkup):
                     reply_markup=markup,
                     parse_mode="HTML"
                 )
+
             else:
                 print("هیچ منبع عکسی مشخص نشده است")
                 
@@ -5053,15 +5063,19 @@ class SendStore:
 
             buttons = self._generate_buttons(profile, store)
 
+            logo = self._get_logo_source(profile, store)
+
             SendPhotoWithMarkup(
                 bot=self.bot,
                 chat_id=chat_id,
-                photo_path=self._get_logo_path(profile, store),
+                photo_path=logo["value"] if logo["type"] == "path" else None,
+                file_id=logo["value"] if logo["type"] == "file_id" else None,
                 caption=self._generate_caption(profile, store),
                 buttons=buttons,
-                button_layout=[1, 1, 1, 1],
+                button_layout=[2, 2, 2, 2, 2, 1],
                 handlers=self._generate_handlers(profile)
             ).send()
+
 
         except Exception:
             print(traceback.format_exc())
@@ -5101,7 +5115,25 @@ class SendStore:
                 address_text=' --- '
             )] = {"callback_data": "noop", "index": 1}
 
-            buttons[f"{t('message', 'set_store_logo', profile=profile)}"] = {"callback_data": "set_store_logo", "index": 1}
+            buttons[t(
+                'message', 'store_description',
+                profile=profile,
+            )] = {"callback_data": "store_description", "index": 1}
+
+            buttons[t(
+                'message', 'store_payment_metod',
+                profile=profile,
+            )] = {"callback_data": "store_payment_metod", "index": 1}
+
+            buttons[t(
+                'message', 'store_telegram_channel',
+                profile=profile,
+            )] = {"callback_data": "store_telegram_channel", "index": 1}
+
+
+            text = t('message', 'set_store_logo', profile=profile) if not session.get("take_logo_d") else t('message', 'change_store_logo', profile=profile)
+
+            buttons[f"{text}"] = {"callback_data": "set_store_logo", "index": 1}
 
             buttons[t('message', 'submit_information', profile=profile)] = {
                 "callback_data": "submit_info", "index": 1
@@ -5121,17 +5153,42 @@ class SendStore:
             "callback_data": "buy_product", "index": 1
         }
 
+        buttons[t(
+            'message', 'store_description',
+            profile=profile,
+        )] = {"callback_data": "store_description", "index": 1}
+
+        buttons[t(
+            'message', 'store_payment_metod',
+            profile=profile,
+        )] = {"callback_data": "store_payment_metod", "index": 1}
+
+        buttons[t(
+            'message', 'store_telegram_channel',
+            profile=profile,
+        )] = {"callback_data": "store_telegram_channel", "index": 1}
+
+
         buttons[f"{t('message', 'change_store_logo', profile=profile)}"] = {"callback_data": "set_store_logo", "index": 1}
+
+        buttons[t('message', 'store_delete', profile=profile)] = {
+                "callback_data": "submit_info", "index": 1
+            }
 
         return buttons
 
     def _generate_caption(self, profile, store):
-        return (
-            "<b>محصول جدید</b>\n\n"
-            "توضیحات کامل محصول در اینجا قرار می‌گیرد.\n"
-            "💰 قیمت: ۵۰,۰۰۰ تومان\n\n"
-            "برای اقدام روی دکمه‌های زیر کلیک کنید:"
-        )
+        session = session_manager.get_user_session(profile.tel_id, namespace="createshop")
+        if store:
+            caption = f"<b>{store.name}</b> \n\n{store.description}"
+        elif session.get("take_description_d" or None):
+            if session.get("take_name_d"):
+                caption = f"{session.get('take_name_d')} \n\n"
+            caption += session.get("take_description_d" or None)
+        else: 
+            caption = t("message", "store_setup_info", profile=profile)
+ 
+        return caption
 
     def _generate_handlers(self, profile):
         if profile.lang == "fa":
@@ -5146,33 +5203,25 @@ class SendStore:
     # =============================
     # Helpers (Pure Logic)
     # =============================
-    def _get_logo_path(self, profile, store):
-
+    def _get_logo_source(self, profile, store):
         session = session_manager.get_user_session(profile.tel_id, namespace="createshop")
 
         if store and store.logo:
-            return store.logo.path
-        
-        # elif session.get("take_logo_d" or None):
-        #     return session.get("take_logo_d")
+            return {"type": "path", "value": store.logo.path}
 
-        # Use MEDIA_ROOT for filesystem operations
+        if session.get("take_logo_d"):
+            return {"type": "file_id", "value": session["take_logo_d"]}
+
         from django.conf import settings
-        
-        default_logo_filename = f"{profile.lang}-default-store-logo.png"
         default_logo_path = os.path.join(
             settings.MEDIA_ROOT,
             "store_logos",
-            default_logo_filename
+            f"{profile.lang}-default-store-logo.png"
         )
-        
-        
-        # Check if the file exists
-        if not os.path.exists(default_logo_path):
-            print(f"Warning: Default logo not found at {default_logo_path}")
-            # You might want to return a fallback or raise an error
-        
-        return default_logo_path
+
+        return {"type": "path", "value": default_logo_path}
+
+
 
     @staticmethod
     def _format_address(addr, lang):
@@ -5191,8 +5240,16 @@ class SendStore:
             profile, store = self._load_context(call.message.chat.id)
             text = t('message','enter_store_name', profile=profile)
             self.bot.delete_message(call.message.chat.id, call.message.message_id)
-            self.bot.send_message(call.message.chat.id, text)
+            try:
+                self.bot.delete_message(call.message.chat.id, session.get("msg_id"))
+            except:
+                pass
+            cancel_text = t("message", "cancel_action", profile=profile)
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            markup.add(types.KeyboardButton(cancel_text))
+            self.bot.send_message(call.message.chat.id, text, reply_markup=markup)
             session["take_name"] = True
+            session["take_data"] = True
             session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
 
         except Exception as e:
@@ -5206,14 +5263,62 @@ class SendStore:
             profile, store = self._load_context(call.message.chat.id)
             text = t('message','get_store_logo', profile=profile)
             self.bot.delete_message(call.message.chat.id, call.message.message_id)
+            try:
+                self.bot.delete_message(call.message.chat.id, session.get("msg_id"))
+            except:
+                pass
             cancel_text = t("message", "cancel_action", profile=profile)
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
             markup.add(types.KeyboardButton(cancel_text))
-            msg = self.bot.send_message(call.message.chat.id, text, reply_markup=markup)
+            self.bot.send_message(call.message.chat.id, text, reply_markup=markup)
             session["take_logo"] = True
-            session["msg_id"] = msg.message_id
+            session["take_data"] = True
             session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
 
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in take_name: {e}\n{error_details}")
+
+    def take_description(self, call):
+        try:
+            session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
+            profile, store = self._load_context(call.message.chat.id)
+            text = t('message','writ_store_description', profile=profile)
+            self.bot.delete_message(call.message.chat.id, call.message.message_id)
+            try:
+                self.bot.delete_message(call.message.chat.id, session.get("msg_id"))
+            except:
+                pass
+            cancel_text = t("message", "cancel_action", profile=profile)
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            markup.add(types.KeyboardButton(cancel_text))
+            self.bot.send_message(call.message.chat.id, text, reply_markup=markup)
+            session["take_description"] = True
+            session["take_data"] = True
+            session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
+
+        except:
+            print(traceback.format_exc())
+
+
+    def take_telegram_channel(self, call):
+        try:
+            session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
+            profile, store = self._load_context(call.message.chat.id)
+            text = t('message','enter_channel_id', profile=profile)
+            self.bot.delete_message(call.message.chat.id, call.message.message_id)
+            try:
+                self.bot.delete_message(call.message.chat.id, session.get("msg_id"))
+            except:
+                pass
+            cancel_text = t("message", "cancel_action", profile=profile)
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            markup.add(types.KeyboardButton(cancel_text))
+            self.bot.send_message(call.message.chat.id, text, reply_markup=markup)
+            session["take_telegram_channel"] = True
+            session["take_data"] = True
+            session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
+
+        except:
+            print(traceback.format_exc())
+

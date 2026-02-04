@@ -348,3 +348,35 @@ if __name__ == "__main__":
     test_chat_bot()
     
     print("\n✅ تست‌ها کامل شدند!")
+
+
+
+import requests
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .serializers import ChatInputSerializer
+
+class GenerateResponse(APIView):
+    def post(self, request, format=None):
+        serializer = ChatInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        message = serializer.validated_data['message']
+
+        # Assuming Ollama API is running locally on port 11434
+        ollama_url = "http://localhost:11434/api/generate"
+        data = {
+            'model': 'deepseek-r1',
+            'prompt': message,
+            'stream': False  # Set to True if you want streaming, but let's keep it simple for now
+        }
+
+        try:
+            response = requests.post(ollama_url, json=data)
+            result = response.json()
+            return Response({'response': result['response']})
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+

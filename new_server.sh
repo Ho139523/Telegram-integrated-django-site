@@ -1,4 +1,7 @@
-ANSWER="$1"
+#!/bin/bash
+
+ANSWER1="$1"
+ANSWER2="$2"
 
 set -e  
 
@@ -18,23 +21,23 @@ echo -e "\n\n🔄 SYSTEM UPDTAE \n\n"
 
 
 
-if [ -z "$ANSWER" ]; then
-    read -p "Do you want to UPDATE AND UPGRADE system? (yes/no): " ANSWER
+if [ -z "$ANSWER1" ]; then
+    read -p "Do you want to UPDATE AND UPGRADE system? (yes/no): " ANSWER1
 fi
 
-ANSWER=$(echo "$ANSWER" | tr '[:upper:]' '[:lower:]')
+ANSWER=$(echo "$ANSWER1" | tr '[:upper:]' '[:lower:]')
 
-if [ "$ANSWER" = "yes" ]; then
+if [ "$ANSWER1" = "yes" ]; then
     echo "\n\nSYSTEM UPDATE AND UPGRADE...\n\n"
     
     sudo apt-get update
     sudo apt-get upgrade -y
 
-elif [ "$ANSWER" = "no" ]; then
+elif [ "$ANSWER1" = "no" ]; then
     echo "\n\nSKIPPING SYSTEM UPDDATE AND UPGRADE\n\n"
 
 else
-    echo "\n\n⚠️ Invalid input: $ANSWER"
+    echo "\n\n⚠️ Invalid input: $ANSWER1"
     echo "Please use 'yes' or 'no'"
 
     exit 1
@@ -55,6 +58,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
     python3.12-venv \
     tmux
+
+sudo apt install -y build-essential python3-dev python3-venv libssl-dev libffi-dev
 
 echo -e "\n\n NGINX SETUP \n\n"
 # ایجاد فایل default اگر وجود ندارد
@@ -148,7 +153,52 @@ fi
 git pull origin master --force
 
 
+echo -e "\n\n SYS ENV VAR DEFINITION\n\n"
+append_if_not_exists() {
+    local line="$1"
+    local file="$2"
+    grep -qxF "$line" "$file" || echo "$line" >> "$file"
+}
 
+append_if_not_exists 'alias runserver="cd ~/intelleum ; source ~/intelleum/myenv/bin/activate ; python manage.py runserver"' ~/.bashrc
+append_if_not_exists 'alias prj="cd ~/intelleum ; source ~/intelleum/myenv/bin/activate"' ~/.bashrc
+
+source ~/.bashrc
+
+echo -e "\n\n VENV CREATION\n\n"
+
+if [ -d "myenv" ]; then
+    echo "✅ Virtual environment already exists. Skipping..."
+else
+    echo "✅ Virtual environment created."
+    python3 -m venv myenv
+fi
+
+cd ~/intelleum
+source ~/intelleum/myenv/bin/activate
+
+
+echo -e "\n\n VENV PACKAGE INSTALLATION\n\n"
+
+
+
+if [ -z "$ANSWER2" ]; then
+        read -p "Do you want to install pip packages? (yes/no): " ANSWER2
+fi
+
+if [ "$ANSWER2" = "yes" ]; then
+	pip install --upgrade pip
+	pip install -r requirements.txt
+
+elif [ "$ANSWER2" = "no" ]; then
+	echo -e "\n\n VENV PACKAGES INSTALLATION SKIPPED !\n\n"
+
+else
+
+    echo "\n\n⚠️ Invalid input: $ANSWER2"
+    echo "Please use 'yes' or 'no'"
+    exit 1
+fi
 
 
 echo -e "\n\n✅ SERVER SETUP ACCOMPLISHED\n\n"
@@ -165,5 +215,7 @@ sudo ufw status numbered
 
 
 
+echo -e "\n\n📁 RUNNING DJANGO\n\n"
+python manage.py runserver
 
 

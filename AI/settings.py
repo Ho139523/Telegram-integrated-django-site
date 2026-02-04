@@ -44,21 +44,20 @@ LOGIN_URL='accounts:login'
  
 # Application definition 
  
-INSTALLED_APPS = [ 
-    'django.contrib.admin', 
-    'django.contrib.auth', 
-    'django.contrib.contenttypes', 
-    'django.contrib.sessions', 
-    'django.contrib.messages', 
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     # Packages
     'widget_tweaks',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
-    "social_django",
     'crispy_forms',
     'crispy_bootstrap5',
     'tailwind',
@@ -67,19 +66,20 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist',
-    
+
     # Apps
-    "products",
-    'accounts', 
-    'heartpred', 
-    "myapi", 
-    "cv",
-    "mainpage",
-    "telbot",
-    "aiobot",
-    "payment",
-    "ai_chat",
+    'products',
+    'accounts',
+    'heartpred',
+    'myapi',
+    'cv',
+    'mainpage',
+    'telbot',
+    'aiobot',
+    'payment',
+    'ai_chat',
 ]
+
 
 
 if DEBUG:
@@ -275,41 +275,52 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD =config('EMAIL_HOST_PASSWORD')
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    'social_core.backends.google.GoogleOAuth2',  # Ensure this is properly listed
-    'allauth.account.auth_backends.AuthenticationBackend',
+    'django.contrib.auth.backends.ModelBackend',  # Default backend
+    'allauth.account.auth_backends.AuthenticationBackend',  # Allauth backend
+]
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")  # از گوگل بگیر
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")  # از گوگل بگیر
+SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'https://your-domain.com/socials/complete/google-oauth2/'  # مسیر redirect واقعی سایت
+
+
+
+ACCOUNT_LOGIN_METHODS = {'email', 'username'}
+
+ACCOUNT_SIGNUP_FIELDS = [
+    'email*',
+    'username*',
+    'password1*',
+    'password2*',
 ]
 
 
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://public-cups-nail.loca.lt/socials/complete/google-oauth2/'
-
 SITE_ID = 1
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}
 
 
 # LOGIN_URL = "auth/login/google-oauth2"
 LOGOUT_REDIRECT_URL = 'mainpage:home'
-SOCIAL_AUTH_URL_NAMESPACE = 'social'
 
 
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
 SESSION_SAVE_EVERY_REQUEST = True
 
 
-SOCIAL_AUTH_PIPELINE = (
-    'social_core.pipeline.social_auth.social_details',
-    'social_core.pipeline.social_auth.social_uid',
-    'social_core.pipeline.social_auth.auth_allowed',
-    'social_core.pipeline.social_auth.social_user',
-    'social_core.pipeline.user.get_username',
-    'social_core.pipeline.user.create_user',
-    'social_core.pipeline.social_auth.associate_user',
-    'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.user_details',
-    'utils.funcs.django_social_redirect.custom_complete',  # Moved here
-)
+
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 

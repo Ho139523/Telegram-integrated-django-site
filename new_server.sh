@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e  # با اولین خطا متوقف شود
 
-echo "\n\n🔧 SYSTEM FIX\n\n"
+echo -s "\n\n🔧 SYSTEM FIX\n\n"
 # رفع dependencyهای شکسته
 sudo apt --fix-broken install -y 2>/dev/null || true
 sudo dpkg --configure -a 2>/dev/null || true
@@ -9,11 +9,11 @@ sudo dpkg --configure -a 2>/dev/null || true
 # حذف لینک خراب nginx اگر وجود دارد
 sudo rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
 
-echo "\n\n🔄 SYSTEM UPDTAE \n\n"
+echo -s "\n\n🔄 SYSTEM UPDTAE \n\n"
 sudo apt-get update
 sudo apt-get upgrade -y
 
-echo "\n\n📦 PACKAGE INSTALLATION\n\n"
+echo -s "\n\n📦 PACKAGE INSTALLATION\n\n"
 # نصب بدون reconfigure مجدد
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     nginx \
@@ -23,7 +23,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python3.12-venv \
     tmux
 
-echo "\n\n NGINX SETUP \n\n"
+echo -s "\n\n NGINX SETUP \n\n"
 # ایجاد فایل default اگر وجود ندارد
 if [ ! -f /etc/nginx/sites-available/default ]; then
     sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX_EOF'
@@ -89,10 +89,10 @@ sudo nginx -t
 sudo systemctl enable nginx
 sudo systemctl restart nginx
 
-echo "\n\n🔐 UPDATE PASSWORD\n\n"
-echo "root:139523" | sudo chpasswd
+echo -s "\n\n🔐 UPDATE PASSWORD\n\n"
+echo -s "root:139523" | sudo chpasswd
 
-echo "\n\n📥 RECIEVING PROJECT\n\n"
+echo -s "\n\n📥 RECIEVING PROJECT\n\n"
 mkdir -p ~/intelleum
 cd ~/intelleum
 
@@ -105,13 +105,13 @@ fi
 
 git pull origin master --force
 
-echo "\n\n✅ SERVER SETUP ACCOMPLISHED\n\n"
-echo "\n\n📁 DIRECTORY CONTENT\n\n"
+echo -s "\n\n✅ SERVER SETUP ACCOMPLISHED\n\n"
+echo -s "\n\n📁 DIRECTORY CONTENT\n\n"
 ls -la
 
 
 echo -e "\n\n FIREWALL SETUP\n\n"
-echo "y" | sudo ufw enable
+echo -s "y" | sudo ufw enable
 sudo ufw allow 443
 sudo ufw status
 sudo ufw status numbered

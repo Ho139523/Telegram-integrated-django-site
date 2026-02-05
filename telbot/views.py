@@ -22,7 +22,6 @@ from reportlab.pdfgen import canvas
 from django.http import HttpResponse
 from django.conf import settings as sett
 from datetime import datetime
-from decouple import config
 import pycountry
 from django.conf import settings
 from AI.settings import current_site as settings_current_site

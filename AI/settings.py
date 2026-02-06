@@ -24,6 +24,8 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     "intelleum.ir",
+    "intellium.ir",
+    "www.intellium.ir",
     "intelleum.ir:8443",
     "www.intelleum.ir",
     "www.intelleum.ir:8443",
@@ -33,6 +35,7 @@ ALLOWED_HOSTS = [
 
 CSRF_TRUSTED_ORIGINS = [
     "https://intelleum.ir",
+    "https://intellium.ir",
     "https://intelleum.ir:8443",
     "https://192.168.1.141:8443",
     "http://192.168.1.141:8443"
@@ -40,6 +43,7 @@ CSRF_TRUSTED_ORIGINS = [
  
 
 current_site = 'https://intelleum.ir:8443'
+current_site = 'https://intellium.ir'
  
 LOGIN_REDIRECT_URL='accounts:profile' 
 LOGIN_URL='accounts:login' 
@@ -179,6 +183,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "https://intelleum.ir:8443",
+    "https://intellium.ir",
 ]
 
 

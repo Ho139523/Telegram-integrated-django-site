@@ -4,8 +4,9 @@ import argparse
  
 TOKEN = "8019448982:AAEW-sHSuIqd2BaL5qM8rSlVPkP9eoTLRIM"
 sub=''
- 
-WEBHOOK_URL = f"https://intelleum.ir:8443/telbot/webhook/"
+from utils.variables.TOKEN import TOKEN
+from AI.settings import current_site
+WEBHOOK_URL = f"{current_site}/telbot/webhook/"
  
 def delete(TOKEN=TOKEN):
     url = f'https://api.telegram.org/bot{TOKEN}/deleteWebhook'

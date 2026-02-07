@@ -256,18 +256,39 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images) 
 # https://docs.djangoproject.com/en/4.2/howto/static-files/ 
  
-STATIC_URL = 'static/'
+#STATIC_URL = 'static/'
+#STATICFILES_DIRS = [
+#    BASE_DIR / "static",
+#    BASE_DIR / "theme" / "static",
+#]
+#STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
+ 
+#MEDIA_URL = os.environ.get('MEDIA_URL') 
+#MEDIA_ROOT = BASE_DIR / os.environ.get('MEDIA_ROOT') 
+
+
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = os.environ.get('STATIC_URL', '/static/')
+STATIC_ROOT = os.environ.get('STATIC_ROOT', BASE_DIR / 'staticfiles')
+
+# Media files
+MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', BASE_DIR / 'media')
+
+# Additional locations of static files
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
-    BASE_DIR / "theme" / "static",
+    BASE_DIR / 'static',  # اگر static folder جداگانه دارید
 ]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# اطمینان از اینکه collectstatic کار می‌کند
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 
- 
-MEDIA_URL = os.environ.get('MEDIA_URL') 
-MEDIA_ROOT = BASE_DIR / os.environ.get('MEDIA_ROOT') 
- 
+
+
 # Default primary key field type 
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field 
  

@@ -555,6 +555,169 @@ sudo chmod -R 755 /var/www/intelleum/
 
 
 
+
+
+
+
+
+
+### ===============================
+### VARIABLES (edit if needed)
+### ===============================
+DOMAIN="intellium.ir"
+XRAY_PORT=10000
+NGINX_PORT=10001
+WS_PATH="/vless"
+UUID="d1772a6e-41f4-424d-931a-aaab7f8b3f64"
+
+apt install -y curl unzip nginx ufw
+
+### ===============================
+echo "[2/10] Installing Xray core..."
+### ===============================
+curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh | bash
+
+### ===============================
+echo "[3/10] Creating Xray configuration..."
+### ===============================
+mkdir -p /usr/local/etc/xray
+
+cat > /usr/local/etc/xray/config.json <<EOF
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "port": ${XRAY_PORT},
+      "listen": "0.0.0.0",
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "${UUID}",
+            "flow": ""
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "ws",
+        "security": "none",
+        "wsSettings": {
+          "path": "${WS_PATH}"
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ]
+}
+EOF
+
+### ===============================
+echo "[4/10] Creating systemd service for Xray..."
+### ===============================
+cat > /etc/systemd/system/xray.service <<EOF
+[Unit]
+Description=Xray Service
+Documentation=https://github.com/xtls
+After=network.target nss-lookup.target
+
+[Service]
+User=root
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ExecStart=/usr/local/bin/xray run -config /usr/local/etc/xray/config.json
+Restart=on-failure
+RestartPreventExitStatus=23
+LimitNPROC=10000
+LimitNOFILE=1000000
+RuntimeDirectory=xray
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reexec
+systemctl daemon-reload
+systemctl enable xray
+systemctl restart xray
+
+### ===============================
+echo "[5/10] Configuring Nginx for WebSocket reverse proxy..."
+### ===============================
+cat > /etc/nginx/sites-available/vless.conf <<EOF
+server {
+    listen ${NGINX_PORT};
+    listen [::]:${NGINX_PORT};
+    server_name ${DOMAIN};
+
+    location ${WS_PATH} {
+        proxy_redirect off;
+        proxy_pass http://127.0.0.1:${XRAY_PORT};
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+}
+EOF
+
+ln -sf /etc/nginx/sites-available/vless.conf /etc/nginx/sites-enabled/vless.conf
+
+### ===============================
+echo "[6/10] Testing Nginx configuration..."
+### ===============================
+nginx -t
+
+### ===============================
+echo "[7/10] Reloading Nginx..."
+### ===============================
+systemctl reload nginx
+
+### ===============================
+echo "[8/10] Configuring UFW firewall..."
+### ===============================
+ufw allow ssh
+ufw allow ${NGINX_PORT}
+ufw --force enable
+
+### ===============================
+echo "[9/10] Checking listening ports..."
+### ===============================
+ss -lntp | grep -E "${XRAY_PORT}|${NGINX_PORT}" || true
+
+### ===============================
+echo "[10/10] Setup completed successfully!"
+### ===============================
+echo "--------------------------------------------"
+echo "VLESS + WebSocket (NO TLS) configuration:"
+echo "Address : ${DOMAIN}"
+echo "Port    : ${NGINX_PORT}"
+echo "UUID    : ${UUID}"
+echo "Network : ws"
+echo "WS Path : ${WS_PATH}"
+echo "TLS     : none"
+echo "--------------------------------------------"
+echo "Check logs with: journalctl -u xray -f"
+
+
+
+
+
+
+
 echo "شروع نصب Redis..."
 
 
@@ -620,7 +783,7 @@ else
     git remote set-url origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
 fi
 
-git pull origin master --force
+git pull origin vps --force
 
 
 echo -e "\n\n SYS ENV VAR DEFINITION\n\n"

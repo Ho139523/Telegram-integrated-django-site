@@ -28,7 +28,7 @@ fi
 ANSWER=$(echo "$ANSWER1" | tr '[:upper:]' '[:lower:]')
 
 if [ "$ANSWER1" = "yes" ]; then
-    echo "\n\nSYSTEM UPDATE AND UPGRADE...\n\n"
+    echo -e "\n\nSYSTEM UPDATE AND UPGRADE...\n\n"
     
     sudo apt-get update
     sudo apt-get upgrade -y
@@ -52,6 +52,8 @@ fi
 
 echo -e "\n\n📦 PACKAGE INSTALLATION\n\n"
 # نصب بدون reconfigure مجدد
+
+
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     nginx \
     v2ray \
@@ -61,6 +63,33 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     tmux
 
 sudo apt install -y build-essential python3-dev python3-venv libssl-dev libffi-dev certbot python3-certbot-nginx
+
+sudo apt install -y python3-pip redis-server
+
+
+
+
+mkdir -p ~/intelleum
+cd ~/intelleum
+
+echo -e "\n\n VENV CREATION\n\n"
+
+if [ -d "myenv" ]; then
+    echo "✅ Virtual environment already exists. Skipping..."
+else
+    echo "✅ Virtual environment created."
+    python3 -m venv myenv
+fi
+
+cd ~/intelleum
+source ~/intelleum/myenv/bin/activate
+
+
+
+
+pip install redis
+
+
 
 DOMAIN="intellium.ir"
 EMAIL="answereeee4@gmail.com"
@@ -515,8 +544,65 @@ echo -e "   3. Nginx error logs (sudo tail -f /var/log/nginx/error.log)"
 echo -e "\n"
 
 
+sudo mkdir -p /var/www/intelleum/staticfiles/
+sudo mkdir -p /var/www/intelleum/media/
+
+sudo chown -R www-data:www-data /var/www/intelleum/
+sudo chmod -R 755 /var/www/intelleum/
 
 
+
+
+
+
+echo "شروع نصب Redis..."
+
+
+# اجازه اتصال از همه IP‌ها
+sudo sed -i 's/bind 127.0.0.1 ::1/bind 0.0.0.0/' /etc/redis/redis.conf
+
+# غیرفعال کردن protected mode
+sudo sed -i 's/protected-mode yes/protected-mode no/' /etc/redis/redis.conf
+
+# راه‌اندازی مجدد
+sudo systemctl restart redis-server
+sudo systemctl enable redis-server
+
+# نصب Python و کتابخانه‌ها
+
+# ایجاد فایل Python
+cat > session_test.py << 'EOF'
+import redis
+import json
+
+r = redis.Redis(
+    host='localhost',
+    port=6379,
+    decode_responses=True
+)
+
+# تست اتصال
+print("اتصال به Redis:", r.ping())
+
+# تست ذخیره داده
+r.set('test_key', 'test_value')
+print("داده تست:", r.get('test_key'))
+EOF
+
+# اجرای تست
+python3 session_test.py
+
+echo "نصب کامل شد!"
+echo "آدرس: redis://localhost:6379"
+
+
+
+echo -e "\n\n🔐 UPDATING requirements.txt\n\n"
+if [ -f "requirements.txt" ]; then
+    echo "requirements.txt already exists"
+else
+    pip3 freeze > requirements.txt 2>/dev/null || echo "Could not create requirements.txt"
+fi
 
 
 
@@ -526,8 +612,6 @@ echo "root:139523" | sudo chpasswd
 
 
 echo -e "\n\n📥 RECIEVING PROJECT\n\n"
-mkdir -p ~/intelleum
-cd ~/intelleum
 
 if [ ! -d .git ]; then
     git init
@@ -550,22 +634,19 @@ append_if_not_exists 'alias runserver="cd ~/intelleum ; source ~/intelleum/myenv
 append_if_not_exists 'alias prj="cd ~/intelleum ; source ~/intelleum/myenv/bin/activate"' ~/.bashrc
 
 source ~/.bashrc
+. ~/.bashrc
 
-echo -e "\n\n VENV CREATION\n\n"
 
-if [ -d "myenv" ]; then
-    echo "✅ Virtual environment already exists. Skipping..."
-else
-    echo "✅ Virtual environment created."
-    python3 -m venv myenv
-fi
-
-cd ~/intelleum
-source ~/intelleum/myenv/bin/activate
 
 
 echo -e "\n\n VENV PACKAGE INSTALLATION\n\n"
 
+
+# فعال‌سازی مجدد محیط مجازی
+echo -e "\n\n🔧 RE-ACTIVATING VIRTUAL ENVIRONMENT\n\n"
+cd ~/intelleum
+source ~/intelleum/myenv/bin/activate
+echo "Virtual environment activated: $(which python)"
 
 
 if [ -z "$ANSWER2" ]; then
@@ -599,6 +680,16 @@ sudo ufw allow 443
 sudo ufw allow 80
 sudo ufw status
 sudo ufw status numbered
+
+
+
+
+# فعال‌سازی مجدد محیط مجازی
+echo -e "\n\n🔧 RE-ACTIVATING VIRTUAL ENVIRONMENT\n\n"
+cd ~/intelleum
+source ~/intelleum/myenv/bin/activate
+echo "Virtual environment activated: $(which python)"
+
 
 
 

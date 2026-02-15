@@ -1401,6 +1401,7 @@ if [ ! -d .git ]; then
     git init
     git remote add origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
 else
+    git remote add origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
     git remote set-url origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
 fi
 

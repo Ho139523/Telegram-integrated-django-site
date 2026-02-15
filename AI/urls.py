@@ -28,7 +28,7 @@ from utils.funcs.django_social_redirect import custom_complete
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('mainpage.urls')),  # OK if it needs the root path
-    path('apim/', include('myapi.urls')),
+    path('api/', include('myapi.urls')),
     path('cv/', include('cv.urls', namespace='cv')),  # Use a distinct prefix
     path('heartpred/', include('heartpred.urls', namespace='heartpred')),  # Use a distinct prefix
     path('accounts/', include('accounts.urls')),

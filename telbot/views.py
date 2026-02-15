@@ -26,7 +26,6 @@ import pycountry
 from django.conf import settings
 from AI.settings import current_site as settings_current_site
 
-
 # support imports
 from telebot.storage import StateMemoryStorage
 from telebot.handler_backends import State, StatesGroup
@@ -361,13 +360,40 @@ def on_skip_callback(call):
 def start(message):
     try:
         tel_id = message.from_user.id
+        print(f"chat id: {message.chat.id}")
+        print(f"from user id: {message.from_user.id}")
         tel_username = message.from_user.username
         tel_first_name = message.from_user.first_name
         tel_last_name = message.from_user.last_name
-        
-        response = requests.post(f"{current_site}/telbot/api/check-registration/", json={"tel_id": tel_id})
-        print(response.status_code)
 
+
+        # Prepare the signed request
+        payload = {"tel_id": tel_id}
+
+        # Create the signed headers
+        body_str = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
+        body = body_str.encode("utf-8")
+        ts, sig = sign_payload(BOT_SECRET, body)
+        nonce = str(uuid.uuid4())
+
+        headers = {
+            "X-Bot-Timestamp": ts,
+            "X-Bot-Signature": sig,
+            "X-Bot-Nonce": nonce,
+            "Content-Type": "application/json",
+        }
+
+        # Send signed request
+        response = requests.post(
+            f"{current_site}/telbot/api/check-registration/",
+            headers=headers,
+            data=body  # Use data, not json, to maintain exact body for signature
+        )
+
+        print(f"Response status: {response.status_code}")
+        print(f"Response body: {response.text}")
+
+        
         profile, created = ProfileModel.objects.get_or_create(
             tel_id=tel_id,
             telegram=tel_username,
@@ -847,7 +873,7 @@ def home(message, text=None, *args, **kwargs):
             message = message
             call_data = None
             is_callback = False
-            id = message.from_user.id
+            id = message.chat.id
         else:
             message = message.message
             is_callback = True
@@ -973,7 +999,7 @@ def become_a_seller(message):
 @app.message_handler(func=lambda message: message.text in (translations["menu_back_to_buyer"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
 def back_to_buyer(message):
     if subscription.subscription_offer(message):
-        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
         profile.seller_mode = False
         profile.settings_menu = profile.LEVEL_MENUS[profile.user_level][2]
         profile.save()
@@ -2569,7 +2595,7 @@ def submit_store(call):
         profile, store = build_store._load_context(call.message.chat.id)
         msg = {"take_logo_d": t("message", "store_logo", profile=profile),
                "take_name_d": t("message", "name", profile=profile),
-               "teke_telegram_channel_d": t("message", "telegram_channel", profile=profile),
+               "take_telegram_channel_d": t("message", "telegram_channel", profile=profile),
                "take_description_d": t("message", "store_description", profile=profile),
                }
 
@@ -2580,6 +2606,7 @@ def submit_store(call):
                 app.answer_callback_query(call.id, msg_info, show_alert=True)
                 print(f"{i}")
                 print(session.get(f"{i}"))
+                print(session)
                 return
         
         file_id = session.get("take_logo_d")
@@ -2601,6 +2628,61 @@ def submit_store(call):
 
     except:
         print(traceback.format_exc())
+
+
+
+@app.callback_query_handler(func=lambda call: call.data == "delete_store")
+def delete_store(call):
+    try:
+        build_store = SendStore(app)
+        profile, store = build_store._load_context(call.message.chat.id)
+        
+        
+        app.send_message(call.message.chat.id, t("message", "store_registered_successfully", profile=profile))
+        store.delete()
+        back_to_buyer(call.message)
+
+    except:
+        print(traceback.format_exc())
+
+
+##################################### PROMOTION #####################################
+
+
+@app.message_handler(commands=['promote'])
+def promote(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="promote")
+        store_info = SendStore(app)
+        profile, store = store_info._load_context(message.chat.id)
+        if store:
+            # store promote
+            store_promote(message)
+        else:
+            # user promote
+            user_promote(message)
+        session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+    except:
+        print(traceback.format_exc())
+
+
+
+def user_promote(message):
+    pass
+
+
+def store_promote(message):
+     SendPhotoWithMarkup(
+        bot=app,
+        chat_id=message.chat.id,
+        photo_path=
+        caption=
+        buttons=buttons,
+        button_layout=[2, 2, 1],
+        handlers=
+    ).send()
+
+
 
 
 ##################################### END CATEGROY #####################################

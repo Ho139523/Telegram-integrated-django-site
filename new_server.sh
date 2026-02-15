@@ -59,11 +59,29 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
     python3.12-venv \
     tmux
-    vim
 
 sudo apt install -y build-essential python3-dev python3-venv libssl-dev libffi-dev certbot python3-certbot-nginx
 
 sudo apt install -y python3-pip redis-server net-tools
+
+
+
+
+# بررسی نصب بودن vim با dpkg
+if dpkg -l | grep -q "^ii  vim "; then
+    echo "✓ vim از قبل نصب شده است."
+else
+    echo "✗ vim نصب نیست. در حال نصب..."
+    sudo apt update
+    sudo apt install -y vim
+    if [ $? -eq 0 ]; then
+        echo "✓ vim با موفقیت نصب شد."
+    else
+        echo "✗ خطا در نصب vim!"
+        exit 1
+    fi
+fi
+
 
 
 # Change tmux config settings
@@ -80,7 +98,7 @@ bind M-j send-prefix
 EOF
 
 
-tmux kill-server
+#tmux kill-server
 
 
 # Change vim config settings
@@ -113,6 +131,23 @@ set statusline+=\ Ln:\ %l,\ Col:\ %c
 " نمایش درصد پیشرفت
 set statusline+=\ (%p%%)
 EOF
+
+
+mkdir -p ~/intelleum
+cd ~/intelleum
+
+echo -e "\n\n VENV CREATION\n\n"
+
+if [ -d "myenv" ]; then
+    echo "✅ Virtual environment already exists. Skipping..."
+else
+    echo "✅ Virtual environment created."
+    python3 -m venv myenv
+fi
+
+cd ~/intelleum
+source ~/intelleum/myenv/bin/activate
+
 
 
 pip install redis

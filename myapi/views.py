@@ -66,6 +66,7 @@ class ProductListView(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CheckTelegramUserRegistrationView(APIView):
+    permission_classes = [BotSignaturePermission]
 
     def post(self, request):
         tel_id = request.data.get('tel_id')

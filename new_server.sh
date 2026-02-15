@@ -48,10 +48,8 @@ fi
 
 
 
-#!/bin/bash
 
 echo -e "\n\n📦 PACKAGE INSTALLATION\n\n"
-# نصب بدون reconfigure مجدد
 
 
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -61,37 +59,149 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
     python3.12-venv \
     tmux
+    vim
 
 sudo apt install -y build-essential python3-dev python3-venv libssl-dev libffi-dev certbot python3-certbot-nginx
 
-sudo apt install -y python3-pip redis-server
+sudo apt install -y python3-pip redis-server net-tools
 
 
+# Change tmux config settings
+
+cat > ~/.tmux.conf <<EOF
+# غیرفعال کردن کلید پیش‌فرض (Ctrl+b)
+unbind C-b
+
+# تنظیم کلید prefix جدید به Alt + j (که در tmux با M-j نمایش داده می‌شود)
+set -g prefix M-j
+
+# ارسال کلید به برنامه‌های داخل tmux در صورت نیاز
+bind M-j send-prefix
+EOF
 
 
-mkdir -p ~/intelleum
-cd ~/intelleum
-
-echo -e "\n\n VENV CREATION\n\n"
-
-if [ -d "myenv" ]; then
-    echo "✅ Virtual environment already exists. Skipping..."
-else
-    echo "✅ Virtual environment created."
-    python3 -m venv myenv
-fi
-
-cd ~/intelleum
-source ~/intelleum/myenv/bin/activate
+tmux kill-server
 
 
+# Change vim config settings
+
+cat > ~/.vimrc << EOF
+" فعال‌سازی نوار وضعیت (statusline)
+set laststatus=2
+" مخفی کردن حالت ویرایش از خط فرمان
+set noshowmode
+
+" تنظیم رنگ نوار وضعیت به سبز
+highlight StatusLine ctermfg=green ctermbg=black
+
+" پاک کردن مقدار قبلی statusline و ساخت یک statusline جدید
+set statusline=
+" نمایش حالت Vim (NORMAL، INSERT و ...) با رنگ متفاوت
+set statusline+=%#DiffChange#
+set statusline+=\ %{toupper(mode())}\
+set statusline+=%#StatusLine#
+" نمایش نام فایل با مسیر نسبی
+set statusline+=\ %f
+" نمایش علامت فقط‌خواندنی (Read-only) در صورت وجود
+set statusline+=\ %r
+" نمایش علامت تغییر (Modified) در صورت وجود
+set statusline+=\ %m
+" جداکننده - آیتم‌های بعدی به سمت راست می‌روند
+set statusline+=\ %=
+" نمایش شماره خط و ستون
+set statusline+=\ Ln:\ %l,\ Col:\ %c
+" نمایش درصد پیشرفت
+set statusline+=\ (%p%%)
+EOF
 
 
 pip install redis
 
 
 
+
+
+
+
 DOMAIN="intellium.ir"
+WWW_DOMAIN="www.intellium.ir"
+WEBROOT="/var/www/certbot"
+NGINX_CONF="/etc/nginx/sites-available/$DOMAIN"
+
+echo "=========================================="
+echo "Starting Nginx + Certbot setup for $DOMAIN"
+echo "=========================================="
+
+# 3. Create webroot for Certbot
+echo "[3/8] Creating webroot directory for Certbot..."
+mkdir -p $WEBROOT
+chown -R www-data:www-data $WEBROOT
+
+# 4. Create base Nginx config for HTTP (Certbot challenge)
+echo "[4/8] Creating base Nginx configuration for Certbot..."
+
+cat > $NGINX_CONF <<EOF
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name $DOMAIN $WWW_DOMAIN;
+
+    # Certbot HTTP-01 challenge
+    location /.well-known/acme-challenge/ {
+        root $WEBROOT;
+        allow all;
+        default_type "text/plain";
+    }
+
+    # Test response
+    location / {
+        return 200 "Certbot ready\n";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+
+
+sudo ufw allow 80
+rm -rf /etc/nginx/sites-available/default
+
+# 5. Enable Nginx site
+echo "[5/8] Enabling Nginx site..."
+ln -sf $NGINX_CONF /etc/nginx/sites-enabled/$DOMAIN
+
+echo "Testing Nginx configuration..."
+nginx -t
+systemctl reload nginx
+
+# 7. Obtain SSL certificate
+echo "[7/8] Requesting SSL certificate from Let's Encrypt..."
+certbot certonly \
+  --webroot \
+  -w $WEBROOT \
+  -d $DOMAIN \
+  -d $WWW_DOMAIN
+
+# 8. Configure HTTPS
+echo "[8/8] Updating Nginx configuration for HTTPS..."
+
+echo "Reloading Nginx with HTTPS configuration..."
+nginx -t
+systemctl reload nginx
+
+echo "=========================================="
+echo "SSL setup completed successfully!"
+echo "Domain: https://$DOMAIN"
+echo "=========================================="
+
+
+
+
+
+
+
+
+
 EMAIL="answereeee4@gmail.com"
 
 echo -e "\n\n🔐 SSL VALIDATION\n\n"
@@ -560,6 +670,333 @@ sudo chmod -R 755 /var/www/intelleum/
 
 
 
+# ============================================
+# FTP Server Installation and Configuration Script
+# for new server with root user access
+# ============================================
+
+# Colors for better output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to display messages
+print_status() {
+    echo -e "${GREEN}[+]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[!]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[!]${NC} $1"
+}
+
+# ============================================
+# Section 1: Server Information Gathering
+# ============================================
+
+print_status "Gathering server information..."
+
+# Get public IP address of the server
+PUBLIC_IP=$(curl -s http://ifconfig.me 2>/dev/null || curl -s http://ipinfo.io/ip 2>/dev/null || hostname -I | awk '{print $1}')
+if [ -z "$PUBLIC_IP" ]; then
+    print_warning "Cannot detect public IP. Please enter manually:"
+    read -p "Server public IP: " PUBLIC_IP
+else
+    print_status "Detected public IP: $PUBLIC_IP"
+    read -p "Is this IP correct? (y/n): " CONFIRM_IP
+    if [[ $CONFIRM_IP != "y" && $CONFIRM_IP != "Y" ]]; then
+        read -p "Please enter the server public IP: " PUBLIC_IP
+    fi
+fi
+
+# Get Passive port number
+read -p "Enter Passive Mode port (default: 2121): " PASV_PORT
+PASV_PORT=${PASV_PORT:-2121}
+
+# Get FTP password for root user
+read -s -p "FTP password for root user (leave empty to keep current SSH password): " FTP_PASSWORD
+echo ""
+
+# ============================================
+# Section 2: Prerequisites Installation
+# ============================================
+
+print_status "Updating system packages..."
+apt-get update > /dev/null 2>&1
+apt-get upgrade -y > /dev/null 2>&1
+
+print_status "Installing vsftpd and required tools..."
+apt-get install -y vsftpd lftp ftp ufw > /dev/null 2>&1
+
+# ============================================
+# Section 3: vsftpd Configuration
+# ============================================
+
+print_status "Configuring vsftpd..."
+
+# Backup original configuration file
+cp /etc/vsftpd.conf /etc/vsftpd.conf.backup
+
+# Create new configuration file
+cat > /etc/vsftpd.conf << EOF
+# ============================================
+# vsftpd configuration for new server
+# Generated by installation script
+# ============================================
+
+# Basic settings
+listen=YES
+listen_port=21
+listen_ipv6=NO
+
+# Authentication
+anonymous_enable=NO
+local_enable=YES
+write_enable=YES
+local_umask=022
+
+# Logging
+dirmessage_enable=YES
+use_localtime=YES
+xferlog_enable=YES
+xferlog_file=/var/log/vsftpd.log
+xferlog_std_format=YES
+log_ftp_protocol=YES
+
+# Disable port 20 to avoid NAT issues
+connect_from_port_20=NO
+
+# Security Chroot settings
+chroot_local_user=YES
+allow_writeable_chroot=YES
+
+# Passive Mode settings
+pasv_enable=YES
+pasv_min_port=$PASV_PORT
+pasv_max_port=$PASV_PORT
+pasv_address=$PUBLIC_IP
+pasv_promiscuous=YES
+
+# Active Mode settings
+port_enable=YES
+
+# Connection limits
+max_clients=10
+max_per_ip=3
+local_root=/
+
+# Allow root access
+userlist_enable=YES
+userlist_file=/etc/vsftpd.userlist
+userlist_deny=NO
+
+# SSL settings (disabled)
+ssl_enable=NO
+
+# Prevent 530 login errors
+seccomp_sandbox=NO
+EOF
+
+# Create user access list
+echo "root" > /etc/vsftpd.userlist
+chmod 600 /etc/vsftpd.userlist
+
+print_status "Configuring root access..."
+
+# 1. Remove root from ftpusers (blacklist file)
+if [ -f /etc/ftpusers ]; then
+    cp /etc/ftpusers /etc/ftpusers.backup
+    grep -v "^root$" /etc/ftpusers > /tmp/ftpusers.tmp
+    mv /tmp/ftpusers.tmp /etc/ftpusers
+    print_status "Root removed from /etc/ftpusers"
+fi
+
+# 2. Remove root from ftpusers if exists with different format
+sed -i '/^#root$/d' /etc/ftpusers 2>/dev/null || true
+
+# ============================================
+# Section 4: Root User Access Configuration
+# ============================================
+
+print_status "Configuring root user access..."
+
+# Add root to allowed FTP users list
+if ! grep -q "^root" /etc/ftpusers 2>/dev/null; then
+    cp /etc/ftpusers /etc/ftpusers.backup
+    grep -v "^root$" /etc/ftpusers > /etc/ftpusers.tmp
+    mv /etc/ftpusers.tmp /etc/ftpusers
+fi
+
+# Change password if new password provided
+if [ -n "$FTP_PASSWORD" ]; then
+    echo "root:$FTP_PASSWORD" | chpasswd
+    print_status "Root password changed."
+fi
+
+# Set appropriate shell for FTP access
+if ! grep -q "^root.*/bin/bash" /etc/passwd; then
+    usermod -s /bin/bash root
+fi
+
+# ============================================
+# Section 5: Firewall Configuration
+# ============================================
+
+print_status "Configuring firewall..."
+
+# Enable UFW if not already enabled
+ufw --force enable > /dev/null 2>&1
+
+# Open required ports
+ufw allow ssh > /dev/null 2>&1
+ufw allow 21/tcp > /dev/null 2>&1
+ufw allow $PASV_PORT/tcp > /dev/null 2>&1
+
+print_status "Firewall status:"
+ufw status numbered | head -20
+
+# ============================================
+# Section 6: Service Startup (Corrected Section)
+# ============================================
+
+print_status "Starting vsftpd service..."
+
+# 🔴 Correction 1: Completely stop vsftpd before starting
+print_status "Stopping vsftpd (if running)..."
+systemctl stop vsftpd 2>/dev/null || true
+pkill -9 vsftpd 2>/dev/null || true
+
+# 🔴 Correction 2: Wait to ensure complete shutdown
+sleep 3
+
+# 🔴 Correction 3: Verify no vsftpd processes are running
+if pgrep vsftpd > /dev/null; then
+    print_warning "vsftpd is still running. Force killing..."
+    pkill -9 vsftpd
+    sleep 2
+fi
+
+# 🔴 Correction 4: Reload systemd
+systemctl daemon-reload
+
+# 🔴 Correction 5: Start service with delay and error checking
+print_status "Starting vsftpd..."
+if systemctl start vsftpd; then
+    sleep 2  # Wait for service to start
+else
+    print_error "Error starting service. Retrying..."
+    systemctl stop vsftpd 2>/dev/null || true
+    pkill -9 vsftpd 2>/dev/null || true
+    sleep 2
+    systemctl start vsftpd
+    sleep 2
+fi
+
+systemctl enable vsftpd > /dev/null 2>&1
+
+# 🔴 Correction 6: Check status with longer pause
+print_status "Checking service status..."
+sleep 3
+
+if systemctl is-active --quiet vsftpd; then
+    print_status "vsftpd service started successfully."
+
+    # Quick test
+    print_status "Running quick test..."
+    sleep 2
+
+    # Check port
+    if netstat -tln | grep -q ":21 "; then
+        print_status "Port 21 is listening."
+    else
+        print_warning "Port 21 is not listening."
+    fi
+
+else
+    print_error "Error starting vsftpd service"
+    print_error "Checking logs..."
+    journalctl -u vsftpd -n 15 --no-pager
+
+    # Attempt manual debug
+    print_status "Attempting manual startup..."
+    vsftpd -olisten=YES /etc/vsftpd.conf &
+    sleep 3
+    if [ $? -eq 0 ]; then
+        print_status "vsftpd started manually successfully."
+    else
+        print_error "Manual startup also failed."
+        exit 1
+    fi
+fi
+
+# ============================================
+# Section 7: Installation Testing
+# ============================================
+
+print_status "Running initial tests..."
+
+# Test 1: Check listening ports
+echo "--- Listening Ports ---"
+netstat -tlnp | grep -E ":21|:$PASV_PORT" 2>/dev/null || echo "   Ports not found"
+
+# Test 2: Check service status
+echo ""
+echo "--- Service Status ---"
+systemctl status vsftpd --no-pager -l | head -15
+
+# Test 3: Local connection test
+echo ""
+echo "--- Local Connection Test ---"
+timeout 3 bash -c "echo -e 'user root\nquit' | ftp localhost 21" 2>/dev/null | \
+    grep -E "220|230|Login successful" || \
+    echo "   Local connection test failed"
+
+# ============================================
+# Section 8: Final Information Display
+# ============================================
+
+echo ""
+echo -e "${GREEN}✅ Installation and configuration completed!${NC}"
+echo ""
+echo "============================== FTP Server Information =============================="
+echo "Server Address: ftp://$PUBLIC_IP"
+echo "Control Port: 21"
+echo "Passive Port: $PASV_PORT"
+echo "Username: root"
+echo "Password: $(if [ -n "$FTP_PASSWORD" ]; then echo "New SSH password"; else echo "Current SSH password"; fi)"
+echo "================================================================================"
+echo ""
+echo ""
+echo "To test from client:"
+echo "lftp -e 'set ftp:passive-mode on; ls' ftp://root@$PUBLIC_IP"
+echo ""
+echo -e "${YELLOW}⚠️ Security Note:${NC}"
+echo "Root access via FTP is not recommended for security."
+echo "For production environments, use a regular user with sudo privileges."
+
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### ===============================
 ### VARIABLES (edit if needed)
@@ -569,20 +1006,41 @@ XRAY_PORT=10000
 NGINX_PORT=10001
 WS_PATH="/vless"
 UUID="d1772a6e-41f4-424d-931a-aaab7f8b3f64"
-
-apt install -y curl unzip nginx ufw
-
-### ===============================
-echo "[2/10] Installing Xray core..."
-### ===============================
-curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh | bash
+XRAY_INSTALLED=false
+XRAY_CONFIGURED=false
+NGINX_CONFIGURED=false
+SERVICE_CONFIGURED=false
 
 ### ===============================
-echo "[3/10] Creating Xray configuration..."
+echo "[1/10] Checking prerequisites..."
 ### ===============================
-mkdir -p /usr/local/etc/xray
+# Check if packages are installed
+for pkg in curl unzip nginx ufw; do
+    if ! dpkg -l | grep -q "^ii.*$pkg "; then
+        echo "Installing $pkg..."
+        apt install -y "$pkg"
+    else
+        echo "$pkg is already installed."
+    fi
+done
 
-cat > /usr/local/etc/xray/config.json <<EOF
+### ===============================
+echo "[2/10] Checking Xray installation..."
+### ===============================
+if [ -f "/usr/local/bin/xray" ]; then
+    echo "Xray is already installed."
+    XRAY_INSTALLED=true
+else
+    echo "Installing Xray core..."
+    curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh | bash
+    XRAY_INSTALLED=true
+fi
+
+### ===============================
+echo "[3/10] Checking Xray configuration..."
+### ===============================
+XRAY_CONFIG_FILE="/usr/local/etc/xray/config.json"
+EXPECTED_CONFIG=$(cat <<EOF
 {
   "log": {
     "loglevel": "warning"
@@ -618,11 +1076,33 @@ cat > /usr/local/etc/xray/config.json <<EOF
   ]
 }
 EOF
+)
+
+# Create directory if doesn't exist
+mkdir -p /usr/local/etc/xray
+
+# Check if config exists and is correct
+if [ -f "$XRAY_CONFIG_FILE" ]; then
+    CURRENT_CONFIG=$(cat "$XRAY_CONFIG_FILE")
+    if [ "$CURRENT_CONFIG" = "$EXPECTED_CONFIG" ]; then
+        echo "Xray configuration is already up to date."
+        XRAY_CONFIGURED=true
+    else
+        echo "Updating Xray configuration..."
+        echo "$EXPECTED_CONFIG" > "$XRAY_CONFIG_FILE"
+        XRAY_CONFIGURED=true
+    fi
+else
+    echo "Creating Xray configuration..."
+    echo "$EXPECTED_CONFIG" > "$XRAY_CONFIG_FILE"
+    XRAY_CONFIGURED=true
+fi
 
 ### ===============================
-echo "[4/10] Creating systemd service for Xray..."
+echo "[4/10] Checking Xray service..."
 ### ===============================
-cat > /etc/systemd/system/xray.service <<EOF
+SERVICE_FILE="/etc/systemd/system/xray.service"
+SERVICE_CONTENT=$(cat <<EOF
 [Unit]
 Description=Xray Service
 Documentation=https://github.com/xtls
@@ -644,16 +1124,42 @@ RuntimeDirectoryMode=0755
 [Install]
 WantedBy=multi-user.target
 EOF
+)
 
-systemctl daemon-reexec
-systemctl daemon-reload
-systemctl enable xray
-systemctl restart xray
+if [ -f "$SERVICE_FILE" ]; then
+    CURRENT_SERVICE=$(cat "$SERVICE_FILE")
+    if [ "$CURRENT_SERVICE" = "$SERVICE_CONTENT" ]; then
+        echo "Xray service is already configured."
+        SERVICE_CONFIGURED=true
+    else
+        echo "Updating Xray service..."
+        echo "$SERVICE_CONTENT" > "$SERVICE_FILE"
+        SERVICE_CONFIGURED=true
+    fi
+else
+    echo "Creating Xray service..."
+    echo "$SERVICE_CONTENT" > "$SERVICE_FILE"
+    SERVICE_CONFIGURED=true
+fi
+
+# Only reload systemd if service was updated
+if [ "$SERVICE_CONFIGURED" = true ]; then
+    systemctl daemon-reexec
+    systemctl daemon-reload
+fi
+
+# Enable and restart Xray if installed or configured
+if [ "$XRAY_INSTALLED" = true ] || [ "$XRAY_CONFIGURED" = true ]; then
+    systemctl enable xray 2>/dev/null || true
+    echo "Restarting Xray service..."
+    systemctl restart xray
+fi
 
 ### ===============================
-echo "[5/10] Configuring Nginx for WebSocket reverse proxy..."
+echo "[5/10] Checking Nginx configuration..."
 ### ===============================
-cat > /etc/nginx/sites-available/vless.conf <<EOF
+NGINX_CONF="/etc/nginx/sites-available/vless.conf"
+NGINX_CONTENT=$(cat <<EOF
 server {
     listen ${NGINX_PORT};
     listen [::]:${NGINX_PORT};
@@ -673,33 +1179,86 @@ server {
     }
 }
 EOF
+)
 
-ln -sf /etc/nginx/sites-available/vless.conf /etc/nginx/sites-enabled/vless.conf
+# Check if Nginx config exists and is correct
+if [ -f "$NGINX_CONF" ]; then
+    CURRENT_NGINX=$(cat "$NGINX_CONF")
+    if [ "$CURRENT_NGINX" = "$NGINX_CONTENT" ]; then
+        echo "Nginx configuration is already up to date."
+        NGINX_CONFIGURED=true
+    else
+        echo "Updating Nginx configuration..."
+        echo "$NGINX_CONTENT" > "$NGINX_CONF"
+        NGINX_CONFIGURED=true
+    fi
+else
+    echo "Creating Nginx configuration..."
+    echo "$NGINX_CONTENT" > "$NGINX_CONF"
+    NGINX_CONFIGURED=true
+fi
+
+# Create symlink if doesn't exist
+if [ ! -L "/etc/nginx/sites-enabled/vless.conf" ]; then
+    ln -sf /etc/nginx/sites-available/vless.conf /etc/nginx/sites-enabled/vless.conf
+fi
+
+# Test and reload Nginx if config was updated
+if [ "$NGINX_CONFIGURED" = true ]; then
+    echo "Testing Nginx configuration..."
+    nginx -t
+
+    echo "Reloading Nginx..."
+    systemctl reload nginx
+fi
 
 ### ===============================
-echo "[6/10] Testing Nginx configuration..."
+echo "[6/10] Configuring UFW firewall..."
 ### ===============================
-nginx -t
+# Check if ports are already allowed
+PORTS_TO_CHECK=("$NGINX_PORT" "ssh")
+
+for port in "${PORTS_TO_CHECK[@]}"; do
+    if ! ufw status | grep -q "${port}.*ALLOW"; then
+        echo "Allowing port $port in UFW..."
+        ufw allow "$port"
+    else
+        echo "Port $port is already allowed in UFW."
+    fi
+done
+
+# Enable UFW if not already enabled
+if ! ufw status | grep -q "Status: active"; then
+    echo "Enabling UFW..."
+    ufw --force enable
+else
+    echo "UFW is already active."
+fi
 
 ### ===============================
-echo "[7/10] Reloading Nginx..."
+echo "[7/10] Checking listening ports..."
 ### ===============================
-systemctl reload nginx
+echo "Checking if services are listening on required ports..."
+for port in $XRAY_PORT $NGINX_PORT; do
+    if ss -lntp | grep -q ":$port "; then
+        echo "Port $port is listening."
+    else
+        echo "WARNING: Port $port is NOT listening!"
+    fi
+done
 
 ### ===============================
-echo "[8/10] Configuring UFW firewall..."
+echo "[8/10] Summary of changes made:"
 ### ===============================
-ufw allow ssh
-ufw allow ${NGINX_PORT}
-ufw --force enable
+echo "--------------------------------------------"
+[ "$XRAY_INSTALLED" = false ] && echo "- Xray installed"
+[ "$XRAY_CONFIGURED" = false ] && echo "- Xray configuration created/updated"
+[ "$SERVICE_CONFIGURED" = false ] && echo "- Service file created/updated"
+[ "$NGINX_CONFIGURED" = false ] && echo "- Nginx configuration created/updated"
+echo "--------------------------------------------"
 
 ### ===============================
-echo "[9/10] Checking listening ports..."
-### ===============================
-ss -lntp | grep -E "${XRAY_PORT}|${NGINX_PORT}" || true
-
-### ===============================
-echo "[10/10] Setup completed successfully!"
+echo "[9/10] Setup completed successfully!"
 ### ===============================
 echo "--------------------------------------------"
 echo "VLESS + WebSocket (NO TLS) configuration:"
@@ -710,7 +1269,34 @@ echo "Network : ws"
 echo "WS Path : ${WS_PATH}"
 echo "TLS     : none"
 echo "--------------------------------------------"
+
+### ===============================
+echo "[10/10] Running final checks..."
+### ===============================
+# Check if services are running
+for service in xray nginx; do
+    if systemctl is-active --quiet "$service"; then
+        echo "✓ $service is running"
+    else
+        echo "✗ $service is NOT running!"
+        echo "Check with: systemctl status $service"
+    fi
+done
+
+echo ""
 echo "Check logs with: journalctl -u xray -f"
+echo "Test connection with: nc -zv localhost $NGINX_PORT"
+
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+
+
+
+
 
 
 
@@ -841,6 +1427,7 @@ echo "y" | sudo ufw enable
 sudo ufw allow 22
 sudo ufw allow 443
 sudo ufw allow 80
+sudo ufw allow 10001
 sudo ufw status
 sudo ufw status numbered
 

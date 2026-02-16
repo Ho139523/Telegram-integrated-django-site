@@ -88,6 +88,17 @@ fi
 
 cat > ~/.tmux.conf <<EOF
 # غیرفعال کردن کلید پیش‌فرض (Ctrl+b)
+# استفاده از حالت vi در tmux (برای ناوبری با صفحه کلید)
+set -g status-keys vi
+set -g mode-keys vi
+
+# تنظیم کلیدهای مشابه Vim برای کپی پیست
+bind -T copy-mode-vi 'v' send -X begin-selection
+bind -T copy-mode-vi 'V' send -X select-line
+bind -T copy-mode-vi 'y' send -X copy-selection-and-cancel
+bind -T copy-mode-vi 'Y' send -X copy-line
+bind -T copy-mode-vi 'C-v' send -X rectangle-toggle
+set -g mouse on
 unbind C-b
 
 # تنظیم کلید prefix جدید به Alt + j (که در tmux با M-j نمایش داده می‌شود)
@@ -1401,7 +1412,6 @@ if [ ! -d .git ]; then
     git init
     git remote add origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
 else
-    git remote add origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
     git remote set-url origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
 fi
 

@@ -1408,8 +1408,12 @@ echo "root:139523" | sudo chpasswd
 
 echo -e "\n\n📥 RECIEVING PROJECT\n\n"
 
+
+source ~/.bashrc
 if [ ! -d .git ]; then
     git init
+    git remote add origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
+elif ! git remote | grep -q "^origin$"; then
     git remote add origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site
 else
     git remote set-url origin https://$GIT_TOKEN@github.com/ho139523/telegram-integrated-django-site

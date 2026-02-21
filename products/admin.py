@@ -3,6 +3,7 @@ from .models import (
     Category, Product, ProductAttribute, Store,
     ProductImage, ProductVariant, Unit
 )
+from django.utils import timezone
 
 
 ### ----------------------------
@@ -111,54 +112,6 @@ class ProductAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-### ----------------------------
-### 5. مدیریت فروشگاه‌ها
-### ----------------------------
-@admin.register(Store)
-class StoreAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "owner",
-        "markant_id",
-        "lang",
-        "tel_channel",
-        "tel_group",
-        "is_verified",        # اگر اضافه کردی
-        "verification_level", # اگر اضافه کردی
-    )
-
-    search_fields = (
-        "name",
-        "markant_id",
-        "owner__tel_id",
-        "owner__user__username",
-        "owner__user__email",
-    )
-
-    list_filter = (
-        "lang",
-        "is_verified",        # اگر اضافه کردی
-        "verification_level", # اگر اضافه کردی
-    )
-
-    ordering = ("name",)
-
-    # نمایش بهتر در فرم ادمین
-    fieldsets = (
-        ("اطلاعات اصلی", {
-            "fields": ("owner", "name", "logo", "markant_id", "lang")
-        }),
-        ("راه‌های ارتباطی", {
-            "fields": ("tel_group", "tel_channel")
-        }),
-        ("معرفی فروشگاه", {  # اگر اضافه کردی
-            "fields": ("tagline", "description", "banner_image", "intro_video")
-        }),
-        ("اعتبارسنجی", {     # اگر اضافه کردی
-            "fields": ("is_verified", "verification_level")
-        }),
-    )
-
 
 ### ----------------------------
 ### 6. سایر مدل‌ها
@@ -173,4 +126,63 @@ class ProductAttributeAdmin(admin.ModelAdmin):
 @admin.register(ProductImage)
 class ProductImageAdmin(admin.ModelAdmin):
     list_display = ('id', 'image')
+
+
+
+### ----------------------------
+### 5. مدیریت فروشگاه‌ها
+### ----------------------------
+@admin.register(Store)
+class StoreAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "name",
+        "owner",
+        "markant_id",
+        "lang",
+        "is_verified",
+        "verification_level",
+        "subscription_status",
+        "subscription_plan",
+        "subscription_end",
+    )
+
+    search_fields = (
+        "name",
+        "markant_id",
+        "owner__tel_id",
+        "owner__user__username",
+        "owner__user__email",
+    )
+
+    list_filter = (
+        "lang",
+        "is_verified",
+        "verification_level",
+        "subscription__status",
+        "subscription__plan",
+    )
+
+    ordering = ("name",)
+
+    def subscription_status(self, obj):
+        if hasattr(obj, "subscription"):
+            return obj.subscription.status
+        return "—"
+    subscription_status.short_description = "Subscription Status"
+
+    def subscription_plan(self, obj):
+        if hasattr(obj, "subscription") and obj.subscription.plan:
+            return obj.subscription.plan.get_code_display()
+        return "—"
+    subscription_plan.short_description = "Plan"
+
+    def subscription_end(self, obj):
+        if hasattr(obj, "subscription"):
+            return obj.subscription.end_date
+        return "—"
+    subscription_end.short_description = "Expiry"
+
+
+
 

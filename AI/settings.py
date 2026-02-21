@@ -21,28 +21,15 @@ BASE_URL = os.environ.get("BASE_URL")
 
 
 ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "intelleum.ir",
     "intellium.ir",
     "www.intellium.ir",
-    "intelleum.ir:8443",
-    "www.intelleum.ir",
-    "www.intelleum.ir:8443",
-    "37.148.9.135",
-    "192.168.1.141"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://intelleum.ir",
     "https://intellium.ir",
-    "https://intelleum.ir:8443",
-    "https://192.168.1.141:8443",
-    "http://192.168.1.141:8443"
 ]
  
 
-current_site = 'https://intelleum.ir:8443'
 current_site = 'https://intellium.ir'
  
 LOGIN_REDIRECT_URL='accounts:profile' 
@@ -73,6 +60,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist',
+    'django_celery_beat',
 
     # Apps
     'products',
@@ -85,6 +73,7 @@ INSTALLED_APPS = [
     'aiobot',
     'payment',
     'ai_chat',
+    'subscription',
 ]
 
 
@@ -182,7 +171,6 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-    "https://intelleum.ir:8443",
     "https://intellium.ir",
 ]
 
@@ -246,28 +234,12 @@ AUTH_PASSWORD_VALIDATORS = [
  
 LANGUAGE_CODE = 'en-us' 
  
-TIME_ZONE = 'UTC' 
+TIME_ZONE = 'Asia/Tehran' 
  
 USE_I18N = True 
  
 USE_TZ = True 
  
- 
-# Static files (CSS, JavaScript, Images) 
-# https://docs.djangoproject.com/en/4.2/howto/static-files/ 
- 
-#STATIC_URL = 'static/'
-#STATICFILES_DIRS = [
-#    BASE_DIR / "static",
-#    BASE_DIR / "theme" / "static",
-#]
-#STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-
- 
-#MEDIA_URL = os.environ.get('MEDIA_URL') 
-#MEDIA_ROOT = BASE_DIR / os.environ.get('MEDIA_ROOT') 
-
 
 
 # Static files (CSS, JavaScript, Images)
@@ -441,3 +413,19 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+
+AXES_ENABLED = True
+AXES_FAILURE_LIMIT = 5
+AXES_LOCK_OUT_AT_FAILURE = True
+
+
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+CELERY_TIMEZONE = 'Asia/Tehran'
+
+
+from celery.schedules import crontab
+

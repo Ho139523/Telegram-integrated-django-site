@@ -64,6 +64,8 @@ sudo apt install -y build-essential python3-dev python3-venv libssl-dev libffi-d
 
 sudo apt install -y python3-pip redis-server net-tools
 
+sudo apt remove vim
+sudo apt install vim-gtk3
 
 
 
@@ -141,6 +143,9 @@ set statusline+=\ %=
 set statusline+=\ Ln:\ %l,\ Col:\ %c
 " نمایش درصد پیشرفت
 set statusline+=\ (%p%%)
+set number
+set clipboard=unnamedplus
+
 EOF
 
 
@@ -1484,6 +1489,78 @@ sudo ufw status numbered
 
 
 
+
+
+
+
+####################### Celery worker ####################### 
+
+
+core_count=`nproc`
+
+cat > /etc/systemd/system/celery-worker.service << EOF
+[Unit]
+Description=Celery Worker
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/intelleum
+Environment="PATH=/root/intelleum/myenv/bin"
+ExecStart=/root/intelleum/myenv/bin/celery -A AI worker \
+  --loglevel=info \
+  --logfile=/root/intelleum/logs/celery-worker.log \
+  --concurrency=$core_count \
+  --max-tasks-per-child=100
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+####################### Beat worker #######################
+
+
+
+cat > /etc/systemd/system/celery-beat.service << 'EOF'
+[Unit]
+Description=Celery Worker
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/intelleum
+Environment="PATH=/root/intelleum/myenv/bin"
+ExecStart=/root/intelleum/myenv/bin/celery -A AI beat \
+  --loglevel=info \
+  --logfile=/root/intelleum/logs/celery-beat.log \
+  --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+
+#######################
+
+sudo systemctl daemon-reload
+sudo systemctl enable celery-worker
+sudo systemctl enable celery-beat
+sudo systemctl start celery-worker
+sudo systemctl start celery-beat
+sudo systemctl status celery-worker
+sudo systemctl status celery-beat
+
+
+
+
 # فعال‌سازی مجدد محیط مجازی
 echo -e "\n\n🔧 RE-ACTIVATING VIRTUAL ENVIRONMENT\n\n"
 cd ~/intelleum
@@ -1496,7 +1573,7 @@ echo "Virtual environment activated: $(which python)"
 echo -e "\n\n🔄 MAKE MIGRATIONS\n\n"
 python manage.py makemigrations
 python manage.py migrate
-
+python manage.py collectstatic
 echo -e "\n\n📁 RUNNING DJANGO\n\n"
 python manage.py runserver
 

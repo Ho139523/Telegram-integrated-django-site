@@ -5,10 +5,8 @@ import os
 import hashlib
 from django.utils.text import slugify
 import pycountry
-
-
-
-
+from django.utils import timezone
+from datetime import timedelta
 
 
 # =========================
@@ -63,13 +61,18 @@ class Store(models.Model):
     # اگر دوست داری لینک‌ها را راحت نگه داری:
     social_links = models.JSONField(default=dict, blank=True)  # {"instagram":"...", "linkedin":"..."}
 
-
-    def __str__(self):
-        return self.name
+    
 
     class Meta:
         verbose_name = "Store"
         verbose_name_plural = "Stores"
+
+
+    
+    def __str__(self):
+        return self.name
+
+
 
     # متدهای کمکی برای آدرس
     def get_address(self):
@@ -147,6 +150,8 @@ class Store(models.Model):
             return "، ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
         else:
             return ", ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
+
+
 
 
 # =========================

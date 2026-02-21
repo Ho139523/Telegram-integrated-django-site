@@ -44,6 +44,8 @@ from products.models import Category, Product, ProductAttribute
 from payment.models import Transaction
 from telbot.models import ConversationModel, MessageModel
 from telebot.types import Message
+from subscription.gaurds import subscription_required
+
 
 # copy telegram text link
 from django.shortcuts import render
@@ -2561,6 +2563,7 @@ def take_description_d(message):
 
 
 @app.callback_query_handler(func=lambda call: call.data == "store_telegram_channel")
+# @subscription_required()
 def take_telegram_channel(call):
     build_store = SendStore(app)
     build_store.take_telegram_channel(call)
@@ -2648,39 +2651,15 @@ def delete_store(call):
 
 ##################################### PROMOTION #####################################
 
-
 @app.message_handler(commands=['promote'])
+# @subscription_required()
 def promote(message):
     try:
-        session = session_manager.get_user_session(message.chat.id, namespace="promote")
-        store_info = SendStore(app)
-        profile, store = store_info._load_context(message.chat.id)
-        if store:
-            # store promote
-            store_promote(message)
-        else:
-            # user promote
-            user_promote(message)
-        session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+        promote = Promote(app, message.chat.id)
+        promote._show_offer(update=message)
     except:
         print(traceback.format_exc())
 
-
-
-def user_promote(message):
-    pass
-
-
-def store_promote(message):
-     SendPhotoWithMarkup(
-        bot=app,
-        chat_id=message.chat.id,
-        photo_path=
-        caption=
-        buttons=buttons,
-        button_layout=[2, 2, 1],
-        handlers=
-    ).send()
 
 
 

@@ -79,6 +79,9 @@ from utils.funcs.geonames_address import get_country_choices, get_province_choic
 from pathlib import Path
 from AI.settings import MEDIA_URL
 
+# Subscription imports
+from subscription.mixins import SubscriptionRequiredMixin
+
 
 def t(msg, key, chat_id=None, **kwargs):
     try:
@@ -5378,4 +5381,104 @@ class SendStore:
 
         except:
             print(traceback.format_exc())
+
+
+
+
+################## PROMOTION  ################
+
+class Promote(SubscriptionRequiredMixin):
+    def __init__(self, bot: TeleBot, chat_id):
+        self.bot = bot
+        self.chat_id = chat_id
+
+    def _load_context(self):
+        profile = ProfileModel.objects.get(tel_id=self.chat_id)                                           
+        store = (
+            Store.objects
+            .select_related("owner")
+            .prefetch_related("store_address")
+            .filter(owner=profile)
+            .first()
+        )
+        return profile, store
+
+    def _user_or_store(self):
+        profile, store = self._load_context()
+        return store is not None  # اصلاح شده
+
+    def _get_buttons(self):
+        # این باید یک دیکشنری برگرداند، نه متد
+        buttons = {
+            "طرح بعدی": {"callback_data": "subscribe_one_month", "index": 2},
+            "طرح قبلی": {"callback_data": "subscribe_one_month", "index": 1},
+            "عضویت در طرح رایگان": {"callback_data": "subscribe_free", "index": 3},
+        }
+        return buttons
+
+    def _get_photo(self):
+        from django.conf import settings
+        profile, store = self._load_context()
+        photo_path = os.path.join(
+            settings.MEDIA_ROOT,
+            "promote",
+            f"{profile.lang}-free-plan.png"
+        )
+        # بررسی وجود فایل
+        if os.path.exists(photo_path):
+            return photo_path
+        else:
+            print(f"⚠️ Photo not found: {photo_path}")
+            return None
+
+    def _get_handlers(self):
+        # برگرداندن دیکشنری handlerها
+        return {
+            "subscribe_free": self.handle_subscribe,
+            "subscribe_one_month": self.handle_subscribe
+
+        }
+
+    def _get_layout(self):
+        # برگرداندن layout
+        return [2, 1]
+
+    def _get_caption(self):
+        profile, store = self._load_context()
+        caption = (
+            f"🎁 طرح رایگان فروشگاه اینترنتی\n\n"
+            f"با طرح رایگان می‌توانید تا ۱۰ محصول در فروشگاه خود ثبت کنید\n"
+            f"و از تمامی امکانات پایه فروشگاه استفاده نمایید.\n\n"
+            f"برای عضویت روی دکمه زیر کلیک کنید."
+        )
+        return caption
+
+    def handle_subscribe(self, call):
+        """مدیریت عضویت در طرح رایگان"""
+        try:
+            self.bot.answer_callback_query(call.id, "✅ عضویت شما با موفقیت ثبت شد")
+            # اینجا می‌توانید منطق عضویت را پیاده‌سازی کنید
+        except Exception as e:
+            print(f"Error in handle_subscribe: {e}")
+
+    def _show_offer(self, update=None):
+        # اول سابسکریپشن چک شود
+        self.check_subscription(update)
+
+        # اگر اینجا رسید یعنی همه چیز OK است
+        photo = self._get_photo()
+        caption = self._get_caption()
+        buttons = self._get_buttons()
+        layout = self._get_layout()
+        handlers = self._get_handlers()
+
+        SendPhotoWithMarkup(
+            bot=self.bot,
+            chat_id=self.chat_id,
+            photo_path=photo,
+            caption=caption,
+            buttons=buttons,
+            button_layout=layout,
+            handlers=handlers,
+        ).send()
 

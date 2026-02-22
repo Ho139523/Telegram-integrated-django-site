@@ -158,8 +158,10 @@ class Subscription(models.Model):
 class SubscriptionInvoice(models.Model):
 
     STATUS_CHOICES = [
-        ("pending", "Pending"),
+        ("created", "Created"),
+        ("pending", "Pending Payment"),
         ("paid", "Paid"),
+        ("expired", "Expired"),
         ("failed", "Failed"),
     ]
 
@@ -172,7 +174,7 @@ class SubscriptionInvoice(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="pending"
+        default="created"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

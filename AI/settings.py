@@ -31,6 +31,7 @@ CSRF_TRUSTED_ORIGINS = [
  
 
 current_site = 'https://intellium.ir'
+SITE_API = 'https://intellium.ir'
  
 LOGIN_REDIRECT_URL='accounts:profile' 
 LOGIN_URL='accounts:login' 
@@ -427,5 +428,4 @@ CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
 CELERY_TIMEZONE = 'Asia/Tehran'
 
 
-from celery.schedules import crontab
-
+REDIS_URL = "redis://127.0.0.1:6379/0"

@@ -81,6 +81,14 @@ from AI.settings import MEDIA_URL
 
 # Subscription imports
 from subscription.mixins import SubscriptionRequiredMixin
+from subscription.models import (
+    Plan, Feature, PlanFeature,
+    PlanPrice, Subscription,
+    SubscriptionInvoice, Coupon
+)
+import json
+import uuid
+import requests
 
 
 def t(msg, key, chat_id=None, **kwargs):
@@ -5388,97 +5396,474 @@ class SendStore:
 ################## PROMOTION  ################
 
 class Promote(SubscriptionRequiredMixin):
-    def __init__(self, bot: TeleBot, chat_id):
-        self.bot = bot
-        self.chat_id = chat_id
 
-    def _load_context(self):
-        profile = ProfileModel.objects.get(tel_id=self.chat_id)                                           
+
+
+    PLAN_CALLBACK_PREFIX = "plan"
+    DURATION_CALLBACK_PREFIX = "duration"
+    SUBSCRIBE_CALLBACK = "subscribe_plan"
+
+    def __init__(self, bot: TeleBot):
+
+        self.bot = bot
+
+        from telbot.sessions import SessionManager
+
+        self.session = SessionManager()
+
+        self.NAMESPACE_USER = "promote:user"
+        self.NAMESPACE_CACHE = "promote:cache"
+        self.NAMESPACE_INVOICE = "promote:invoice"
+
+    # -------------------------------------------------
+    # Context
+    # -------------------------------------------------
+
+    def _load_context(self, chat_id):
+        profile = ProfileModel.objects.get(tel_id=chat_id)
+
         store = (
             Store.objects
             .select_related("owner")
-            .prefetch_related("store_address")
             .filter(owner=profile)
             .first()
         )
+
         return profile, store
 
-    def _user_or_store(self):
-        profile, store = self._load_context()
-        return store is not None  # اصلاح شده
+    # -------------------------------------------------
+    # Callback Builder
+    # -------------------------------------------------
 
-    def _get_buttons(self):
-        # این باید یک دیکشنری برگرداند، نه متد
-        buttons = {
-            "طرح بعدی": {"callback_data": "subscribe_one_month", "index": 2},
-            "طرح قبلی": {"callback_data": "subscribe_one_month", "index": 1},
-            "عضویت در طرح رایگان": {"callback_data": "subscribe_free", "index": 3},
+
+    def _get_buttons(self, chat_id, plan_index=0, duration_index=0):
+
+        return {
+            "➖ طرح قبلی": {
+                "callback_data": f"promote|plan|prev|{plan_index}|{duration_index}"
+            },
+
+            "➕ طرح بعدی": {
+                "callback_data": f"promote|plan|next|{plan_index}|{duration_index}"
+            },
+
+            "⏳ دوره قبلی": {
+                "callback_data": f"promote|duration|prev|{plan_index}|{duration_index}"
+            },
+
+            "⏳ دوره بعدی": {
+                "callback_data": f"promote|duration|next|{plan_index}|{duration_index}"
+            },
+
+            "✅ عضویت": {
+                "callback_data": f"promote|subscribe|any|{plan_index}|{duration_index}"
+            }
         }
-        return buttons
 
-    def _get_photo(self):
-        from django.conf import settings
-        profile, store = self._load_context()
-        photo_path = os.path.join(
+    # -------------------------------------------------
+    # Caption
+    # -------------------------------------------------
+
+    def _get_caption(self, chat_id, plan_index=0, duration_index=0):
+
+        plans = self._get_active_plans(chat_id)
+
+        durations = self._get_duration_choices()
+
+        plan_index %= len(plans)
+
+        plan = plans[plan_index]
+
+        months = durations[duration_index][0]
+
+        price = "—"
+
+        for p in plan["prices"]:
+            if p["months"] == months:
+                price = "{:,.0f}".format(float(p["price"]))
+                break
+
+        return f"""
+        🎁 پلن {plan['code']}
+
+        ⏳ مدت: {months} ماهه
+        💰 قیمت: {price} تومان
+
+        {plan.get("description","")}
+        """
+
+    # -------------------------------------------------
+    # Navigation Handlers
+    # -------------------------------------------------
+
+    def _parse_callback(self, call):
+
+        parts = call.data.split("|")
+
+        if len(parts) < 5:
+            return None
+
+        return {
+            "feature": parts[1],
+            "action": parts[2],
+            "plan_index": int(parts[3]),
+            "duration_index": int(parts[4])
+        }
+
+    def _handle_plan_next(self, call):
+
+        data = self._parse_callback(call)
+        chat_id = call.message.chat.id
+        plan_index = (data["plan_index"] + 1) % len(self._get_active_plans(chat_id))
+
+        self._refresh_message(call, plan_index, data["duration_index"], chat_id)
+
+    def _handle_plan_prev(self, call):
+
+        data = self._parse_callback(call)
+        chat_id = call.message.chat.id
+        plan_index = (data["plan_index"] - 1) % len(self._get_active_plans(chat_id))
+
+        self._refresh_message(call, plan_index, data["duration_index"], chat_id)
+
+    def _handle_duration_next(self, call):
+
+        data = self._parse_callback(call)
+        chat_id = call.message.chat.id
+        durations = self._get_duration_choices()
+        duration_index = (data["duration_index"] + 1) % len(durations)
+
+        self._refresh_message(call, data["plan_index"], duration_index, chat_id)
+
+    def _handle_duration_prev(self, call):
+
+        data = self._parse_callback(call)
+        chat_id = call.message.chat.id
+        durations = self._get_duration_choices()
+        duration_index = (data["duration_index"] - 1) % len(durations)
+
+        self._refresh_message(call, data["plan_index"], duration_index, chat_id)
+
+    # -------------------------------------------------
+    # Refresh UI
+    # -------------------------------------------------
+
+    def _refresh_message(self, call, plan_index, duration_index, chat_id):
+
+        caption = self._get_caption(chat_id, plan_index, duration_index)
+        buttons = self._get_buttons(chat_id, plan_index, duration_index)
+
+        SendMarkup(
+            bot=self.bot,
+            chat_id=chat_id,
+            text=caption,
+            buttons=buttons,
+            button_layout=[2, 2, 1],
+            message=call.message
+        ).edit(call.message.message_id)
+
+        self.session.update(
+            chat_id,
+            {
+                "plan_index": plan_index,
+                "duration_index": duration_index
+            },
+            namespace=self.NAMESPACE_USER
+        )
+
+    # -------------------------------------------------
+    # Show Offer
+    # -------------------------------------------------
+    
+
+    def _show_offer(self, chat_id):
+
+        if self._is_rate_limited(chat_id):
+            return
+
+        state = self.session.get(
+            chat_id,
+            namespace=self.NAMESPACE_USER
+        )
+
+        plan_index = state.get("plan_index", 0)
+        duration_index = state.get("duration_index", 0)
+
+        caption = self._get_caption(chat_id, plan_index, duration_index)
+        buttons = self._get_buttons(chat_id, plan_index, duration_index)
+
+        photo = self._get_photo(chat_id)
+
+        SendPhotoWithMarkup(
+            bot=self.bot,
+            chat_id=chat_id,
+            photo_path=photo,
+            caption=caption,
+            buttons=buttons,
+            button_layout=[2, 2, 1]
+        ).send()
+
+    # -------------------------------------------------
+    # Plans API + Cache
+    # -------------------------------------------------
+
+    
+    def _fetch_plans_from_api(self, chat_id):
+
+        url = f"{settings.SITE_API}/api/plans/"
+
+        data = self._signed_request(
+            "GET",
+            url,
+            {"tel_id": chat_id}
+        )
+
+        return data
+
+    # -------------------------------------------------
+    # Security Signed Request
+    # -------------------------------------------------
+
+    def _signed_request(self, method, url, payload=None):
+
+        body_str = json.dumps(
+            payload or {},
+            separators=(',', ':'),
+            ensure_ascii=False
+        )
+
+        body = body_str.encode("utf-8")
+
+        ts, sig = sign_payload(
+            settings.BOT_SECRET_KEY,
+            body
+        )
+
+        headers = {
+            "X-Bot-Timestamp": ts,
+            "X-Bot-Signature": sig,
+            "X-Bot-Nonce": str(uuid.uuid4()),
+            "Content-Type": "application/json",
+        }
+
+        res = requests.request(
+            method,
+            url,
+            headers=headers,
+            data=body,
+            timeout=5
+        )
+
+        return res.json()
+
+    # -------------------------------------------------
+    # Rate Limit
+    # -------------------------------------------------
+
+    def _is_rate_limited(self, chat_id):
+
+        key = f"rate:{chat_id}"
+
+        current = self.session.redis_client.incr(key)
+
+        if current == 1:
+            self.session.redis_client.expire(key, 5)
+
+        return current > 5
+
+    # -------------------------------------------------
+    # Photo
+    # -------------------------------------------------
+
+    def _get_photo(self, chat_id):
+
+        profile, _ = self._load_context(chat_id)
+
+        path = os.path.join(
             settings.MEDIA_ROOT,
             "promote",
             f"{profile.lang}-free-plan.png"
         )
-        # بررسی وجود فایل
-        if os.path.exists(photo_path):
-            return photo_path
-        else:
-            print(f"⚠️ Photo not found: {photo_path}")
-            return None
 
-    def _get_handlers(self):
-        # برگرداندن دیکشنری handlerها
-        return {
-            "subscribe_free": self.handle_subscribe,
-            "subscribe_one_month": self.handle_subscribe
-
-        }
-
-    def _get_layout(self):
-        # برگرداندن layout
-        return [2, 1]
-
-    def _get_caption(self):
-        profile, store = self._load_context()
-        caption = (
-            f"🎁 طرح رایگان فروشگاه اینترنتی\n\n"
-            f"با طرح رایگان می‌توانید تا ۱۰ محصول در فروشگاه خود ثبت کنید\n"
-            f"و از تمامی امکانات پایه فروشگاه استفاده نمایید.\n\n"
-            f"برای عضویت روی دکمه زیر کلیک کنید."
-        )
-        return caption
+        return path if os.path.exists(path) else None
 
     def handle_subscribe(self, call):
-        """مدیریت عضویت در طرح رایگان"""
-        try:
-            self.bot.answer_callback_query(call.id, "✅ عضویت شما با موفقیت ثبت شد")
-            # اینجا می‌توانید منطق عضویت را پیاده‌سازی کنید
-        except Exception as e:
-            print(f"Error in handle_subscribe: {e}")
 
-    def _show_offer(self, update=None):
-        # اول سابسکریپشن چک شود
-        self.check_subscription(update)
+        data = self._parse_callback(call)
+        chat_id = call.message.chat.id
+        with self._acquire_payment_lock(chat_id):
+            plans = self._get_active_plans(chat_id)
+            durations = self._get_duration_choices()
+            plan_index = data["plan_index"]
+            duration_index = data["duration_index"]
+            
+            if plan_index >= len(plans) or duration_index >= len(durations):
+                self.bot.answer_callback_query(call.id, "❌ داده نامعتبر")
+                return
 
-        # اگر اینجا رسید یعنی همه چیز OK است
-        photo = self._get_photo()
-        caption = self._get_caption()
-        buttons = self._get_buttons()
-        layout = self._get_layout()
-        handlers = self._get_handlers()
+            selected_plan = plans[plan_index]
+            
+            months = durations[duration_index][0]
 
-        SendPhotoWithMarkup(
-            bot=self.bot,
-            chat_id=self.chat_id,
-            photo_path=photo,
-            caption=caption,
-            buttons=buttons,
-            button_layout=layout,
-            handlers=handlers,
-        ).send()
+            if duration_index >= len(durations):
+                self.bot.answer_callback_query(
+                    call.id,
+                    "❌ دوره نامعتبر"
+                )
+                return
+
+            months = durations[duration_index][0]
+
+
+            payload = {
+                "tel_id": chat_id,
+                "plan_id": selected_plan["id"],
+                "months": months
+            }
+
+            body_str = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
+            body = body_str.encode("utf-8")
+
+            ts, sig = sign_payload(settings.BOT_SECRET_KEY, body)
+
+            headers = {
+                "X-Bot-Timestamp": ts,
+                "X-Bot-Signature": sig,
+                "X-Bot-Nonce": str(uuid.uuid4()),
+                "Content-Type": "application/json",
+            }
+
+            res = requests.post(
+                f"{settings.SITE_API}/api/subscription-actions/create_invoice/",
+                headers=headers,
+                data=body,   # 🔥 مهم — نه json=
+                timeout=5
+            )
+
+            if res.status_code != 201:
+                print(res.text)
+                self.bot.answer_callback_query(call.id, "❌ خطا در ساخت فاکتور")
+                return
+
+            invoice = res.json()
+
+            self.bot.answer_callback_query(
+                call.id,
+                f"💳 فاکتور ساخته شد: {invoice.get('amount','—')}"
+            )
+
+
+    def _get_active_plans(self, chat_id):
+
+        cache_key = "active_plans"
+
+        cache = self.session.get(
+            cache_key,
+            namespace=self.NAMESPACE_CACHE
+        )
+
+        if cache:
+            return cache
+
+        plans = self._fetch_plans_from_api(chat_id)
+
+        if plans:
+            self.session.set(
+                cache_key,
+                plans,
+                namespace=self.NAMESPACE_CACHE,
+                ttl=300
+            )
+
+        return plans
+
+
+    def _validate_callback_data(self, data, chat_id):
+
+        if not data:
+            return False
+
+        plans = self._get_active_plans(chat_id)
+
+        if data["plan_index"] >= len(plans):
+            return False
+        return True
+
+    def _get_duration_choices(self):
+
+        cache_key = "duration_choices"
+
+        cache = self.session.get(
+            cache_key,
+            namespace=self.NAMESPACE_CACHE
+        )
+
+        if cache:
+            return cache
+
+        durations = PlanPrice.objects.filter(
+            is_active=True
+        ).values_list("months", flat=True)
+
+        unique_months = sorted(set(durations))
+
+        result = [
+            (m, f"{m} ماهه")
+            for m in unique_months
+        ]
+
+        self.session.set(
+            cache_key,
+            result,
+            namespace=self.NAMESPACE_CACHE,
+            ttl=600
+        )
+
+        return result
+
+
+    def _acquire_payment_lock(self, chat_id):
+
+        key = f"lock:payment:{chat_id}"
+
+        redis_client = self.session.redis_client
+
+        class DummyLock:
+
+            def __enter__(self_inner):
+                redis_client.set(key, "1", nx=True, ex=10)
+                return self_inner
+
+            def __exit__(self_inner, exc_type, exc, tb):
+                redis_client.delete(key)
+
+        return DummyLock()
+
+
+
+
+
+
+
+class PromoteRouter:
+
+    def __init__(self):
+        self.handlers = {}
+
+    def register(self, feature, action, handler):
+        key = f"{feature}_{action}"
+        self.handlers[key] = handler
+
+    def dispatch(self, call):
+
+        parts = call.data.split("|")
+
+        feature = parts[1]
+        action = parts[2]
+
+        key = f"{feature}_{action}"
+
+        if key in self.handlers:
+            self.handlers[key](call)
+
 

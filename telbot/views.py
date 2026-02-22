@@ -123,6 +123,8 @@ class Support(StatesGroup):
 main_menu = customer_main_menu
 ################################################################################################
 
+
+
 # Webhook settings
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
@@ -2652,14 +2654,37 @@ def delete_store(call):
 ##################################### PROMOTION #####################################
 
 @app.message_handler(commands=['promote'])
-# @subscription_required()
 def promote(message):
     try:
-        promote = Promote(app, message.chat.id)
-        promote._show_offer(update=message)
+        promote = Promote(app)
+        promote._show_offer(message.chat.id)
     except:
         print(traceback.format_exc())
 
+
+router = PromoteRouter()
+promote = Promote(app)
+# ✅ اول register کن
+router.register("plan", "next", promote._handle_plan_next)
+router.register("plan", "prev", promote._handle_plan_prev)
+
+router.register("duration", "next", promote._handle_duration_next)
+router.register("duration", "prev", promote._handle_duration_prev)
+
+router.register("subscribe", "any", promote.handle_subscribe)
+
+@app.callback_query_handler(func=lambda call: call.data.startswith("promote"))
+def plan_navigation(data):
+
+    try:
+
+        promote = Promote(app)
+
+        # ✅ بعد dispatch کن
+        router.dispatch(data)
+
+    except:
+        print(traceback.format_exc())
 
 
 

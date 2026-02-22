@@ -22,3 +22,32 @@ def expire_subscriptions():
 
     print(f"Expired {count} subscriptions")
 
+
+
+from celery import shared_task
+from django.utils import timezone
+from datetime import timedelta
+import requests
+
+from .models import Subscription, SubscriptionInvoice, Payment, PlanPrice
+
+
+@shared_task
+def auto_renew_subscriptions():
+
+    soon_expire = timezone.now() + timedelta(days=1)
+
+    subs = Subscription.objects.filter(
+        is_auto_renew=True,
+        end_date__lte=soon_expire,
+        status='active',
+        zarinpal_token__isnull=False
+    )
+
+    for sub in subs:
+
+        try:
+            renew_subscription_payment(sub)
+
+        except Exception as e:
+            print("Auto renew failed:", e)

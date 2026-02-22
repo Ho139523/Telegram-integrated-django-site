@@ -3,31 +3,85 @@
 import redis
 import json
 
+import redis
+import json
+from django.conf import settings
+
 class SessionManager:
-    def __init__(self, redis_url="redis://localhost:6379/0"):
-        self.redis_client = redis.StrictRedis.from_url(redis_url)
+    
+    from django.conf import settings
+
+    redis_url = getattr(settings, "REDIS_URL", "redis://127.0.0.1:6379/0")
+
+    DEFAULT_TTL = 60 * 60 * 6  # 6 hours
+
+    def __init__(self, redis_url=None):
+        self.redis_client = redis.StrictRedis.from_url(
+            redis_url or settings.REDIS_URL,
+            decode_responses=True
+        )
 
     def _make_key(self, user_id, namespace="default"):
-        return f"user_session:{namespace}:{user_id}"
+        return f"telbot:{namespace}:{user_id}"
 
-    def get_user_session(self, user_id, namespace="default"):
+    # ------------------
+    # New Clean Methods
+    # ------------------
+
+    def get(self, user_id, namespace="default"):
         key = self._make_key(user_id, namespace)
-        session_data = self.redis_client.get(key)
-        return json.loads(session_data) if session_data else {}
+        data = self.redis_client.get(key)
+        return json.loads(data) if data else {}
 
-    def set_user_session(self, user_id, session_data, namespace="default"):
+    def set(self, user_id, session_data, namespace="default", ttl=None):
         key = self._make_key(user_id, namespace)
-        self.redis_client.set(key, json.dumps(session_data))
+        self.redis_client.set(
+            key,
+            json.dumps(session_data),
+            ex=ttl or self.DEFAULT_TTL
+        )
 
-    def update_user_session(self, user_id, new_data, namespace="default"):
-        """Safely merge into existing session data."""
-        session = self.get_user_session(user_id, namespace)
-        session.update(new_data)
-        self.set_user_session(user_id, session, namespace)
+    def update(self, user_id, new_data, namespace="default", ttl=None):
+        key = self._make_key(user_id, namespace)
 
-    def reset_user_session(self, user_id, namespace="default"):
+        with self.redis_client.pipeline() as pipe:
+            while True:
+                try:
+                    pipe.watch(key)
+                    current = pipe.get(key)
+                    current_data = json.loads(current) if current else {}
+                    current_data.update(new_data)
+
+                    pipe.multi()
+                    pipe.set(
+                        key,
+                        json.dumps(current_data),
+                        ex=ttl or self.DEFAULT_TTL
+                    )
+                    pipe.execute()
+                    break
+                except redis.WatchError:
+                    continue
+
+    def delete(self, user_id, namespace="default"):
         key = self._make_key(user_id, namespace)
         self.redis_client.delete(key)
+
+    # ------------------
+    # Backward Compatibility Layer
+    # ------------------
+
+    def get_user_session(self, user_id, namespace="default"):
+        return self.get(user_id, namespace)
+
+    def set_user_session(self, user_id, session_data, namespace="default"):
+        self.set(user_id, session_data, namespace)
+
+    def update_user_session(self, user_id, new_data, namespace="default"):
+        self.update(user_id, new_data, namespace)
+
+    def reset_user_session(self, user_id, namespace="default"):
+        self.delete(user_id, namespace)
 
 
 ############################################## SEND CART ##############################################

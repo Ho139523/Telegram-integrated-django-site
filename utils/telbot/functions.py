@@ -5465,32 +5465,41 @@ class Promote(SubscriptionRequiredMixin):
     # -------------------------------------------------
 
     def _get_caption(self, chat_id, plan_index=0, duration_index=0):
-
+        
         plans = self._get_active_plans(chat_id)
+
+        if not plans:
+            return "🎁 در حال حاضر پلنی برای نمایش وجود ندارد"
 
         durations = self._get_duration_choices()
 
-        plan_index %= len(plans)
+        if not durations:
+            return "⏳ در حال حاضر دوره‌ای وجود ندارد"
 
+        plan_index = plan_index % len(plans)
+        duration_index = duration_index % len(durations)
+
+        plan_index = plan_index % len(plans)
         plan = plans[plan_index]
 
         months = durations[duration_index][0]
 
         price = "—"
 
-        for p in plan["prices"]:
+        for p in plan.get("prices", []):
             if p["months"] == months:
                 price = "{:,.0f}".format(float(p["price"]))
                 break
 
         return f"""
-        🎁 پلن {plan['code']}
+        🎁 پلن {plan.get('code','-')}
 
         ⏳ مدت: {months} ماهه
         💰 قیمت: {price} تومان
 
         {plan.get("description","")}
         """
+
 
     # -------------------------------------------------
     # Navigation Handlers
@@ -5612,13 +5621,23 @@ class Promote(SubscriptionRequiredMixin):
 
         url = f"{settings.SITE_API}/api/plans/"
 
-        data = self._signed_request(
-            "GET",
-            url,
-            {"tel_id": chat_id}
-        )
+        try:
+            data = self._signed_request(
+                "GET",
+                url,
+                {"tel_id": chat_id}
+            )
 
-        return data
+            # ⭐ Check API Error
+            if isinstance(data, dict) and "detail" in data:
+                print("Throttle Warning:", data)
+                return []
+
+            return data
+
+        except Exception as e:
+            print("Plan fetch error:", e)
+            return []
 
     # -------------------------------------------------
     # Security Signed Request
@@ -5688,70 +5707,101 @@ class Promote(SubscriptionRequiredMixin):
         return path if os.path.exists(path) else None
 
     def handle_subscribe(self, call):
+        try:
+            data = self._parse_callback(call)
+            chat_id = call.message.chat.id
 
-        data = self._parse_callback(call)
-        chat_id = call.message.chat.id
-        with self._acquire_payment_lock(chat_id):
-            plans = self._get_active_plans(chat_id)
-            durations = self._get_duration_choices()
-            plan_index = data["plan_index"]
-            duration_index = data["duration_index"]
-            
-            if plan_index >= len(plans) or duration_index >= len(durations):
-                self.bot.answer_callback_query(call.id, "❌ داده نامعتبر")
-                return
+            with self._acquire_payment_lock(chat_id):
 
-            selected_plan = plans[plan_index]
-            
-            months = durations[duration_index][0]
+                plans = self._get_active_plans(chat_id)
+                durations = self._get_duration_choices()
 
-            if duration_index >= len(durations):
-                self.bot.answer_callback_query(
-                    call.id,
-                    "❌ دوره نامعتبر"
+                plan_index = data["plan_index"]
+                duration_index = data["duration_index"]
+
+                if plan_index >= len(plans) or duration_index >= len(durations):
+                    self.bot.answer_callback_query(call.id, "❌ داده نامعتبر")
+                    return
+
+                selected_plan = plans[plan_index]
+                months = durations[duration_index][0]
+
+                # ⭐ Create Invoice via API (Your Backend)
+                payload = {
+                    "tel_id": chat_id,
+                    "plan_id": selected_plan["id"],
+                    "months": months
+                }
+
+                body_str = json.dumps(
+                    payload,
+                    separators=(',', ':'),
+                    ensure_ascii=False
                 )
-                return
 
-            months = durations[duration_index][0]
+                body = body_str.encode("utf-8")
 
+                ts, sig = sign_payload(
+                    settings.BOT_SECRET_KEY,
+                    body
+                )
 
-            payload = {
-                "tel_id": chat_id,
-                "plan_id": selected_plan["id"],
-                "months": months
-            }
-
-            body_str = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
-            body = body_str.encode("utf-8")
-
-            ts, sig = sign_payload(settings.BOT_SECRET_KEY, body)
-
-            headers = {
-                "X-Bot-Timestamp": ts,
-                "X-Bot-Signature": sig,
-                "X-Bot-Nonce": str(uuid.uuid4()),
-                "Content-Type": "application/json",
-            }
-
-            res = requests.post(
-                f"{settings.SITE_API}/api/subscription-actions/create_invoice/",
-                headers=headers,
-                data=body,   # 🔥 مهم — نه json=
-                timeout=5
-            )
-
-            if res.status_code != 201:
+                headers = {
+                    "X-Bot-Timestamp": ts,
+                    "X-Bot-Signature": sig,
+                    "X-Bot-Nonce": str(uuid.uuid4()),
+                    "Content-Type": "application/json",
+                }
+                if self._is_action_locked(chat_id):
+                    self.bot.answer_callback_query(
+                        call.id,
+                        "⏳ لطفاً کمی صبر کنید"
+                    )
+                    return
+                res = requests.post(
+                    f"{settings.SITE_API}/api/subscription-actions/create_invoice/",
+                    headers=headers,
+                    data=body,
+                    timeout=5
+                )
+                print(res.status_code)
                 print(res.text)
-                self.bot.answer_callback_query(call.id, "❌ خطا در ساخت فاکتور")
-                return
+                if res.status_code != 201:
+                    self.bot.answer_callback_query(
+                        call.id,
+                        "❌ خطا در ساخت فاکتور"
+                    )
+                    return
 
-            invoice = res.json()
+                invoice = res.json()
 
+                # ⭐ Send Payment Link To User (IMPORTANT)
+                payment_url = invoice.get("payment_url")
+
+                if payment_url:
+                    self.bot.send_message(
+                        chat_id,
+                        f"""
+                        💳 فاکتور ساخته شد
+
+                        💰 مبلغ: {invoice.get("amount","—")}
+
+                        👉 برای پرداخت روی لینک زیر بزن:
+                        {payment_url}
+                                        """
+                    )
+
+                else:
+                    self.bot.answer_callback_query(
+                        call.id,
+                        "❌ لینک پرداخت یافت نشد"
+                    )
+        except Exception as e:
+            print(traceback.format_exc())
             self.bot.answer_callback_query(
                 call.id,
-                f"💳 فاکتور ساخته شد: {invoice.get('amount','—')}"
+                "❌ خطا در پردازش درخواست"
             )
-
 
     def _get_active_plans(self, chat_id):
 
@@ -5762,18 +5812,20 @@ class Promote(SubscriptionRequiredMixin):
             namespace=self.NAMESPACE_CACHE
         )
 
-        if cache:
+        if cache and isinstance(cache, list):
             return cache
 
         plans = self._fetch_plans_from_api(chat_id)
 
-        if plans:
-            self.session.set(
-                cache_key,
-                plans,
-                namespace=self.NAMESPACE_CACHE,
-                ttl=300
-            )
+        if not plans or len(plans) == 0:
+            return []
+
+        self.session.set(
+            cache_key,
+            plans,
+            namespace=self.NAMESPACE_CACHE,
+            ttl=300
+        )
 
         return plans
 
@@ -5839,6 +5891,13 @@ class Promote(SubscriptionRequiredMixin):
 
         return DummyLock()
 
+    def _is_action_locked(self, chat_id, action="subscribe"):
+        key = f"action:{action}:{chat_id}"
+
+        redis = self.session.redis_client
+
+        return not redis.set(key, "1", nx=True, ex=8)
+
 
 
 
@@ -5865,5 +5924,9 @@ class PromoteRouter:
 
         if key in self.handlers:
             self.handlers[key](call)
+
+
+
+
 
 

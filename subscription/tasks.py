@@ -51,3 +51,47 @@ def auto_renew_subscriptions():
 
         except Exception as e:
             print("Auto renew failed:", e)
+
+
+from celery import shared_task
+from subscription.models import Subscription
+from django.utils import timezone
+from datetime import timedelta
+
+
+@shared_task
+def handle_payment_paid_event(event_data):
+
+    subscription = Subscription.objects.get(
+        id=event_data["subscription_id"]
+    )
+
+    # مثال Notification
+    try:
+        from telbot.services import TelegramNotifier
+
+        TelegramNotifier.send_payment_success(subscription)
+
+    except:
+        pass
+
+
+import redis
+import json
+
+redis_client = redis.Redis()
+
+
+def start_payment_listener():
+
+    pubsub = redis_client.pubsub()
+    pubsub.subscribe("events:payment_paid")
+
+    for message in pubsub.listen():
+
+        if message["type"] != "message":
+            continue
+
+        data = json.loads(message["data"])
+
+        handle_payment_paid_event.delay(data)

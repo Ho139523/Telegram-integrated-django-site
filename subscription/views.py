@@ -56,11 +56,17 @@ class CreateInvoiceAPIView(APIView):
         })
 
 
+from subscription.services.throttles import PlanThrottle
+
 class PlanViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Plan.objects.filter(is_active=True)\
         .prefetch_related("features__feature", "prices")
+
     serializer_class = PlanSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [PlanThrottle]
+
+
 
 
 
@@ -83,10 +89,12 @@ class SubscriptionViewSet(viewsets.ViewSet):
 from rest_framework import status
 from .models import PlanPrice, SubscriptionInvoice
 from rest_framework.permissions import AllowAny
+from subscription.services.throttles import CreateInvoiceThrottle
 
 class SubscriptionActionViewSet(viewsets.ViewSet):
 
     permission_classes = [AllowAny]
+    throttle_classes = [CreateInvoiceThrottle]
 
     @action(detail=False, methods=["post"])
     def create_invoice(self, request):
@@ -154,4 +162,6 @@ class SubscriptionActionViewSet(viewsets.ViewSet):
             "invoice_id": invoice.id,
             "amount": float(invoice.amount)
         }, status=status.HTTP_201_CREATED)
+
+
 

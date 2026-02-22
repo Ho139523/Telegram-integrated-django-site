@@ -4,6 +4,8 @@ from .models import (
     Plan, Feature, PlanFeature, PlanPrice, 
     Coupon, Subscription, SubscriptionInvoice, Payment, SubscriptionUsage
 )
+from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSchedule
+
 
 # =============================
 # Plan & Features
@@ -95,8 +97,8 @@ class PaymentInline(admin.TabularInline):
 
 @admin.register(SubscriptionInvoice)
 class SubscriptionInvoiceAdmin(admin.ModelAdmin):
-    list_display = ("subscription", "plan_price", "amount", "coupon", "is_paid", "created_at")
-    list_filter = ("is_paid", "created_at")
+    list_display = ("subscription", "plan_price", "amount", "coupon", "status", "created_at")
+    list_filter = ("status", "created_at")
     search_fields = ("subscription__store__name", "plan_price__plan__code")
     date_hierarchy = "created_at"
     inlines = [PaymentInline]
@@ -107,3 +109,6 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("authority", "ref_id")
     readonly_fields = ("created_at", "card_pan", "card_hash")
+
+
+

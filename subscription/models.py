@@ -157,13 +157,23 @@ class Subscription(models.Model):
 
 class SubscriptionInvoice(models.Model):
 
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("paid", "Paid"),
+        ("failed", "Failed"),
+    ]
+
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
     plan_price = models.ForeignKey(PlanPrice, on_delete=models.SET_NULL, null=True)
 
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL)
 
-    is_paid = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -182,6 +192,9 @@ class Payment(models.Model):
 
     card_pan = models.CharField(max_length=20, blank=True)
     card_hash = models.CharField(max_length=100, blank=True)
+
+    payment_url = models.URLField(blank=True, null=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
 
 
 

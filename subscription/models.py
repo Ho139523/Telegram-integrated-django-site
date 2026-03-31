@@ -5,6 +5,7 @@ import os
 import hashlib
 from django.utils.text import slugify
 import pycountry
+from payments.models.intent import PaymentIntent
 
 
 
@@ -178,6 +179,14 @@ class SubscriptionInvoice(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    payment_intent = models.OneToOneField(
+        PaymentIntent,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="subscription_invoice"
+    )
 
 
 class Payment(models.Model):

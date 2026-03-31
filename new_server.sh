@@ -66,7 +66,7 @@ sudo apt install -y python3-pip redis-server net-tools
 
 sudo apt remove vim
 sudo apt install vim-gtk3
-
+sudo apt-get install sqlite3
 
 
 # بررسی نصب بودن vim با dpkg

@@ -1,0 +1,52 @@
+import uuid
+from django.db import models
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+
+
+class PaymentIntent(models.Model):
+
+    STATUS = [
+        ("created", "Created"),
+        ("processing", "Processing"),
+        ("succeeded", "Succeeded"),
+        ("failed", "Failed"),
+        ("canceled", "Canceled"),
+        ("refunded", "Refunded"),
+    ]
+
+    intent_id = models.UUIDField(default=uuid.uuid4, unique=True)
+
+    profile = models.ForeignKey(
+        "accounts.ProfileModel",
+        on_delete=models.CASCADE
+    )
+
+    amount = models.BigIntegerField()
+
+    currency = models.CharField(max_length=10, default="IRR")
+
+    status = models.CharField(
+        max_length=30,
+        choices=STATUS,
+        default="created"
+    )
+
+    gateway = models.CharField(max_length=50)
+
+    # 🔥 Polymorphic Target
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+    )
+    object_id = models.PositiveIntegerField()
+    target = GenericForeignKey()
+
+    metadata = models.JSONField(default=dict)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.intent_id} - {self.amount}"
+
+    

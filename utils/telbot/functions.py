@@ -4633,7 +4633,7 @@ class AdvancedProductExporter:
         
         summary_data = [
             [self._get_translation('store_name', user_lang), store.name],
-            [self._get_translation('store_address', user_lang), f"{store.address}, {store.city}"],
+            #[self._get_translation('store_address', user_lang), f"{store.address}, {store.city}"],
             [self._get_translation('export_date', user_lang), datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
             [self._get_translation('total_products', user_lang), stats['total_products']],
             [self._get_translation('active_products', user_lang), stats['active_products']],
@@ -5710,99 +5710,127 @@ class Promote(SubscriptionRequiredMixin):
         try:
             data = self._parse_callback(call)
             chat_id = call.message.chat.id
-
+    
+            # جلوگیری از اسپم کلیک
+            if self._is_action_locked(chat_id):
+                self.bot.answer_callback_query(
+                    call.id,
+                    "⏳ لطفاً کمی صبر کنید"
+                )
+                return
+    
             with self._acquire_payment_lock(chat_id):
-
+    
                 plans = self._get_active_plans(chat_id)
                 durations = self._get_duration_choices()
-
+    
                 plan_index = data["plan_index"]
                 duration_index = data["duration_index"]
-
+    
                 if plan_index >= len(plans) or duration_index >= len(durations):
                     self.bot.answer_callback_query(call.id, "❌ داده نامعتبر")
                     return
-
+    
                 selected_plan = plans[plan_index]
                 months = durations[duration_index][0]
-
-                # ⭐ Create Invoice via API (Your Backend)
+    
                 payload = {
                     "tel_id": chat_id,
                     "plan_id": selected_plan["id"],
                     "months": months
                 }
-
+    
                 body_str = json.dumps(
                     payload,
-                    separators=(',', ':'),
+                    separators=(",", ":"),
                     ensure_ascii=False
                 )
-
                 body = body_str.encode("utf-8")
-
+    
                 ts, sig = sign_payload(
                     settings.BOT_SECRET_KEY,
                     body
                 )
-
+    
                 headers = {
                     "X-Bot-Timestamp": ts,
                     "X-Bot-Signature": sig,
                     "X-Bot-Nonce": str(uuid.uuid4()),
                     "Content-Type": "application/json",
                 }
-                if self._is_action_locked(chat_id):
+    
+                try:
+                    res = requests.post(
+                        f"{settings.SITE_API}/api/subscription-actions/create_invoice/",
+                        headers=headers,
+                        data=body,
+                        timeout=10
+                    )
+                except requests.Timeout:
                     self.bot.answer_callback_query(
                         call.id,
-                        "⏳ لطفاً کمی صبر کنید"
+                        "⏱ سرور پاسخ نداد، دوباره تلاش کنید"
                     )
                     return
-                res = requests.post(
-                    f"{settings.SITE_API}/api/subscription-actions/create_invoice/",
-                    headers=headers,
-                    data=body,
-                    timeout=5
-                )
-                print(res.status_code)
-                print(res.text)
-                if res.status_code != 201:
+                except requests.RequestException:
+                    self.bot.answer_callback_query(
+                        call.id,
+                        "❌ خطا در ارتباط با سرور"
+                    )
+                    return
+    
+                # فقط 2xx را موفق بدان
+                if not (200 <= res.status_code < 300):
                     self.bot.answer_callback_query(
                         call.id,
                         "❌ خطا در ساخت فاکتور"
                     )
                     return
-
-                invoice = res.json()
-
-                # ⭐ Send Payment Link To User (IMPORTANT)
-                payment_url = invoice.get("payment_url")
-
-                if payment_url:
-                    self.bot.send_message(
-                        chat_id,
-                        f"""
-                        💳 فاکتور ساخته شد
-
-                        💰 مبلغ: {invoice.get("amount","—")}
-
-                        👉 برای پرداخت روی لینک زیر بزن:
-                        {payment_url}
-                                        """
+    
+                try:
+                    invoice = res.json()
+                except ValueError:
+                    self.bot.answer_callback_query(
+                        call.id,
+                        "❌ پاسخ نامعتبر از سرور"
                     )
-
-                else:
+                    return
+    
+                payment_url = invoice.get("payment_url")
+    
+                if not payment_url:
                     self.bot.answer_callback_query(
                         call.id,
                         "❌ لینک پرداخت یافت نشد"
                     )
-        except Exception as e:
+                    return
+    
+                # ساخت دکمه پرداخت
+                markup = types.InlineKeyboardMarkup()
+                markup.add(
+                    types.InlineKeyboardButton(
+                        "✅ پرداخت و تایید اشتراک",
+                        url=payment_url
+                    )
+                )
+    
+                # جایگزین کردن دکمه قبلی
+                self.bot.edit_message_reply_markup(
+                    chat_id=chat_id,
+                    message_id=call.message.message_id,
+                    reply_markup=markup,
+                )
+    
+                # بستن loading تلگرام
+                self.bot.answer_callback_query(call.id)
+    
+        except Exception:
             print(traceback.format_exc())
             self.bot.answer_callback_query(
                 call.id,
                 "❌ خطا در پردازش درخواست"
             )
-
+    
     def _get_active_plans(self, chat_id):
 
         cache_key = "active_plans"

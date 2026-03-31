@@ -7,6 +7,8 @@ from .models import Plan, PlanPrice, Subscription, SubscriptionInvoice
 from .serializers import PlanSerializer, SubscriptionSerializer
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from payments.services.payment_service import PaymentService
+from django.contrib.contenttypes.models import ContentType
 
 class PlanListAPIView(generics.ListAPIView):
     queryset = Plan.objects.filter(is_active=True).prefetch_related("features", "prices")
@@ -128,26 +130,25 @@ class SubscriptionActionViewSet(viewsets.ViewSet):
         from django.db import transaction
 
         with transaction.atomic():
-
+        
             plan_price = PlanPrice.objects.select_for_update().filter(
                 plan_id=plan_id,
                 months=months,
                 is_active=True
             ).first()
-
+        
             if not plan_price:
                 return Response(
                     {"error": "Invalid plan price"},
                     status=400
                 )
-
-            # جلوگیری از فاکتور تکراری
+        
             existing_invoice = SubscriptionInvoice.objects.filter(
                 subscription=store.subscription,
                 plan_price=plan_price,
                 status="created"
             ).first()
-
+        
             if existing_invoice:
                 invoice = existing_invoice
             else:
@@ -157,11 +158,39 @@ class SubscriptionActionViewSet(viewsets.ViewSet):
                     amount=plan_price.price,
                     status="created"
                 )
-
+        
+            # اگر قبلاً intent نداشت → بساز
+            if not invoice.payment_intent:
+        
+                result = PaymentService.create_payment(
+                    profile=profile,
+                    amount=float(invoice.amount),   # ⭐ مهم
+                    target=invoice,
+                    country_iso=request.data.get("country_iso", "IR"),
+                    ip=request.META.get("HTTP_X_REAL_IP") or request.META.get("REMOTE_ADDR"),
+                    metadata={
+                        "invoice_id": invoice.id,
+                        "type": "subscription"
+                    }
+                )
+            
+            
+                if not result or result.get("status") != "ok":
+                    return Response(result or {"error": "payment_failed"}, status=400)
+            
+                invoice.payment_intent = result.get("intent")
+                invoice.save(update_fields=["payment_intent"])
+            
+                payment_url = result.get("payment_url")
+            
+            else:
+                payment_url = invoice.payment_intent.metadata.get("payment_url")
+                    
+        
+        
         return Response({
             "invoice_id": invoice.id,
-            "amount": float(invoice.amount)
+            "amount": float(invoice.amount),
+            "payment_url": payment_url
         }, status=status.HTTP_201_CREATED)
-
-
 

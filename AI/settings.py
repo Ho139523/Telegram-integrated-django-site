@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY')
  
 # SECURITY WARNING: don't run with debug turned on in production! 
-DEBUG = True 
+DEBUG = False 
 
 BASE_URL = os.environ.get("BASE_URL")
 
@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'payment',
     'ai_chat',
     'subscription',
+    "payments.apps.PaymentsConfig",
 ]
 
 
@@ -329,7 +330,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 
-#SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 CSRF_COOKIE_SECURE = True

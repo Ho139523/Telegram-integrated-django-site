@@ -3,3 +3,7 @@ TOKEN = "7777543551:AAHJYYN3VwfC686y1Ir_aYewX1IzUMOlU68"
 api_id = 28518792
 api_hash = "34425ab37318df600199e75afc1a5b46"
 BOT_ID = "baazaroBot"
+
+
+# Bale Settings
+BTOKEN = "1308472338:aVFMnB1-Q9Q9x2mK-fi5loYcW5zi4haMeD4"

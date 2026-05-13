@@ -174,3 +174,9 @@ class ProfileURDView(generics.RetrieveUpdateDestroyAPIView):
     queryset = ProfileModel.objects.all()
     serializer_class = ProfileURDSerializer
     lookup_field = 'tel_id'
+
+
+
+###################################
+
+

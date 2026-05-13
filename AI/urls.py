@@ -56,11 +56,15 @@ from subscription.views import (
     SubscriptionActionViewSet,
 )
 
+from accounts.views import BotProfileViewSet
+
 # =============================
 # Router Configuration
 # =============================
 
 router = DefaultRouter()
+bot_router = DefaultRouter()
+
 
 # Accounts
 router.register(r'users', UserViewSet)
@@ -99,6 +103,9 @@ router.register(
     basename='subscription-actions'
 )
 
+
+bot_router.register(r'profiles', BotProfileViewSet, basename='bot-profile')
+
 # =============================
 # URL Patterns
 # =============================
@@ -113,6 +120,8 @@ urlpatterns = [
 
     # API Router
     path('api/', include(router.urls)),
+
+    path('api/bot/', include(bot_router.urls)),
 
     # Authentication
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -132,6 +141,7 @@ urlpatterns = [
     ),
 
     path('telbot/', include('telbot.urls', namespace='telbot')),
+    path('balebot/', include('balebot.urls', namespace='balebot')),
 
     path('', include('payment.urls')),
 

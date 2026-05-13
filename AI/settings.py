@@ -15,18 +15,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY')
  
 # SECURITY WARNING: don't run with debug turned on in production! 
-DEBUG = False 
+DEBUG = True
 
 BASE_URL = os.environ.get("BASE_URL")
 
 
 ALLOWED_HOSTS = [
+    '192.168.1.141',
+    '127.0.0.1',
+    'localhost',
     "intellium.ir",
+    "intellium.ir:8443",
     "www.intellium.ir",
+    "www.intellium.ir:8443",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://intellium.ir",
+    "https://intellium.ir:8443",
 ]
  
 
@@ -75,7 +81,8 @@ INSTALLED_APPS = [
     'payment',
     'ai_chat',
     'subscription',
-    "payments.apps.PaymentsConfig",
+    'payments.apps.PaymentsConfig',
+    'balebot',
 ]
 
 
@@ -174,6 +181,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "https://intellium.ir",
+    "https://intellium.ir:8443",
 ]
 
 
@@ -330,7 +338,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = False
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 CSRF_COOKIE_SECURE = True
@@ -430,3 +438,7 @@ CELERY_TIMEZONE = 'Asia/Tehran'
 
 
 REDIS_URL = "redis://127.0.0.1:6379/0"
+
+
+# AI/settings.py
+APPEND_SLASH = False  # اضافه کن

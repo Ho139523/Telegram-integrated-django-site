@@ -15,3 +15,7 @@ nginx/logs/error.log
 logs/
 media/
 *.swp
+jupyterhub.*
+jupyterhub_cookie_secret
+.ipynb_checkpoints/
+jupyterhub-proxy.pid

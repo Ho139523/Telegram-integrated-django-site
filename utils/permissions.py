@@ -42,3 +42,58 @@ class IsStoreOwner(permissions.BasePermission):
         if isinstance(obj, Store):
             return obj.owner.user == request.user
         return False
+
+
+
+
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import BasePermission
+from django.db import IntegrityError
+import hmac
+import hashlib
+import json
+
+
+
+
+# ================================================
+# Signature Permission (بدون نیاز به JWT)
+# ================================================
+
+class BotSignaturePermission(BasePermission):
+    """
+    Permission for bot requests using HMAC-SHA256 signature
+    All CRUD operations require valid signature
+    """
+    
+    BOT_SECRET = "9cb87c53630243ab6244c20321c00acae9ee896624010ad1b81dd16c89edee91"
+    
+    def has_permission(self, request, view):
+        # Get signature headers
+        timestamp = request.headers.get('X-Bot-Timestamp')
+        signature = request.headers.get('X-Bot-Signature')
+        
+        if not timestamp or not signature:
+            logger.warning("Missing signature headers")
+            return False
+        
+        # Get request body (GET requests may have no body)
+        body_bytes = request.body or b'{}'
+        
+        # Verify signature
+        msg = timestamp.encode() + b"." + body_bytes
+        expected_signature = hmac.new(
+            self.BOT_SECRET.encode(), 
+            msg, 
+            hashlib.sha256
+        ).hexdigest()
+        
+        is_valid = hmac.compare_digest(signature, expected_signature)
+        
+        if not is_valid:
+            logger.warning(f"Invalid signature for {request.path}")
+        
+        return is_valid

@@ -118,20 +118,95 @@ class AddressAdmin(admin.ModelAdmin):
         return FormWithRequest
 
 
+################# profile
+
+from django.contrib.admin import SimpleListFilter
+
+class PlatformFilter(SimpleListFilter):
+    title = 'Platform'
+    parameter_name = 'platform'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('telegram', 'Telegram Only'),
+            ('bale', 'Bale Only'),
+            ('both', 'Telegram + Bale'),
+            ('site', 'Website Only'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'telegram':
+            return queryset.filter(tel_id__isnull=False, bale_id__isnull=True)
+        if self.value() == 'bale':
+            return queryset.filter(bale_id__isnull=False, tel_id__isnull=True)
+        if self.value() == 'both':
+            return queryset.filter(tel_id__isnull=False, bale_id__isnull=False)
+        if self.value() == 'site':
+            return queryset.filter(user__isnull=False, tel_id__isnull=True, bale_id__isnull=True)
+        return queryset
+
 
 class ProfileModelAdmin(admin.ModelAdmin):
-    list_display = ('display_name', 'lang')
-    list_filter = ('lang',)
-
+    list_display = ('display_name', 'lang', 'platform', 'created_at')
+    list_filter = ('lang', PlatformFilter)
+    search_fields = ('tel_id', 'bale_id', 'user__username', 'fname', 'lname', 'phone')
+    readonly_fields = ('tel_id', 'bale_id', 'user', 'created_at', 'updated_at')
+    
     def display_name(self, obj):
+        """
+        نمایش نام کاربر با شناسه پلتفرم مربوطه
+        اولویت: user.username > (fname + lname) > شناسه پلتفرم
+        """
+        # اگر کاربر متصل به سایت دارد
         if obj.user:
-            return f"{obj.user.username} - {obj.tel_id}"
-        return f"{obj.fname} {obj.lname} - {obj.tel_id}"
-
-    display_name.short_description = "Telegram ID / Username"
-
-
-
+            return f"{obj.user.username} (User)"
+        
+        # اگر نام و نام خانوادگی دارد
+        if obj.fname or obj.lname:
+            full_name = f"{obj.fname or ''} {obj.lname or ''}".strip()
+            if obj.tel_id:
+                return f"{full_name} - Telegram: {obj.tel_id}"
+            elif obj.bale_id:
+                return f"{full_name} - Bale: {obj.bale_id}"
+            return full_name
+        
+        # فقط شناسه پلتفرم
+        if obj.tel_id:
+            return f"Telegram User: {obj.tel_id}"
+        elif obj.bale_id:
+            return f"Bale User: {obj.bale_id}"
+        
+        return "Unnamed User"
+    
+    display_name.short_description = "User Name / Platform ID"
+    
+    def platform(self, obj):
+        """
+        نمایش پلتفرم فعال کاربر
+        """
+        if obj.tel_id and obj.bale_id:
+            return "Telegram + Bale"
+        elif obj.tel_id:
+            return "Telegram"
+        elif obj.bale_id:
+            return "Bale"
+        return "Unknown"
+    
+    platform.short_description = "Platform"
+    
+    def created_at(self, obj):
+        """نمایش تاریخ ایجاد (اگر فیلد دارید)"""
+        return obj.date_joined if hasattr(obj, 'date_joined') else None
+    
+    created_at.short_description = "Created"
+    
+    created_at.empty_value_display = "-"
+    
+    def updated_at(self, obj):
+        """نمایش تاریخ بروزرسانی (اگر فیلد دارید)"""
+        return None  # اگر فیلد updated_at دارید، اینجا قرار دهید
+    
+    updated_at.short_description = "Updated"
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(ProfileModel, ProfileModelAdmin)
 admin.site.register(Address, AddressAdmin)

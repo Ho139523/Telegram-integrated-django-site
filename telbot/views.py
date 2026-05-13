@@ -918,6 +918,10 @@ def home(message, text=None, *args, **kwargs):
 def settings(message):
     if subscription.subscription_offer(message):
         home_menue = ["🏡"]
+        ##############################
+        #attention you can do so
+        #from utils.telbot.variables import home_menu
+        ##############################
         markup = send_menu(message, ProfileModel.objects.get(tel_id=message.chat.id).settings_menu, "settings",
                            home_menue, 2)
         app.send_message(message.chat.id, t(message, "settings_message"), reply_markup=markup)
@@ -928,6 +932,10 @@ def settings(message):
 def profile_setting(message):
     if subscription.subscription_offer(message):
         home_menue = ["🏡"]
+        ##############################
+        #attention you can do so
+        #from utils.telbot.variables import home_menu
+        ##############################
         markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).profile_menu, "profile",
                            home_menue)
         app.send_message(message.chat.id, t(message, "profile_settings"), reply_markup=markup)
@@ -939,6 +947,10 @@ def store_setting(message):
         session = session_manager.get_user_session(message.chat.id, namespace="menu")
         session["store_lang"] = True
         home_menue = ["🏡"]
+        ##############################
+        #attention you can do so
+        #from utils.telbot.variables import home_menu
+        ##############################
         markup = send_menu(message, ProfileModel.objects.get(tel_id=message.from_user.id).store_menu, "store",
                            home_menue)
         app.send_message(message.chat.id, t(message, "store_settings"), reply_markup=markup)
@@ -952,6 +964,10 @@ def balance_menue(message):
     if subscription.subscription_offer(message):
         options = [t(message, "my_balance"), t(message, "increase_balance")]
         home_menue = ["🏡"]
+        ##############################
+        #attention you can do so
+        #from utils.telbot.variables import home_menu
+        ##############################
         markup = send_menu(message, options, "balance_category", home_menue)
         app.send_message(message.chat.id, t(message, "balance_menue"), reply_markup=markup)
 
@@ -1834,6 +1850,10 @@ def product(message):
         profile = ProfileModel.objects.get(tel_id=message.from_user.id)
         if profile.seller_mode:
             home_menue = ["🏡"]
+            ##############################
+            #attention you can do so
+            #from utils.telbot.variables import home_menu
+            ##############################
             session_manager.reset_user_session(message.chat.id, namespace="add_product")
             session_manager.reset_user_session(message.chat.id, namespace="delete_product")
             session_manager.reset_user_session(message.chat.id, namespace="deactivate_product")
@@ -2248,6 +2268,10 @@ def category(message):
         profile = ProfileModel.objects.get(tel_id=message.from_user.id)
         if profile.seller_mode:
             home_menue = ["🏡"]
+            ##############################
+            #attention you can do so
+            #from utils.telbot.variables import home_menu
+            ##############################
             session_manager.reset_user_session(message.chat.id, namespace="menu")
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session['product'] = False
@@ -2933,6 +2957,10 @@ def check_website_subscription(call):
             app.send_message(call.message.chat.id,
                              "برای خرید و ارسال کالا باید اطلاعات بیشتری (مثل آدرس) از شما داشته باشیم.\n\nابتدا باید حساب کاربری خود را بسازید:")
             home_menue = ["🏡"]
+            ##############################
+            #attention you can do so
+            #from utils.telbot.variables import home_menu
+            ##############################
 
             send_menu(call.message, extra_buttons, "create_account", home_menue)
         else:

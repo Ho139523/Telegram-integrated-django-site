@@ -129,8 +129,16 @@ class ProfileModel(models.Model):
     instagram = models.CharField(max_length=120, blank=True, null=True, verbose_name="Instagram ID")
     tweeter = models.CharField(max_length=120, blank=True, null=True, verbose_name="Tweeter ID")
     telegram = models.CharField(max_length=120, blank=True, null=True, verbose_name="Telegram ID")
+    bale = models.CharField(max_length=120, blank=True, null=True, verbose_name="Bale ID")
     credit = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
     tel_id = models.CharField(
+        max_length=20,
+        validators=[int_list_validator(sep=''), MinLengthValidator(5)],
+        unique=True,
+        null=True,
+        blank=True
+    )
+    bale_id = models.CharField(
         max_length=20,
         validators=[int_list_validator(sep=''), MinLengthValidator(5)],
         unique=True,
@@ -264,7 +272,7 @@ class ProfileModel(models.Model):
     def __str__(self):
         if self.user:
             return f"{self.user.username}  -  {self.tel_id}"
-        return f"{self.fname} {self.lname}  -  {self.tel_id}"
+        return f"{self.fname} {self.lname}  -  {self.tel_id if self.tel_id else self.bale_id}"
 
     @property
     def age(self):

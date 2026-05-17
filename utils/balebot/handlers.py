@@ -1,10 +1,14 @@
 # utils/balebot/handlers.py
+import re
 import traceback
 import logging
+from unittest import result
 from balethon.objects import Message
 from utils.balebot.api_client import BaleAPIClient
 from utils.balebot.helpers import t
-from utils.balebot.helpers import send_menu
+from utils.balebot.helpers import *
+from utils.telbot.variables import home_menu
+
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +29,18 @@ async def process_help_command(message: Message):
     """
     Handle /help command - show help menu
     """
-    help_text = (
-        "📚 **Bot Help:**\n\n"
-        "/start - Restart the bot\n"
-        "/help - Show this help message"
-    )
-    await message.reply(help_text)
+    try:
+        help_text = (
+            "📚 **Bot Help:**\n\n"
+            "/start - Restart the bot\n"
+            "/help - Show this help message"
+        )
+        result = await message.reply(help_text)
+        return result
+    except:
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
 
 
 ##################################
@@ -42,7 +52,13 @@ async def default_message_handler(message: Message):
     """
     Default handler for unrecognized messages
     """
-    await message.reply("❌ I didn't understand that. Please use /help.")
+    try:
+        result = await message.reply("❌ I didn't understand that. Please use /help.")
+        return result
+    except:
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
 
 
 
@@ -78,7 +94,8 @@ async def process_start_command(message: Message):
             get_response = await get_profile(message.chat.id)
             if get_response.success:
                 #print(f"Data: {get_response.data.get('data', {})}")
-                await home_handler(message)
+                result = await home_handler(message)
+                return result
         else:
             #print(f"📌 Profile with user_id {user_id} not found. Creating new one...")
             # ساخت پروفایل جدید
@@ -90,15 +107,17 @@ async def process_start_command(message: Message):
             })
             
             if create_response.success:
-                await language_setting(message)
+                result = await language_setting(message)
+                return result
             else:
                 logger.info(f"❌ Creation failed: {create_response.error}")
     
         await client.close()
 
     except Exception as e:
-        logger.error(f"Error in start_handler: {traceback.format_exc()}")
-        await message.reply("An error occurred. Please try again later.")
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
 
 
 ##################################
@@ -124,10 +143,13 @@ from utils.balebot.api_client import BaleAPIClient
 async def home_handler(
     event: Union[Message, CallbackQuery], 
     text: Optional[str] = None, 
-    session_delete: Optional[List[str]] = None
+    session_delete: Optional[List[str]] = None,
+    *args,
+    **kwargs
 ):
     """
     Main menu handler for Bale bot
+    Returns: MessageResult or None
     """
     try:
         # استخراج اطلاعات از رویداد
@@ -136,20 +158,14 @@ async def home_handler(
         if is_callback:
             message = event.message
             user_id = message.chat.id
-            await event.answer()  # پاسخ به callback
+            await event.answer()
             print(f"Home callback from user {user_id}")
         else:
             message = event
             user_id = message.chat.id
-            #print(f"Home message from user {user_id}")
-        
-        # بررسی اشتراک کاربر (موقتی غیرفعال برای تست)
-        # if not subscription.subscription_offer(message):
-        #     await message.reply("You don't have an active subscription.")
-        #     return
         
         # لیست session‌هایی که باید ریست شوند
-        session_list = ["address", "menu", "add_product", "delete_product", "phone", "createshop"]
+        session_list = ["address", "menu", "add_product", "delete_product", "phone", "createshop", "support chat", "clear_message"]
         
         # ریست کردن session‌ها
         if session_delete:
@@ -162,66 +178,351 @@ async def home_handler(
         
         # دریافت پروفایل کاربر از API
         response = await get_profile(message.chat.id)
-
         profile_data = response.data.get('data', {})
-        
         
         if not profile_data:
             print(f"No profile data for user {user_id}")
-            await message.reply("Profile not found. Please use /start to register.")
-            return
+            result = await message.reply("Profile not found. Please use /start to register.")
+            return result
         
-        #print(f"Profile data received: {profile_data.get('fname')} {profile_data.get('lname')}")
+        # ساخت منو
+        markup = await send_menu(
+            message, 
+            profile_data.get('tel_menu'), 
+            "main_menu", 
+            profile_data.get('extra_button_menu'),
+            profile_response=response
+        )
         
-        # ساخت منو - باید مطمئن شویم که توابع send_menu و t در دسترس هستند
-        try:
-            
-            markup = await send_menu(
-                message, 
-                profile_data.get('tel_menu'), 
-                "main_menu", 
-                profile_data.get('extra_button_menu'),
-                profile_response=response
+        # متن پیش‌فرض اگر داده نشده باشد
+        if not text:
+            text = await t(
+                event=message,
+                key="home_message",
+                chat_id=user_id,
+                lang=profile_data.get('lang')
             )
-
-            
-            # متن پیش‌فرض اگر داده نشده باشد
-            if not text:
-                # استفاده از نسخه async تابع t
-                text = await t(
-                    event=message,
-                    key="home_message",
-                    chat_id=user_id,
-                    lang=profile_data.get('lang')
-                )
-            
-            # ارسال پیام
-            await message.reply(text, reply_markup=markup)
-            #print("Home menu sent successfully")
-            
-        except Exception as e:
-            print(f"Error building menu: {traceback.format_exc()}")
-            # Fallback: ارسال پیام ساده بدون منو
-            await message.reply("Welcome to the bot! Use /start to see the menu.")
+        
+        # ✅ ارسال پیام و برگرداندن نتیجه
+        result = await message.reply(text, reply_markup=markup)
+        return result
         
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"Error in home_handler: {e}\n{error_details}")
-        await message.reply("An error occurred. Please try again later.")
-
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
 
 ##################################
 #            MENU BALANCE
 ##################################
 
 
-from utils.telbot.variables import home_menu
-
 async def menu_balance_handler(message: Message):
-    response = await get_profile(message.chat.id)
-    options = [await t(message, "my_balance"), await t(message, "increase_balance")]
-    markup = await send_menu(message, options, "balance_menu", home_menu, profile_response=response)
-    await message.reply(await t(message, "balance_menue"), reply_markup=markup)
+    """Handler for balance menu"""
+    try:
+        response = await get_profile(message.chat.id)
+        options = [await t(message, "my_balance"), await t(message, "increase_balance")]
+        markup = await send_menu(message, options, "balance_menu", home_menu, profile_response=response)
+        
+        # ✅ ارسال پیام و برگرداندن نتیجه
+        result = await message.reply(await t(message, "balance_menue"), reply_markup=markup)
+        return result
+        
+    except Exception as e:
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
+
+
+##################################
+#            MENU BECOME SELLER
+##################################
+
+
+async def menu_become_seller_handler(message: Message):
+    """Handler for balance become seller"""
+    try:
+        success = await update_profile(message.chat.id, {"seller_mode": True})
+        if not success:
+            err_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+            return err_msg
+        
+        # ✅ ارسال پیام و برگرداندن نتیجه
+        result = await home_handler(message)
+        return result
+        
+    except Exception as e:
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
+    
+
+##################################
+#            BACK TO BUYER
+##################################
+
+
+async def back_to_buyer_handler(message: Message):
+    """Handler for back to buyer"""
+    try:
+        success = await update_profile(message.chat.id, {"seller_mode": False})
+        if not success:
+            err_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+            return err_msg
+        
+        # ✅ ارسال پیام و برگرداندن نتیجه
+        result = await home_handler(message)
+        return result
+        
+    except Exception as e:
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
+    
+
+
+##################################
+#            SUPPORT
+##################################
+
+# async def send_question_to_seller(message):
+#     buttons = {
+#     await t(message, "reply"): {"callback_data": "reply", "index": 1},
+#     await t(message, "end_chat"): {"callback_data": "end_chat", "index": 2},
+#     }
+
+#     handlers = {
+#         "reply": home_handler,
+#         "end_chat": home_handler
+#     }
+    
+#     username = message.author.username or await t(message, "without_username")
+
+#     text = await t(
+#         message, 
+#         "user_message_received", 
+#         user_id=message.chat.id, 
+#         username=username,
+#         text=message.text
+#     )
+
+#     clean_text = strip_html_tags(text)
+    
+
+#     markup  = SendMarkup(
+#         bot=bot,
+#         chat_id=message.chat.id,
+#         text=clean_text,
+#         buttons=buttons,
+#         button_layout=[2],
+#         handlers=handlers,
+#         message=message
+#     )
+
+#     result = await markup.send()
+#     return result
+
+
+# async def question_send_confirm(message):
+#     buttons = {
+#     await t(message, "end_chat"): {"callback_data": "end_chat", "index": 2},
+#     }
+
+#     handlers = {
+#         "end_chat": home_handler,
+#     }
+
+#     text = await t(message, "message_sent")
+
+#     markup  = SendMarkup(
+#         bot=bot,
+#         chat_id=message.chat.id,
+#         text=text,
+#         buttons=buttons,
+#         button_layout=[1],
+#         handlers=handlers,
+#         message=message
+#     )
+
+#     result = await markup.send()
+#     return result
+
+
+from bs4 import BeautifulSoup
+import re
+from typing import Dict
+from utils.balebot.helpers import SendMarkup
+from utils.balebot.ClassBase import *
+from utils.balebot.ClassBase import ForceReply
 
 
 
+
+def extract_user_id_from_text(text: str, pattern: str = None) -> Optional[int]:
+    """استخراج شناسه کاربر از متن"""
+    try:
+        clean_text = BeautifulSoup(text, "html.parser").get_text()
+        normalized_text = re.sub(r'\s+', ' ', clean_text).strip()
+        
+        if pattern:
+            match = re.search(pattern, normalized_text)
+            if match:
+                numbers = re.findall(r"\d+", match.group())
+                if numbers:
+                    return int(numbers[0])
+        
+        # جستجوی مستقیم اعداد
+        all_numbers = re.findall(r"\d+", normalized_text)
+        if all_numbers:
+            return int(all_numbers[0])
+        
+        return None
+    except Exception:
+        return None
+
+
+async def send_question_to_seller(message: Message):
+    """ارسال سوال کاربر به فروشنده (ادمین)"""
+    buttons = {
+        await t(message, "reply"): {"callback_data": "support_reply", "index": 1},
+        await t(message, "end_chat"): {"callback_data": "support_end_chat", "index": 2},
+    }
+
+    handlers = {
+        "support_reply": do_nothing,
+        "end_chat": do_nothing
+    }
+    
+    username = message.author.username or await t(message, "without_username")
+    
+    # ذخیره پیام کاربر در session_manager
+    SupportChatManager.store_pending_message(
+        message.chat.id, 
+        message.text, 
+        message.message_id
+    )
+
+    text = await t(
+        message, 
+        "user_message_received", 
+        user_id=message.chat.id, 
+        username=username,
+        text=message.text
+    )
+
+    # حذف تگ‌های HTML (بله از HTML پشتیبانی نمی‌کند)
+    from bs4 import BeautifulSoup
+    clean_text = BeautifulSoup(text, "html.parser").get_text()
+
+    markup = SendMarkup(
+        bot=bot,
+        chat_id=message.chat.id,
+        text=clean_text,
+        buttons=buttons,
+        button_layout=[2],
+        handlers=handlers,
+        message=message
+    )
+
+    result = await markup.send()
+    return result
+
+
+async def question_send_confirm(message: Message):
+    """ارسال پیام تأیید به کاربر"""
+    buttons = {
+        await t(message, "end_chat"): {"callback_data": "end_chat", "index": 1},
+    }
+
+    handlers = {
+        "end_chat": do_nothing,
+    }
+
+    text = await t(message, "message_sent")
+
+    markup = SendMarkup(
+        bot=bot,
+        chat_id=message.chat.id,
+        text=text,
+        buttons=buttons,
+        button_layout=[1],
+        handlers=handlers,
+        message=message
+    )
+
+    result = await markup.send()
+    return result
+
+
+
+async def support_reply_callback(callback: CallbackQuery):
+    """هندلر پاسخ به پیام کاربر - وقتی ادمین روی دکمه پاسخ کلیک می‌کند"""
+    try:
+        await callback.answer()
+        
+        message = callback.message
+        
+        # استخراج شناسه کاربر از متن پیام
+        user_id = extract_user_id_from_text(message.text)
+        
+        if not user_id:
+            error_msg = await message.reply(await t(message, "user_id_not_found"))
+            return error_msg
+        
+        # تنظیم حالت پاسخگویی برای ادمین
+        SupportChatManager.set_replying_to(message.chat.id, user_id)
+        
+        # ارسال پیام با ForceReply
+        text = await t(message, "send_answer_to", user_id=user_id)
+        
+        result = await message.reply(
+            text, 
+            reply_markup=ForceReply(),
+            parse_mode="HTML"
+        )
+        
+        return result
+        
+    except Exception as e:
+        print(f"Error in support_reply_callback: {traceback.format_exc()}")
+        error_msg = await callback.message.reply("خطا رخ داد")
+        return error_msg
+
+
+
+async def support_reply_callback(callback):
+    
+    try:
+        await callback.answer()
+        
+        message = callback.message
+        
+        # استخراج شناسه کاربر از متن پیام
+        user_id = extract_user_id_from_text(message.text)
+        
+        if not user_id:
+            error_msg = await message.reply(await t(message, "user_id_not_found"))
+            return error_msg
+        
+        # تنظیم حالت پاسخگویی برای ادمین
+        SupportChatManager.set_replying_to(message.chat.id, user_id)
+        
+        # ارسال پیام با ForceReply
+        text = await t(message, "send_answer_to", user_id=user_id)
+        
+        result = await message.reply(
+            text, 
+            reply_markup=ForceReply(),
+            parse_mode="HTML"
+        )
+        
+        return result
+    
+    except:
+        print(f"Error in support_end_chat_callback: {traceback.format_exc()}")
+        error_msg = await callback.message.reply("خطا در پایان مکالمه")
+        return error_msg
+
+
+async def do_nothing():
+    return

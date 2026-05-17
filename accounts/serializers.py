@@ -256,7 +256,7 @@ class BotProfileSerializer(serializers.ModelSerializer):
         if not value:
             return 'en'
         
-        allowed_langs = ['en', 'fa', 'ar', 'tr']
+        allowed_langs = ['en', 'fa', 'ar', 'zh', 'ru']
         if value not in allowed_langs:
             raise serializers.ValidationError(f"Language must be one of: {allowed_langs}")
         

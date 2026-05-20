@@ -1,6 +1,12 @@
 from rest_framework import permissions
 from accounts.models import ProfileModel
 from products.models import Store
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):

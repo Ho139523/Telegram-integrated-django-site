@@ -8,11 +8,11 @@ from .serializers import (
 )
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from utils.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
+from utils.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly, BotSignaturePermission
 
 class StoreViewSet(viewsets.ModelViewSet):
     serializer_class = StoreSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnly, BotSignaturePermission]
 
     def get_queryset(self):
         user = self.request.user

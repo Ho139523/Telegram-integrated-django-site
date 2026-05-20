@@ -321,7 +321,7 @@ class BotProfileSerializer(serializers.ModelSerializer):
         """Create new profile with default values"""
         # Set default values if not provided
         if 'lang' not in validated_data:
-            validated_data['lang'] = 'en'
+            validated_data['lang'] = 'fa'
         
         if 'seller_mode' not in validated_data:
             validated_data['seller_mode'] = False
@@ -400,3 +400,4 @@ class BotProfileCheckSerializer(serializers.Serializer):
             data['bale_id'] = bale_id_str
         
         return data
+

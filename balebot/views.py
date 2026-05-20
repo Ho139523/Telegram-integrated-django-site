@@ -295,197 +295,36 @@ async def back_to_buyer(message):
 ##################################################
 
 
+
 @bot.on_message(condition=create_menu_condition("end_chat"))
 @clear_messages_on_command()
-async def end_chat(message):
+async def end_chat(message: Message):
+    """پایان چت از طریق پیام"""
     try:
-
-        session = session_manager.get_user_session(message.chat.id, namespace="support chat")
-        session["support_mode"] = True
-        session_manager.set_user_session(message.chat.id, session, namespace="support chat")
-        result = await home_message(message)
-        return result
+        # ✅ استفاده از SupportChatManager
+        SupportChatManager.set_support_mode(message.chat.id, True)
         
-    except:
-        print(f"Error in question: {traceback.format_exc()}")
-        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
-        return error_msg
-
-        
-
-@bot.on_message(condition=create_menu_condition("menu_support"))
-@clear_previous_messages(namespace="clear_message")
-async def menu_support(message):
-    try:
-        session = session_manager.get_user_session(message.chat.id, namespace="support chat")
-        response = await get_profile(message.chat.id)
-        markup = await send_menu(message, [await t(message, "end_chat"),], "support_chat", profile_response=response)
-        session["support_mode"] = True
-        session_manager.set_user_session(message.chat.id, session, namespace="support chat")
-        result = await message.reply(await t(message, "start_support_chat"), reply_markup=markup)
-        return result
-    except:
-        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
-        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
-        return error_msg
-    
-
-
-@bot.on_message(condition=lambda message: session_manager.get_user_session(message.chat.id, namespace="support chat").get("support_mode"))
-@store_messages(max_messages=100)
-async def question(message):
-    try:
-        # ارسال پیام اول به فروشنده
-        result1 = await send_question_to_seller(message)
-        
-        # ارسال پیام تأیید
-        result2 = await question_send_confirm(message)
-        
-        # برگرداندن هر دو پیام به صورت لیست
-        return [result1, result2, message]
-        
-    except Exception as e:
-        print(f"Error in question: {traceback.format_exc()}")
-        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
-        return error_msg
-
-
-
-
-
-
-@bot.on_callback_query(condition=lambda callback: callback.data == "support_reply")
-@auto_clear
-async def support_reply(callback: CallbackQuery):
-    """هندلر پاسخ به پیام کاربر - وقتی ادمین روی دکمه پاسخ کلیک می‌کند"""
-    try:
-
-        result = await support_reply_callback(callback)
+        result = await home_handler(message)
         return result
         
     except Exception as e:
-        print(f"Error in support_reply_callback: {traceback.format_exc()}")
-        error_msg = await callback.message.reply("خطا رخ داد")
+        print(f"Error in end_chat: {traceback.format_exc()}")
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
         return error_msg
 
-
-@bot.on_callback_query(condition=lambda callback: callback.data == "end_chat")
-@auto_clear
-async def end_chat_callback(callback: CallbackQuery):
-    """هندلر پایان چت - وقتی ادمین یا کاربر روی دکمه پایان کلیک می‌کند"""
-    try:
-        print("helo")
-        await callback.answer()
-        message = callback.message
-        result = await end_chat(message)
-        
-        return result
-        
-    except Exception as e:
-        print(f"Error in support_end_chat_callback: {traceback.format_exc()}")
-        error_msg = await callback.message.reply("خطا در پایان مکالمه")
-        return error_msg
-
-
-# ================================================
-# هندلر پاسخ ادمین (با ForceReply)
-# ================================================
-
-# @bot.on_message(condition=lambda message: session_manager.get_user_session(message.chat.id, namespace="support chat").get("support_mode"))
-# @store_messages(max_messages=100)
-# async def support_reply_handler(message: Message):
-#     """
-#     هندلر پاسخ پشتیبان - بررسی می‌کند که آیا ادمین در حالت پاسخگویی است
-#     و پیام در پاسخ به پیام قبلی ارسال شده است
-#     """
-#     try:
-#         # بررسی اینکه آیا کاربر (ادمین) در حالت پاسخگویی است
-#         replying_to = SupportChatManager.get_replying_to(message.chat.id)
-        
-#         if not replying_to:
-#             # در حالت پاسخگویی نیست، ادامه نده
-#             return
-        
-#         # بررسی اینکه پیام در پاسخ به پیام قبلی ارسال شده باشد
-#         if not message.reply_to_message:
-#             error_msg = await message.reply(await t(message, "reply_to_message_required"))
-#             return error_msg
-        
-#         # استخراج شناسه کاربر از متن پیام
-#         user_id = extract_user_id_from_text(message.reply_to_message.text)
-        
-#         if not user_id:
-#             error_msg = await message.reply(await t(message, "user_id_not_found"))
-#             SupportChatManager.clear_replying_to(message.chat.id)
-#             return error_msg
-        
-#         # دریافت پیام اصلی کاربر
-#         pending_message = SupportChatManager.get_pending_message(user_id)
-        
-#         # ارسال پاسخ به کاربر اصلی
-#         if pending_message:
-#             response_text = await t(
-#                 message,
-#                 "support_reply_with_message",
-#                 user_message=pending_message.get("text", ""),
-#                 support_answer=message.text
-#             )
-#         else:
-#             response_text = await t(
-#                 message,
-#                 "support_reply_without_original",
-#                 support_answer=message.text
-#             )
-        
-#         # ارسال پاسخ به کاربر
-#         await bot.send_message(
-#             chat_id=user_id,
-#             text=response_text,
-#             parse_mode="HTML"
-#         )
-        
-#         # پاک کردن پیام در انتظار پاسخ
-#         SupportChatManager.delete_pending_message(user_id)
-        
-#         # ارسال تأیید به ادمین
-#         confirmation_msg = await t(message, "message_sent")
-#         result = await message.reply(confirmation_msg)
-        
-#         # پاک کردن حالت پاسخگویی ادمین
-#         SupportChatManager.clear_replying_to(message.chat.id)
-        
-#         return result
-        
-#     except Exception as e:
-#         print(f"Error in support_reply_handler: {traceback.format_exc()}")
-#         error_msg = await message.reply(await t(message, "error_occurred"))
-#         return error_msg
-
-
-# ================================================
-# هندلرهای منوی پشتیبانی
-# ================================================
 
 @bot.on_message(condition=create_menu_condition("menu_support"))
 @clear_previous_messages(namespace="clear_message")
 async def menu_support(message: Message):
     """منوی پشتیبانی"""
     try:
-        # فعال کردن حالت پشتیبانی برای کاربر
+        # ✅ فعال کردن حالت پشتیبانی با SupportChatManager
         SupportChatManager.set_support_mode(message.chat.id, True)
         
         response = await get_profile(message.chat.id)
-        markup = await send_menu(
-            message, 
-            [await t(message, "end_chat")], 
-            "support_chat", 
-            profile_response=response
-        )
+        markup = await send_menu(message, [await t(message, "end_chat")], "support_chat", profile_response=response)
         
-        result = await message.reply(
-            await t(message, "start_support_chat"), 
-            reply_markup=markup
-        )
+        result = await message.reply(await t(message, "start_support_chat"), reply_markup=markup)
         return result
         
     except Exception as e:
@@ -493,12 +332,6 @@ async def menu_support(message: Message):
         error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
         return error_msg
 
-
-
-
-# ================================================
-# هندلر دریافت پیام کاربر در حالت پشتیبانی
-# ================================================
 
 @bot.on_message(condition=lambda message: SupportChatManager.is_support_mode(message.chat.id))
 @store_messages(max_messages=100)
@@ -511,7 +344,7 @@ async def question(message: Message):
         # ارسال پیام تأیید به کاربر
         result2 = await question_send_confirm(message)
         
-        # برگرداندن هر دو پیام
+        # برگرداندن هر دو پیام به صورت لیست
         return [result1, result2]
         
     except Exception as e:
@@ -520,10 +353,34 @@ async def question(message: Message):
         return error_msg
 
 
+# ================================================
+# هندلر دریافت پاسخ ادمین
+# ================================================ 
+
+
+##################################################
+# CART
+##################################################
+
+
+@bot.on_message(condition=create_menu_condition("menu_cart"))
+@auto_clear
+async def menu_cart(message):
+    try:
+        response = await get_profile(message.chat.id, url="owned_store")
+        result = await message.reply(f"{response}")
+        return result
+    except:
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
+
+
 
 ##################################################
 # HELP
 ##################################################
+
 
 
 @bot.on_message(condition=lambda message: message.text in ["help"])

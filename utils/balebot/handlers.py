@@ -358,6 +358,17 @@ from utils.balebot.ClassBase import ForceReply
 
 
 
+from bs4 import BeautifulSoup
+import re
+import traceback
+from typing import Optional
+from balethon.objects import Message, CallbackQuery
+from utils.balebot.helpers import SendMarkup, t, get_profile, bot
+from utils.balebot.ClassBase import SupportChatManager, ForceReply
+from utils.balebot.decorators import store_messages, clear_previous_messages, clear_messages_on_command, auto_clear
+from telbot.sessions import session_manager
+
+
 def extract_user_id_from_text(text: str, pattern: str = None) -> Optional[int]:
     """استخراج شناسه کاربر از متن"""
     try:
@@ -389,13 +400,13 @@ async def send_question_to_seller(message: Message):
     }
 
     handlers = {
-        "support_reply": do_nothing,
-        "end_chat": do_nothing
+        "support_reply": support_reply_callback,
+        "support_end_chat": support_end_chat_callback
     }
     
     username = message.author.username or await t(message, "without_username")
     
-    # ذخیره پیام کاربر در session_manager
+    # ✅ استفاده از SupportChatManager برای ذخیره پیام کاربر
     SupportChatManager.store_pending_message(
         message.chat.id, 
         message.text, 
@@ -411,7 +422,6 @@ async def send_question_to_seller(message: Message):
     )
 
     # حذف تگ‌های HTML (بله از HTML پشتیبانی نمی‌کند)
-    from bs4 import BeautifulSoup
     clean_text = BeautifulSoup(text, "html.parser").get_text()
 
     markup = SendMarkup(
@@ -431,11 +441,11 @@ async def send_question_to_seller(message: Message):
 async def question_send_confirm(message: Message):
     """ارسال پیام تأیید به کاربر"""
     buttons = {
-        await t(message, "end_chat"): {"callback_data": "end_chat", "index": 1},
+        await t(message, "end_chat"): {"callback_data": "support_end_chat", "index": 1},
     }
 
     handlers = {
-        "end_chat": do_nothing,
+        "support_end_chat": support_end_chat_callback,
     }
 
     text = await t(message, "message_sent")
@@ -454,7 +464,8 @@ async def question_send_confirm(message: Message):
     return result
 
 
-
+@bot.on_callback_query(condition=lambda callback: callback.data == "support_reply")
+@auto_clear
 async def support_reply_callback(callback: CallbackQuery):
     """هندلر پاسخ به پیام کاربر - وقتی ادمین روی دکمه پاسخ کلیک می‌کند"""
     try:
@@ -469,7 +480,7 @@ async def support_reply_callback(callback: CallbackQuery):
             error_msg = await message.reply(await t(message, "user_id_not_found"))
             return error_msg
         
-        # تنظیم حالت پاسخگویی برای ادمین
+        # ✅ تنظیم حالت پاسخگویی برای ادمین با SupportChatManager
         SupportChatManager.set_replying_to(message.chat.id, user_id)
         
         # ارسال پیام با ForceReply
@@ -489,40 +500,31 @@ async def support_reply_callback(callback: CallbackQuery):
         return error_msg
 
 
-
-async def support_reply_callback(callback):
-    
+@bot.on_callback_query(condition=lambda callback: callback.data == "support_end_chat")
+@auto_clear
+async def support_end_chat_callback(callback: CallbackQuery):
+    """هندلر پایان چت - وقتی ادمین یا کاربر روی دکمه پایان کلیک می‌کند"""
     try:
         await callback.answer()
         
         message = callback.message
         
-        # استخراج شناسه کاربر از متن پیام
-        user_id = extract_user_id_from_text(message.text)
+        # ✅ پاک کردن سشن پشتیبانی با SupportChatManager
+        SupportChatManager.clear_support_session(message.chat.id)
+        SupportChatManager.clear_replying_to(message.chat.id)
         
-        if not user_id:
-            error_msg = await message.reply(await t(message, "user_id_not_found"))
-            return error_msg
+        text = await t(message, "conversation_ended")
+        result = await message.reply(text)
         
-        # تنظیم حالت پاسخگویی برای ادمین
-        SupportChatManager.set_replying_to(message.chat.id, user_id)
+        # ✅ غیرفعال کردن حالت پشتیبانی
+        SupportChatManager.set_support_mode(message.chat.id, False)
         
-        # ارسال پیام با ForceReply
-        text = await t(message, "send_answer_to", user_id=user_id)
-        
-        result = await message.reply(
-            text, 
-            reply_markup=ForceReply(),
-            parse_mode="HTML"
-        )
+        # بازگشت به منوی اصلی
+        await home_handler(message)
         
         return result
-    
-    except:
+        
+    except Exception as e:
         print(f"Error in support_end_chat_callback: {traceback.format_exc()}")
         error_msg = await callback.message.reply("خطا در پایان مکالمه")
         return error_msg
-
-
-async def do_nothing():
-    return

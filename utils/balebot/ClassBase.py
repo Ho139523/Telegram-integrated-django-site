@@ -128,7 +128,7 @@ class SupportChatManager:
 
 
 class ForceReply:
-    """Force reply markup"""
+    """Force reply markup for Balethon"""
     def __init__(self, selective: bool = False):
         self.force_reply = True
         self.selective = selective
@@ -138,3 +138,6 @@ class ForceReply:
             "force_reply": self.force_reply,
             "selective": self.selective
         }
+    
+    def __repr__(self):
+        return f"ForceReply(selective={self.selective})"

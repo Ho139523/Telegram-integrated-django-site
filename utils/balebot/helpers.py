@@ -494,11 +494,12 @@ async def send_markup(
 
 from utils.balebot.pakage_development.process_update import bot
 
-async def get_profile(user_id):
+async def get_profile(user_id, url=None):
     try:
     
         client = BaleAPIClient(base_url="http://127.0.0.1:8000")
-        response = await client._request("GET", f"/api/bot/profiles/{user_id}/")
+        url = f"/api/bot/profiles/{user_id}/{url}/" if url else f"/api/bot/profiles/{user_id}/"
+        response = await client._request("GET", url)
             
         if not response.success:
             print(f"API Error: {response.error}")

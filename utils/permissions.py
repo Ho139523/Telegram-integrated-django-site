@@ -71,35 +71,44 @@ import json
 
 class BotSignaturePermission(BasePermission):
     """
-    Permission for bot requests using HMAC-SHA256 signature
-    All CRUD operations require valid signature
+    ترکیب دو permission با منطق OR:
+    - اگر کاربر ادمین است → اجازه دارد
+    - یا اگر signature معتبر است → اجازه دارد
+    - در غیر این صورت → فقط خواندن (GET) مجاز است
     """
     
-    BOT_SECRET = "9cb87c53630243ab6244c20321c00acae9ee896624010ad1b81dd16c89edee91"
-    
     def has_permission(self, request, view):
-        # Get signature headers
+        # اول: بررسی ادمین بودن
+        is_admin = request.user and request.user.is_staff
+        
+        if is_admin:
+            # ادمین همه کارها می‌تواند بکند
+            return True
+        
+        # دوم: بررسی signature بات
         timestamp = request.headers.get('X-Bot-Timestamp')
         signature = request.headers.get('X-Bot-Signature')
         
-        if not timestamp or not signature:
-            logger.warning("Missing signature headers")
-            return False
+        if timestamp and signature:
+            # signature وجود دارد → بررسی کنیم
+            BOT_SECRET = "9cb87c53630243ab6244c20321c00acae9ee896624010ad1b81dd16c89edee91"
+            body_bytes = request.body or b'{}'
+            msg = timestamp.encode() + b"." + body_bytes
+            expected_signature = hmac.new(
+                BOT_SECRET.encode(), 
+                msg, 
+                hashlib.sha256
+            ).hexdigest()
+            
+            if hmac.compare_digest(signature, expected_signature):
+                # signature معتبر است → اجازه دارد
+                return True
         
-        # Get request body (GET requests may have no body)
-        body_bytes = request.body or b'{}'
+        # سوم: اگر نه ادمین است و نه signature معتبر
+        # فقط متدهای خواندنی (GET) مجاز است
+        if request.method in permissions.SAFE_METHODS:
+            return True
         
-        # Verify signature
-        msg = timestamp.encode() + b"." + body_bytes
-        expected_signature = hmac.new(
-            self.BOT_SECRET.encode(), 
-            msg, 
-            hashlib.sha256
-        ).hexdigest()
-        
-        is_valid = hmac.compare_digest(signature, expected_signature)
-        
-        if not is_valid:
-            logger.warning(f"Invalid signature for {request.path}")
-        
-        return is_valid
+        # در غیر این صورت دسترسی ندارد
+        return False
+

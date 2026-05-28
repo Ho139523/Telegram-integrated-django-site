@@ -18,7 +18,7 @@ from utils.funcs.django_social_redirect import custom_complete
 from ai_chat.views import GenerateResponse
 
 # Accounts
-from accounts.views import UserViewSet, ProfileViewSet, AddressViewSet, me
+from accounts.views import UserViewSet, AddressViewSet, me
 
 # Products
 from products.views import (
@@ -56,7 +56,6 @@ from subscription.views import (
     SubscriptionActionViewSet,
 )
 
-from accounts.views import BotProfileViewSet
 
 # =============================
 # Router Configuration
@@ -68,7 +67,6 @@ bot_router = DefaultRouter()
 
 # Accounts
 router.register(r'users', UserViewSet)
-router.register(r'profiles', ProfileViewSet, basename='profile')
 router.register(r'addresses', AddressViewSet)
 
 # Products
@@ -104,7 +102,6 @@ router.register(
 )
 
 
-bot_router.register(r'profiles', BotProfileViewSet, basename='bot-profile')
 
 # =============================
 # URL Patterns
@@ -133,6 +130,7 @@ urlpatterns = [
     path('heartpred/', include('heartpred.urls', namespace='heartpred')),
     path('accounts/', include('accounts.urls')),
     path('socials/', include('social_django.urls', namespace='social')),
+    path('myapi/', include('myapi.urls')),
 
     path(
         'socials/complete/google-oauth2/',

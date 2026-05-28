@@ -24,7 +24,7 @@ from django.conf import settings as sett
 from datetime import datetime
 import pycountry
 from django.conf import settings
-from AI.settings import current_site as settings_current_site
+from AI.settings import SITE_DOMAIN
 
 # support imports
 from telebot.storage import StateMemoryStorage
@@ -98,7 +98,7 @@ app = telebot.TeleBot(
     threaded=True,
     num_threads=5
 )
-current_site = settings_current_site
+current_site = SITE_DOMAIN
 
 # subscription instance
 subscription = SubscriptionClass(app)

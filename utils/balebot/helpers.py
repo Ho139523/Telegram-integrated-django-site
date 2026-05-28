@@ -498,7 +498,7 @@ async def get_profile(user_id, url=None):
     try:
     
         client = BaleAPIClient(base_url="http://127.0.0.1:8000")
-        url = f"/api/bot/profiles/{user_id}/{url}/" if url else f"/api/bot/profiles/{user_id}/"
+        url = f"/myapi/profiles/{user_id}/"
         response = await client._request("GET", url)
             
         if not response.success:

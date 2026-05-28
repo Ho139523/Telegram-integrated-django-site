@@ -1,31 +1,39 @@
 from django.urls import path, include
 
 # Heart API
-from .views import HeartCreateAPIView, CheckTelegramUserRegistrationView#, ShoeView
-from myapi.views import ProductListView
+from .views import HeartCreateAPIView, CheckTelegramUserRegistrationView
 
-# Shoe API
-# from rest_framework import routers
 
-# router = routers.DefaultRouter()
-# router.register("", ShoeView)
 
 urlpatterns = [
     # Heart API
     path("heartrecords/", HeartCreateAPIView.as_view()),
-    path('products/', ProductListView.as_view(), name='product-list'),
-    # Shoe API
-    # path('', ShoeView.as_view({'get': 'list'})),
-    #  path('check-registration/', CheckTelegramUserRegistrationView.as_view())
-
 ]
 
-# aiobot
-from .views import BotCreateProfileView, ProfileURDView
+
+# accounts
+from myapi.products.views import *
+from myapi.accounts.views import *
+from myapi.payment.views import *
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+
+router.register(r"stores", StoreViewSet)
+router.register(r"products", ProductViewSet)
+router.register(r"profiles", ProfileViewSet)
+router.register(r"carts", CartViewSet)
+router.register(r"cartitems", CartItemViewSet)
 
 
 urlpatterns += [
-    path("bot/create-profile/", BotCreateProfileView.as_view(), name="bot-create-profile"),
-    path("bot/urd-profile/<int:tel_id>/", ProfileURDView.as_view(), name="bot-urd-profile"),
-
+    path('', include(router.urls))
 ]
+
+# urlpatterns += [
+#     path('persons/', PersonList.as_view(), name='person_list'),
+#     path('persons/<int:pk>/', PersonDetail.as_view(), name='person_detail'),
+#     path('books/', BookList.as_view(), name='book_list'),
+#     path('books/<int:pk>/', BookDetail.as_view(), name='book_detail'),
+# ]
+

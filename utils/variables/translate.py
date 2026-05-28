@@ -482,6 +482,13 @@ translations = {
         "zh": "所请求的商品已被卖家停用。\n\n如需更多信息，请联系该卖家的客服。",
         "ar": "تم تعطيل المنتج المطلوب من قبل البائع.\n\nلمزيد من المعلومات، يرجى التواصل مع دعم هذا البائع."
     },
+    "category_disabled_by_seller": {
+        "fa": "دسته بندی {category_title} توسط فروشنده غیرفعال شده است.\nلذا همه کالاهای موجود در این دسته بندی از جمله کالای مورد نظر شما نیز غیر فعال هستند.\n\nبرای کسب اطلاع بیشتر با پشتیبان این فروشگاه ارتباط بگیرید.",
+        "en": "The category '{category_title}' has been deactivated by the seller.\nConsequently, all products in this category, including the one you requested, are also inactive.\n\nFor more information, please contact this store's support.",
+        "ru": "Категория '{category_title}' была деактивирована продавцом.\nСледовательно, все товары в этой категории, включая запрошенный вами, также неактивны.\n\nДля получения дополнительной информации обратитесь в службу поддержки этого магазина.",
+        "zh": "卖家已停用类别“{category_title}”。\n因此，该类别中的所有产品（包括您请求的产品）也处于非活动状态。\n\n如需更多信息，请联系此商店的支持人员。",
+        "ar": "تم تعطيل الفئة '{category_title}' من قبل البائع.\nوبالتالي، جميع المنتجات في هذه الفئة، بما في ذلك المنتج الذي طلبته، غير نشطة أيضًا.\n\nلمزيد من المعلومات، يرجى الاتصال بدعم هذا المتجر."
+    },
     "invalid_code": {
         "fa": "🚫 قالب کدی که وارد کرده‌اید نادرست است. از صحت کد اطمینان حاصل کنید. ⛔️",
         "en": "🚫 The code you entered is invalid. Please make sure the code is correct. ⛔️",

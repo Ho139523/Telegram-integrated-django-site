@@ -20,7 +20,7 @@ import functools
 from telbot.models import CachedMedia
 import os
 from django.conf import settings
-from AI.settings import current_site as settings_current_site
+from AI.settings import SITE_DOMAIN
 import requests
 from django.core.files.base import ContentFile
 import json
@@ -792,7 +792,7 @@ class SubscriptionClass:
         self.bot = bot
         self.my_channels_with_atsign = my_channels_with_atsign
         self.my_channels_without_atsign = my_channels_without_atsign
-        self.current_site = settings_current_site
+        self.current_site = SITE_DOMAIN
 
     def handle_check_subscription(self, call: types.CallbackQuery):
         """✅ بررسی عضویت هنگام کلیک روی دکمه 'عضو شدم'"""
@@ -1866,7 +1866,7 @@ class ProductBot:
 
                 attributes = product.attributes.all()
                 # ارسال پیام محصول به کاربر
-                producthandler = ProductHandler(app=self.bot, product=product, current_site=settings_current_site, attributes=attributes, chat_id=message.chat.id)
+                producthandler = ProductHandler(app=self.bot, product=product, current_site=SITE_DOMAIN, attributes=attributes, chat_id=message.chat.id)
                 producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
                 # ذخیره اطلاعات محصول در Redis
@@ -1935,7 +1935,7 @@ class ProductBot:
 
             attributes = product.attributes.all()
             # ارسال پیام محصول به کاربر
-            producthandler = ProductHandler(app=self.bot, product=product, current_site=settings_current_site, attributes=attributes, chat_id=message.chat.id)
+            producthandler = ProductHandler(app=self.bot, product=product, current_site=SITE_DOMAIN, attributes=attributes, chat_id=message.chat.id)
             producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
             # ذخیره اطلاعات محصول در Redis
@@ -2037,7 +2037,7 @@ class ProductHandler:
     def __init__(self, app, product, current_site, photos=None, attributes=None, chat_id=None):
         self.app = app
         self.product = product
-        self.current_site = settings_current_site
+        self.current_site = SITE_DOMAIN
         self.user_manager = UserOrderManager()
         self.photos = photos or []
         self.attributes = attributes
@@ -3547,7 +3547,7 @@ class SendCart(SendMarkup):
         )
 
         # 4. ساخت لینک پرداخت
-        payment_link = f"{settings_current_site}/buy?pid={payment_id}"
+        payment_link = f"{SITE_DOMAIN}/buy?pid={payment_id}"
 
         return payment_link
 

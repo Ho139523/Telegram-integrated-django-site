@@ -1,303 +1,13 @@
-# # utils/balebot/pakage_development/process_update.py
-
-# import logging
-# import trace
-# import traceback
-# import aiohttp
-# from balethon import Client
-# from typing import Callable, Optional, Dict, Any, Union
-# import asyncio
-
-# logger = logging.getLogger(__name__)
-
-# # ================================================
-# # تنظیمات ثابت برای دور زدن DNS
-# # ================================================
-# BOT_API_IP = "2.189.68.126"
-# HEADERS = {"Host": "tapi.bale.ai"}
-
-# class MyCustomBot(Client):
-#     """کلاس سفارشی ربات با قابلیت پردازش وب‌هوک"""
-
-#     def __init__(self, token, *args, **kwargs):
-#         super().__init__(token, *args, **kwargs)
-#         self.command_handlers = {}
-#         self.message_handlers = []
-#         self.custom_token = token
-#         self._delete_session = None
-
-#     async def send_message_direct(
-#         self, 
-#         chat_id: int, 
-#         text: str, 
-#         parse_mode: str = "Markdown",
-#         reply_markup: Any = None
-#     ):
-#         """ارسال مستقیم پیام با IP و Host Header"""
-#         url = f"https://{BOT_API_IP}/bot{self.custom_token}/sendMessage"
-#         payload = {
-#             "chat_id": chat_id,
-#             "text": text,
-#             "parse_mode": parse_mode
-#         }
-        
-#         # اضافه کردن reply_markup اگر وجود داشته باشد
-#         if reply_markup:
-#             payload["reply_markup"] = reply_markup
-
-#         try:
-#             connector = aiohttp.TCPConnector()
-#             async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
-#                 async with session.post(url, json=payload, ssl=False) as response:
-#                     if response.status == 200:
-#                         try:
-#                             result = await response.json()
-#                             if result.get('ok'):
-#                                 logger.info(f"Message sent to {chat_id}")
-#                                 return result
-#                         except:
-#                             pass
-#         except Exception as e:
-#             logger.error(f"Send error: {traceback.format_exc()}")
-#         return None
-
-#     def on_message(self, condition: Optional[Callable] = None):
-#         """دکوریتور برای ثبت هندلرهای پیام با شرط"""
-#         def decorator(func: Callable):
-#             self.message_handlers.append({
-#                 "func": func,
-#                 "condition": condition
-#             })
-#             return func
-#         return decorator
-
-#     def on_command(self, command_name: str):
-#         """دکوریتور برای ثبت هندلر دستورات"""
-#         def decorator(func: Callable):
-#             self.command_handlers[command_name] = func
-#             return func
-#         return decorator
-
-#     def _create_message_object(self, raw_data: Dict[str, Any]):
-#         """
-#         ایجاد یک شیء کامل از دیتای خام که با بالیتون سازگار باشد
-#         """
-#         class SimpleUser:
-#             def __init__(self, data):
-#                 self.id = data.get('id')
-#                 self.first_name = data.get('first_name', '')
-#                 self.last_name = data.get('last_name', '')
-#                 self.username = data.get('username', '')
-#                 self.is_bot = data.get('is_bot', False)
-#                 self.language_code = data.get('language_code', '')
-        
-#         class SimpleChat:
-#             def __init__(self, data):
-#                 self.id = data.get('id')
-#                 self.type = data.get('type', 'private')
-#                 self.first_name = data.get('first_name', '')
-#                 self.last_name = data.get('last_name', '')
-#                 self.username = data.get('username', '')
-#                 self.title = data.get('title', '')
-        
-#         class MessageResult:
-#             """کلاس نتیجه برای برگرداندن message_id"""
-#             __slots__ = ('message_id',)
-#             def __init__(self, message_id):
-#                 self.message_id = message_id
-        
-#         class SimpleMessage:
-#             __slots__ = ('_raw', '_bot', 'message_id', 'date', 'text', 'author', 'chat')
-            
-#             def __init__(self, data, bot_instance):
-#                 self._raw = data
-#                 self._bot = bot_instance
-#                 self.message_id = data.get('message_id')
-#                 self.date = data.get('date')
-#                 self.text = data.get('text', '')
-                
-#                 from_data = data.get('from', {})
-#                 self.author = SimpleUser(from_data)
-                
-#                 chat_data = data.get('chat', {})
-#                 self.chat = SimpleChat(chat_data)
-            
-#             async def reply(self, text: str, reply_markup=None, **kwargs) -> MessageResult:
-#                 """
-#                 ارسال پاسخ به پیام و برگرداندن نتیجه با message_id
-#                 """
-#                 markup_dict = None
-#                 if reply_markup:
-#                     if hasattr(reply_markup, 'keyboard'):
-#                         keyboard_rows = []
-#                         for row in reply_markup.keyboard:
-#                             button_row = []
-#                             for btn in row:
-#                                 button_row.append({"text": btn.text})
-#                             keyboard_rows.append(button_row)
-#                         markup_dict = {
-#                             "keyboard": keyboard_rows,
-#                             "resize_keyboard": getattr(reply_markup, 'resize_keyboard', True),
-#                             "one_time_keyboard": getattr(reply_markup, 'one_time_keyboard', False)
-#                         }
-#                     elif hasattr(reply_markup, 'inline_keyboard'):
-#                         keyboard_rows = []
-#                         for row in reply_markup.inline_keyboard:
-#                             button_row = []
-#                             for btn in row:
-#                                 button_row.append({
-#                                     "text": btn.text,
-#                                     "callback_data": getattr(btn, 'callback_data', None),
-#                                     "url": getattr(btn, 'url', None)
-#                                 })
-#                             keyboard_rows.append(button_row)
-#                         markup_dict = {"inline_keyboard": keyboard_rows}
-#                     else:
-#                         markup_dict = reply_markup
-                
-#                 # ارسال پیام و دریافت نتیجه
-#                 result = await self._bot.send_message_direct(
-#                     chat_id=self.chat.id,
-#                     text=text,
-#                     reply_markup=markup_dict
-#                 )
-                
-#                 # استخراج message_id از نتیجه
-#                 message_id = None
-#                 if result:
-#                     # ساختار پاسخ بالیتون معمولاً به این شکل است
-#                     if isinstance(result, dict):
-#                         if result.get('result') and isinstance(result['result'], dict):
-#                             message_id = result['result'].get('message_id')
-#                         elif result.get('message_id'):
-#                             message_id = result.get('message_id')
-                    
-#                     # لاگ برای دیباگ
-#                     print(f"Reply result: {result}, extracted message_id: {message_id}")
-                
-#                 return MessageResult(message_id)
-            
-#             async def send_message(self, text: str, reply_markup: Any = None, **kwargs) -> MessageResult:
-#                 """Alias for reply"""
-#                 return await self.reply(text, reply_markup=reply_markup)
-        
-#         return SimpleMessage(raw_data, self)
-    
-#     async def process_update(self, update_data: Dict[str, Any]):
-#         """پردازش آپدیت‌های دریافتی از بله"""
-#         try:
-#             if 'message' not in update_data:
-#                 return
-
-#             message = self._create_message_object(update_data['message'])
-            
-#             text = message.text or ""
-#             chat_id = message.chat.id
-
-#             # اولویت اول: دستورات
-#             if text and text.startswith('/'):
-#                 command_name = text.split()[0][1:].split('@')[0]
-#                 if command_name in self.command_handlers:
-#                     await self.command_handlers[command_name](message)
-#                     return
-
-#             # اولویت دوم: هندلرهای عمومی با شرط
-#             for handler in self.message_handlers:
-#                 condition = handler.get("condition")
-#                 if condition is None:
-#                     await handler["func"](message)
-#                     return
-#                 elif callable(condition):
-#                     try:
-#                         # ✅ روش صحیح تشخیص coroutine
-#                         import asyncio
-#                         if asyncio.iscoroutinefunction(condition):
-#                             # اگر تابع async است
-#                             result = await condition(message)
-#                         else:
-#                             # اگر تابع sync است
-#                             result = condition(message)
-                        
-#                         if result:
-#                             await handler["func"](message)
-#                             return
-#                     except Exception as e:
-#                         logger.debug(f"Condition failed: {traceback.format_exc()}")
-
-#         except Exception as e:
-#             logger.error(f"Error in process_update: {traceback.format_exc()}", exc_info=True)
-
-    
-#     async def _get_delete_session(self):
-#         """دریافت session برای درخواست‌های حذف"""
-#         if self._delete_session is None or self._delete_session.closed:
-#             connector = aiohttp.TCPConnector()
-#             self._delete_session = aiohttp.ClientSession(
-#                 connector=connector, 
-#                 headers=HEADERS
-#             )
-#         return self._delete_session
-
-#     async def delete_message_safe(self, chat_id: int, message_id: int) -> bool:
-#         """
-#         حذف ایمن پیام - بدون خطا
-        
-#         Args:
-#             chat_id: شناسه چت
-#             message_id: شناسه پیام
-        
-#         Returns:
-#             bool: موفقیت آمیز بودن عملیات
-#         """
-#         url = f"https://{BOT_API_IP}/bot{self.custom_token}/deleteMessage"
-#         payload = {
-#             "chat_id": chat_id,
-#             "message_id": message_id
-#         }
-        
-#         for attempt in range(2):  # حداکثر 2 بار تلاش
-#             try:
-#                 session = await self._get_delete_session()
-#                 async with session.post(url, json=payload, ssl=False) as response:
-#                     if response.status == 200:
-#                         result = await response.json()
-#                         if result.get('ok'):
-#                             logger.info(f"Message {message_id} deleted in chat {chat_id}")
-#                             return True
-#                     else:
-#                         logger.warning(f"Delete failed with status {response.status}")
-#             except Exception as e:
-#                 logger.error(f"Delete attempt {attempt + 1} failed: {traceback.format_exc()}")
-#                 if attempt == 0:
-#                     # بستن session و تلاش مجدد
-#                     if self._delete_session:
-#                         await self._delete_session.close()
-#                         self._delete_session = None
-#                     await asyncio.sleep(0.5)
-        
-#         return False
-
-#     async def delete_message(self, chat_id: int, message_id: int):
-#         """
-#         Override متد delete_message برای استفاده از روش مستقیم
-#         """
-#         return await self.delete_message_safe(chat_id, message_id)
-
-# # ================================================
-# # نمونه سراسری از ربات
-# # ================================================
-# from utils.variables.TOKEN import BTOKEN as TOKEN
-# bot = MyCustomBot(TOKEN)
-
-
 # utils/balebot/pakage_development/process_update.py
 
 import logging
 import traceback
 import aiohttp
 from balethon import Client
-from typing import Callable, Optional, Dict, Any
+from typing import Callable, Optional, Dict, Any, List
 import asyncio
+import json
+from utils.telbot.functions import measure_performance
 
 logger = logging.getLogger(__name__)
 
@@ -353,7 +63,7 @@ class SimpleMessage:
         chat_data = data.get('chat', {})
         self.chat = SimpleChat(chat_data)
     
-    async def reply(self, text: str, reply_markup=None, **kwargs) -> MessageResult:
+    async def reply(self, text: str, reply_markup=None, parse_mode: str = "HTML", **kwargs) -> MessageResult:
         """ارسال پاسخ به پیام و برگرداندن نتیجه با message_id"""
         markup_dict = None
         if reply_markup:
@@ -392,7 +102,7 @@ class SimpleMessage:
             chat_id=self.chat.id,
             text=text,
             reply_markup=markup_dict,
-            parse_mode="HTML"
+            parse_mode=parse_mode
         )
         
         message_id = None
@@ -403,9 +113,9 @@ class SimpleMessage:
                 message_id = result.get('message_id')
         
         return MessageResult(message_id)
-    
-    async def send_message(self, text: str, reply_markup: Any = None, **kwargs) -> MessageResult:
-        return await self.reply(text, reply_markup=reply_markup)
+
+    async def send_message(self, text: str, reply_markup: Any = None, parse_mode: str = "HTML", **kwargs) -> MessageResult:
+        return await self.reply(text, reply_markup, parse_mode=parse_mode)
 
 
 class SimpleCallbackQuery:
@@ -439,7 +149,7 @@ class SimpleCallbackQuery:
         connector = aiohttp.TCPConnector(force_close=True)
         async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
             try:
-                async with session.post(url, json=payload, ssl=False, timeout=10) as response:
+                async with session.post(url, json=payload, ssl=True, timeout=10) as response:
                     if response.status == 200:
                         result = await response.json()
                         return result.get('ok', False)
@@ -475,10 +185,11 @@ class MyCustomBot(Client):
         payload = {
             "chat_id": chat_id,
             "text": text,
+            "parse_mode": parse_mode
         }
         
-        if parse_mode:
-            payload["parse_mode"] = parse_mode
+        if not parse_mode:
+            payload.pop("parse_mode", None)
         
         if reply_markup:
             if hasattr(reply_markup, 'generate_keyboard'):
@@ -517,11 +228,11 @@ class MyCustomBot(Client):
         connector = aiohttp.TCPConnector(force_close=True)
         async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
             try:
-                async with session.post(url, json=payload, ssl=False, timeout=30) as response:
+                async with session.post(url, json=payload, ssl=True, timeout=30) as response:
                     if response.status == 200:
                         result = await response.json()
                         if result.get('ok'):
-                            logger.info(f"Message sent to {chat_id}")
+                            logger.info(f"Message sent to {chat_id} with parse_mode={parse_mode}")
                             return result
             except asyncio.TimeoutError:
                 logger.error(f"Timeout sending message to {chat_id}")
@@ -530,6 +241,79 @@ class MyCustomBot(Client):
         
         return None
 
+    # ================================================
+    # ارسال گروه رسانه‌ای (آلبوم عکس)
+    # ================================================
+
+    async def send_media_group(
+    self,
+    chat_id: int,
+    media: List[Dict[str, Any]],
+    reply_to_message_id: int = None
+):
+        """
+        ارسال گروه رسانه‌ای با فرمت صحیح multipart/form-data
+        """
+        import json
+        import time
+    
+        url = f"https://{BOT_API_IP}/bot{self.custom_token}/sendMediaGroup"
+    
+        # آماده‌سازی media: فقط caption برای اولین عکس
+        clean_media = []
+        for i, item in enumerate(media):
+            m = dict(item)
+            if i > 0:
+                m.pop("caption", None)
+                m.pop("parse_mode", None)
+            clean_media.append(m)
+    
+        # ساخت payload
+        payload = {
+            "chat_id": str(chat_id),
+            "media": json.dumps(clean_media)  # تبدیل لیست به رشته JSON
+        }
+    
+        if reply_to_message_id:
+            payload["reply_to_message_id"] = str(reply_to_message_id)
+    
+        # دیباگ
+        print(f"📤 Sending media group with {len(clean_media)} images")
+        print(f"   First image URL: {clean_media[0].get('media', 'N/A')[:80]}...")
+    
+        # اندازه‌گیری زمان
+        start_time = time.perf_counter()
+        
+        connector = aiohttp.TCPConnector(force_close=True)
+        async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
+            try:
+                async with session.post(url, data=payload, ssl=True, timeout=60) as response:
+                    response_text = await response.text()
+                    
+                    # محاسبه زمان elapsed به صورت دستی
+                    elapsed_ms = (time.perf_counter() - start_time) * 1000
+    
+                    if response.status == 200:
+                        result = await response.json()
+                        if result.get('ok'):
+                            print("✅ Media group sent successfully")
+                            return result.get('result', [])
+
+                        else:
+                            logger.error(f"API error: {result}")
+                    else:
+                        logger.error(f"HTTP {response.status}: {response_text[:200]}")
+                        
+                    print(f"⏱ زمان پاسخ: {elapsed_ms:.0f}ms")
+    
+            except asyncio.TimeoutError:
+                elapsed_ms = (time.perf_counter() - start_time) * 1000
+                logger.error(f"Timeout after {elapsed_ms:.0f}ms sending media group to {chat_id}")
+            except Exception as e:
+                logger.error(f"Send media group error: {traceback.format_exc()}")
+        
+        return None
+    
     # ================================================
     # حذف پیام
     # ================================================
@@ -548,7 +332,7 @@ class MyCustomBot(Client):
         connector = aiohttp.TCPConnector(force_close=True)
         async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
             try:
-                async with session.post(url, json=payload, ssl=False, timeout=10) as response:
+                async with session.post(url, json=payload, ssl=True, timeout=10) as response:
                     if response.status == 200:
                         result = await response.json()
                         if result.get('ok'):
@@ -663,4 +447,3 @@ class MyCustomBot(Client):
 # ================================================
 from utils.variables.TOKEN import BTOKEN as TOKEN
 bot = MyCustomBot(TOKEN)
-

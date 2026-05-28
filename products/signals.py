@@ -22,14 +22,13 @@ from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
 from django.db.models.signals import post_delete
-from AI.settings import current_site as settings_current_site
+from AI.settings import SITE_DOMAIN
 
 # --- CONFIG ---
 API_ID = api_id
 API_HASH = api_hash
 SESSION_STRING = settings.TG_SESSION_STRING
 BOT_TOKEN = TOKEN
-CURRENT_SITE = "https://intelium.ir:8443"
 
 bot = TeleBot(BOT_TOKEN)
 
@@ -93,7 +92,7 @@ async def send_album_and_button(channel_id, product, photos, attributes):
         # --- 2. ارسال آلبوم ---
         print(f"channel ID: {channel_id}")
         print(f"chat ID: {chat_id   }")
-        handler = ProductHandler(client, product, CURRENT_SITE, photos=photos, attributes=attributes, chat_id=chat_id)
+        handler = ProductHandler(client, product, SITE_DOMAIN, photos=photos, attributes=attributes, chat_id=chat_id)
         await handler.send_product_channel(channel_id, buttons=False)
 
         await client.disconnect()
@@ -104,7 +103,7 @@ async def send_album_and_button(channel_id, product, photos, attributes):
 
         # --- 4. ارسال دکمه با TeleBot ---
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton( buy_now_text, url=f"{settings_current_site}/pay/telegrambot/?start=store_{store_id}_product_{product_id}" ))
+        markup.add(types.InlineKeyboardButton( buy_now_text, url=f"{SITE_DOMAIN}/pay/telegrambot/?start=store_{store_id}_product_{product_id}" ))
 
 
         bot.send_message(channel_id, "👇👇👇👇👇👇👇👇", reply_markup=markup)

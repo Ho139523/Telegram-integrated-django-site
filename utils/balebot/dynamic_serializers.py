@@ -1,4 +1,4 @@
-# utils/dynamic_serializers.py
+# utils/balebot/dynamic_serializers.py
 from rest_framework import serializers
 from django.db import models
 from django.apps import apps
@@ -22,11 +22,11 @@ def get_serializer_for_model(model_class, depth=0):
     """
     ساخت سریالایزر برای هر مدل با قابلیت nested تا depth معین
     """
-    from accounts.serializers import BotProfileSerializer
+    from myapi.accounts.ProfileSerializerFile import ProfileSerializer, ProfileCheckSerializer
     
     # مدل‌های خاص با serializer سفارشی
     custom_serializers = {
-        'ProfileModel': BotProfileSerializer,
+        'ProfileModel': ProfileSerializer,
         'User': 'accounts.serializers.UserSerializer',  # مسیر به serializer
         'Store': 'products.serializers.StoreSerializer',
         'Product': 'products.serializers.ProductSerializer',

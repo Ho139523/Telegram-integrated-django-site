@@ -22,6 +22,7 @@ from accounts.models import ProfileModel
 from utils.telbot.variables import home_menu, retun_menue
 from telbot.sessions import session_manager
 from utils.balebot.decorators import *
+from utils.telbot.functions import measure_performance
 
 
 logger = logging.getLogger(__name__)
@@ -124,11 +125,76 @@ async def menu_balance(message: Message):
 async def buy_by_code(message: Message):
     try:
         result = await message.reply(await t(message, "enter_product_code_to_search"))
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        session["buy_by_code"] = True
+        session = session_manager.set_user_session(message.chat.id, session, namespace="menu")
         return result
     except:
         error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
         print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
         return error_msg
+    
+@bot.on_message(condition=lambda message: session_manager.get_user_session(message.chat.id, namespace="menu")["buy_by_code"])
+@clear_previous_messages("clear_message")
+async def product_code(message: Message):
+    try:
+        result = await product_code_handler(message)
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        session["buy_by_code"] = False
+        session = session_manager.set_user_session(message.chat.id, session, namespace="menu")
+        result2 = await home_message(message)
+        return result
+    except Exception as e:
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
+
+
+@bot.on_callback_query(
+    condition=lambda call: "increase_" in call.data or "decrease_" in call.data or "addtocart_" in call.data)
+async def handle_product_buttons(call):
+    try:
+        data = call.data.split("_")
+        action = data[0]  # increase, decrease, addtocart
+        
+        # استخراج product_code (همیشه در index 1 هست)
+        if len(data) < 2:
+            bot.answer_callback_query(call.id, "داده‌های نامعتبر!", show_alert=True)
+            return
+            
+        product_code = str(data[1])
+
+        if not product_code:
+            bot.answer_callback_query(call.id, "کد محصول نامعتبر است!", show_alert=True)
+            return
+
+        client = BaleAPIClient(base_url="http://127.0.0.1:8000")        
+        url = f"/myapi/products/{product_code}/"
+        
+        response = await client._request(method="GET", endpoint=url)
+    
+        if response.success and response.data:
+            product = response.data
+        else:
+            product = None
+        
+        if not product:
+            result = await call.message.reply(await t(call.message, "product_not_found"))
+            return result
+        
+        product_handler = ProductHandler(bot, product, SITE_DOMAIN, attributes=None)
+        
+        # هندلرها خودشون variant_id رو از call.data استخراج می‌کنن
+        if action == "addtocart":
+            product_handler.handle_add_to_cart(call)
+        else:
+            product_handler.handle_buttons(call)
+
+    except Exception as e:
+        error_message = traceback.format_exc()
+        print(f"Error in handle_product_buttons: {e}\n{error_message}")
+        bot.answer_callback_query(call.id, "خطا در پردازش درخواست!", show_alert=True)
+
 
 
 ##################################################
@@ -367,8 +433,10 @@ async def question(message: Message):
 @auto_clear
 async def menu_cart(message):
     try:
-        response = await get_profile(message.chat.id, url="owned_store")
-        result = await message.reply(f"{response}")
+        client = BaleAPIClient(base_url="http://127.0.0.1:8000")
+        url = f"/myapi/products/0000000001/"
+        response = await client._request(method="GET", endpoint=url, payload={"bale_id": message.chat.id, "name": "Intelleum"})
+        result = await message.reply(f"{response.data["name"]}")
         return result
     except:
         error_msg = await message.reply("Opps! A server error occured please contact the administrator.")

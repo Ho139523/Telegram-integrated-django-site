@@ -8,6 +8,7 @@ from utils.balebot.api_client import BaleAPIClient
 from utils.balebot.helpers import t
 from utils.balebot.helpers import *
 from utils.telbot.variables import home_menu
+from AI.settings import SITE_DOMAIN
 
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ async def process_start_command(message: Message):
         
         # 1. first check if the profile exists or not
         
-        check_response = await client._request("POST", "/api/bot/profiles/check/", {"bale_id": user_id})
+        check_response = await client._request("POST", "/myapi/profiles/check/", {"bale_id": user_id})
         
         if check_response.success and check_response.data.get('exists'):
             #print(f"📌 Profile with user_id {user_id} already exists")
@@ -99,7 +100,7 @@ async def process_start_command(message: Message):
         else:
             #print(f"📌 Profile with user_id {user_id} not found. Creating new one...")
             # ساخت پروفایل جدید
-            create_response = await client._request("POST", "/api/bot/profiles/", {
+            create_response = await client._request("POST", "/myapi/profiles/", {
                 "bale_id": user_id,
                 "fname": bale_first_name,
                 "lname": bale_last_name,
@@ -527,4 +528,155 @@ async def support_end_chat_callback(callback: CallbackQuery):
     except Exception as e:
         print(f"Error in support_end_chat_callback: {traceback.format_exc()}")
         error_msg = await callback.message.reply("خطا در پایان مکالمه")
+        return error_msg
+
+
+##################################
+#            BUY BY CODE
+##################################
+from utils.telbot.functions import measure_performance
+import time
+
+async def product_code_handler(message):
+    import time
+    
+    # تایمر کلی
+    total_start = time.perf_counter()
+    timings = {}
+    
+    try:
+        chat_id = message.chat.id
+        code = message.text.strip()
+        
+        # ============================================
+        # بخش 1: بررسی فرمت کد
+        # ============================================
+        section_start = time.perf_counter()
+        is_valid_code = re.match(r'^\d{10}$', message.text)
+        timings['validate_code_format'] = (time.perf_counter() - section_start) * 1000
+        
+        if is_valid_code:
+            # ============================================
+            # بخش 2: درخواست به API برای دریافت محصول
+            # ============================================
+            section_start = time.perf_counter()
+            client = BaleAPIClient(base_url="http://127.0.0.1:8000")
+            timings['create_api_client'] = (time.perf_counter() - section_start) * 1000
+            
+            url = f"/myapi/products/{code}/"
+            
+            section_start = time.perf_counter()
+            response = await client._request(method="GET", endpoint=url)
+            timings['api_request'] = (time.perf_counter() - section_start) * 1000
+        
+            # ============================================
+            # بخش 3: پردازش پاسخ API
+            # ============================================
+            section_start = time.perf_counter()
+            if response.success and response.data:
+                product = response.data
+            else:
+                product = None
+            timings['process_api_response'] = (time.perf_counter() - section_start) * 1000
+            
+            # ============================================
+            # بخش 4: بررسی وجود محصول
+            # ============================================
+            section_start = time.perf_counter()
+            if not product:
+                result = await message.reply(await t(message, "product_not_found"))
+                timings['send_not_found_message'] = (time.perf_counter() - section_start) * 1000
+                return result
+            timings['check_product_exists'] = (time.perf_counter() - section_start) * 1000
+            
+            # ============================================
+            # بخش 5: بررسی وضعیت محصول
+            # ============================================
+            section_start = time.perf_counter()
+            if not product.get('status', True):
+                result = await message.reply(await t(message, "product_disabled_by_seller"))
+                timings['send_disabled_message'] = (time.perf_counter() - section_start) * 1000
+                return result
+            timings['check_product_status'] = (time.perf_counter() - section_start) * 1000
+            
+            # ============================================
+            # بخش 6: بررسی وضعیت دسته‌بندی
+            # ============================================
+            section_start = time.perf_counter()
+            category = product.get('category')
+            if category and isinstance(category, dict):
+                if not category.get('status', True):
+                    result = await message.reply(await t(message, "category_disabled_by_seller", category_title=category.get('title')))
+                    timings['send_category_disabled_message'] = (time.perf_counter() - section_start) * 1000
+                    return result
+            timings['check_category_status'] = (time.perf_counter() - section_start) * 1000
+            
+            # ============================================
+            # بخش 7: ساخت ProductHandler (مهمترین بخش)
+            # ============================================
+            print("📦 Product data received:", product.get('code'))
+            
+            section_start = time.perf_counter()
+            product_handler = ProductHandler(
+                bot, 
+                product,
+                SITE_DOMAIN, 
+                attributes=product.get('attributes', []), 
+            )
+            timings['create_product_handler'] = (time.perf_counter() - section_start) * 1000
+            
+            # ============================================
+            # بخش 8: ارسال پیام محصول
+            # ============================================
+            print("🚀 Sending product message...")
+            section_start = time.perf_counter()
+            success = await product_handler.send_product_message(message)
+            timings['send_product_message'] = (time.perf_counter() - section_start) * 1000
+            
+            # ============================================
+            # بخش 9: بررسی نتیجه ارسال
+            # ============================================
+            section_start = time.perf_counter()
+            if not success:
+                await message.reply("Failed to send product. Please try again.")
+                timings['send_failure_message'] = (time.perf_counter() - section_start) * 1000
+                return False
+            timings['check_send_result'] = (time.perf_counter() - section_start) * 1000
+            
+            # ============================================
+            # گزارش نهایی
+            # ============================================
+            timings['total'] = (time.perf_counter() - total_start) * 1000
+            
+            print("\n" + "="*60)
+            print("📊 گزارش زمان‌بندی product_code_handler:")
+            print("="*60)
+            for name, elapsed in timings.items():
+                print(f"   {name:<30}: {elapsed:>8.2f} ms")
+            print("="*60)
+            print(f"   {'✅ TOTAL':<30}: {timings['total']:>8.2f} ms")
+            print("="*60 + "\n")
+            
+            return success
+            
+        else:
+            # ============================================
+            # بخش: کد نامعتبر
+            # ============================================
+            section_start = time.perf_counter()
+            result = await message.reply(await t(message, "invalid_code"))
+            timings['send_invalid_code_message'] = (time.perf_counter() - section_start) * 1000
+            
+            timings['total'] = (time.perf_counter() - total_start) * 1000
+            print(f"\n⏱ کل زمان (کد نامعتبر): {timings['total']:.2f} ms\n")
+            return result
+            
+    except Exception as e:
+        timings['total'] = (time.perf_counter() - total_start) * 1000
+        print(f"\n❌ خطا در product_code_handler: {e}")
+        print(f"⏱ زمان تا خطا: {timings['total']:.2f} ms")
+        print(f"📊 تایمرهای ثبت‌شده: {timings}")
+        
+        error_msg = await message.reply("Oops! A server error occurred. Please contact the administrator.")
+        print(f"Error details: {traceback.format_exc()}")
         return error_msg

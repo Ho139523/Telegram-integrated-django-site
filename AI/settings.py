@@ -20,23 +20,71 @@ DEBUG = True
 BASE_URL = os.environ.get("BASE_URL")
 
 
-ALLOWED_HOSTS = [
-    '192.168.1.141',
-    '127.0.0.1',
-    'localhost',
-    "intellium.ir",
-    "intellium.ir:8443",
-    "www.intellium.ir",
-    "www.intellium.ir:8443",
-]
+# ALLOWED_HOSTS = [
+#     '192.168.1.141',
+#     '127.0.0.1:8000',
+#     'localhost',
+#     "intellium.ir",
+#     "intellium.ir:8443",
+#     "www.intellium.ir",
+#     "www.intellium.ir:8443",
+# ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://intellium.ir",
     "https://intellium.ir:8443",
 ]
- 
 
-current_site = 'https://intellium.ir'
+
+SITE_DOMAIN_ROOT = os.environ.get('SITE_DOMAIN', 'localhost:8000')
+SITE_PROTOCOL = os.environ.get('SITE_PROTOCOL', 'http')
+
+
+# ساخت آدرس کامل سایت
+if SITE_PROTOCOL == 'https':
+    SITE_DOMAIN = f'https://{SITE_DOMAIN_ROOT}'
+else:
+    SITE_DOMAIN = f'http://{SITE_DOMAIN_ROOT}'
+
+# ================================================
+# ALLOWED_HOSTS - داینامیک
+# ================================================
+
+# دریافت از متغیر محیطی یا تنظیم پیش‌فرض
+ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,192.168.1.141')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
+
+# اضافه کردن دامنه اصلی (بدون پورت)
+if SITE_DOMAIN_ROOT:
+    main_domain = SITE_DOMAIN_ROOT.split(':')[0]
+    if main_domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(main_domain)
+
+# ================================================
+# CSRF_TRUSTED_ORIGINS
+# ================================================
+
+CSRF_TRUSTED_ORIGINS = [
+    f'{SITE_PROTOCOL}://{SITE_DOMAIN_ROOT}',
+]
+
+# ================================================
+# STATIC & MEDIA FILES
+# ================================================
+
+# استفاده از متغیر محیطی یا مسیر پیش‌فرض
+STATIC_URL = os.environ.get('STATIC_URL', '/static/')
+STATIC_ROOT = os.environ.get('STATIC_ROOT', BASE_DIR / 'staticfiles')
+
+MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', BASE_DIR / 'media')
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+
+
 SITE_API = 'https://intellium.ir'
  
 LOGIN_REDIRECT_URL='accounts:profile' 
@@ -68,6 +116,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist',
     'django_celery_beat',
+    'django_filters',
 
     # Apps
     'products',
@@ -361,6 +410,13 @@ REST_FRAMEWORK = {
         'user': '1000/day',
         'anon': '100/day',
     },
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ], 
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 3,
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
 

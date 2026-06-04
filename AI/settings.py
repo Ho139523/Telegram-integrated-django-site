@@ -1,5 +1,4 @@
-from pathlib import Path
-from dotenv import load_dotenv
+
 import os
 
 load_dotenv()
@@ -15,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY')
  
 # SECURITY WARNING: don't run with debug turned on in production! 
-DEBUG = True
+DEBUG = False
 
 BASE_URL = os.environ.get("BASE_URL")
 
@@ -117,6 +116,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'django_celery_beat',
     'django_filters',
+    'revproxy',
 
     # Apps
     'products',

@@ -410,6 +410,7 @@ from django.utils.text import slugify
 # =========================
 # VARIANT SYSTEM (PROFESSIONAL STRUCTURE)
 # =========================
+
 class ProductOption(models.Model):
     """نوع ویژگی (مثلاً رنگ، سایز، جنس)"""
     product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name="options")

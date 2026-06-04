@@ -149,7 +149,7 @@ class SimpleCallbackQuery:
         connector = aiohttp.TCPConnector(force_close=True)
         async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
             try:
-                async with session.post(url, json=payload, ssl=True, timeout=10) as response:
+                async with session.post(url, json=payload, ssl=False, timeout=10) as response:
                     if response.status == 200:
                         result = await response.json()
                         return result.get('ok', False)
@@ -228,7 +228,7 @@ class MyCustomBot(Client):
         connector = aiohttp.TCPConnector(force_close=True)
         async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
             try:
-                async with session.post(url, json=payload, ssl=True, timeout=30) as response:
+                async with session.post(url, json=payload, ssl=False, timeout=30) as response:
                     if response.status == 200:
                         result = await response.json()
                         if result.get('ok'):
@@ -287,7 +287,7 @@ class MyCustomBot(Client):
         connector = aiohttp.TCPConnector(force_close=True)
         async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
             try:
-                async with session.post(url, data=payload, ssl=True, timeout=60) as response:
+                async with session.post(url, data=payload, ssl=False, timeout=60) as response:
                     response_text = await response.text()
                     
                     # محاسبه زمان elapsed به صورت دستی
@@ -332,7 +332,7 @@ class MyCustomBot(Client):
         connector = aiohttp.TCPConnector(force_close=True)
         async with aiohttp.ClientSession(connector=connector, headers=HEADERS) as session:
             try:
-                async with session.post(url, json=payload, ssl=True, timeout=10) as response:
+                async with session.post(url, json=payload, ssl=False, timeout=10) as response:
                     if response.status == 200:
                         result = await response.json()
                         if result.get('ok'):

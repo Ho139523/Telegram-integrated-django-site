@@ -24,6 +24,9 @@ router.register(r"products", ProductViewSet)
 router.register(r"profiles", ProfileViewSet)
 router.register(r"carts", CartViewSet)
 router.register(r"cartitems", CartItemViewSet)
+router.register(r"productvariants", ProductVariantViewSet)
+router.register(r"productoptions", ProductOptionViewSet)
+router.register(r"productoptionvalues", ProductOptionValueViewSet)
 
 
 urlpatterns += [

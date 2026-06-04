@@ -16,54 +16,89 @@ class CartViewSet(viewsets.GenericViewSet):
     """
     ViewSet برای مدیریت سبد خرید
     پشتیبانی از:
-    - کاربران لاگین (با profile)
+    - شناسایی پروفایل از طریق tel_id یا bale_id
     - کاربران مهمان (با session_key)
+    - ادغام سبد خرید مهمان پس از احراز هویت
     """
     serializer_class = CartSerializer
     queryset = Cart.objects.all()
     
-    def get_profile_from_request(self):
+    def _get_profile_by_identifier(self, tel_id=None, bale_id=None):
         """
-        دریافت پروفایل از کاربر لاگین شده
+        دریافت پروفایل بر اساس tel_id یا bale_id
+        اولویت: اگر tel_id وجود داشت → با tel_id
+        اگر tel_id نداشت ولی bale_id داشت → با bale_id
+        اگر هیچکدام نداشت → None
         """
-        if self.request.user.is_authenticated and hasattr(self.request.user, 'profile'):
-            return self.request.user.profile
+        # اولویت اول: tel_id
+        if tel_id:
+            try:
+                return ProfileModel.objects.get(tel_id=tel_id)
+            except ProfileModel.DoesNotExist:
+                return None
+        
+        # اولویت دوم: bale_id
+        if bale_id:
+            try:
+                return ProfileModel.objects.get(bale_id=bale_id)
+            except ProfileModel.DoesNotExist:
+                return None
+        
         return None
     
-    def get_session_key_from_request(self):
+    def _get_profile_from_request(self, request):
+        """
+        دریافت پروفایل از درخواست
+        از query_params یا data
+        """
+        # ابتدا از query_params (GET)
+        tel_id = request.query_params.get('tel_id')
+        bale_id = request.query_params.get('bale_id')
+        
+        # اگر در query_params نبود، از data (POST, PUT)
+        if not tel_id and not bale_id:
+            tel_id = request.data.get('tel_id')
+            bale_id = request.data.get('bale_id')
+        
+        # اگر باز هم نبود، از هدرها
+        if not tel_id and not bale_id:
+            tel_id = request.headers.get('X-Tel-ID')
+            bale_id = request.headers.get('X-Bale-ID')
+        
+        return self._get_profile_by_identifier(tel_id, bale_id)
+    
+    def _get_session_key_from_request(self, request):
         """
         دریافت یا ایجاد session_key برای کاربران مهمان
         """
-        session_key = self.request.session.session_key
+        session_key = request.session.session_key
         if not session_key:
             # اگر session وجود ندارد، یکی بساز
-            self.request.session.create()
-            session_key = self.request.session.session_key
+            request.session.create()
+            session_key = request.session.session_key
         return session_key
     
-    def get_or_create_cart(self, profile=None, session_key=None):
+    def _get_or_create_cart(self, profile=None, session_key=None):
         """
         دریافت یا ساخت سبد خرید بر اساس اولویت:
-        1. اگر profile داریم → سبد خرید کاربر لاگین
+        1. اگر profile داریم → سبد خرید کاربر احراز هویت شده
         2. اگر session_key داریم → سبد خرید مهمان
         3. اگر هیچکدام → خطا
         """
-        # اولویت با profile است (کاربر لاگین)
         if profile:
             cart, created = Cart.objects.get_or_create(profile=profile)
             return cart, created
         
-        # اگر profile نداریم ولی session_key داریم
         elif session_key:
             cart, created = Cart.objects.get_or_create(session_key=session_key)
             return cart, created
         
         else:
-            raise ValueError("Either profile or session_key is required")
+            raise ValueError("Either profile (tel_id/bale_id) or session_key is required")
     
-    def merge_guest_cart_to_user_cart(self, user_cart, guest_cart):
+    def _merge_guest_cart_to_user_cart(self, user_cart, guest_cart):
         """
-        ادغام سبد خرید مهمان با سبد خرید کاربر لاگین
+        ادغام سبد خرید مهمان با سبد خرید کاربر احراز هویت شده
         وقتی کاربر لاگین می‌کند، آیتم‌های سبد خرید مهمان را به سبد خرید کاربر منتقل می‌کند
         """
         for guest_item in guest_cart.items.all():
@@ -89,28 +124,43 @@ class CartViewSet(viewsets.GenericViewSet):
     def get_current_cart(self, request):
         """
         دریافت سبد خرید فعلی
-        - اگر کاربر لاگین است → سبد خرید مربوط به پروفایل او
-        - اگر مهمان است → سبد خرید مربوط به session_key
+        - اگر tel_id یا bale_id فرستاده شده → سبد خرید مربوط به پروفایل
+        - اگر نه → سبد خرید مهمان با session_key
         """
         try:
-            profile = self.get_profile_from_request()
+            profile = self._get_profile_from_request(request)
             session_key = None
-            
+            print(profile)
             if not profile:
-                session_key = self.get_session_key_from_request()
+                session_key = self._get_session_key_from_request(request)
+                user_type = "guest"
+            else:
+                user_type = "authenticated"
             
-            cart, created = self.get_or_create_cart(profile=profile, session_key=session_key)
+            cart, created = self._get_or_create_cart(profile=profile, session_key=session_key)
             
             serializer = self.get_serializer(cart)
             
-            return Response({
+            response_data = {
                 'cart': serializer.data,
                 'is_new': created,
                 'item_count': cart.total_items(),
-                'total_price': cart.total_price(),
-                'is_guest': profile is None,
-                'sellers_split': cart.get_sellers_split()
-            })
+                'total_price': str(cart.total_price()),
+                'user_type': user_type,
+                'sellers_split': {str(k): v for k, v in cart.get_sellers_split().items()}
+            }
+            
+            # اگر پروفایل داشتیم، اطلاعات آن را هم اضافه کن
+            if profile:
+                response_data['profile'] = {
+                    'id': profile.id,
+                    'tel_id': profile.tel_id,
+                    'bale_id': profile.bale_id,
+                    'fname': profile.fname,
+                    'lname': profile.lname
+                }
+            
+            return Response(response_data)
             
         except ValueError as e:
             return Response(
@@ -127,7 +177,8 @@ class CartViewSet(viewsets.GenericViewSet):
     def add_cart_item(self, request):
         """
         اضافه کردن آیتم به سبد خرید
-        پشتیبانی از:
+        پارامترها:
+        - tel_id یا bale_id (اختیاری، برای کاربران احراز هویت شده)
         - product_id (اجباری)
         - variant_id (اختیاری)
         - quantity (پیش‌فرض 1)
@@ -188,14 +239,17 @@ class CartViewSet(viewsets.GenericViewSet):
                 )
         
         # دریافت یا ساخت سبد خرید
-        profile = self.get_profile_from_request()
+        profile = self._get_profile_from_request(request)
         session_key = None
         
         if not profile:
-            session_key = self.get_session_key_from_request()
+            session_key = self._get_session_key_from_request(request)
+            user_type = "guest"
+        else:
+            user_type = "authenticated"
         
         try:
-            cart, cart_created = self.get_or_create_cart(profile=profile, session_key=session_key)
+            cart, cart_created = self._get_or_create_cart(profile=profile, session_key=session_key)
         except ValueError as e:
             return Response(
                 {"error": str(e)},
@@ -204,31 +258,32 @@ class CartViewSet(viewsets.GenericViewSet):
         
         # اضافه کردن یا آپدیت آیتم
         try:
-            cart_item, item_created = CartItem.objects.get_or_create(
-                cart=cart,
-                product=product,
-                variant=variant,
-                defaults={'quantity': quantity}
-            )
-            
-            if not item_created:
-                # بررسی موجودی قبل از افزایش
-                new_quantity = cart_item.quantity + quantity
-                if variant:
-                    if new_quantity > variant.stock:
-                        return Response(
-                            {"error": f"موجودی کافی نیست. حداکثر {variant.stock} عدد"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                else:
-                    if new_quantity > product.stock:
-                        return Response(
-                            {"error": f"موجودی کافی نیست. حداکثر {product.stock} عدد"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+            with transaction.atomic():
+                cart_item, item_created = CartItem.objects.get_or_create(
+                    cart=cart,
+                    product=product,
+                    variant=variant,
+                    defaults={'quantity': quantity}
+                )
                 
-                cart_item.quantity = new_quantity
-                cart_item.save()
+                if not item_created:
+                    # بررسی موجودی قبل از افزایش
+                    new_quantity = cart_item.quantity + quantity
+                    if variant:
+                        if new_quantity > variant.stock:
+                            return Response(
+                                {"error": f"موجودی کافی نیست. حداکثر {variant.stock} عدد"},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+                    else:
+                        if new_quantity > product.stock:
+                            return Response(
+                                {"error": f"موجودی کافی نیست. حداکثر {product.stock} عدد"},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+                    
+                    cart_item.quantity = new_quantity
+                    cart_item.save()
             
             # سerialize کردن نتیجه
             cart_serializer = self.get_serializer(cart)
@@ -240,7 +295,8 @@ class CartViewSet(viewsets.GenericViewSet):
                 'item': item_serializer.data,
                 'is_new_item': item_created,
                 'item_count': cart.total_items(),
-                'cart_total': cart.total_price()
+                'cart_total': str(cart.total_price()),
+                'user_type': user_type
             }, status=status.HTTP_200_OK)
             
         except DjangoValidationError as e:
@@ -307,7 +363,7 @@ class CartViewSet(viewsets.GenericViewSet):
                 'message': 'Cart item updated successfully',
                 'cart': cart_serializer.data,
                 'item': CartItemSerializer(cart_item).data,
-                'cart_total': cart_item.cart.total_price()
+                'cart_total': str(cart_item.cart.total_price())
             }, status=status.HTTP_200_OK)
             
         except DjangoValidationError as e:
@@ -340,7 +396,7 @@ class CartViewSet(viewsets.GenericViewSet):
                 'message': 'Item removed from cart successfully',
                 'cart': cart_serializer.data,
                 'item_count': cart.total_items(),
-                'cart_total': cart.total_price()
+                'cart_total': str(cart.total_price())
             }, status=status.HTTP_200_OK)
             
         except CartItem.DoesNotExist:
@@ -354,14 +410,14 @@ class CartViewSet(viewsets.GenericViewSet):
         """
         خالی کردن کامل سبد خرید
         """
-        profile = self.get_profile_from_request()
+        profile = self._get_profile_from_request(request)
         session_key = None
         
         if not profile:
-            session_key = self.get_session_key_from_request()
+            session_key = self._get_session_key_from_request(request)
         
         try:
-            cart, _ = self.get_or_create_cart(profile=profile, session_key=session_key)
+            cart, _ = self._get_or_create_cart(profile=profile, session_key=session_key)
             cart.items.all().delete()
             
             return Response({
@@ -378,9 +434,14 @@ class CartViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['post'], url_path='merge')
     def merge_carts(self, request):
         """
-        ادغام سبد خرید مهمان با سبد خرید کاربر پس از لاگین
+        ادغام سبد خرید مهمان با سبد خرید کاربر پس از احراز هویت
+        پارامترها:
+        - session_key (اجباری)
+        - tel_id یا bale_id (اجباری)
         """
         session_key = request.data.get('session_key')
+        tel_id = request.data.get('tel_id')
+        bale_id = request.data.get('bale_id')
         
         if not session_key:
             return Response(
@@ -388,18 +449,24 @@ class CartViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        profile = self.get_profile_from_request()
+        if not tel_id and not bale_id:
+            return Response(
+                {"error": "Either tel_id or bale_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        profile = self._get_profile_by_identifier(tel_id, bale_id)
         if not profile:
             return Response(
-                {"error": "User must be logged in to merge carts"},
-                status=status.HTTP_401_UNAUTHORIZED
+                {"error": "Profile not found"},
+                status=status.HTTP_404_NOT_FOUND
             )
         
         try:
             guest_cart = Cart.objects.get(session_key=session_key)
             user_cart, _ = Cart.objects.get_or_create(profile=profile)
             
-            self.merge_guest_cart_to_user_cart(user_cart, guest_cart)
+            self._merge_guest_cart_to_user_cart(user_cart, guest_cart)
             
             serializer = self.get_serializer(user_cart)
             
@@ -407,7 +474,7 @@ class CartViewSet(viewsets.GenericViewSet):
                 'message': 'Carts merged successfully',
                 'cart': serializer.data,
                 'item_count': user_cart.total_items(),
-                'total_price': user_cart.total_price()
+                'total_price': str(user_cart.total_price())
             }, status=status.HTTP_200_OK)
             
         except Cart.DoesNotExist:
@@ -415,6 +482,42 @@ class CartViewSet(viewsets.GenericViewSet):
                 {"error": "Guest cart not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+    
+    @action(detail=False, methods=['get'], url_path='by-profile')
+    def get_cart_by_profile(self, request):
+        """
+        دریافت سبد خرید بر اساس tel_id یا bale_id
+        """
+        tel_id = request.query_params.get('tel_id')
+        bale_id = request.query_params.get('bale_id')
+        
+        if not tel_id and not bale_id:
+            return Response(
+                {"error": "Either tel_id or bale_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        profile = self._get_profile_by_identifier(tel_id, bale_id)
+        
+        if not profile:
+            return Response(
+                {"error": "Profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        cart, created = Cart.objects.get_or_create(profile=profile)
+        serializer = self.get_serializer(cart)
+        
+        return Response({
+            'cart': serializer.data,
+            'profile': {
+                'id': profile.id,
+                'tel_id': profile.tel_id,
+                'bale_id': profile.bale_id,
+                'fname': profile.fname,
+                'lname': profile.lname
+            }
+        })
 
 
 class CartItemViewSet(viewsets.ModelViewSet):
@@ -426,28 +529,32 @@ class CartItemViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        فیلتر کردن آیتم‌ها بر اساس سبد خرید کاربر جاری
+        فیلتر کردن آیتم‌ها بر اساس سبد خرید
         """
         queryset = super().get_queryset()
         
-        # فیلتر بر اساس cart_id در پارامترها
+        # فیلتر بر اساس cart_id
         cart_id = self.request.query_params.get('cart_id')
         if cart_id:
             queryset = queryset.filter(cart_id=cart_id)
         
+        # فیلتر بر اساس profile (از طریق tel_id یا bale_id)
+        tel_id = self.request.query_params.get('tel_id')
+        bale_id = self.request.query_params.get('bale_id')
+        
+        if tel_id or bale_id:
+            try:
+                if tel_id:
+                    profile = ProfileModel.objects.get(tel_id=tel_id)
+                else:
+                    profile = ProfileModel.objects.get(bale_id=bale_id)
+                
+                cart = Cart.objects.filter(profile=profile).first()
+                if cart:
+                    queryset = queryset.filter(cart=cart)
+                else:
+                    queryset = queryset.none()
+            except ProfileModel.DoesNotExist:
+                queryset = queryset.none()
+        
         return queryset
-    
-    def destroy(self, request, *args, **kwargs):
-        """
-        حذف آیتم با اعتبارسنجی اضافی
-        """
-        instance = self.get_object()
-        
-        # بررسی نهایی قبل از حذف
-        if instance.quantity <= 0:
-            return Response(
-                {"error": "Invalid quantity"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        return super().destroy(request, *args, **kwargs)

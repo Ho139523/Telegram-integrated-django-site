@@ -567,6 +567,7 @@ async def product_code_handler(message):
             
             section_start = time.perf_counter()
             response = await client._request(method="GET", endpoint=url)
+            print(response)
             timings['api_request'] = (time.perf_counter() - section_start) * 1000
         
             # ============================================

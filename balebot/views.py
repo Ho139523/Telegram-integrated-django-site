@@ -186,14 +186,14 @@ async def handle_product_buttons(call):
         
         # هندلرها خودشون variant_id رو از call.data استخراج می‌کنن
         if action == "addtocart":
-            product_handler.handle_add_to_cart(call)
+            await product_handler.handle_add_to_cart(call)
         else:
             product_handler.handle_buttons(call)
 
     except Exception as e:
         error_message = traceback.format_exc()
         print(f"Error in handle_product_buttons: {e}\n{error_message}")
-        bot.answer_callback_query(call.id, "خطا در پردازش درخواست!", show_alert=True)
+        await bot.answer_callback_query(call.id, "خطا در پردازش درخواست!", show_alert=True)
 
 
 

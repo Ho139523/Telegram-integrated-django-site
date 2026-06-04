@@ -132,12 +132,14 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
+from django_revproxy.views import ProxyView
 
 logger = logging.getLogger(__name__)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(ProxyView, csrf_exempt, name='dispatch')
 class TelegramBotWebhookView(View):
+    upstream = 'http://127.0.0.1:8085'
     def post(self, request, *args, **kwargs):
         try:
             json_str = request.body.decode('UTF-8')

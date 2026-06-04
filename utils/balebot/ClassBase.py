@@ -149,6 +149,12 @@ class ForceReply:
 ###########################################################
 
 from AI.settings import SITE_DOMAIN
+from django.core.cache import cache
+from accounts.models import ProfileModel
+from products.models import Product
+from payment.models import Cart, CartItem
+from utils.balebot.api_client import BaleAPIClient
+
 
 @add_performance_monitoring_to_class
 class ProductHandler:
@@ -162,73 +168,73 @@ class ProductHandler:
         self.photos = photos or []
         self.attributes = attributes
         self._variants_data_cache = None
+        self.client = BaleAPIClient(base_url="http://127.0.0.1:8000")
 
-    # def get_product_variants_data(self):
-    #     """دریافت همه داده‌های واریانت در یک کوئری با کشینگ"""
-    #     if self._variants_data_cache:
-    #         return self._variants_data_cache
+    async def get_product_variants_data(self, code):
+        """دریافت همه داده‌های واریانت در یک کوئری با کشینگ"""
+        if self._variants_data_cache:
+            return self._variants_data_cache
             
-    #     cache_key = f"product_{self.product["id"]}_full_variants_data"
-    #     cached_data = cache.get(cache_key)
+        cache_key = f"product_{self.product["id"]}_full_variants_data"
+        cached_data = cache.get(cache_key)
         
-    #     if cached_data:
-    #         self._variants_data_cache = cached_data
-    #         return cached_data
+        if cached_data:
+            self._variants_data_cache = cached_data
+            return cached_data
         
-    #     # بارگذاری بهینه با prefetch_related
-    #     from products.models import ProductVariant
+        variants_dict = {}
+        variants_list = []
+
+        variants = await self._variant_details(code=code)
         
-    #     variants = ProductVariant.objects.filter(
-    #         product_id=self.product["id"]
-    #     ).prefetch_related('values__option')
-        
-    #     variants_dict = {}
-    #     variants_list = []
-        
-    #     for variant in variants:
-    #         variant_data = {
-    #             'id': variant.id,
-    #             'sku': variant.sku,
-    #             'stock': variant.stock,
-    #             'price_override': variant.price_override,
-    #             'values': {}
-    #         }
-            
-    #         for option_value in variant.values.all():
-    #             key = option_value.option.name.capitalize()
-    #             value = option_value.value
-    #             variant_data['values'][key] = value
+        for variant in variants:
+            variant_data = {
+                'id': variant["id"],
+                'sku': variant["sku"],
+                'stock': variant["stock"],
+                'price_override': variant["price_override"],
+                'values': {}
+            }
+
+            print(variants)
+            for option_value in ggg:
+                print(option_value)
+
+            for option_value in all_variants["results"]:
+                key = option_value.option.name.capitalize()
+                value = option_value.value
+                variant_data['values'][key] = value
                 
-    #             if key not in variants_dict:
-    #                 variants_dict[key] = set()
-    #             variants_dict[key].add(value)
+                if key not in variants_dict:
+                    variants_dict[key] = set()
+                variants_dict[key].add(value)
             
-    #         variants_list.append(variant_data)
+            variants_list.append(variant_data)
         
-    #     def sort_variant_values(values):
-    #         numeric_values = []
-    #         string_values = []
+        def sort_variant_values(values):
+            numeric_values = []
+            string_values = []
             
-    #         for value in values:
-    #             try:
-    #                 numeric_values.append(float(value) if '.' in str(value) else int(value))
-    #             except (ValueError, TypeError):
-    #                 string_values.append(str(value))
+            for value in values:
+                try:
+                    numeric_values.append(float(value) if '.' in str(value) else int(value))
+                except (ValueError, TypeError):
+                    string_values.append(str(value))
             
-    #         sorted_numeric = sorted(numeric_values)
-    #         sorted_strings = sorted(string_values)
+            sorted_numeric = sorted(numeric_values)
+            sorted_strings = sorted(string_values)
             
-    #         return [str(val) for val in sorted_numeric] + sorted_strings
+            return [str(val) for val in sorted_numeric] + sorted_strings
 
-    #     result = {
-    #         'variants_dict': {key: sort_variant_values(values) for key, values in variants_dict.items()},
-    #         'variants_list': variants_list
-    #     }
+        result = {
+            'variants_dict': {key: sort_variant_values(values) for key, values in variants_dict.items()},
+            'variants_list': variants_list
+        }
         
-    #     cache.set(cache_key, result, timeout=300)
-    #     self._variants_data_cache = result
+        cache.set(cache_key, result, timeout=300)
+        self._variants_data_cache = result
         
-    #     return result
+        return result
 
     # async def async_get_product_variants_data(self):
     #     variants = await sync_to_async(list)(
@@ -249,10 +255,20 @@ class ProductHandler:
     #         "variants_dict": variants_dict
     #     }
 
-    # def get_variants_dict(self, variants=None):
-    #     """تبدیل واریانت‌ها به دیکشنری - کاملاً از کش استفاده می‌کند"""
-    #     variants_data = self.get_product_variants_data()
-    #     return variants_data['variants_dict']
+    def get_variants_dict(self, variants=None):
+        """تبدیل واریانت‌ها به دیکشنری - کاملاً از کش استفاده می‌کند"""
+        variants_data = self.get_product_variants_data(variants)
+        return variants_data['variants_dict']
+    
+    async def _all_varaints(self):
+        all_product_variants = await self.client._request(method="GET", endpoint=f"myapi/productvariants/")
+        all_product_variants = all_product_variants.data
+        return all_product_variants
+
+    async def _variant_details(self, code):
+        product_variants = await self.client._request(method="POST", endpoint=f"myapi/products/variants/", payload={"product_code": self.product["code"]})
+        product_variants = product_variants.data
+        return product_variants
 
     # def get_variant_by_selected_values(self, product, selected_values):
     #     """پیدا کردن واریانت بر اساس مقادیر انتخاب شده"""
@@ -754,10 +770,6 @@ class ProductHandler:
 
     async def handle_add_to_cart(self, call):
         """مدیریت افزودن به سبد خرید"""
-        from accounts.models import ProfileModel
-        from products.models import Product
-        from payment.models import Cart, CartItem
-        from utils.balebot.api_client import BaleAPIClient
         try:
             data = call.data.split("_")
             product_code = str(data[-1])
@@ -777,24 +789,11 @@ class ProductHandler:
             if not product_code:
                 self.bot.answer_callback_query(call.id, "کد محصول نامعتبر است!", show_alert=True)
                 return
-
-            client = BaleAPIClient(base_url="http://127.0.0.1:8000")        
-            url = f"/myapi/products/{product_code}/"
-            
-            response = await client._request(method="GET", endpoint=url)
         
-            if response.success and response.data:
-                product = response.data
-            else:
-                product = None
             
-            if not product:
-                result = await call.message.reply(await t(call.message, "product_not_found"))
-                return result
-
             url = f"/myapi/profiles/{call.message.chat.id}/"
             
-            response = await client._request(method="GET", endpoint=url)
+            response = await self.client._request(method="GET", endpoint=url)
         
             if response.success and response.data:
                 profile = response.data
@@ -804,46 +803,45 @@ class ProductHandler:
             if not profile:
                 result = await call.message.reply(await t(call.message, "product_not_found"))
                 return result
-
-            
-            cart, _ = Cart.objects.get_or_create(profile=profile)
+            response = await self.client._request(method="GET", endpoint=f"myapi/carts/by-profile/?bale_id={call.message.chat.id}")
+            cart = response.data
 
             session = session_manager
             user_session = session.get_user_session(chat_id, namespace="variants")
             variant_states = user_session.get(str(product_code), {})
-
-            variants_dict = self.get_variants_dict(product.variants.all())
-            selected_values = {}
             
-            for i, key in enumerate(variants_dict.keys()):
-                if str(i) in variant_states:
-                    values_list = list(variants_dict[key])
-                    selected_index = variant_states[str(i)]
-                    if selected_index < len(values_list):
-                        selected_values[key] = values_list[selected_index]
+            variants_dict = await self.get_product_variants_data(code=product_code)
+            # selected_values = {}
+            
+            # for i, key in enumerate(variants_dict.keys()):
+            #     if str(i) in variant_states:
+            #         values_list = list(variants_dict[key])
+            #         selected_index = variant_states[str(i)]
+            #         if selected_index < len(values_list):
+            #             selected_values[key] = values_list[selected_index]
 
-            variant = None
-            if selected_values:
-                variant = self.get_variant_by_selected_values(product, selected_values)
+            # variant = None
+            # if selected_values:
+            #     variant = self.get_variant_by_selected_values(product, selected_values)
 
-            cart_item = None
-            if variant:
-                cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
-            else:
-                if not product.variants.exists():
-                    cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
+            # cart_item = None
+            # if variant:
+            #     cart_item = CartItem.objects.filter(cart=cart, product=product, variant=variant).first()
+            # else:
+            #     if not product.variants.exists():
+            #         cart_item = CartItem.objects.filter(cart=cart, product=product, variant__isnull=True).first()
 
-            if not cart_item:
-                cart_item = CartItem.objects.create(
-                    cart=cart, 
-                    product=product,
-                    variant=variant,
-                    quantity=0
-                )
+            # if not cart_item:
+            #     cart_item = CartItem.objects.create(
+            #         cart=cart, 
+            #         product=product,
+            #         variant=variant,
+            #         quantity=0
+            #     )
 
-            self.update_product_message(chat_id, message_id, product, cart)
-            # self.bot.answer_callback_query(call.id, "به سبد خرید اضافه شد")
-
+            # self.update_product_message(chat_id, message_id, product, cart)
+            # # self.bot.answer_callback_query(call.id, "به سبد خرید اضافه شد")
+            await call.message.reply(f"{variants_dict}")
         except Exception as e:
             print(f"❌ Error in handle_add_to_cart: {traceback.format_exc()}")
 

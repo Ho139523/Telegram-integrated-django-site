@@ -51,8 +51,9 @@ class BaleAPIClient:
         """Make signed request to API endpoint"""
         if not endpoint.startswith('/'):
             endpoint = '/' + endpoint
-        if not endpoint.endswith('/'):
-            endpoint = endpoint + '/'
+        if not endpoint.__contains__("?"):
+            if not endpoint.endswith('/'):
+                endpoint = endpoint + '/'
         
         url = f"{self.base_url}{endpoint}"
         body_bytes = json.dumps(payload or {}, separators=(',', ':'), ensure_ascii=False).encode("utf-8")

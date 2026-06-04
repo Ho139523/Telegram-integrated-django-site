@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Category, Product, ProductAttribute, Store,
-    ProductImage, ProductVariant, Unit
+    ProductImage, ProductVariant, Unit, ProductOption, ProductOptionValue
 )
 from django.utils import timezone
 
@@ -46,20 +46,42 @@ class ProductVariantInline(admin.TabularInline):
     verbose_name_plural = "Variants"
 
 
+
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ('product', 'display_hierarchy', 'stock', 'final_price')
-    search_fields = ('product__name', 'key', 'value', 'sku')
+    search_fields = ('product__name', 'sku')
     list_filter = ('product',)
 
     def display_hierarchy(self, obj):
-        names = [obj.value]
-        parent = obj.parent
-        while parent:
-            names.append(parent.value)
-            parent = parent.parent
-        return " > ".join(reversed(names))
+        """
+        نمایش سلسله‌مراتب واریانت
+        مثلاً: رنگ: قرمز > سایز: XL
+        """
+        # دریافت همه مقادیر مرتبط با این واریانت
+        values = obj.values.all()
+        
+        if not values:
+            return "-"
+        
+        # روش 1: نمایش ساده همه مقادیر
+        return " / ".join([f"{v.option.name}: {v.value}" for v in values])
+    
     display_hierarchy.short_description = "Variant Hierarchy"
+
+
+@admin.register(ProductOption)
+class ProductOptionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'product', 'name')
+    list_filter = ('product',)
+    search_fields = ('name', 'product__name')
+
+
+@admin.register(ProductOptionValue)
+class ProductOptionValueAdmin(admin.ModelAdmin):
+    list_display = ('id', 'option', 'value')
+    list_filter = ('option__product', 'option')
+    search_fields = ('value', 'option__name')
 
 
 ### ----------------------------

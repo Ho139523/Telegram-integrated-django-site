@@ -2,7 +2,7 @@
 import asyncio
 import sys
 from utils.variables.TOKEN import BTOKEN as TOKEN
-from AI.settings import current_site
+from AI.settings import SITE_DOMAIN
 import aiohttp
 
 bot = input("[1] Telegram Bot \n[2] Bale Bot\nPlease tell me which one do you want to change? ")
@@ -15,7 +15,7 @@ elif bot == "2":
     # 🚀 سخت کدنویسی IP برای دور زدن کامل DNS
     # ================================================
     BOT_TOKEN = TOKEN
-    WEBHOOK_URL = f"{current_site}/balebot/webhook/"
+    WEBHOOK_URL = f"{SITE_DOMAIN}/balebot/webhook/"
     BOT_API_IP = "2.189.68.126"  # IP اصلی tapi.bale.ai که پیدا کردی
 
     # ساخت URL با IP به جای نام دامنه

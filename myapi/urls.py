@@ -15,6 +15,7 @@ urlpatterns = [
 from myapi.products.views import *
 from myapi.accounts.views import *
 from myapi.payment.views import *
+from myapi.subscription.views import *
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -27,6 +28,7 @@ router.register(r"cartitems", CartItemViewSet)
 router.register(r"productvariants", ProductVariantViewSet)
 router.register(r"productoptions", ProductOptionViewSet)
 router.register(r"productoptionvalues", ProductOptionValueViewSet)
+router.register(r"plans", PlanViewSet)
 
 
 urlpatterns += [

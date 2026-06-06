@@ -5512,12 +5512,14 @@ class Promote(SubscriptionRequiredMixin):
         if len(parts) < 5:
             return None
 
-        return {
+        data = {
             "feature": parts[1],
             "action": parts[2],
             "plan_index": int(parts[3]),
             "duration_index": int(parts[4])
         }
+        print(data)
+        return data
 
     def _handle_plan_next(self, call):
 
@@ -5619,13 +5621,12 @@ class Promote(SubscriptionRequiredMixin):
     
     def _fetch_plans_from_api(self, chat_id):
 
-        url = f"{settings.SITE_API}/api/plans/"
+        url = f"{settings.SITE_API}/myapi/plans/"
 
         try:
             data = self._signed_request(
                 "GET",
                 url,
-                {"tel_id": chat_id}
             )
 
             # ⭐ Check API Error
@@ -5633,7 +5634,7 @@ class Promote(SubscriptionRequiredMixin):
                 print("Throttle Warning:", data)
                 return []
 
-            return data
+            return data["results"]
 
         except Exception as e:
             print("Plan fetch error:", e)

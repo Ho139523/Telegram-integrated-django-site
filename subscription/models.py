@@ -188,6 +188,15 @@ class SubscriptionInvoice(models.Model):
         related_name="subscription_invoice"
     )
 
+    @property
+    def is_expired(self):
+
+        return (
+            self.status == "created"
+            and
+            self.created_at < timezone.now() - timedelta(hours=1)
+        )
+
 
 class Payment(models.Model):
 

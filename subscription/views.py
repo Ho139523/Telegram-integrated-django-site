@@ -123,8 +123,10 @@ class SubscriptionActionViewSet(viewsets.ViewSet):
             store = Store.objects.select_related("subscription").get(
                 owner=profile
             )
+
         except Store.DoesNotExist:
             return Response({"error": "Store not found"}, status=404)
+
 
         # جلوگیری از ساخت چند فاکتور همزمان
         from django.db import transaction
@@ -142,9 +144,14 @@ class SubscriptionActionViewSet(viewsets.ViewSet):
                     {"error": "Invalid plan price"},
                     status=400
                 )
+
+            try:
+                subscription = store.subscription
+            except Subscription.DoesNotExist:
+                return Response({"error": "Subscription not found"}, status=404)
         
             existing_invoice = SubscriptionInvoice.objects.filter(
-                subscription=store.subscription,
+                subscription=subscription,
                 plan_price=plan_price,
                 status="created"
             ).first()
@@ -182,6 +189,21 @@ class SubscriptionActionViewSet(viewsets.ViewSet):
                 invoice.save(update_fields=["payment_intent"])
             
                 payment_url = result.get("payment_url")
+                if not intent:
+                    must_create_new_intent = True
+                
+                elif intent.is_expired:
+                
+                    intent.mark_expired()
+                
+                    must_create_new_intent = True
+                
+                elif intent.status in (
+                    "failed",
+                    "canceled",
+                    "expired"
+                ):
+                    must_create_new_intent = True
             
             else:
                 payment_url = invoice.payment_intent.metadata.get("payment_url")

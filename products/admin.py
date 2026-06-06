@@ -167,6 +167,7 @@ class StoreAdmin(admin.ModelAdmin):
         "subscription_status",
         "subscription_plan",
         "subscription_end",
+        "status",
     )
 
     search_fields = (

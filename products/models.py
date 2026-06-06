@@ -62,6 +62,7 @@ class Store(models.Model):
     social_links = models.JSONField(default=dict, blank=True)  # {"instagram":"...", "linkedin":"..."}
 
     
+    status = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Store"

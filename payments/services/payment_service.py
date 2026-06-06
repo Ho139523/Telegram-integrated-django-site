@@ -4,6 +4,8 @@ from payments.routing.router import PaymentRouter
 from payments.services.gateway_engine import GatewayExecutionEngine
 from payments.services import PaymentIntelligenceBrain
 from payments.serializers import PaymentIntentSerializer
+from django.utils import timezone
+from datetime import timedelta
 
 
 class PaymentService:
@@ -51,7 +53,8 @@ class PaymentService:
             gateway=gateway_instance.__class__.__name__,
             content_type=content_type,
             object_id=target.id,
-            metadata=metadata or {}
+            metadata=metadata or {},
+            expires_at=timezone.now() + timedelta(hours=1)
         )
     
         # ⭐ اجرای پرداخت روی gateway

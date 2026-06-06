@@ -92,6 +92,13 @@ from telebot import apihelper
 apihelper.CONNECT_TIMEOUT = 300
 apihelper.READ_TIMEOUT = 600
 
+
+
+apihelper.proxy = {
+    'https': 'socks5://127.0.0.1:8086'
+}
+
+
 app = telebot.TeleBot(
     TOKEN,
     state_storage=state_storage,
@@ -124,7 +131,6 @@ main_menu = customer_main_menu
 ################################################################################################
 
 
-
 # Webhook settings
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
@@ -132,14 +138,12 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
-from django_revproxy.views import ProxyView
 
 logger = logging.getLogger(__name__)
 
 
-@method_decorator(ProxyView, csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name='dispatch')
 class TelegramBotWebhookView(View):
-    upstream = 'http://127.0.0.1:8085'
     def post(self, request, *args, **kwargs):
         try:
             json_str = request.body.decode('UTF-8')
@@ -150,7 +154,6 @@ class TelegramBotWebhookView(View):
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")
             return JsonResponse({"status": "error", "message": str(e)}, status=200)
-
 
 #################################################################################################
 
@@ -869,6 +872,10 @@ def start(message):
 #         app.send_message(message.chat.id, f"❌ خطا در تست: {e}")
 
 
+
+
+
+
 #####################################################################################################
 
 # HOME
@@ -1006,8 +1013,12 @@ def become_a_seller(message):
     if subscription.subscription_offer(message):
         try:
             profile = ProfileModel.objects.get(tel_id=message.chat.id)
-            Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.chat.id))
-            profile.seller_mode = True
+            store = Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.chat.id))
+            if store.status:
+                profile.seller_mode = True
+            else:
+                promotion(message)
+                return
             profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
             profile.save()
             profile.save()
@@ -1015,6 +1026,8 @@ def become_a_seller(message):
             app.send_message(message.chat.id, t(message, "become_a_seller"), reply_markup=markup)
         except Store.DoesNotExist:
             app.send_message(message.chat.id, t(message, "become_a_seller_no_store"))
+        except:
+            print(traceback.format_exc())
 
 
 # back to buyer mode handler# become a seller handler
@@ -2648,8 +2661,12 @@ def submit_store(call):
                 name=session.get("take_name_d"),
                 tel_channel=session.get("teke_telegram_channel_d"),
                 lang=profile.lang,
-                description=session.get("take_description_d")
+                description=session.get("take_description_d"),
+                status=False
                 )
+        from subscription.services.general import SubscriptionService
+
+        subscription = SubscriptionService.get_or_create_subscription(store)
         store.logo=ContentFile(downloaded_file, name=f'logo_{store.id}.jpg')
         store.save()
         app.send_message(call.message.chat.id, t("message", "store_registered_successfully", profile=profile))
@@ -2680,7 +2697,7 @@ def delete_store(call):
 ##################################### PROMOTION #####################################
 
 @app.message_handler(commands=['promote'])
-def promote(message):
+def promotion(message):
     try:
         promote = Promote(app)
         promote._show_offer(message.chat.id)
@@ -2711,6 +2728,7 @@ def plan_navigation(data):
 
     except:
         print(traceback.format_exc())
+
 
 
 

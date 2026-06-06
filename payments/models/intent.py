@@ -11,6 +11,7 @@ class PaymentIntent(models.Model):
         ("processing", "Processing"),
         ("succeeded", "Succeeded"),
         ("failed", "Failed"),
+        ("expired", "Expired"),
         ("canceled", "Canceled"),
         ("refunded", "Refunded"),
     ]
@@ -46,7 +47,40 @@ class PaymentIntent(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True
+    )
+
+    paid_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
     def __str__(self):
         return f"{self.intent_id} - {self.amount}"
+
+    @property
+    def is_expired(self):
+    
+        if self.status in (
+            "succeeded",
+            "canceled",
+            "failed",
+            "refunded"
+        ):
+            return False
+    
+        if not self.expires_at:
+            return False
+    
+        return timezone.now() >= self.expires_at
+
+
+    def mark_expired(self):
+        if self.status == "created":
+            self.status = "expired"
+            self.save(update_fields=["status"])
 
     

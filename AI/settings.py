@@ -1,4 +1,5 @@
-
+from pathlib import Path
+from dotenv import load_dotenv
 import os
 
 load_dotenv()
@@ -84,7 +85,7 @@ STATICFILES_DIRS = [
 
 
 
-SITE_API = 'https://intellium.ir'
+SITE_API = 'http://127.0.0.1:8000'
  
 LOGIN_REDIRECT_URL='accounts:profile' 
 LOGIN_URL='accounts:login' 

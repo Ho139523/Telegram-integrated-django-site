@@ -93,9 +93,24 @@ apihelper.CONNECT_TIMEOUT = 300
 apihelper.READ_TIMEOUT = 600
 
 
+apihelper.proxy = {
+    'http': 'http://127.0.0.1:8085',   # یا 'https': 'http://127.0.0.1:8085'
+    'https': 'http://127.0.0.1:8085'
+}
+
+
+
+app = telebot.TeleBot(
+    TOKEN,
+    state_storage=state_storage,
+    threaded=True,
+    num_threads=5
+)
 
 apihelper.proxy = {
-    'https': 'socks5://127.0.0.1:8086'
+    'proxy_type': 'socks5',
+    'addr': '127.0.0.1',
+    'port': 8085
 }
 
 

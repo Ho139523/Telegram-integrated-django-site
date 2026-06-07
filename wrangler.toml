@@ -1,0 +1,6 @@
+name = "domainfront-relay"
+main = "index.js"
+compatibility_date = "2024-12-18"
+
+[env.production]
+vars = { AUTH_KEY = "mammad123456789" }

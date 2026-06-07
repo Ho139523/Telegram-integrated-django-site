@@ -1,39 +1,45 @@
 from celery import shared_task
+from django.utils import timezone
 from django.db import transaction
+from datetime import timedelta
 
+from .models import Subscription, SubscriptionInvoice
+
+
+# =========================================================
+# 1. Expire subscriptions
+# =========================================================
 @shared_task
 def expire_subscriptions():
-    from django.utils import timezone
-    from .models import Subscription
-
+    """
+    پایان دادن به اشتراک‌های منقضی شده
+    """
     now = timezone.now()
 
     with transaction.atomic():
-        expired = Subscription.objects.select_for_update().filter(
+        expired_qs = Subscription.objects.select_for_update().filter(
             end_date__lte=now,
             status='active'
         )
 
-        count = expired.count()
+        count = expired_qs.count()
 
-        for sub in expired:
-            sub.status = 'expired'
-            sub.save(update_fields=['status'])
+        expired_qs.update(status='expired')
 
-    print(f"Expired {count} subscriptions")
+    return f"Expired {count} subscriptions"
 
 
-
-from celery import shared_task
-from django.utils import timezone
-from datetime import timedelta
-import requests
-
-from .models import Subscription, SubscriptionInvoice, Payment, PlanPrice
-
-
+# =========================================================
+# 2. Auto renew subscriptions (trigger payment)
+# =========================================================
 @shared_task
 def auto_renew_subscriptions():
+    """
+    پیدا کردن اشتراک‌هایی که نزدیک انقضا هستند
+    و ارسال برای پرداخت جدید
+    """
+
+    from .services import renew_subscription_payment  # فرض: شما این سرویس را داری
 
     soon_expire = timezone.now() + timedelta(days=1)
 
@@ -42,56 +48,70 @@ def auto_renew_subscriptions():
         end_date__lte=soon_expire,
         status='active',
         zarinpal_token__isnull=False
-    )
+    ).only("id")
 
     for sub in subs:
-
         try:
-            renew_subscription_payment(sub)
+            # بهتر: async
+            renew_subscription_payment.delay(sub.id)
 
         except Exception as e:
-            print("Auto renew failed:", e)
+            print(f"[AUTO_RENEW_ERROR] subscription={sub.id} error={e}")
+
+    return f"Queued {subs.count()} subscriptions for renewal"
 
 
-from celery import shared_task
-from subscription.models import Subscription
-from django.utils import timezone
-from datetime import timedelta
-
-
+# =========================================================
+# 3. Handle payment success event
+# =========================================================
 @shared_task
 def handle_payment_paid_event(event_data):
+    """
+    وقتی پرداخت موفق شد (از webhook یا queue)
+    """
 
-    subscription = Subscription.objects.get(
-        id=event_data["subscription_id"]
+    from .models import Subscription
+    from telbot.services import TelegramNotifier
+
+    try:
+        subscription = Subscription.objects.get(
+            id=event_data["subscription_id"]
+        )
+
+        # مثال: فعال‌سازی یا تمدید
+        subscription.status = "active"
+        subscription.save(update_fields=["status"])
+
+        # نوتیفیکیشن
+        try:
+            TelegramNotifier.send_payment_success(subscription)
+        except Exception:
+            pass
+
+        return f"Processed payment for subscription {subscription.id}"
+
+    except Subscription.DoesNotExist:
+        return "Subscription not found"
+
+
+# =========================================================
+# 4. Expire invoices (cleanup task)
+# =========================================================
+@shared_task
+def expire_invoices():
+    """
+    فاکتورهای پرداخت نشده که قدیمی شده‌اند
+    """
+
+    now = timezone.now()
+
+    expired = SubscriptionInvoice.objects.filter(
+        status="created",
+        created_at__lt=now - timedelta(hours=2)
     )
 
-    # مثال Notification
-    try:
-        from telbot.services import TelegramNotifier
+    count = expired.count()
 
-        TelegramNotifier.send_payment_success(subscription)
+    expired.update(status="expired")
 
-    except:
-        pass
-
-
-import redis
-import json
-
-redis_client = redis.Redis()
-
-
-def start_payment_listener():
-
-    pubsub = redis_client.pubsub()
-    pubsub.subscribe("events:payment_paid")
-
-    for message in pubsub.listen():
-
-        if message["type"] != "message":
-            continue
-
-        data = json.loads(message["data"])
-
-        handle_payment_paid_event.delay(data)
+    return f"Expired {count} invoices"

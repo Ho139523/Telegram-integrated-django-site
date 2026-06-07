@@ -425,8 +425,8 @@ REST_FRAMEWORK = {
 
 ZARINPAL = {
     'MERCHANT_ID': os.environ.get('MECHANT_ID'),  # مرچنت کد شما
-    'CALLBACK_URL': BASE_URL + '/verify/',  # آدرس بازگشت
-    'SANDBOX': True,  # برای محیط تست (False برای محیط واقعی)
+    'CALLBACK_URL': SITE_DOMAIN + '/payments/webhook/zarinpal/',
+    'SANDBOX': True,
 }
 
 

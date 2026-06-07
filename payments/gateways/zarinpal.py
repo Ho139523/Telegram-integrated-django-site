@@ -17,6 +17,7 @@ class ZarinpalGateway(BasePaymentGateway):
             "description": f"Payment {intent.intent_id}"
         }
 
+        print(settings.ZARINPAL["CALLBACK_URL"])
         response = requests.post(url, json=payload)
         data = response.json()
 

@@ -10,6 +10,7 @@ from utils.variables.TOKEN import TOKEN, BOT_ID
 import requests
 import subprocess
 import re
+from AI import settings
 from telebot import TeleBot
 from telebot.types import Message
 from telebot.storage import StateMemoryStorage
@@ -2016,7 +2017,7 @@ def send_payment_link(app, context):
     description = "توضیحات کالا"
 
     # ساخت لینک پرداخت
-    payment_url = f"http://intelleum.ir:8443/buy/{amount}/{description}/?email={email}&mobile={mobile}"
+    payment_url = f"{settings.BASE_URL}/buy/{amount}/{description}/?email={email}&mobile={mobile}"
 
     return payment_url
 
@@ -2977,7 +2978,7 @@ class SendCart(SendMarkup):
             self._keyboard_cache = {}
 
             # current_site برای لینک پرداخت
-            self.current_site = 'https://intelleum.ir:8443'
+            self.current_site = settings.SITE_DOMAIN
 
             # فراخوانی سازنده والد
             super().__init__(

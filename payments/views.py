@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from payments.models.attempt import PaymentAttempt
-from payments.gateways.zarinpal import ZarinPalGateway
+from payments.gateways.zarinpal import ZarinpalGateway
 
 
 def zarinpal_callback(request):
@@ -11,7 +11,7 @@ def zarinpal_callback(request):
 
     attempt = get_object_or_404(PaymentAttempt, authority=authority)
 
-    gateway = ZarinPalGateway()
+    gateway = ZarinpalGateway()
     result = gateway.verify_payment(attempt, status)
 
     if result:

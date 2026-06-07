@@ -1,7 +1,16 @@
-from dataclasses import dataclass
+from subscription.tasks import handle_payment_paid_event
 
-@dataclass
-class PaymentEvent:
-    invoice_id: int
-    subscription_id: int
-    status: str
+
+class PaymentSucceededEvent:
+
+    @staticmethod
+    def emit(intent):
+        """
+        Dispatch event to business layer
+        """
+
+        handle_payment_paid_event.delay({
+            "intent_id": str(intent.id),
+            "subscription_id": intent.target.subscription.id,
+            "amount": intent.amount,
+        })

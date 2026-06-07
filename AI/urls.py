@@ -142,7 +142,7 @@ urlpatterns = [
     path('balebot/', include('balebot.urls', namespace='balebot')),
 
     path('', include('payment.urls')),
-
+    path("payments/", include("payments.urls")),
     # AI
     path('generate/', GenerateResponse.as_view(), name='generate-response'),
 

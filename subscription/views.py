@@ -103,16 +103,14 @@ class SubscriptionActionViewSet(viewsets.ViewSet):
 
         from products.models import Store
         from accounts.models import ProfileModel
+        from django.db import transaction
 
         plan_id = request.data.get("plan_id")
         months = request.data.get("months")
         tel_id = request.data.get("tel_id")
 
         if not all([plan_id, months, tel_id]):
-            return Response(
-                {"error": "Invalid parameters"},
-                status=400
-            )
+            return Response({"error": "Invalid parameters"}, status=400)
 
         try:
             profile = ProfileModel.objects.get(tel_id=tel_id)
@@ -120,96 +118,76 @@ class SubscriptionActionViewSet(viewsets.ViewSet):
             return Response({"error": "Profile not found"}, status=404)
 
         try:
-            store = Store.objects.select_related("subscription").get(
-                owner=profile
-            )
-
+            store = Store.objects.select_related("subscription").get(owner=profile)
         except Store.DoesNotExist:
             return Response({"error": "Store not found"}, status=404)
 
-
-        # جلوگیری از ساخت چند فاکتور همزمان
-        from django.db import transaction
-
         with transaction.atomic():
-        
+
             plan_price = PlanPrice.objects.select_for_update().filter(
                 plan_id=plan_id,
                 months=months,
                 is_active=True
             ).first()
-        
+
             if not plan_price:
-                return Response(
-                    {"error": "Invalid plan price"},
-                    status=400
-                )
+                return Response({"error": "Invalid plan price"}, status=400)
 
             try:
                 subscription = store.subscription
             except Subscription.DoesNotExist:
                 return Response({"error": "Subscription not found"}, status=404)
-        
-            existing_invoice = SubscriptionInvoice.objects.filter(
+
+            invoice = SubscriptionInvoice.objects.filter(
                 subscription=subscription,
                 plan_price=plan_price,
                 status="created"
             ).first()
-        
-            if existing_invoice:
-                invoice = existing_invoice
-            else:
+
+            if not invoice:
                 invoice = SubscriptionInvoice.objects.create(
-                    subscription=store.subscription,
+                    subscription=subscription,
                     plan_price=plan_price,
                     amount=plan_price.price,
                     status="created"
                 )
-        
-            # اگر قبلاً intent نداشت → بساز
-            if not invoice.payment_intent:
-        
+
+            intent = invoice.payment_intent
+
+            need_new_intent = False
+
+            if not intent:
+                need_new_intent = True
+
+            elif intent.is_expired:
+                intent.mark_expired()
+                need_new_intent = True
+
+            elif intent.status in ("failed", "canceled", "expired"):
+                need_new_intent = True
+
+            if need_new_intent:
                 result = PaymentService.create_payment(
                     profile=profile,
-                    amount=float(invoice.amount),   # ⭐ مهم
+                    amount=invoice.amount,
                     target=invoice,
-                    country_iso=request.data.get("country_iso", "IR"),
-                    ip=request.META.get("HTTP_X_REAL_IP") or request.META.get("REMOTE_ADDR"),
+                    country_iso="IR",
+                    ip=request.META.get("REMOTE_ADDR"),
                     metadata={
-                        "invoice_id": invoice.id,
-                        "type": "subscription"
+                        "invoice_id": invoice.id
                     }
                 )
-            
-            
-                if not result or result.get("status") != "ok":
-                    return Response(result or {"error": "payment_failed"}, status=400)
-            
-                invoice.payment_intent = result.get("intent")
+
+                intent = result["intent"]
+
+                invoice.payment_intent = intent
                 invoice.save(update_fields=["payment_intent"])
-            
+
                 payment_url = result.get("payment_url")
-                if not intent:
-                    must_create_new_intent = True
-                
-                elif intent.is_expired:
-                
-                    intent.mark_expired()
-                
-                    must_create_new_intent = True
-                
-                elif intent.status in (
-                    "failed",
-                    "canceled",
-                    "expired"
-                ):
-                    must_create_new_intent = True
-            
+
             else:
-                payment_url = invoice.payment_intent.metadata.get("payment_url")
-                    
-        
-        
+                payment_url = intent.metadata.get("payment_url")
+
         return Response({
             "invoice_id": invoice.id,
             "amount": float(invoice.amount),

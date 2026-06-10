@@ -19,3 +19,7 @@ jupyterhub.*
 jupyterhub_cookie_secret
 .ipynb_checkpoints/
 jupyterhub-proxy.pid
+home_proxy.js
+node_modules/
+package-lock.json
+package.json

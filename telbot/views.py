@@ -3,7 +3,7 @@
 from math import prod
 import re
 import trace
-from traceback import format_exc
+from traceback import format_exc, print_exception, print_tb
 from tailwind import build
 from telebot import TeleBot, types
 from collections import defaultdict
@@ -32,7 +32,8 @@ from telebot.handler_backends import State, StatesGroup
 from telebot import custom_filters
 
 # Variables imports
-from utils.variables.TOKEN import TOKEN, BOT_ID
+from utils.variables.TOKEN import BOT_ID
+from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
 from utils.telbot.functions import *
 from utils.telbot.functions import UltraVideoPrompter, ProductHandler, SendCart, SendLocation, SendMarkup, t, AdvancedProductExporter
@@ -88,15 +89,42 @@ state_storage = StateMemoryStorage()
 # App setup
 import telebot
 from telebot import apihelper
+from AI import settings
+
+
 
 apihelper.CONNECT_TIMEOUT = 300
 apihelper.READ_TIMEOUT = 600
 
 
-apihelper.proxy = {
-    'http': 'http://127.0.0.1:8085',   # یا 'https': 'http://127.0.0.1:8085'
-    'https': 'http://127.0.0.1:8085'
-}
+
+if settings.is_proxied:
+    if settings.manual_proxy:
+        session = requests.Session()
+        apihelper.API_URL = (
+            "http://127.0.0.1:8085/api.telegram.org/bot{0}/{1}"
+        )
+        session.verify = False
+        apihelper.session = session
+    else:
+        
+        apihelper.proxy = {
+            'http': 'http://127.0.0.1:1080',
+            'https': 'http://127.0.0.1:1080'
+        }
+        
+        session = requests.Session()
+        session.proxies = {
+            'http': 'http://127.0.0.1:1080',
+            'https': 'http://127.0.0.1:1080'
+        }
+        apihelper.session = session
+
+
+else:
+    pass
+
+
 
 
 
@@ -107,19 +135,26 @@ app = telebot.TeleBot(
     num_threads=5
 )
 
-apihelper.proxy = {
-    'proxy_type': 'socks5',
-    'addr': '127.0.0.1',
-    'port': 8085
-}
 
 
-app = telebot.TeleBot(
-    TOKEN,
-    state_storage=state_storage,
-    threaded=True,
-    num_threads=5
-)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 current_site = SITE_DOMAIN
 
 # subscription instance

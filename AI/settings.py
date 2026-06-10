@@ -499,3 +499,9 @@ REDIS_URL = "redis://127.0.0.1:6379/0"
 
 # AI/settings.py
 APPEND_SLASH = False  # اضافه کن
+
+
+
+
+is_proxied = False
+manual_proxy = False

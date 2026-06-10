@@ -1,19 +1,61 @@
 # run.py
 import asyncio
 import sys
-from utils.variables.TOKEN import BTOKEN as TOKEN
 from AI.settings import SITE_DOMAIN
-import aiohttp
+import requests
 
 bot = input("[1] Telegram Bot \n[2] Bale Bot\nPlease tell me which one do you want to change? ")
 
+
+
 if bot == "1":
-    # ... (کد مربوط به تلگرام) ...
-    pass
+    from utils.variables.TOKEN import TOKEN
+
+    BOT_TOKEN = TOKEN
+    WEBHOOK_URL = f"{SITE_DOMAIN}/telbot/webhook/"
+
+    try:
+        print(f"Webhook URL: {WEBHOOK_URL}")
+
+        # 1) setWebhook
+        print("Setting webhook...")
+
+        set_url = f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook"
+        res = requests.post(set_url, json={"url": WEBHOOK_URL}, timeout=20)
+
+        print("SetWebhook Status:", res.status_code)
+        print("SetWebhook Response:", res.json())
+
+        # 2) getWebhookInfo
+        print("\nChecking webhook info...")
+
+        info_url = f"https://api.telegram.org/bot{BOT_TOKEN}/getWebhookInfo"
+        res2 = requests.get(info_url, timeout=20)
+
+        print("GetWebhookInfo Status:", res2.status_code)
+        data = res2.json()
+
+        print("Webhook Info:")
+        print(data)
+
+        if data.get("ok"):
+            info = data["result"]
+
+            print("\n------ WEBHOOK STATUS ------")
+            print("URL:", info.get("url"))
+            print("Pending updates:", info.get("pending_update_count"))
+            print("Last error:", info.get("last_error_message"))
+            print("----------------------------")
+
+    except Exception as e:
+        print("❌ Error:", e)
+
+
 elif bot == "2":
     # ================================================
     # 🚀 سخت کدنویسی IP برای دور زدن کامل DNS
     # ================================================
+    from utils.variables.TOKEN import BTOKEN as TOKEN
     BOT_TOKEN = TOKEN
     WEBHOOK_URL = f"{SITE_DOMAIN}/balebot/webhook/"
     BOT_API_IP = "2.189.68.126"  # IP اصلی tapi.bale.ai که پیدا کردی

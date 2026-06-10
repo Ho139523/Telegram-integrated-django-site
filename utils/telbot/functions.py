@@ -5082,6 +5082,7 @@ class SendPhotoWithMarkup(SendMarkup):
 
 def t(msg, key, chat_id=None, profile=None, lang=None, **kwargs):
     try:
+        print(chat_id)
         if isinstance(msg, types.Message):
             message = msg
         elif isinstance(msg, types.CallbackQuery):

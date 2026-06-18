@@ -1,9 +1,11 @@
 # run.py
+import aiohttp
 import asyncio
 import sys
 from AI.settings import SITE_DOMAIN
 import requests
 
+print(SITE_DOMAIN)
 bot = input("[1] Telegram Bot \n[2] Bale Bot\nPlease tell me which one do you want to change? ")
 
 

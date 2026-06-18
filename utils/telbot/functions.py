@@ -102,7 +102,6 @@ def t(msg, key, chat_id=None, **kwargs):
             message = None
 
         if chat_id:
-            print(chat_id)
             pass
         else:
             chat_id = message.chat.id
@@ -2136,9 +2135,10 @@ class ProductHandler:
         variants_data = self.get_product_variants_data()
         return variants_data['variants_dict']
 
-    def get_variant_by_selected_values(self, product, selected_values):
+    def get_variant_by_selected_values(self, selected_values):
         """پیدا کردن واریانت بر اساس مقادیر انتخاب شده"""
         variants_data = self.get_product_variants_data()
+        print(variants_data)
         
         print(f"🔍 [VARIANT DEBUG] Looking for variant with: {selected_values}")
         print(f"🔍 [VARIANT DEBUG] Total variants: {len(variants_data['variants_list'])}")
@@ -2472,7 +2472,7 @@ class ProductHandler:
                     })
 
                 # دکمه سبد خرید
-                total_cart_items = cart.total_items()
+                total_cart_items = cart.total_items
                 buttons.append((f"{t("message", "menu_cart", chat_id=chat_id)} ({total_cart_items})", "view_cart", len(buttons) + 2))
                 
                 # لیآوت
@@ -2557,20 +2557,30 @@ class ProductHandler:
         try:
             data = call.data.split("_")
             product_code = str(data[-1])
-            chat_id = call.message.chat.id
+
+            if len(data) < 2:
+                self.bot.answer_callback_query(call.id, "داده‌های نامعتبر!", show_alert=True)    #PEESIAN
+                return
+                
+            if not product_code:
+                self.bot.answer_callback_query(call.id, "کد محصول نامعتبر است!", show_alert=True)    #PERSIAN
+                return
+
             message_id = call.message.message_id
 
             product = Product.objects.get(code=product_code)
-            profile = ProfileModel.objects.get(tel_id=chat_id)
+            profile = ProfileModel.objects.get(tel_id=self.chat_id)
             cart, _ = Cart.objects.get_or_create(profile=profile)
 
             session = SessionManager()
-            user_session = session.get_user_session(chat_id, namespace="variants")
+            user_session = session.get_user_session(self.chat_id, namespace="variants")
             variant_states = user_session.get(str(product_code), {})
+            print(f"variant states: {variant_states}")
 
             variants_dict = self.get_variants_dict(product.variants.all())
-            selected_values = {}
+            print(f"variant dict : {variants_dict}")
             
+            selected_values = {}
             for i, key in enumerate(variants_dict.keys()):
                 if str(i) in variant_states:
                     values_list = list(variants_dict[key])
@@ -2580,7 +2590,7 @@ class ProductHandler:
 
             variant = None
             if selected_values:
-                variant = self.get_variant_by_selected_values(product, selected_values)
+                variant = self.get_variant_by_selected_values(selected_values)
 
             cart_item = None
             if variant:
@@ -2597,7 +2607,7 @@ class ProductHandler:
                     quantity=0
                 )
 
-            self.update_product_message(chat_id, message_id, product, cart)
+            self.update_product_message(self.chat_id, message_id, product, cart)
             # self.app.answer_callback_query(call.id, "به سبد خرید اضافه شد")
 
         except Exception as e:
@@ -2736,7 +2746,6 @@ class ProductHandler:
             selected_values = {}
             
             for i, key in enumerate(variants_dict.keys()):
-                print(variant_states)
                 if str(i) in variant_states:
                     values_list = list(variants_dict[key])
                     selected_index = variant_states[str(i)]
@@ -2800,7 +2809,7 @@ class ProductHandler:
                 handlers[f"VarNext_{product.code}_{i}"] = self.handle_variant_navigation
 
             # دکمه سبد خرید
-            total_cart_items = cart.total_items()
+            total_cart_items = cart.total_items
             buttons.append((f"{t("message", "menu_cart", chat_id=chat_id)} ({total_cart_items})", "view_cart", len(buttons) + 2))
             
             # لیآوت
@@ -2814,7 +2823,7 @@ class ProductHandler:
                 a = {}
                 for i, (key, values) in enumerate(variants_dict.items()):
                     a[key] = values[0]
-                variant = self.get_variant_by_selected_values(product, a)
+                variant = self.get_variant_by_selected_values(a)
             stock_info = variant.stock if variant else product.stock
 
             text = t("message", "order_up_to_stock", chat_id=chat_id, stock_info=stock_info)
@@ -5082,7 +5091,6 @@ class SendPhotoWithMarkup(SendMarkup):
 
 def t(msg, key, chat_id=None, profile=None, lang=None, **kwargs):
     try:
-        print(chat_id)
         if isinstance(msg, types.Message):
             message = msg
         elif isinstance(msg, types.CallbackQuery):

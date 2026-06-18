@@ -1,4 +1,5 @@
 from django.db import models, transaction
+from decimal import Decimal
 from accounts.models import User, ProfileModel
 from django.core.exceptions import ValidationError
 import os
@@ -288,9 +289,17 @@ class Product(models.Model):
         """
         قیمت نهایی محصول بعد از اعمال تخفیف (بدون Variant)
         """
+        price = Decimal(str(self.price))
+
         if self.discount:
-            return float(self.price) * (1 - float(self.discount)/100)
-        return float(self.price)
+            discount = Decimal(str(self.discount)) / Decimal("100")
+            return price * (Decimal("1") - discount)
+
+        return price
+
+
+
+
 
     def has_variants(self):
         """

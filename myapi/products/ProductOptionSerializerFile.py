@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from products.models import ProductOption
-from myapi.products.ProductSerializerFile import ProductSerializer
+from myapi.products.productSerializerFile import ProductSerializer
+
 
 class ProductOptionSerializer(serializers.ModelSerializer):
     product = ProductSerializer()

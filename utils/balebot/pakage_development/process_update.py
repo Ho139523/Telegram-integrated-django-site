@@ -241,6 +241,74 @@ class MyCustomBot(Client):
         
         return None
 
+
+
+
+
+    async def edit_message_text_direct(
+        self,
+        chat_id: int,
+        message_id: int,
+        text: str,
+        reply_markup=None,
+        parse_mode="HTML"
+    ):
+        url = f"https://{BOT_API_IP}/bot{self.custom_token}/editMessageText"
+
+        payload = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "text": text,
+            "parse_mode": parse_mode,
+        }
+
+        # تبدیل کیبورد به فرمت API
+        if reply_markup:
+            if hasattr(reply_markup, "inline_keyboard"):
+
+                keyboard_rows = []
+
+                for row in reply_markup.inline_keyboard:
+                    row_buttons = []
+
+                    for btn in row:
+                        item = {"text": btn.text}
+
+                        if getattr(btn, "callback_data", None):
+                            item["callback_data"] = btn.callback_data
+
+                        if getattr(btn, "url", None):
+                            item["url"] = btn.url
+
+                        row_buttons.append(item)
+
+                    keyboard_rows.append(row_buttons)
+
+                payload["reply_markup"] = {
+                    "inline_keyboard": keyboard_rows
+                }
+
+        connector = aiohttp.TCPConnector(force_close=True)
+
+        async with aiohttp.ClientSession(
+            connector=connector,
+            headers=HEADERS
+        ) as session:
+
+            async with session.post(
+                url,
+                json=payload,
+                ssl=False,
+                timeout=30
+            ) as response:
+
+                result = await response.json()
+
+
+                return result
+
+
+
     # ================================================
     # ارسال گروه رسانه‌ای (آلبوم عکس)
     # ================================================

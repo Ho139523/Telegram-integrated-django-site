@@ -416,13 +416,23 @@ class SendMarkup:
                     parse_mode="HTML"
                 )
             else:
-                await self.bot.edit_message_text(
-                    chat_id=self.chat_id,
-                    message_id=message_id,
-                    text=self.text,
-                    reply_markup=markup,
-                    parse_mode="HTML"
-                )
+                if hasattr(self.bot, "edit_message_text_direct"):
+
+                    await self.bot.edit_message_text_direct(
+                        chat_id=self.chat_id,
+                        message_id=message_id,
+                        text=self.text,
+                        reply_markup=markup,
+                    )
+                
+                else:
+                
+                    await self.bot.edit_message_text(
+                        chat_id=self.chat_id,
+                        message_id=message_id,
+                        text=self.text,
+                        reply_markup=markup,
+                    ) 
             return True
         except Exception as e:
             if "message is not modified" not in str(e):

@@ -77,7 +77,6 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["POST"], url_path="variants", permission_classes=[AllowAny])
     def _get_product_variants(self, request):
         code = request.data.get("product_code")
-        print(code)
         
         try:
             product = Product.objects.get(code=code)

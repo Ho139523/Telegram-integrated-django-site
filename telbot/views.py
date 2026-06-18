@@ -947,7 +947,7 @@ def home(message, text=None, *args, **kwargs):
         print(f"{custom_message}")
 
     if subscription.subscription_offer(message):
-        session_list = ["address", "menu", "add_product", "delete_product", "phone", "createshop"]
+        session_list = ["address", "menu", "add_product", "delete_product", "phone", "createshop", "variants"]
         if kwargs.get("session_delete"): # session_delete must be a tuple
             for i in session_list:
                 if i in kwargs.get("session_delete"):

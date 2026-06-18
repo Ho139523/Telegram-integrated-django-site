@@ -24,15 +24,15 @@ BASE_URL = os.environ.get("BASE_URL")
 #     '192.168.1.141',
 #     '127.0.0.1:8000',
 #     'localhost',
-#     "intellium.ir",
-#     "intellium.ir:8443",
-#     "www.intellium.ir",
-#     "www.intellium.ir:8443",
+#     "intelleum.ir",
+#     "intelleum.ir:8443",
+#     "www.intelleum.ir",
+#     "www.intelleum.ir:8443",
 # ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://intellium.ir",
-    "https://intellium.ir:8443",
+    "https://intelleum.ir",
+    "https://intelleum.ir:8443",
 ]
 
 
@@ -230,8 +230,8 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-    "https://intellium.ir",
-    "https://intellium.ir:8443",
+    "https://intelleum.ir",
+    "https://intelleum.ir:8443",
 ]
 
 
@@ -388,11 +388,14 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 
-SECURE_SSL_REDIRECT = False
+SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -503,5 +506,5 @@ APPEND_SLASH = False  # اضافه کن
 
 
 
-is_proxied = False
-manual_proxy = False
+is_proxied = True
+manual_proxy = True

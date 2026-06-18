@@ -31,7 +31,8 @@ logger = logging.getLogger(__name__)
 # Bot Initialization
 # ================================================
 from utils.balebot.pakage_development.process_update import bot
-# bot = Client(TOKEN)
+#bot = Client(TOKEN)
+client = BaleAPIClient(base_url="http://127.0.0.1:8000")
 
 # ================================================
 # Command Handlers
@@ -142,7 +143,6 @@ async def product_code(message: Message):
         session = session_manager.get_user_session(message.chat.id, namespace="menu")
         session["buy_by_code"] = False
         session = session_manager.set_user_session(message.chat.id, session, namespace="menu")
-        result2 = await home_message(message)
         return result
     except Exception as e:
         error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
@@ -156,19 +156,18 @@ async def handle_product_buttons(call):
     try:
         data = call.data.split("_")
         action = data[0]  # increase, decrease, addtocart
-        
+
         # استخراج product_code (همیشه در index 1 هست)
         if len(data) < 2:
-            bot.answer_callback_query(call.id, "داده‌های نامعتبر!", show_alert=True)
+            bot.answer_callback_query(call.id, "داده‌های نامعتبر!", show_alert=True)    #PERSIAN
             return
             
         product_code = str(data[1])
 
         if not product_code:
-            bot.answer_callback_query(call.id, "کد محصول نامعتبر است!", show_alert=True)
+            bot.answer_callback_query(call.id, "کد محصول نامعتبر است!", show_alert=True)    #PERSIAN
             return
 
-        client = BaleAPIClient(base_url="http://127.0.0.1:8000")        
         url = f"/myapi/products/{product_code}/"
         
         response = await client._request(method="GET", endpoint=url)
@@ -177,8 +176,6 @@ async def handle_product_buttons(call):
             product = response.data
         else:
             product = None
-        
-        if not product:
             result = await call.message.reply(await t(call.message, "product_not_found"))
             return result
         
@@ -188,7 +185,7 @@ async def handle_product_buttons(call):
         if action == "addtocart":
             await product_handler.handle_add_to_cart(call)
         else:
-            product_handler.handle_buttons(call)
+            await product_handler.handle_buttons(call)
 
     except Exception as e:
         error_message = traceback.format_exc()
@@ -433,7 +430,6 @@ async def question(message: Message):
 @auto_clear
 async def menu_cart(message):
     try:
-        client = BaleAPIClient(base_url="http://127.0.0.1:8000")
         url = f"/myapi/products/0000000001/"
         response = await client._request(method="GET", endpoint=url, payload={"bale_id": message.chat.id, "name": "Intelleum"})
         result = await message.reply(f"{response.data["name"]}")

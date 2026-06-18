@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 from django.contrib.auth import get_user_model
 from products.models import (
     Product, Store, ProductAttribute, ProductCodeCounter, ProductImage,
@@ -46,10 +47,12 @@ class Cart(models.Model):
     def __str__(self):
         return f"Cart {self.id} - {self.profile if self.profile else 'Guest'}"
 
+    @property
     def total_items(self):
         """تعداد کل آیتم‌ها در سبد خرید"""
         return sum(item.quantity for item in self.items.all())
 
+    @property
     def total_price(self):
         """جمع کل مبلغ سبد خرید با احتساب واریانت‌ها"""
         return sum(item.total_price() for item in self.items.all())

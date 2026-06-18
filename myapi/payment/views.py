@@ -22,6 +22,7 @@ class CartViewSet(viewsets.GenericViewSet):
     """
     serializer_class = CartSerializer
     queryset = Cart.objects.all()
+    throttle_classes = []
     
     def _get_profile_by_identifier(self, tel_id=None, bale_id=None):
         """
@@ -130,7 +131,6 @@ class CartViewSet(viewsets.GenericViewSet):
         try:
             profile = self._get_profile_from_request(request)
             session_key = None
-            print(profile)
             if not profile:
                 session_key = self._get_session_key_from_request(request)
                 user_type = "guest"
@@ -526,6 +526,7 @@ class CartItemViewSet(viewsets.ModelViewSet):
     """
     queryset = CartItem.objects.all()
     serializer_class = CartItemSerializer
+    throttle_classes = []
     
     def get_queryset(self):
         """
@@ -558,3 +559,31 @@ class CartItemViewSet(viewsets.ModelViewSet):
                 queryset = queryset.none()
         
         return queryset
+
+
+    @action(detail=False, methods=["get"])
+    def find(self, request):
+        queryset = CartItem.objects.all()
+
+        cart_id = request.query_params.get("cart")
+        product_id = request.query_params.get("product")
+        variant_id = request.query_params.get("variant")
+
+        if cart_id:
+            queryset = queryset.filter(cart_id=cart_id)
+
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+
+        if variant_id:
+            queryset = queryset.filter(variant_id=variant_id)
+        elif "variant" in request.query_params:
+            queryset = queryset.filter(variant__isnull=True)
+
+        item = queryset.first()
+
+        if not item:
+            return Response(None)
+
+        serializer = self.get_serializer(item)
+        return Response(serializer.data)

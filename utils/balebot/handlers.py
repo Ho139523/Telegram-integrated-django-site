@@ -548,7 +548,6 @@ async def product_code_handler(message):
         if is_valid_code:
             url = f"/myapi/products/{code}/"
             response = await client._request(method="GET", endpoint=url)
-
             if response.success and response.data:
                 product = response.data
             else:
@@ -580,7 +579,7 @@ async def product_code_handler(message):
                 attributes=product.get('attributes', []),
             )
 
-            success = await product_handler.send_product_message(message)
+            success = await product_handler.send_product_message(message, buttons=True)
 
             if not success:
                 await message.reply(

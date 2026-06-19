@@ -2688,7 +2688,7 @@ class ProductHandler:
                         a = {}
                         for i, (key, values) in enumerate(variants_dict.items()):
                             a[key] = values[0]
-                        variant = self.get_variant_by_selected_values(product, a)
+                        variant = self.get_variant_by_selected_values(a)
                     max_stock = variant.stock if variant else product.stock
                     if cart_item.quantity < max_stock:
                         cart_item.quantity += 1

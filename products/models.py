@@ -270,6 +270,7 @@ class Product(models.Model):
     category = models.ForeignKey('Category', on_delete=models.CASCADE, null=True, related_name='products', verbose_name='Category')
     description = models.TextField(blank=True, null=True, verbose_name='Description')
     main_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name='Main Image')
+    main_image_file_id = models.CharField(max_length=255, null=True, blank=True, db_index=True, verbose_name="Main Image File ID")
     code = models.CharField(max_length=10, unique=True, editable=False, blank=True)
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='product_store', verbose_name='Store')
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Unit of Measure")
@@ -386,6 +387,12 @@ class Product(models.Model):
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='product_images/', verbose_name='Product Image')
+    file_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True
+    )
 
     def __str__(self):
         return f"{self.product.name} - Image {self.id}"

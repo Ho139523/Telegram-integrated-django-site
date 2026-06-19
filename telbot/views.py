@@ -106,6 +106,8 @@ if settings.is_proxied:
         )
         session.verify = False
         apihelper.session = session
+    elif settings.FlaskBridge:
+        apihelper.API_URL = "https://intellium.ir/bot{0}/{1}"
     else:
         
         apihelper.proxy = {

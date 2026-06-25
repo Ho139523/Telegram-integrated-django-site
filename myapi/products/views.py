@@ -1,10 +1,12 @@
 from os import O_WRONLY
 import traceback
 from rest_framework import viewsets
+from django.shortcuts import get_object_or_404
+from rest_framework import status
 from cv import views
 from myapi import serializer
 from myapi.products.CodeSerializerFile import CodeSerializer
-from products.models import ProductOption, Store, Product, ProductCodeCounter
+from products.models import ProductOption, Store, Product, ProductCodeCounter, ProductImage
 from myapi.products.StoreSerializerFile import *
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
@@ -94,7 +96,77 @@ class ProductViewSet(viewsets.ModelViewSet):
                 {"error": "Product not found"}, 
                 status=status.HTTP_404_NOT_FOUND
             )
-    
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"error": "An error occurred while fetching product variants"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+    @action(detail=True, methods=["POST"], url_path="store-file-ids", permission_classes=[AllowAny])
+    def store_file_ids(self, request, pk=None):
+        """
+        Body:
+        {
+            "main_image_file_id": "...",
+            "images": [
+                {"id": 1, "file_id": "..."},
+                {"id": 2, "file_id": "..."}
+            ]
+        }
+        """
+        try:
+            product = get_object_or_404(Product, pk=pk)
+
+            main_file_id = request.data.get("main_image_file_id")
+            images = request.data.get("images", [])
+
+            # -------------------------
+            # 1. MAIN IMAGE FILE ID
+            # -------------------------
+            if main_file_id:
+                product.main_image_file_id = main_file_id
+                product.save(update_fields=["main_image_file_id"])
+
+            # -------------------------
+            # 2. PRODUCT IMAGES FILE IDs
+            # -------------------------
+            updated_images = []
+            
+            for item in images:
+                img_id = item.get("id")
+                file_id = item.get("file_id")
+
+                if not img_id or not file_id:
+                    continue
+
+                try:
+                    img = ProductImage.objects.get(id=img_id, product=product)
+                    print(img)
+                    img.file_id = file_id
+                    img.save(update_fields=["file_id"])
+                    print(img)
+
+                    updated_images.append(img_id)
+
+                except ProductImage.DoesNotExist:
+                    continue
+
+            return Response(
+                {
+                    "ok": True,
+                    "product_id": product.id,
+                    "updated_main": bool(main_file_id),
+                    "updated_images": updated_images,
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"error": "An error occurred while storing file IDs"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 from myapi.products.ProductVariantSerializerFile import ProductVariantSerializer

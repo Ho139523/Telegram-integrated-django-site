@@ -1747,8 +1747,6 @@ class ProductBot:
             # Product basic info
             name = session.get("name_d")
             slug = generate_unique_slug(Product, name)
-            print(f"DEBUG: name='{name}', type={type(name)}")
-            print(f"DEBUG: Generated slug for '{name}': '{slug}'")  # اضافه کردن این خط
             
             # یا لاگ کامل
             import logging
@@ -3619,7 +3617,7 @@ class SendLocation:
 
             # اضافه کردن هندلرهای آدرس‌ها
             for address in self.user_addresses:
-                handlers[f"address_{address.id}"] = lambda addr, c=address: self.show_single_address(addr, c, chat_id=call.message.chat.id)
+                handlers[f"address_{address.id}"] = lambda addr, c=address: self.show_single_address(addr, c, call=call)
 
             # ایجاد کیبورد
             markup = SendMarkup(
@@ -3642,36 +3640,62 @@ class SendLocation:
             print(f"Error in show_addresses: {e}\n{error_details}")
             self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
 
-    def show_single_address(self, address, call=None, chat_id=None):
+    def show_single_address(self, address, call=None):
         """
         نمایش جزئیات یک آدرس خاص
         :param call: شیء callback
         :param address: آدرس انتخابی
         """
         try:
+            if isinstance(call, types.Message):
+                message = call
+                call_data = None
+                is_callback = False
+            else:
+                message = call.message
+                call_data = call.data
+                is_callback = True
+            chat_id = message.chat.id
+            address_session = self.session_manager.get_user_session(chat_id, namespace="address") or {}
+            shop_session = self.session_manager.get_user_session(chat_id, namespace="createshop") or {}
+
             # متن پیام
-            text = f"{t("message", "your_addresses", chat_id=chat_id)}{address.shipping_line1}\n\n"
+            if address_session.get("show_store_address"):
+                text = f"{t("message", "your_store_address", chat_id=chat_id)}{address.shipping_line1}\n\n"
+            else:
+                text = f"{t("message", "your_addresses", chat_id=chat_id)}{address.shipping_line1}\n\n"
             text += f"{t("message", "city_label", chat_id=chat_id)} {address.shipping_city_name}\n"
             text += f"{t("message", "province_label", chat_id=chat_id)} {address.shipping_province_name}\n"
             text += f"{t("message", "country_label", chat_id=chat_id)} {address.shipping_country_name}\n"
             text += f"{t("message", "postal_code_label", chat_id=chat_id)} {address.shipping_zip_code or t("message", "not_registered")}"
 
             # دکمه‌های مدیریت
-            buttons = {
-                t("message", 'change_location', chat_id=chat_id): (f'change_location_{address.id}', 1),
-                t("message", "send_to_this_address", chat_id=chat_id): (f"select_address_{address.id}", 2),
-                t("message", "edit_address", chat_id=chat_id): (f"change_address_{address.id}", 3),
-                t("message", "edit_postal_code", chat_id=chat_id): (f"change_postal_{address.id}", 4),
-                t("message", "back_button", chat_id=chat_id): ("back_to_addresses", 5),
-                t("message", "delete_address", chat_id=chat_id): (f"delete_address_{address.id}", 6)
-            }
+            if not address_session.get("show_store_address"):
+                buttons = {
+                    t("message", 'change_location', chat_id=chat_id): (f'change_location_{address.id}', 1),
+                    t("message", "send_to_this_address", chat_id=chat_id): (f"select_address_{address.id}", 2),
+                    t("message", "edit_address", chat_id=chat_id): (f"change_address_{address.id}", 3),
+                    t("message", "edit_postal_code", chat_id=chat_id): (f"change_postal_{address.id}", 4),
+                    t("message", "back_button", chat_id=chat_id): ("back_to_addresses", 5),
+                    t("message", "delete_address", chat_id=chat_id): (f"delete_address_{address.id}", 6)
+                }
+                button_layout = [1, 1, 1, 1, 2]
+            else:
+                buttons = {
+                    t("message", 'change_location', chat_id=chat_id): (f'change_location_{address.id}', 1),
+                    t("message", "edit_address", chat_id=chat_id): (f"change_address_{address.id}", 2),
+                    t("message", "edit_postal_code", chat_id=chat_id): (f"change_postal_{address.id}", 3),
+                    t("message", "back_button", chat_id=chat_id): ("back_to_addresses", 4),
+                    t("message", "delete_address", chat_id=chat_id): (f"delete_address_{address.id}", 5)
+                }
+                button_layout = [1, 1, 1, 2]
 
             markup = SendMarkup(
                 bot=self.app,
                 chat_id=self.chat_id,
                 text=text,
                 buttons=buttons,
-                button_layout=[1, 1, 1, 1, 2],
+                button_layout=button_layout,
                 handlers={
                     f"change_location_{address.id}": lambda c: self.change_location(c, address),
                     f"select_address_{address.id}": lambda c: self.select_address(c, address),
@@ -3681,12 +3705,16 @@ class SendLocation:
                     f"delete_address_{address.id}": lambda c: self.delete_address(c, address)
                 }
             )
-
             # ارسال یا ویرایش پیام
-            if call:
-                markup.edit(call.message.message_id)  # ویرایش پیام موجود
-            else:
+            if address_session.get("show_store_address"):
+                self.app.delete_message(chat_id, message.message_id)
+                try:
+                    self.app.delete_message(chat_id, shop_session.get("msg_id"))
+                except:
+                    pass
                 markup.send()  # ارسال پیام جدید
+                return
+            markup.edit(call.message.message_id)
 
         except Exception as e:
             error_details = traceback.format_exc()
@@ -3730,8 +3758,15 @@ class SendLocation:
     def delete_address(self, call, address):
         """حذف آدرس"""
         try:
+            session = self.session_manager.get_user_session(call.message.chat.id, namespace="address") or {}
+            
             address.delete()
             self.app.answer_callback_query(call.id, t(call.message, "address_deleted"))
+            if session.get("show_store_address"):
+                self.session_manager.reset_user_session(call.message.chat.id, namespace="address")
+                self.app.delete_message(call.message.chat.id, call.message.message_id)
+                self.build_shop_info(call.message)
+                return
             self.show_addresses(call)
         except Exception as e:
             print(f"Error in delete_address: {traceback.format_exc()}")
@@ -3778,7 +3813,17 @@ class SendLocation:
 
     def manual_add_address(self, call):
         try:
-            text = t(call.message, "select_country")
+            if isinstance(call, types.Message):
+                message = call
+                call_data = None
+                is_callback = False
+            else:
+                message = call.message
+                call_data = call.data
+                is_callback = True
+            address_session = self.session_manager.get_user_session(message.chat.id, namespace="address") or {}
+            shop_session = self.session_manager.get_user_session(message.chat.id, namespace="createshop") or {}
+            text = t(message, "select_country")
             items = [item for item in get_country_choices(self.profile.lang)]
             items_name = [item[1] for item in get_country_choices(self.profile.lang)]
             items_code = [item[0] for item in get_country_choices(self.profile.lang)]
@@ -3795,14 +3840,14 @@ class SendLocation:
             buttons['🔙'] = {'callback_data': '_back', 'index': len(buttons)+1}
             handlers["_back"] = self.handle_previous
 
-            buttons[t(call.message, "close")] = {'callback_data': 'address_close', 'index': len(buttons)+2}
+            buttons[t(message, "close")] = {'callback_data': 'address_close', 'index': len(buttons)+2}
             handlers["address_close"] = self.handle_close
             layout.append(2)
 
 
-            data = self.session_manager.get_user_session(call.message.chat.id, namespace="address")
+            data = self.session_manager.get_user_session(message.chat.id, namespace="address")
             data["state"] = "address_selection_country"
-            self.session_manager.set_user_session(call.message.chat.id, data, namespace="address")
+            self.session_manager.set_user_session(message.chat.id, data, namespace="address")
 
 
 
@@ -3816,14 +3861,21 @@ class SendLocation:
                 handlers=handlers
             )
 
-
-            markup.edit(call.message.message_id)
+            if address_session.get("add_store_address"):
+                self.app.delete_message(message.chat.id, message.message_id)
+                try:
+                    self.app.delete_message(message.chat.id, shop_session.get("msg_id"))
+                except:
+                    pass
+                markup.send()  # ارسال پیام جدید
+                return
+            markup.edit(message.message_id)
 
 
         except Exception as e:
             error_details = traceback.format_exc()
             print(f"Error in show_addresses: {e}\n{error_details}")
-            self.app.send_message(self.chat_id, t(call.message, "address_display_error"))
+            self.app.send_message(self.chat_id, t(message, "address_display_error"))
 
 
     def handle_prev(self, call):
@@ -4121,6 +4173,7 @@ class SendLocation:
     def handle_picked_zipcode(self, message):
         try:
             data = self.session_manager.get_user_session(message.chat.id, namespace="address")
+            temp_address_session = self.session_manager.get_user_session(message.chat.id, namespace="temp_address") or {}
 
             # change postal of address previously created
             if (type(data.get("change_postal")) == list) and (data.get("change_postal")[0]):
@@ -4147,15 +4200,32 @@ class SendLocation:
                     self.app.delete_message(message.chat.id, message.message_id)
                     self.app.delete_message(message.chat.id, data["old_message"])
                 else:
-                    address = Address.objects.create(profile=self.profile, shipping_line1=data["selected_address_line1"], shipping_country=data["selected_country"], shipping_province=data["selected_province"], shipping_city=data["selected_city"], shipping_zip_code=data["selected_zipcode"], shipping_is_active=True) 
-                    address.save()
+                    if data.get("add_store_address"):
+                        try:
+                            store = Store.objects.get(id=data.get("store_id"))
+                            address = Address.objects.create(store=store, shipping_line1=data["selected_address_line1"], shipping_country=data["selected_country"], shipping_province=data["selected_province"], shipping_city=data["selected_city"], shipping_zip_code=data["selected_zipcode"])
+                            address.save()
+                        except:
+                            temp_address_session = {'temp_store_address': True, 'selected_country': data["selected_country"], 'selected_province': data["selected_province"], 'selected_city': data["selected_city"], 'selected_address_line1': data["selected_address_line1"], 'selected_zipcode': data["selected_zipcode"]}
+                            session_manager.set_user_session(message.chat.id, temp_address_session, namespace="temp_address")
+                    else:
+                        address = Address.objects.create(profile=self.profile, shipping_line1=data["selected_address_line1"], shipping_country=data["selected_country"], shipping_province=data["selected_province"], shipping_city=data["selected_city"], shipping_zip_code=data["selected_zipcode"], shipping_is_active=True)
+                        self.app.delete_message(message.chat.id, data["old_message"])
+                        address.save()
                     self.app.delete_message(message.chat.id, message.message_id)
-                    self.app.delete_message(message.chat.id, data["old_message"])
 
             if (type(data.get("change_postal")) == list) and (data.get("change_postal")[0]):
-                self.show_single_address(address=address, chat_id=message.chat.id)
+                self.show_single_address(address=address, call=message)
                 data['change_postal'] = None
                 self.session_manager.set_user_session(message.chat.id, data, namespace="address")   
+                return
+            if data.get("show_store_address") or data.get("add_store_address"):
+                if data.get("store_address_message"):
+                    self.show_single_address(address, call=message)
+                    self.session_manager.reset_user_session(message.chat.id, namespace="address")
+                    return
+                self.build_shop_info(message)
+                self.session_manager.reset_user_session(message.chat.id, namespace="address")
                 return
             if not data.get('from my postal address'):
                 SendCart(self.app, self.message).invoice(self.message)
@@ -4192,6 +4262,13 @@ class SendLocation:
 
     def send_location_add_address(self):
         pass
+
+    def build_shop_info(self, message):
+        try:
+            from telbot.views import build_shop
+            build_shop(message)
+        except:
+            print(traceback.format_exc())
 
 
 ##############################################    SEND PHONE    ##############################################
@@ -5023,7 +5100,7 @@ class SendPhotoWithMarkup(SendMarkup):
             
             # ارسال عکس از مسیر فایل
             if self.file_id:
-                self.bot.send_photo(
+                msg = self.bot.send_photo(
                     chat_id=self.chat_id,
                     photo=self.file_id,
                     caption=self.text,
@@ -5033,7 +5110,7 @@ class SendPhotoWithMarkup(SendMarkup):
 
             elif self.photo_path:
                 with open(self.photo_path, 'rb') as photo:
-                    self.bot.send_photo(
+                    msg = self.bot.send_photo(
                         chat_id=self.chat_id,
                         photo=photo,
                         caption=self.text,
@@ -5042,7 +5119,7 @@ class SendPhotoWithMarkup(SendMarkup):
                     )
 
             elif self.photo_url:
-                self.bot.send_photo(
+                msg =self.bot.send_photo(
                     chat_id=self.chat_id,
                     photo=self.photo_url,
                     caption=self.text,
@@ -5052,6 +5129,8 @@ class SendPhotoWithMarkup(SendMarkup):
 
             else:
                 print("هیچ منبع عکسی مشخص نشده است")
+
+            return msg
                 
         except Exception as e:
             print(f"Error in SendPhotoWithMarkup.send: {traceback.format_exc()}")
@@ -5143,7 +5222,7 @@ class SendStore:
 
             logo = self._get_logo_source(profile, store)
 
-            SendPhotoWithMarkup(
+            msg = SendPhotoWithMarkup(
                 bot=self.bot,
                 chat_id=chat_id,
                 photo_path=logo["value"] if logo["type"] == "path" else None,
@@ -5163,7 +5242,6 @@ class SendStore:
     # =============================
     def _load_context(self, chat_id):
         profile = ProfileModel.objects.get(tel_id=chat_id)
-
         store = (
             Store.objects
             .select_related("owner")
@@ -5179,6 +5257,7 @@ class SendStore:
     # =============================
     def _generate_buttons(self, profile, store):
         buttons = {}
+        method = "زرینپال"
 
         if not store:
             session = session_manager.get_user_session(profile.tel_id, namespace="createshop")
@@ -5187,11 +5266,11 @@ class SendStore:
                 "callback_data": "store_name", "index": 1
             }
 
-            buttons[t(
-                'message', 'address',
-                profile=profile,
-                address_text=' --- '
-            )] = {"callback_data": "noop", "index": 1}
+            addr_text = self._format_address(addr=None, profile=profile)
+
+            buttons[t('message', 'address', profile=profile, address_text=addr_text)] = {
+                "callback_data": f"add_address_store_", "index": 1
+            }
 
             buttons[t(
                 'message', 'store_description',
@@ -5199,9 +5278,9 @@ class SendStore:
             )] = {"callback_data": "store_description", "index": 1}
 
             buttons[t(
-                'message', 'store_payment_metod',
-                profile=profile,
-            )] = {"callback_data": "store_payment_metod", "index": 1}
+                'message', 'store_payment_method',
+                profile=profile, method=method,
+            )] = {"callback_data": "store_payment_method", "index": 1}
 
             buttons[t(
                 'message', 'store_telegram_channel',
@@ -5221,15 +5300,19 @@ class SendStore:
 
         addr = store.get_address()
 
-        addr_text = self._format_address(addr, profile.lang)
+        addr_text = self._format_address(addr, profile)
 
         buttons[f"{t('message','store_name', profile=profile)}: {store.name}"] = {
             "callback_data": "store_name", "index": 1
         }
-
-        buttons[t('message', 'address', profile=profile, address_text=addr_text)] = {
-            "callback_data": "buy_product", "index": 1
-        }
+        if addr:
+            buttons[t('message', 'address', profile=profile, address_text=addr_text)] = {
+                "callback_data": f"show_address_store_{addr.id}", "index": 1
+            }
+        else:
+            buttons[t('message', 'address', profile=profile, address_text=addr_text)] = {
+                "callback_data": f"add_address_store_{store.id}", "index": 1
+            }
 
         buttons[t(
             'message', 'store_description',
@@ -5237,9 +5320,9 @@ class SendStore:
         )] = {"callback_data": "store_description", "index": 1}
 
         buttons[t(
-            'message', 'store_payment_metod',
-            profile=profile,
-        )] = {"callback_data": "store_payment_metod", "index": 1}
+            'message', 'store_payment_method',
+            profile=profile, method=method,
+        )] = {"callback_data": "store_payment_method", "index": 1}
 
         buttons[t(
             'message', 'store_telegram_channel',
@@ -5301,15 +5384,112 @@ class SendStore:
 
 
 
-    @staticmethod
-    def _format_address(addr, lang):
-        if not addr:
+
+    def _format_address(self, addr, profile):
+        addr_session = session_manager.get_user_session(user_id=profile.tel_id, namespace="temp_address")
+        if not addr and not addr_session.get("temp_store_address"):
             return "---"
 
-        if lang == "fa":
-            return f"{addr.shipping_country_name}، {addr.shipping_province_name}، {addr.shipping_city_name} ..."
+        elif not addr and addr_session.get("temp_store_address"):
+            addr_session["shipping_selected_country"] = self._get_translated_name("country", addr_session["selected_country"], lang=profile.lang)
+            addr_session["shipping_selected_province"] = self._get_translated_name("province", addr_session["selected_country"], addr_session["selected_province"], lang=profile.lang)
+            addr_session["shipping_selected_city"] = self._get_translated_name("city", addr_session["selected_country"], addr_session["selected_province"], addr_session["selected_city"], lang=profile.lang)
         else:
-            return f"{addr.shipping_city_name}, {addr.shipping_province_name}, {addr.shipping_country_name} ..."
+            addr_session["shipping_selected_country"] = addr.shipping_country_name
+            addr_session["shipping_selected_province"] = addr.shipping_province_name
+            addr_session["shipping_selected_city"] = addr.shipping_city_name
+
+
+        addr = addr_session
+
+        if profile.lang == "fa":
+            return f"{addr["shipping_selected_country"]}، {addr["shipping_selected_province"]}، {addr["shipping_selected_city"]} ..."
+        else:
+            return f"{addr["shipping_selected_country"]}, {addr["shipping_selected_province"]}, {addr["shipping_selected_city"]} ..."
+
+    def _get_translated_name(
+        self,
+        entity_type,
+        country_code,
+        province_name=None,
+        city_name=None,
+        lang=None
+    ):
+
+        with open(
+            settings.BASE_DIR / "utils/Data/countries_full_multilang.json",
+            "r",
+            encoding="utf-8",
+        ) as f:
+            countries_data = json.load(f)
+
+        language_map = {
+            "fa": "fa",
+            "ar": "ar",
+            "ru": "ru",
+            "ch": "ch",
+            "en": "en",
+        }
+
+        try:
+
+            country = countries_data[country_code]
+
+            if entity_type == "country":
+
+                return country["names"].get(
+                    lang,
+                    country["names"]["en"],
+                )
+
+            if entity_type == "province":
+
+                province = country["provinces"].get(
+                    province_name,
+                    {},
+                )
+
+                return province.get(
+                    "names",
+                    {},
+                ).get(
+                    lang,
+                    province_name,
+                )
+
+            if entity_type == "city":
+
+                province = country["provinces"].get(
+                    province_name,
+                    {},
+                )
+
+                city = province.get(
+                    "cities",
+                    {},
+                ).get(
+                    city_name,
+                    {},
+                )
+
+                return city.get(
+                    "names",
+                    {},
+                ).get(
+                    lang,
+                    city_name,
+                )
+
+        except Exception:
+            pass
+
+        if entity_type == "country":
+            return country_code
+
+        if entity_type == "province":
+            return province_name
+
+        return city_name
 
 
     def take_name(self, call):
@@ -5397,6 +5577,39 @@ class SendStore:
             session["take_data"] = True
             session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
 
+        except:
+            print(traceback.format_exc())
+
+    
+    def payment_mehtod(self, call):
+        try:
+            session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
+            profile, store = self._load_context(call.message.chat.id)
+            text = t('message','set_store_payment_methods', profile=profile)
+            self.bot.delete_message(call.message.chat.id, call.message.message_id)
+            try:
+                self.bot.delete_message(call.message.chat.id, session.get("msg_id"))
+            except:
+                pass
+            cancel_text = t("message", "back_button", profile=profile)
+            buttons = {
+                "زرینپال": {"callback_data": "store_payment_method_zarinpal", "index": 1},
+                cancel_text: {"callback_data": "noop", "index": 1}
+            }
+
+
+            self.markup = SendMarkup(
+                bot=self.bot,
+                chat_id=call.message.chat.id,
+                text=text,
+                buttons=buttons,
+                button_layout=[1, 1, 1, 1],
+                handlers={"noop": lambda call: self.bot.answer_callback_query(call.id, cancel_text)}
+            )
+            self.markup.send()
+            session["take_payment_method"] = True
+            session["take_data"] = True
+            session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
         except:
             print(traceback.format_exc())
 
@@ -5963,9 +6176,4 @@ class PromoteRouter:
 
         if key in self.handlers:
             self.handlers[key](call)
-
-
-
-
-
 

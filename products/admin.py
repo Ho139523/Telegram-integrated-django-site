@@ -158,6 +158,7 @@ class ProductImageAdmin(admin.ModelAdmin):
 class StoreAdmin(admin.ModelAdmin):
 
     list_display = (
+        "id",
         "name",
         "owner",
         "markant_id",

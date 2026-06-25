@@ -14,7 +14,7 @@ from telebot import TeleBot, types
 
 from products.models import Product, ProductImage, Category, ProductVariant
 from accounts.models import ProfileModel
-from utils.telbot.functions import ProductHandler
+from utils.telbot.functions import ProductHandler, t
 from utils.variables.TOKEN import TOKEN, api_id, api_hash, BOT_ID
 from utils.variables.translate import translations
 
@@ -34,8 +34,7 @@ bot = TeleBot(BOT_TOKEN)
 
 
 # --- Translation Helper ---
-@sync_to_async
-def async_helper(product):
+def helper(product):
     """
     دریافت tel_id و lang صاحب فروشگاه به صورت sync_to_async
     """
@@ -45,7 +44,7 @@ def async_helper(product):
     return store.lang, store.id, product.code, chat_id
 
 
-async def t(lang, key, **kwargs):
+async def translate(lang, key, **kwargs):
     """
     تابع ترجمه‌ی متن با توجه به زبان کاربر
     """
@@ -71,35 +70,31 @@ def update_subcategories_status(sender, instance, **kwargs):
             subcategory.status = False
             subcategory.save()
 
+    if instance.status:
+        subcategories = instance.get_all_subcategories()
+        for subcategory in subcategories:
+            subcategory.status = True
+            subcategory.save()
+
 
 # --- Async Telegram Sending ---
-async def send_album_and_button(channel_id, product, photos, attributes):
+def send_album_and_button(channel_id, product, photos, attributes):
     """
     آلبوم محصول را با Telethon می‌فرستد و سپس دکمه Buy Now را با TeleBot ارسال می‌کند
     """
     try:
-        client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-        await client.connect()
-
-        if not await client.is_user_authorized():
-            print("⚠ Telethon session is not authorized.")
-            return
 
         # --- 1. واکشی اطلاعات صاحب فروشگاه ---
-        owner_lang, store_id, product_id, chat_id = await async_helper(product)
+        owner_lang, store_id, product_id, chat_id = helper(product)
 
 
         # --- 2. ارسال آلبوم ---
-        print(f"channel ID: {channel_id}")
-        print(f"chat ID: {chat_id   }")
-        handler = ProductHandler(client, product, SITE_DOMAIN, photos=photos, attributes=attributes, chat_id=chat_id)
-        await handler.send_product_channel(channel_id, buttons=False)
+        handler = ProductHandler(bot, product, SITE_DOMAIN, photos=photos, attributes=attributes, chat_id=chat_id)
+        handler.send_product_message(channel_id, buttons=False)
 
-        await client.disconnect()
-        print("✅ Album sent successfully.")
 
         # --- 3. ترجمه‌ی متن دکمه ---
-        buy_now_text = await t(owner_lang, "buy_now")
+        buy_now_text = t("message", "buy_now", chat_id=chat_id)
 
         # --- 4. ارسال دکمه با TeleBot ---
         markup = types.InlineKeyboardMarkup()
@@ -109,21 +104,17 @@ async def send_album_and_button(channel_id, product, photos, attributes):
         bot.send_message(channel_id, "👇👇👇👇👇👇👇👇", reply_markup=markup)
 
     except Exception as e:
-        print("⚠ Error in send_album_and_button:", e)
-        traceback.print_exc()
+        print(f"⚠ Error in send_album_and_button:{traceback.format_exc()}")
 
 
-def send_album_sync(channel_id, product, photos, attributes):
-    asyncio.run(send_album_and_button(channel_id, product, photos, attributes))
 
-
-# --- Signal: ProductImage trigger ---
 @receiver(post_save, sender=ProductImage)
 def send_album_when_all_images_added(sender, instance, created, **kwargs):
     """
     وقتی همه‌ی تصاویر محصول (از جمله main_image) اضافه شدند،
     آلبوم به کانال ارسال شود.
     """
+
     if not created:
         return
 
@@ -140,7 +131,6 @@ def send_album_when_all_images_added(sender, instance, created, **kwargs):
 
     # فرض: فقط وقتی تعداد عکس‌ها 4 تا شد ارسال کنیم
     if len(photos) == 4:
-        print("✅ All product images added. Sending album...")
 
         channel_id = product.store.tel_channel
         if not channel_id:
@@ -148,7 +138,7 @@ def send_album_when_all_images_added(sender, instance, created, **kwargs):
             return
 
         # اینجا attributes به‌صورت list پاس داده می‌شود ✅
-        send_album_sync(channel_id, product, photos, attributes)
+        send_album_and_button(channel_id, product, photos, attributes)
 
 
 # سیگنال برای زمانیکه values به واریانت اضافه شد — اگر SKU خالی باشد آن را تولید می‌کند.

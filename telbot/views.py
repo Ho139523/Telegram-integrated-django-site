@@ -28,7 +28,7 @@ from AI.settings import SITE_DOMAIN
 
 # support imports
 from telebot.storage import StateMemoryStorage
-from telebot.handler_backends import State, StatesGroup
+from telebot.handler_backends import MemoryHandlerBackend, State, StatesGroup
 from telebot import custom_filters
 
 # Variables imports
@@ -1066,11 +1066,11 @@ def become_a_seller(message):
         try:
             profile = ProfileModel.objects.get(tel_id=message.chat.id)
             store = Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.chat.id))
-            if store.status:
-                profile.seller_mode = True
-            else:
-                promotion(message)
-                return
+            # if store.status:
+            profile.seller_mode = True
+            # else:
+                # promotion(message)
+                # return
             profile.settings_menu = profile.LEVEL_MENUS["seller"][2]
             profile.save()
             profile.save()
@@ -1084,7 +1084,7 @@ def become_a_seller(message):
 
 # back to buyer mode handler# become a seller handler
 @app.message_handler(func=lambda message: message.text in (translations["menu_back_to_buyer"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
-def back_to_buyer(message):
+def back_to_buyer(message, text=None, *args, **kwargs):
     if subscription.subscription_offer(message):
         profile = ProfileModel.objects.get(tel_id=message.chat.id)
         profile.seller_mode = False
@@ -1092,7 +1092,7 @@ def back_to_buyer(message):
         profile.save()
         profile.save()
 
-        home(message)
+        home(message, text=text)
 
 
 from reportlab.platypus import (
@@ -1583,7 +1583,7 @@ def phone_handler(data):
 )
 @app.callback_query_handler(func=lambda call: call.data.startswith(
     ("address", "show_address", "close_addresses", 'delete_address_', 'add_new_address', 'manual_add_address', 'next',
-     'prev', 'country_', 'province_', 'city_', '_back', "change_address")) or call.data in ("back_to_addresses"))
+     'prev', 'country_', 'province_', 'city_', '_back', "change_address", "store_address", "add_address_store")) or call.data in ("back_to_addresses"))
 def unified_address_handler(data):
     try:
         if isinstance(data, types.Message):
@@ -1594,8 +1594,9 @@ def unified_address_handler(data):
             message = data.message
             call_data = data.data
             is_callback = True
+        actions = call_data.split("_") if call_data else []
         loc = SendLocation(app, message)
-        session = session_manager.get_user_session(message.chat.id, namespace="address")
+        session = session_manager.get_user_session(message.chat.id, namespace="address") or {}
         
         if call_data == "_back":
             state = [
@@ -1629,12 +1630,22 @@ def unified_address_handler(data):
             data.message.text = "🏡"
             home(data)
         
+
         elif call_data in ("address", "back_to_addresses"):
+            session = session_manager.get_user_session(message.chat.id, namespace="address") or {}
+            if session.get("show_store_address"):
+                session_manager.reset_user_session(message.chat.id, namespace="address")
+                app.delete_message(message.chat.id, message.message_id)
+                build_shop(message)
+                return
             loc.show_addresses(data)
         elif call_data.startswith("show_address_"):
             address_id = int(call_data.split("_")[-1])
             address = Address.objects.get(id=address_id)
-            loc.show_single_address(address, data, chat_id=message.chat.id)
+            if actions[-2] == "store":
+                session['show_store_address'] = True
+                session_manager.set_user_session(message.chat.id, session, namespace="address")
+            loc.show_single_address(address, call=data)
         elif call_data.startswith("address_"):
             pass# loc.show_single_address(data, address)
         
@@ -1647,10 +1658,14 @@ def unified_address_handler(data):
         elif call_data.startswith("add_new_address"):
             print("yes add new address")
             loc.add_new_address(data)
-        elif call_data.startswith("manual_add_address") or call_data.startswith("change_address"):
+        elif call_data.startswith("manual_add_address") or call_data.startswith("change_address") or call_data.startswith("add_address_store"):
             if call_data.startswith("change_address"):
                 address_id = int(call_data.split("_")[-1])
                 session['change_address'] = (True, address_id)
+                session_manager.set_user_session(message.chat.id, session, namespace="address")
+            if actions[-2] == "store":
+                session['add_store_address'] = True
+                session['store_id'] = actions[-1]
                 session_manager.set_user_session(message.chat.id, session, namespace="address")
             loc.manual_add_address(data)
         elif call_data.startswith("next"):
@@ -1680,7 +1695,17 @@ def unified_address_handler(data):
         else:
             app.send_message(message.chat.id, t(message, "invalid_command"))
     except Address.DoesNotExist:
-        app.send_message(message.chat.id, t(message, "address_not_found"))
+        if isinstance(data, types.Message):
+            app.send_message(message.chat.id, t(message, "address_not_found"))
+        else:
+            app.answer_callback_query(data.id, text=t(message, "address_not_found"), show_alert=False)
+        if actions[-2] == "store":
+            session.pop('add_store_address', None)
+            session.pop('store_id', None)
+            session_manager.set_user_session(message.chat.id, session, namespace="address")
+            app.delete_message(data.message.chat.id, data.message.message_id)
+            app.delete_message(data.message.chat.id, data.message.message_id - 1)
+            build_shop(message)
     except Exception as e:
         print(f"Error in unified_address_handler: {e}\n{traceback.format_exc()}")
 
@@ -1731,6 +1756,28 @@ def change_postal(call):
         print(f"Error in change_postal handler: {e}\n{traceback.format_exc()}")
 
 
+
+@app.message_handler(func=lambda message: message.text == t(message, "menu_change_warehouse"))
+def warehouse_location(message):
+    try:
+        session = session_manager.get_user_session(message.chat.id, namespace="address") or {}
+        loc = SendLocation(app, message)
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
+        store = Store.objects.get(owner=profile)
+        session["store_id"] = store.id
+        address = store.get_address()
+        session["store_address_message"] = True
+        if address:
+            session['show_store_address'] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="address")
+            loc.show_single_address(address, call=message)
+        else:
+            session['add_store_address'] = True
+            session_manager.set_user_session(message.chat.id, session, namespace="address")
+            loc.manual_add_address(message)
+        
+    except:
+        print(traceback.format_exc())
 
 
 @app.message_handler(func=lambda message: message.text in ('🇮🇷 فارسی', '🇬🇧  English', '🇨🇳  中国人', '🇷🇺  русский', '🇵🇸  عربیة',))
@@ -1982,12 +2029,11 @@ def add_product(message):
         error_details = traceback.format_exc()
         print(f"{error_details}")
 
-@app.message_handler(func=lambda message: message.text == t(message, "cancel_action") and session_manager.get_user_session(message.chat.id, namespace='createshop').get("take_data")==False)
+@app.message_handler(func=lambda message: message.text == t(message, "cancel_action"))
 def cancel_action(message):
     try:
         session = session_manager.get_user_session(message.chat.id, namespace="menu")
         if session.get("add_product") or session.get("delete_product") or session.get("deavtivate_product") or session.get("product_list"):
-            print("yes")
             product_bot.cancle_request(message)
             product(message)
         elif session.get("category"):
@@ -2168,7 +2214,6 @@ def add_product_process_getout(message):
         session2['add_product'] = False
         session_manager.set_user_session(message.chat.id, session2, namespace="menu")
 
-        print(session.get("code"))
         product_obj = Product.objects.get(code=session.get("code"))
         attributes = product_obj.attributes.all()
         product_handler = ProductHandler(app, product_obj, current_site, attributes=attributes, chat_id=message.chat.id)
@@ -2683,10 +2728,77 @@ def take_telegram_channel_d(message):
        print(traceback.format_exc())
 
 
+
+
+@app.callback_query_handler(func=lambda call: call.data == "delete_store")
+def delete_store(call):
+    try:
+        build_store = SendStore(app)
+        profile, store = build_store._load_context(call.message.chat.id)
+        store.delete()
+        back_to_buyer(call.message, text=t(call.message, "store_deleted_successfully"))
+
+    except:
+        print(traceback.format_exc())
+
+
+
+@app.callback_query_handler(func=lambda call: call.data == "store_payment_method")
+def store_payment_method(call):
+    try:
+        send_store = SendStore(app)
+        
+        send_store.payment_mehtod(call)
+    except:
+        print(traceback.format_exc())
+
+    
+@app.callback_query_handler(func=lambda call: session_manager.get_user_session(call.message.chat.id, namespace="createshop").get("take_payment_method"))
+def store_payment_method_zarinpal(call):
+    try:
+        send_store = SendStore(app)
+        gateway = "Zarinpal"
+        session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
+        app.edit_message_text(chat_id=call.message.chat.id, text = t(call.message, "enter_merchant_code", gateway=gateway), message_id=call.message.message_id, reply_markup=None)
+        session["take_payment_method"] = False
+        session["take_merchant_id"] = True
+        session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")
+        send_store.payment_mehtod_take_merchant_id(call)
+    except:
+        print(traceback.format_exc())
+
+@app.message_handler(func=lambda message: session_manager.get_user_session(message.chat.id, namespace="createshop").get("take_merchant_id"))
+def store_payment_method_take_merchant_id(message):
+    try:
+        send_store = SendStore(app)
+        session = session_manager.get_user_session(message.chat.id, namespace="createshop")
+        profile, store = send_store._load_context(message.chat.id)
+        
+        merchant_id = message.text.strip()
+        if not merchant_id:
+            app.send_message(message.chat.id, t(message, "merchant_code_cannot_be_empty"), alert=False)
+            return
+        
+        if store:
+            store.merchant_id = merchant_id
+            store.save()
+        else:
+            session["take_merchant_id_d"] = merchant_id
+
+        session["take_merchant_id"] = False
+        session["take_data"] = False
+        session_manager.set_user_session(message.chat.id, session, namespace="createshop")
+        build_shop(message)
+
+    except:
+        print(traceback.format_exc())
+
+
 @app.callback_query_handler(func=lambda call: call.data == "submit_info")
 def submit_store(call):
     try:
         session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
+        temp_address_session = session_manager.get_user_session(call.message.chat.id, namespace="temp_address") or {}
         build_store = SendStore(app)
         profile, store = build_store._load_context(call.message.chat.id)
         msg = {"take_logo_d": t("message", "store_logo", profile=profile),
@@ -2700,24 +2812,23 @@ def submit_store(call):
                 item = str(msg[i])
                 msg_info = t("message", "store_info_not_filled_yet", profile=profile, item=item)
                 app.answer_callback_query(call.id, msg_info, show_alert=True)
-                print(f"{i}")
-                print(session.get(f"{i}"))
-                print(session)
                 return
         
         file_id = session.get("take_logo_d")
         file_info = app.get_file(file_id)
         downloaded_file = app.download_file(file_info.file_path)
         store = Store.objects.create(
-                owner = profile,
-                name=session.get("take_name_d"),
-                tel_channel=session.get("teke_telegram_channel_d"),
-                lang=profile.lang,
-                description=session.get("take_description_d"),
-                status=False
-                )
+            owner = profile,
+            name=session.get("take_name_d"),
+            tel_channel=session.get("teke_telegram_channel_d"),
+            lang=profile.lang,
+            description=session.get("take_description_d"),
+            status=False,
+            markant_id=session.get("take_merchant_id_d")
+        )
+        address = Address.objects.create(store=store, shipping_line1=temp_address_session["selected_address_line1"], shipping_country=temp_address_session["selected_country"], shipping_province=temp_address_session["selected_province"], shipping_city=temp_address_session["selected_city"], shipping_zip_code=temp_address_session["selected_zipcode"])
         from subscription.services.general import SubscriptionService
-
+        session_manager.reset_user_session(call.message.chat.id, namespace="temp_address")
         subscription = SubscriptionService.get_or_create_subscription(store)
         store.logo=ContentFile(downloaded_file, name=f'logo_{store.id}.jpg')
         store.save()
@@ -2729,21 +2840,6 @@ def submit_store(call):
     except:
         print(traceback.format_exc())
 
-
-
-@app.callback_query_handler(func=lambda call: call.data == "delete_store")
-def delete_store(call):
-    try:
-        build_store = SendStore(app)
-        profile, store = build_store._load_context(call.message.chat.id)
-        
-        
-        app.send_message(call.message.chat.id, t("message", "store_registered_successfully", profile=profile))
-        store.delete()
-        back_to_buyer(call.message)
-
-    except:
-        print(traceback.format_exc())
 
 
 ##################################### PROMOTION #####################################

@@ -424,10 +424,19 @@ REST_FRAMEWORK = {
 
 
 ZARINPAL = {
-    'MERCHANT_ID': os.environ.get('MECHANT_ID'),  # مرچنت کد شما
-    'CALLBACK_URL': SITE_DOMAIN + '/payments/webhook/zarinpal/',
+    'MERCHANT_ID': os.environ.get('MERCHANT_ID'),
+
+    'CALLBACK_URL':
+        SITE_DOMAIN + '/verify/',
+
+    # فقط برای تست
     'SANDBOX': True,
+
+    # دامنه اختصاصی که در پنل زرین‌پال ثبت کرده‌ای
+    'ZARINPAL_GATEWAY': 'https://pay.intelleum.ir',
 }
+
+
 
 
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
@@ -504,5 +513,5 @@ APPEND_SLASH = False  # اضافه کن
 
 
 is_proxied = True
-manual_proxy = True
-FlaskBridge = False
+manual_proxy = False
+FlaskBridge = True

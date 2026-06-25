@@ -2,19 +2,80 @@
 import aiohttp
 import asyncio
 import sys
-from AI.settings import SITE_DOMAIN
 import requests
 
-print(SITE_DOMAIN)
+from AI.settings import FlaskBridge
+
 bot = input("[1] Telegram Bot \n[2] Bale Bot\nPlease tell me which one do you want to change? ")
 
 
+# B.py
+def update_settings_py(method=1):
+    lines = []
+    if method == "1":
+        response = input("[1] Google VPN response\n[2] Flclash VPN response\n[3] Flask response\nWhich way do you want me to respond your bot: ")
+    with open('AI/settings.py', 'r') as file:
+        for line in file:
+            if method == "1":
+                if response == "3":
+                    if line.strip().startswith("is_proxied"):
+                        line = "is_proxied = True\n"
+                    elif line.strip().startswith("manual_proxy"):
+                        line = "manual_proxy = False\n"
+                    elif line.strip().startswith("FlaskBridge"):
+                        line = "FlaskBridge = True\n"
+                elif response == "2":
+                    if line.strip().startswith("is_proxied"):
+                        line = "is_proxied = False\n"
+                elif response == "1":
+                    if line.strip().startswith("is_proxied"):
+                        line = "is_proxied = True\n"
+                    elif line.strip().startswith("manual_proxy"):
+                        line = "manual_proxy = True\n"
+                    elif line.strip().startswith("FlaskBridge"):
+                        line = "FlaskBridge = False\n"
+            elif method == "2":
+                if line.strip().startswith("is_proxied"):
+                    line = "is_proxied = True\n"
+                elif line.strip().startswith("manual_proxy"):
+                    line = "manual_proxy = True\n"
+                elif line.strip().startswith("FlaskBridge"):
+                    line = "FlaskBridge = False\n"
+            elif method == "3":
+                if line.strip().startswith("is_proxied"):
+                    line = "is_proxied = False\n"
+
+            lines.append(line)
+    
+    with open('AI/settings.py', 'w') as file:
+        file.writelines(lines)
+    
+    print("A.py updated successfully!")
+
+
+if bot == "1":
+    method = input("[1] Flask method \n[2] Self hosted method (Google VPN)\n[3] Self hosted method (Flclash)\nPlease tell me which way do you want to proceed: ")
+    if method == "1":
+        SITE_DOMAIN = "https://intellium.ir"
+    elif method == "2" or method == "3":
+        from AI.settings import SITE_DOMAIN
+    else:
+        print("Your choice is out of range!")
+        sys.exit()
+
+    update_settings_py(method)
 
 if bot == "1":
     from utils.variables.TOKEN import TOKEN
 
     BOT_TOKEN = TOKEN
-    WEBHOOK_URL = f"{SITE_DOMAIN}/telbot/webhook/"
+    if method == "1":
+        WEBHOOK_URL = f"{SITE_DOMAIN}/telegram"
+    elif method == "2" or method == "3":
+        WEBHOOK_URL = f"{SITE_DOMAIN}/telbot/webhook/"
+    else:
+        print("Your choice is out of range!")
+        sys.exit()
 
     try:
         print(f"Webhook URL: {WEBHOOK_URL}")
@@ -58,6 +119,7 @@ elif bot == "2":
     # 🚀 سخت کدنویسی IP برای دور زدن کامل DNS
     # ================================================
     from utils.variables.TOKEN import BTOKEN as TOKEN
+    from AI.settings import SITE_DOMAIN
     BOT_TOKEN = TOKEN
     WEBHOOK_URL = f"{SITE_DOMAIN}/balebot/webhook/"
     BOT_API_IP = "2.189.68.126"  # IP اصلی tapi.bale.ai که پیدا کردی

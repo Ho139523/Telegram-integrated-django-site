@@ -8,6 +8,8 @@ import json
 from django.utils.translation import get_language
 from django.conf import settings
 from django.db.models import Q
+from functools import lru_cache
+from django.core.exceptions import ValidationError
 
 
 class User(AbstractUser):
@@ -368,245 +370,286 @@ class ProfileModel(models.Model):
 class Address(models.Model):
     """
     مدل آدرس مشترک برای پروفایل‌ها و فروشگاه‌ها
-    - هر پروفایل می‌تواند چندین آدرس داشته باشد (یک آدرس فعال)
-    - هر فروشگاه فقط می‌تواند یک آدرس داشته باشد
+
+    - هر پروفایل می‌تواند چندین آدرس داشته باشد ولی فقط یکی فعال باشد.
+    - هر فروشگاه فقط یک آدرس دارد.
     """
+
     profile = models.ForeignKey(
-        "ProfileModel",  # استفاده از string reference برای جلوگیری از circular import
-        on_delete=models.CASCADE, 
+        "ProfileModel",
+        on_delete=models.CASCADE,
         related_name="addresses",
-        null=True,      # برای آدرس‌های فروشگاه null است
-        blank=True,     # برای آدرس‌های فروشگاه blank است
-        verbose_name="Profile"
+        null=True,
+        blank=True,
+        verbose_name="Profile",
     )
+
     store = models.OneToOneField(
-        "products.Store",  # استفاده از string reference
+        "products.Store",
         on_delete=models.CASCADE,
         related_name="store_address",
-        null=True,      # برای آدرس‌های پروفایل null است
-        blank=True,     # برای آدرس‌های پروفایل blank است
+        null=True,
+        blank=True,
         verbose_name="Store",
-        unique=True     # مهم: این تضمین می‌کند هر فروشگاه فقط یک آدرس داشته باشد
     )
-    
-    # فیلدهای آدرس
-    shipping_line1 = models.CharField(max_length=100, verbose_name="Address Line 1")
-    shipping_line2 = models.CharField(max_length=100, blank=True, null=True, verbose_name="Address Line 2")     
-    shipping_country = models.CharField(max_length=50, verbose_name="Country")
-    shipping_province = models.CharField(max_length=50, blank=True, null=True, verbose_name="Province")
-    shipping_city = models.CharField(max_length=50, blank=True, null=True, verbose_name="City")
-    shipping_zip_code = models.CharField(max_length=10, blank=True, null=True, verbose_name="Zip Code")
-    shipping_home_phone = models.CharField(max_length=15, blank=True, null=True, verbose_name="Residential Phone Number")
-    
-    # فقط برای آدرس‌های پروفایل معنی دارد
-    shipping_is_active = models.BooleanField(default=False, verbose_name="Active Address")
 
+    shipping_line1 = models.CharField(max_length=100)
+    shipping_line2 = models.CharField(max_length=100, blank=True, null=True)
 
+    shipping_country = models.CharField(max_length=50)
+    shipping_province = models.CharField(max_length=50, blank=True, null=True)
+    shipping_city = models.CharField(max_length=50, blank=True, null=True)
+
+    shipping_zip_code = models.CharField(max_length=10, blank=True, null=True)
+    shipping_home_phone = models.CharField(max_length=15, blank=True, null=True)
+
+    # فقط برای پروفایل معنا دارد
+    shipping_is_active = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Address"
         verbose_name_plural = "Addresses"
-    
+
         constraints = [
-            # یا profile یا store — نه هر دو
+
+            # دقیقا یکی از profile یا store باید مقدار داشته باشد
             models.CheckConstraint(
                 condition=(
-                    Q(profile__isnull=False, store__isnull=True) |
+                    Q(profile__isnull=False, store__isnull=True)
+                    |
                     Q(profile__isnull=True, store__isnull=False)
                 ),
                 name="address_owner_check",
             ),
-    
-            # آدرس فعال فقط برای پروفایل‌ها
+
+            # آدرس فعال فقط برای پروفایل
             models.CheckConstraint(
                 condition=(
-                    Q(profile__isnull=False) |
+                    Q(profile__isnull=False)
+                    |
                     Q(shipping_is_active=False)
                 ),
                 name="active_address_only_for_profiles",
             ),
         ]
-    
+
         indexes = [
             models.Index(fields=["profile", "shipping_is_active"]),
             models.Index(fields=["store"]),
-        ] 
-
-
-    def save(self, *args, **kwargs):
-        """
-        ذخیره آدرس با اعتبارسنجی و منطق business
-        """
-        # اعتبارسنجی قبل از ذخیره
-        self._validate_ownership()
-        
-        # مدیریت آدرس فعال برای پروفایل‌ها
-        if self.profile and self.shipping_is_active:
-            # غیرفعال کردن سایر آدرس‌های فعال این پروفایل
-            Address.objects.filter(
-                profile=self.profile, 
-                shipping_is_active=True
-            ).exclude(pk=self.pk).update(shipping_is_active=False)
-        
-        super().save(*args, **kwargs)
-
-    def _validate_ownership(self):
-        """
-        اعتبارسنجی مالکیت آدرس
-        """
-        from django.core.exceptions import ValidationError
-        
-        # آدرس باید یا متعلق به پروفایل باشد یا فروشگاه
-        if not self.profile and not self.store:
-            raise ValidationError("آدرس باید متعلق به یک پروفایل یا فروشگاه باشد.")
-        
-        # نمی‌تواند همزمان متعلق به هر دو باشد
-        if self.profile and self.store:
-            raise ValidationError("آدرس نمی‌تواند همزمان متعلق به پروفایل و فروشگاه باشد.")
-        
-        # shipping_is_active فقط برای آدرس‌های پروفایل معنی دارد
-        if self.shipping_is_active and not self.profile:
-            raise ValidationError("آدرس فعال فقط برای پروفایل‌ها قابل تعریف است.")
+        ]
 
     def clean(self):
-        """
-        اعتبارسنجی منطقی برای فرم‌ها و admin
-        """
+
         super().clean()
-    
-        # یا profile یا store — نه هر دو
-        if self.profile and self.store:
+
+        if bool(self.profile) == bool(self.store):
             raise ValidationError(
-                "آدرس نمی‌تواند همزمان متعلق به پروفایل و فروشگاه باشد."
+                "آدرس باید فقط متعلق به پروفایل یا فقط متعلق به فروشگاه باشد."
             )
-    
-        # آدرس فعال فقط برای پروفایل
+
         if self.shipping_is_active and not self.profile:
             raise ValidationError(
                 "آدرس فعال فقط برای پروفایل‌ها مجاز است."
             )
-    
-        # اگر متد جداگانه داری، اینجا صدا بزن
-        if hasattr(self, "_validate_ownership"):
-            self._validate_ownership() 
+
+    def save(self, *args, **kwargs):
+
+        self.full_clean()
+
+        super().save(*args, **kwargs)
+
+        # اگر این آدرس فعال باشد، سایر آدرس‌های پروفایل غیرفعال شوند
+        if self.profile and self.shipping_is_active:
+            Address.objects.filter(
+                profile=self.profile,
+                shipping_is_active=True,
+            ).exclude(
+                pk=self.pk
+            ).update(
+                shipping_is_active=False
+            )
 
     def __str__(self):
+
         if self.profile:
-            user_info = self.profile.user.username if hasattr(self.profile, 'user') and self.profile.user else self.profile.tel_id
-            return f"Profile: {user_info} - {self.shipping_line1} ({'Active' if self.shipping_is_active else 'Inactive'})"
-        elif self.store:
+            if self.profile.user:
+                owner = self.profile.user.username
+            else:
+                owner = self.profile.tel_id
+
+            return (
+                f"Profile: {owner} - "
+                f"{self.shipping_line1} "
+                f"({'Active' if self.shipping_is_active else 'Inactive'})"
+            )
+
+        if self.store:
             return f"Store: {self.store.name} - {self.shipping_line1}"
-        return f"Address: {self.shipping_line1}"
+
+        return self.shipping_line1
 
     @property
     def owner_type(self):
-        """نوع مالک آدرس را برمی‌گرداند"""
+
         if self.profile:
             return "profile"
-        elif self.store:
+
+        if self.store:
             return "store"
+
         return "unknown"
 
     @property
     def owner_name(self):
-        """نام مالک آدرس را برمی‌گرداند"""
+
         if self.profile:
+
             if self.profile.user:
                 return self.profile.user.username
+
             return self.profile.tel_id or f"Profile {self.profile.pk}"
-        elif self.store:
+
+        if self.store:
             return self.store.name
+
         return "Unknown"
 
-    @property 
+    @property
     def shipping_country_name(self):
-        """بررسی دیباگ"""
-        print(f"DEBUG shipping_country_name called")
-        print(f"  - Country code: {self.shipping_country}")
-        print(f"  - Profile: {self.profile}")
-        print(f"  - Store: {self.store}")
-        
-        if self.store:
-            print(f"  - Store owner: {self.store.owner}")
-            if self.store.owner:
-                print(f"  - Store owner lang: {self.store.owner.lang}")
-        
-        if self.profile:
-            print(f"  - Profile lang: {self.profile.lang}")
-        
-        result = self._get_translated_name('country', self.shipping_country)
-        print(f"  - Result: {result}")
-        return result
+
+        return self._get_translated_name(
+            "country",
+            self.shipping_country,
+        )
 
     @property
     def shipping_province_name(self):
+
         if not self.shipping_province:
             return None
-        return self._get_translated_name('province', self.shipping_country, self.shipping_province)
+
+        return self._get_translated_name(
+            "province",
+            self.shipping_country,
+            self.shipping_province,
+        )
 
     @property
     def shipping_city_name(self):
+
         if not self.shipping_city:
             return None
-        return self._get_translated_name('city', self.shipping_country, self.shipping_province, self.shipping_city)
 
-    def _get_translated_name(self, entity_type, country_code, province_name=None, city_name=None):
-        # بارگذاری فایل JSON
-        with open(settings.BASE_DIR / './utils/Data/countries_full_multilang.json', 'r', encoding='utf-8') as f:
-            countries_data = json.load(f)
+        return self._get_translated_name(
+            "city",
+            self.shipping_country,
+            self.shipping_province,
+            self.shipping_city,
+        )
 
-        # تشخیص زبان
-        try:
-            if self.store and self.store.owner:
-                language = self.store.owner.lang  # ✅ اول از صاحب فروشگاه
-                print(f"  - Language from store owner: {language}")
-            elif self.profile:
-                language = self.profile.lang  # ✅ سپس از پروفایل
-                print(f"  - Language from profile: {language}")
-            else:
-                language = 'en'  # ✅ پیش‌فرض
-                print(f"  - Default language: {language}")
-        except Exception as e:
-            print(f"  - Error getting language: {e}")
-            language = 'en'
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def _countries_data():
 
-        # نگاشت زبان‌های ممکن به کدهای موجود در JSON
+        with open(
+            settings.BASE_DIR / "utils/Data/countries_full_multilang.json",
+            "r",
+            encoding="utf-8",
+        ) as f:
+
+            return json.load(f)
+
+    def _get_language(self):
+
+        if self.store and self.store.owner:
+            return self.store.owner.lang or "en"
+
+        if self.profile:
+            return self.profile.lang or "en"
+
+        return "en"
+
+    def _get_translated_name(
+        self,
+        entity_type,
+        country_code,
+        province_name=None,
+        city_name=None,
+    ):
+
+        countries_data = self._countries_data()
+
         language_map = {
-            'fa': 'fa',  # فارسی
-            'ar': 'ar',  # عربی
-            'ru': 'ru',  # روسی
-            'ch': 'ch',  # چینی
-            'en': 'en',  # انگلیسی
+            "fa": "fa",
+            "ar": "ar",
+            "ru": "ru",
+            "ch": "ch",
+            "en": "en",
         }
 
-        lang_code = language_map.get(language, 'en')
+        lang = language_map.get(
+            self._get_language(),
+            "en",
+        )
 
         try:
-            if entity_type == 'country':
-                return countries_data[country_code]['names'].get(lang_code, countries_data[country_code]['names']['en'])
 
-            elif entity_type == 'province':
-                province_data = countries_data[country_code]['provinces'].get(province_name, {})
-                if 'names' in province_data:
-                    return province_data['names'].get(lang_code, province_data['names']['en'])
-                return province_name  # اگر ترجمه وجود نداشت، نام انگلیسی را برگردان
+            country = countries_data[country_code]
 
-            elif entity_type == 'city':
-                province_data = countries_data[country_code]['provinces'].get(province_name, {})
-                city_data = province_data.get('cities', {}).get(city_name, {})
-                if 'names' in city_data:
-                    return city_data['names'].get(lang_code, city_data['names']['en'])
-                return city_name  # اگر ترجمه وجود نداشت، نام انگلیسی را برگردان
+            if entity_type == "country":
 
-        except KeyError:
-            # اگر داده‌ای یافت نشد، مقدار اصلی را برگردان
-            if entity_type == 'country':
-                return country_name
-            elif entity_type == 'province':
-                return province_name
-            elif entity_type == 'city':
-                return city_name
+                return country["names"].get(
+                    lang,
+                    country["names"]["en"],
+                )
 
-        return None
+            if entity_type == "province":
+
+                province = country["provinces"].get(
+                    province_name,
+                    {},
+                )
+
+                return province.get(
+                    "names",
+                    {},
+                ).get(
+                    lang,
+                    province_name,
+                )
+
+            if entity_type == "city":
+
+                province = country["provinces"].get(
+                    province_name,
+                    {},
+                )
+
+                city = province.get(
+                    "cities",
+                    {},
+                ).get(
+                    city_name,
+                    {},
+                )
+
+                return city.get(
+                    "names",
+                    {},
+                ).get(
+                    lang,
+                    city_name,
+                )
+
+        except Exception:
+            pass
+
+        if entity_type == "country":
+            return country_code
+
+        if entity_type == "province":
+            return province_name
+
+        return city_name
 
 

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from accounts.models import ProfileModel
+from products.models import Store
 from myapi.products.StoreSerializerFile import StoreSerializer
 
 
@@ -9,7 +10,15 @@ class ProfileSerializer(serializers.ModelSerializer):
     Handles both Telegram (tel_id) and Bale (bale_id) profiles
     Can create profile with either identifier or both
     """
-    server_store = StoreSerializer()
+    server_store_id = serializers.PrimaryKeyRelatedField(
+        source='server_store',  # به فیلد server_store در مدل اشاره می‌کند
+        queryset=Store.objects.all(),
+        required=False,
+        allow_null=True,
+        write_only=True  # فقط برای ورودی، در خروجی نمایش داده نشود
+    )
+    server_store = StoreSerializer(read_only=True)
+
     class Meta:
         model = ProfileModel
         fields = [
@@ -37,6 +46,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'profile_menu',
             'store_menu',
             'server_store',
+            'server_store_id',
             'hidden_videos',
         ]
         read_only_fields = [

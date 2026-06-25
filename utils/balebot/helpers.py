@@ -510,11 +510,10 @@ async def get_profile(user_id, url=None):
         client = BaleAPIClient(base_url="http://127.0.0.1:8000")
         url = f"/myapi/profiles/{user_id}/"
         response = await client._request("GET", url)
-            
+
         if not response.success:
             print(f"API Error: {response.error}")
-            await bot.send_message(user_id, "Profile not found. Please use /start to register.")
-            return
+            await bot.send_message_direct(user_id, "Profile not found. Please use /start to register.")
             
 
         return response
@@ -545,13 +544,14 @@ async def update_profile(user_id: str, update_data: dict) -> dict:
     try:
         client = BaleAPIClient(base_url="http://127.0.0.1:8000")
         response = await client.patch(
-            endpoint=f"/api/bot/profiles/{user_id}/",
+            endpoint=f"/myapi/profiles/{user_id}/",
             payload=update_data
         )
         
         if response.success:
             return response.data
         else:
+            print(response)
             print(f"API Error: {response.error}, Status: {response.status_code}")
             return None
             

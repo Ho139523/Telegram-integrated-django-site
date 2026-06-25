@@ -7,7 +7,7 @@ from balethon.objects import Message
 from utils.balebot.api_client import BaleAPIClient
 from utils.balebot.helpers import t
 from utils.balebot.helpers import *
-from utils.telbot.variables import home_menu
+from utils.telbot.variables import home_menu, retun_menue
 from AI.settings import SITE_DOMAIN
 
 
@@ -18,8 +18,31 @@ async def language_setting(message: Message):
     """
     First time user setup - language selection
     """
-    await message.reply("Welcome to the bot! Please select your language.")
-    # TODO: Add language selection logic
+    try:
+        def get_language_choices():
+            language_map = {
+                'fa': '🇮🇷 فارسی',
+                'en': '🇬🇧  English',
+                'zh': '🇨🇳  中国人',
+                'ru': '🇷🇺  русский',
+                'ar': '🇵🇸  عربیة',
+            }
+            return [name for code, name in language_map.items()]
+        
+        markup = await send_menu(
+            message, 
+            get_language_choices(),
+            "language_menu",
+            retun_menue,
+            profile_response = await get_profile(message.chat.id)
+        )
+        
+        result = await message.reply(await t(message, "language_setting"), reply_markup=markup)
+        return result
+    except Exception as e:
+        error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
+        print(f"Opps! An error in {traceback.extract_stack()[-2].name}. \nThe error is: {traceback.format_exc()}")
+        return error_msg
 
 
 ##################################
@@ -95,7 +118,6 @@ async def process_start_command(message: Message):
             # recieve profile
             get_response = await get_profile(message.chat.id)
             if get_response.success:
-                #print(f"Data: {get_response.data.get('data', {})}")
                 result = await home_handler(message)
                 return result
         else:
@@ -105,7 +127,9 @@ async def process_start_command(message: Message):
                 "bale_id": user_id,
                 "fname": bale_first_name,
                 "lname": bale_last_name,
-                "bale": bale_username
+                "bale": bale_username,
+                "server_store_id": 2,
+                "lang": "fa",
             })
             
             if create_response.success:
@@ -114,7 +138,7 @@ async def process_start_command(message: Message):
             else:
                 logger.info(f"❌ Creation failed: {create_response.error}")
     
-        await client.close()
+        
 
     except Exception as e:
         error_msg = await message.reply("Opps! A server error occured please contact the administrator.")
@@ -180,12 +204,13 @@ async def home_handler(
         
         # دریافت پروفایل کاربر از API
         response = await get_profile(message.chat.id)
-        profile_data = response.data.get('data', {})
         
-        if not profile_data:
+        
+        if not response.success or not response.data.get('data'):
             print(f"No profile data for user {user_id}")
-            result = await message.reply("Profile not found. Please use /start to register.")
-            return result
+            return response
+        
+        profile_data = response.data.get('data', {})
         
         # ساخت منو
         markup = await send_menu(

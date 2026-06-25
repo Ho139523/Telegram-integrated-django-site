@@ -23,3 +23,7 @@ home_proxy.js
 node_modules/
 package-lock.json
 package.json
+**/migrations/*.py
+!**/migrations/__init__.py
+*.swo
+*.swp

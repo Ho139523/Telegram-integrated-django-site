@@ -437,7 +437,7 @@ class ProductHandler:
                 a = {}
                 for i, (key, values) in enumerate(variants_dict.items()):
                     a[key] = values[0]
-                variant = await self.get_variant_by_selected_values(self.product, a)
+                variant = await self.get_variant_by_selected_values(a)
             stock_info = variant["stock"] if variant else self.product["stock"]
 
             text = await t("message", "order_up_to_stock", chat_id=chat_id, stock_info=stock_info)
@@ -786,8 +786,79 @@ class ProductHandler:
     #         print("❌ send_product_channel error:\n", traceback.format_exc())
 
 
+    
+    async def store_file_ids(self, result, media_list, product_id):
+        """
+        Robust mapping Telegram result → media_list
+        """
 
+        try:
+            if not result:
+                print("⚠️ No Telegram result")
+                return
 
+            payload = {
+                "main_image_file_id": None,
+                "images": []
+            }
+
+            # Telegram returns messages in same order BUT safer to normalize
+            msg_list = result if isinstance(result, list) else result.get("result", [])
+
+            img_index = 0
+
+            for item in media_list:
+
+                if img_index >= len(msg_list):
+                    break
+
+                msg = msg_list[img_index]
+
+                photo = msg.get("photo", [])
+                if not photo:
+                    img_index += 1
+                    continue
+
+                file_id = photo[-1]["file_id"]
+
+                # -------------------
+                # MAIN IMAGE
+                # -------------------
+                if item.get("is_main"):
+                    payload["main_image_file_id"] = file_id
+                    img_index += 1
+                    continue
+
+                # -------------------
+                # OTHER IMAGES
+                # -------------------
+                img_id = item.get("id")
+                print(file_id, img_id)
+                if img_id:
+                    payload["images"].append({
+                        "id": img_id,
+                        "file_id": file_id
+                    })
+
+                img_index += 1
+
+            # -------------------
+            # API CALL (IMPORTANT FIX: use json not payload)
+            # -------------------
+            response = await self.client._request(
+                method="POST",
+                endpoint=f"/myapi/products/{product_id}/store-file-ids/",
+                payload=payload   # 🔥 FIXED (this was your silent bug)
+            )
+
+            if response.success:
+                print("✅ file_ids stored successfully")
+            else:
+                print("❌ API error:", response.data)
+
+        except Exception:
+            import traceback
+            print("store_file_ids error:", traceback.format_exc())
     async def send_product_message(self, message, buttons=True):
         """Send product media group with optional action buttons."""
         import re
@@ -852,6 +923,8 @@ class ProductHandler:
                 chat_id=message.chat.id,
                 media=media_list
             )
+
+            await self.store_file_ids(result, media_list, self.product["id"])
 
             # Send action buttons if requested
             if buttons:

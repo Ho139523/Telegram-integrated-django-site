@@ -229,63 +229,79 @@ class ProfileViewSet(
     # ============================================================
     def create(self, request, *args, **kwargs):
         """Create or update profile (UPSERT)"""
-        serializer = self.get_serializer(data=request.data)
-        
-        if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "errors": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        tel_id = serializer.validated_data.get('tel_id')
-        bale_id = serializer.validated_data.get('bale_id')
-        
-        if not tel_id and not bale_id:
-            return Response({
-                "success": False,
-                "error": "Either tel_id or bale_id must be provided"
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        query = Q()
-        if tel_id:
-            query |= Q(tel_id=tel_id)
-        if bale_id:
-            query |= Q(bale_id=bale_id)
-        
-        existing_profile = ProfileModel.objects.filter(query).first()
-        
-        if existing_profile:
-            update_data = {}
-            for key, value in serializer.validated_data.items():
-                if value is not None:
-                    update_data[key] = value
+        try:
+            serializer = self.get_serializer(data=request.data)
             
-            if tel_id is None and existing_profile.tel_id:
-                update_data.pop('tel_id', None)
-            if bale_id is None and existing_profile.bale_id:
-                update_data.pop('bale_id', None)
+            if not serializer.is_valid():
+                return Response({
+                    "success": False,
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
             
-            for key, value in update_data.items():
-                setattr(existing_profile, key, value)
-            existing_profile.save()
+            tel_id = serializer.validated_data.get('tel_id')
+            bale_id = serializer.validated_data.get('bale_id')
+            server_store_id = serializer.validated_data.get('server_store_id')  # ✅ دریافت ID
             
-            output_serializer = self.get_serializer(existing_profile)
-            return Response({
-                "success": True,
-                "created": False,
-                "updated": True,
-                "data": output_serializer.data
-            }, status=status.HTTP_200_OK)
-        else:
-            profile = serializer.save()
-            output_serializer = self.get_serializer(profile)
-            return Response({
-                "success": True,
-                "created": True,
-                "updated": False,
-                "data": output_serializer.data
-            }, status=status.HTTP_201_CREATED)
+            if not tel_id and not bale_id:
+                return Response({
+                    "success": False,
+                    "error": "Either tel_id or bale_id must be provided"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            query = Q()
+            if tel_id:
+                query |= Q(tel_id=tel_id)
+            if bale_id:
+                query |= Q(bale_id=bale_id)
+            
+            existing_profile = ProfileModel.objects.filter(query).first()
+            
+            if existing_profile:
+                update_data = {}
+                for key, value in serializer.validated_data.items():
+                    if value is not None:
+                        # ✅ نادیده گرفتن فیلدهای write_only
+                        if key == 'server_store_id':
+                            continue
+                        update_data[key] = value
+                
+                # ✅ مدیریت server_store به صورت جداگانه
+                if server_store_id is not None:
+                    update_data['server_store'] = server_store_id
+                
+                if tel_id is None and existing_profile.tel_id:
+                    update_data.pop('tel_id', None)
+                if bale_id is None and existing_profile.bale_id:
+                    update_data.pop('bale_id', None)
+                
+                for key, value in update_data.items():
+                    setattr(existing_profile, key, value)
+                existing_profile.save()
+                
+                output_serializer = self.get_serializer(existing_profile)
+                return Response({
+                    "success": True,
+                    "created": False,
+                    "updated": True,
+                    "data": output_serializer.data
+                }, status=status.HTTP_200_OK)
+            else:
+                # ✅ ایجاد پروفایل جدید
+                profile = serializer.save()
+                output_serializer = self.get_serializer(profile)
+                return Response({
+                    "success": True,
+                    "created": True,
+                    "updated": False,
+                    "data": output_serializer.data
+                }, status=status.HTTP_201_CREATED)
 
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
     # ============================================================
     # UPDATE
     # ============================================================

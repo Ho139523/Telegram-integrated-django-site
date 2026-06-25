@@ -18,7 +18,7 @@ from products.models import Product
 from accounts.models import ProfileModel
 from payment.models import Transaction, Sale, Cart, CartItem
 from utils.variables.TOKEN import TOKEN, api_id, api_hash, BOT_ID
-from products.signals import t, async_helper
+#---from products.signals import t, async_helper
 from django.db import transaction as db_transaction
 from django.db import models
 
@@ -62,101 +62,101 @@ async def async_get_variants_text(product):
 
     return "\n".join(lines) + "\n\n"
 
-async def send_album_and_button_async(channel_id, product, photos, out_of_stock=False):
-    """ارسال آلبوم محصول با کپشن مشابه ProductHandler و دکمه خرید یا درخواست موجود کردن"""
-    print(f"\n🚀 [send_album_and_button_async] Sending product {product.name} | out_of_stock={out_of_stock}")
-    try:
-        client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-        await client.connect()
-
-        if not await client.is_user_authorized():
-            print("⚠️ Telethon session not authorized!")
-            return
-
-        # 🖼️ آپلود تصاویر
-        media = []
-        for path in photos:
-            try:
-                file = await client.upload_file(path)
-                media.append(file)
-                print(f"📷 Uploaded image: {path}")
-            except Exception as e:
-                print(f"⚠️ Failed to upload {path}: {e}")
-
-        # ✏️ خواندن فیلدها به‌صورت امن از ORM
-        brand = await sync_to_async(lambda: product.brand)()
-        description = await sync_to_async(lambda: product.description)()
-        attributes = await sync_to_async(lambda: list(product.attributes.all()))()
-        discount = await sync_to_async(lambda: product.discount)()
-        price = await sync_to_async(lambda: product.price)()
-        final_price = await sync_to_async(lambda: product.final_price)()
-
-        # ساخت متن‌ها
-        brand_text = f"🔖 برند کالا: {brand}\n" if brand else ""
-        description_text = f"{description}\n" if description else ""
-
-        attribute_text = ""
-        if attributes:
-            attribute_text = "\n✨ ".join(
-                [f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in attributes]
-            )
-            attribute_text = f"✨ {attribute_text}\n\n"
-
-        variants_text = await async_get_variants_text(product)
-
-        # اگر محصول تمام شده باشد
-        if out_of_stock:
-            formatted_price = "{:,.0f}".format(float(price))
-            formatted_final_price = "{:,.0f}".format(float(final_price))
-            if discount > 0:
-                price_text = (
-                    f"🏃 {discount}% تخفیف\n"
-                    f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
-                )
-            else:
-                price_text = f"💵 قیمت: {formatted_price} تومان"
-            price_text += "\n❌❌  <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n❌❌ <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n❌❌  <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n\n"
-            formatted_price = "{:,.0f}".format(float(price))
-            formatted_final_price = "{:,.0f}".format(float(final_price))
-            
-
-        caption = (
-            f"\n⭕️ <b>نام کالا:</b> {product.name}\n"
-            f"{brand_text}"
-            f"<b>کد کالا:</b> {product.code}\n\n"
-            f"{description_text}\n"
-            f"{attribute_text}"
-            f"{variants_text}"
-            f"{price_text}\n"
-        )
-
-
-        # 🧩 ساخت دکمه
-        markup = types.InlineKeyboardMarkup()
-        owner_lang, store_id, product_id, chat_id = await async_helper(product)
-
-        if out_of_stock:
-            #ترجمه‌ی متن دکمه ---
-            request_product_text = await t(owner_lang, "request_restock")
-            markup.add(types.InlineKeyboardButton(request_product_text, callback_data=f"request_{product.id}"))
-        else:
-            markup.add(types.InlineKeyboardButton("🛒 همین حالا بخرش", url=f"https://intelium.ir/buy/?pid={product.id}"))
-
-        # 📤 ارسال آلبوم
-        if media:
-            await client.send_file(channel_id, media, caption=caption, parse_mode="HTML")
-        else:
-            await client.send_message(channel_id, caption, parse_mode="HTML")
-
-        # ارسال دکمه با ربات
-        bot.send_message(channel_id, "👇👇👇👇👇👇👇👇", reply_markup=markup)
-
-        print("✅ [send_album_and_button_async] Message sent successfully.\n")
-        await client.disconnect()
-
-    except Exception as e:
-        print(f"❌ Error in send_album_and_button_async: {e}")
-        traceback.print_exc()
+#---async def send_album_and_button_async(channel_id, product, photos, out_of_stock=False):
+    #---"""ارسال آلبوم محصول با کپشن مشابه ProductHandler و دکمه خرید یا درخواست موجود کردن"""
+    #---print(f"\n🚀 [send_album_and_button_async] Sending product {product.name} | out_of_stock={out_of_stock}")
+    #---try:
+        #---client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+        #---await client.connect()
+#---
+        #---if not await client.is_user_authorized():
+            #---print("⚠️ Telethon session not authorized!")
+            #---return
+#---
+        #---# 🖼️ آپلود تصاویر
+        #---media = []
+        #---for path in photos:
+            #---try:
+                #---file = await client.upload_file(path)
+                #---media.append(file)
+                #---print(f"📷 Uploaded image: {path}")
+            #---except Exception as e:
+                #---print(f"⚠️ Failed to upload {path}: {e}")
+#---
+        #---# ✏️ خواندن فیلدها به‌صورت امن از ORM
+        #---brand = await sync_to_async(lambda: product.brand)()
+        #---description = await sync_to_async(lambda: product.description)()
+        #---attributes = await sync_to_async(lambda: list(product.attributes.all()))()
+        #---discount = await sync_to_async(lambda: product.discount)()
+        #---price = await sync_to_async(lambda: product.price)()
+        #---final_price = await sync_to_async(lambda: product.final_price)()
+#---
+        #---# ساخت متن‌ها
+        #---brand_text = f"🔖 برند کالا: {brand}\n" if brand else ""
+        #---description_text = f"{description}\n" if description else ""
+#---
+        #---attribute_text = ""
+        #---if attributes:
+            #---attribute_text = "\n✨ ".join(
+                #---[f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in attributes]
+            #---)
+            #---attribute_text = f"✨ {attribute_text}\n\n"
+#---
+        #---variants_text = await async_get_variants_text(product)
+#---
+        #---# اگر محصول تمام شده باشد
+        #---if out_of_stock:
+            #---formatted_price = "{:,.0f}".format(float(price))
+            #---formatted_final_price = "{:,.0f}".format(float(final_price))
+            #---if discount > 0:
+                #---price_text = (
+                    #---f"🏃 {discount}% تخفیف\n"
+                    #---f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
+                #---)
+            #---else:
+                #---price_text = f"💵 قیمت: {formatted_price} تومان"
+            #---price_text += "\n❌❌  <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n❌❌ <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n❌❌  <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n\n"
+            #---formatted_price = "{:,.0f}".format(float(price))
+            #---formatted_final_price = "{:,.0f}".format(float(final_price))
+            #---
+#---
+        #---caption = (
+            #---f"\n⭕️ <b>نام کالا:</b> {product.name}\n"
+            #---f"{brand_text}"
+            #---f"<b>کد کالا:</b> {product.code}\n\n"
+            #---f"{description_text}\n"
+            #---f"{attribute_text}"
+            #---f"{variants_text}"
+            #---f"{price_text}\n"
+        #---)
+#---
+#---
+        #---# 🧩 ساخت دکمه
+        #---markup = types.InlineKeyboardMarkup()
+        #---owner_lang, store_id, product_id, chat_id = await async_helper(product)
+#---
+        #---if out_of_stock:
+            #---#ترجمه‌ی متن دکمه ---
+            #---request_product_text = await t(owner_lang, "request_restock")
+            #---markup.add(types.InlineKeyboardButton(request_product_text, callback_data=f"request_{product.id}"))
+        #---else:
+            #---markup.add(types.InlineKeyboardButton("🛒 همین حالا بخرش", url=f"https://intelium.ir/buy/?pid={product.id}"))
+#---
+        #---# 📤 ارسال آلبوم
+        #---if media:
+            #---await client.send_file(channel_id, media, caption=caption, parse_mode="HTML")
+        #---else:
+            #---await client.send_message(channel_id, caption, parse_mode="HTML")
+#---
+        #---# ارسال دکمه با ربات
+        #---bot.send_message(channel_id, "👇👇👇👇👇👇👇👇", reply_markup=markup)
+#---
+        #---print("✅ [send_album_and_button_async] Message sent successfully.\n")
+        #---await client.disconnect()
+#---
+    #---except Exception as e:
+        #---print(f"❌ Error in send_album_and_button_async: {e}")
+        #---traceback.print_exc()
 
 
 def send_album_and_button(channel_id, product, photos, out_of_stock=False):
@@ -212,22 +212,18 @@ def send_request(request):
             description = f"پرداخت سبد خرید شامل {cart_items.count()} کالا"
 
             # ارسال درخواست پرداخت با تقسیم
-            if splits:
-                response = pay.send_split_request(
-                    amount=int(amount),
-                    description=description,
-                    splits=splits,
-                    email=profile.email,
-                    mobile=profile.phone
-                )
-            else:
-                response = pay.send_request(
-                    amount=int(amount),
-                    description=description,
-                    email="admin@admin.com",
-                    mobile=profile.phone
-                )
+            response = pay.send_split_request(
+                amount=int(amount),
+                description=description,
+                splits=splits,
+                email=None,
+                mobile=profile.phone
+            )
 
+
+
+
+            
             if not response.get("success"):
                 return JsonResponse({"error": response.get("message", "خطا در اتصال به درگاه")}, status=400)
 
@@ -248,7 +244,13 @@ def send_request(request):
             transaction.create_split_payments()
 
             cache.delete(f'payment_{payment_id}')
+            print("=" * 50)
+            print("PAYMENT REDIRECT URL:")
+            print(response["url"])
+            print("=" * 50)
+            
             return HttpResponseRedirect(response["url"])
+
 
         except Exception as e:
             print(f"Error in send_request: {e}")
@@ -261,43 +263,138 @@ def send_request(request):
 @csrf_exempt
 def verify(request):
     try:
-        authority = request.GET.get('Authority')
-        status = request.GET.get('Status')
+
+        authority = request.GET.get("Authority")
+        status = request.GET.get("Status")
 
         if not authority:
-            return JsonResponse({"error": "Missing authority"}, status=400)
+            return JsonResponse(
+                {"error": "Missing authority"},
+                status=400
+            )
 
         try:
-            transaction = Transaction.objects.get(authority=authority)
+            transaction = Transaction.objects.get(
+                authority=authority
+            )
+
         except Transaction.DoesNotExist:
-            return JsonResponse({"error": "Transaction not found"}, status=404)
 
+            return JsonResponse(
+                {"error": "Transaction not found"},
+                status=404
+            )
+
+        # جلوگیری از پردازش مجدد callback
+        if transaction.status == "paid":
+
+            return render(
+                request,
+                "payment/tel_payment_success.html",
+                {
+                    "message": "این پرداخت قبلاً ثبت شده است."
+                }
+            )
+
+        # کاربر پرداخت را لغو کرده است
         if status != "OK":
+
             transaction.mark_as_canceled()
-            return render(request, "payment/tel_payment_failed.html", {"message": "پرداخت لغو شد"})
 
-        # تایید پرداخت
-        response = pay.verify(authority=authority, amount=transaction.amount * 10)
+            return render(
+                request,
+                "payment/tel_payment_failed.html",
+                {
+                    "message": "پرداخت لغو شد."
+                }
+            )
 
-        if response.get("success") and response.get("transaction"):
+        # تایید پرداخت نزد زرین پال
+        response = pay.verify(
+            authority=authority,
+            amount=transaction.amount * 10
+        )
+
+        print("VERIFY RESPONSE:")
+        print(response)
+
+        # پرداخت موفق
+        if response.get("success"):
+
             transaction.status = "paid"
             transaction.zarinpal_ref_id = response.get("ref_id")
-            transaction.save()
-            
-            # پردازش موفقیت‌آمیز پرداخت
-            handle_successful_payment(transaction)
-            session_manager = SessionManager()
-            session_manager.reset_user_session(transaction.profile.tel_id, namespace="cart")
-            return render(request, "payment/tel_payment_success.html")
-        else:
-            transaction.mark_as_failed()
-            return render(request, "payment/tel_payment_failed.html", 
-                         {"message": f"پرداخت ناموفق بود: {response.get('message', 'خطای ناشناخته')}"})
+
+            transaction.save(
+                update_fields=[
+                    "status",
+                    "zarinpal_ref_id"
+                ]
+            )
+
+            try:
+
+                # ایجاد سفارش، ثبت فروش‌ها،
+                # خالی کردن سبد و کم کردن موجودی
+                handle_successful_payment(transaction)
+
+                # پاک کردن سشن سبد خرید تلگرام
+                session_manager = SessionManager()
+
+                session_manager.reset_user_session(
+                    transaction.profile.tel_id,
+                    namespace="cart"
+                )
+
+            except Exception as e:
+
+                print(
+                    f"❌ Error in "
+                    f"handle_successful_payment: {e}"
+                )
+
+                transaction.mark_as_failed()
+
+                return render(
+                    request,
+                    "payment/tel_payment_failed.html",
+                    {
+                        "message":
+                            f"خطا در ثبت سفارش: {str(e)}"
+                    }
+                )
+
+            return render(
+                request,
+                "payment/tel_payment_success.html",
+                {
+                    "ref_id": response.get("ref_id"),
+                    "message": "پرداخت با موفقیت انجام شد."
+                }
+            )
+
+        # تایید زرین پال ناموفق بود
+        transaction.mark_as_failed()
+
+        return render(
+            request,
+            "payment/tel_payment_failed.html",
+            {
+                "message":
+                    response.get(
+                        "message",
+                        "خطای ناشناخته در تایید پرداخت"
+                    )
+            }
+        )
 
     except Exception as e:
-        print(f"❌ Verify Error: {e}")
-        return JsonResponse({"error": str(e)}, status=500)
 
+        print(f"❌ Verify Error: {e}")
+
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
 
 # ==========================================================
 # 🧩 تابع اصلی پردازش پرداخت موفق

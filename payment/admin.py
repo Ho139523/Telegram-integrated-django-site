@@ -7,6 +7,7 @@ class TransactionAdmin(admin.ModelAdmin):
     readonly_fields = ("transaction_id", "amount", "status")
     list_filter = ('status',)
     ordering = ['created_at']
+    search_fields = ["transaction_id"]
 
 
 @admin.register(Sale)

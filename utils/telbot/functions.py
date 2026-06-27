@@ -2168,10 +2168,13 @@ class ProductHandler:
         print("❌ [VARIANT DEBUG] No exact matching variant found")
         return None
 
-    def format_price(self):
+    def format_price(self, out_of_stock=None):
         """فرمت‌بندی قیمت بدون کوئری دیتابیس"""
         formatted_price = "{:,.0f}".format(float(self.product.price))
         formatted_final_price = "{:,.0f}".format(float(self.product.final_price))
+
+        if out_of_stock:
+            return "\n❌❌  <b>اتمام موجودی</b>  ❌❌\n❌❌ <b>اتمام موجودی</b>  ❌❌\n❌❌  <b>اتمام موجودی</b>  ❌❌\n\n"
 
         if self.product.discount > 0:
             return (
@@ -2220,7 +2223,7 @@ class ProductHandler:
 
 
     
-    def generate_caption(self):
+    def generate_caption(self, out_of_stock=None):
         brand_text = f"🔖 {t("message", "product_brand", chat_id=self.chat_id)}: {self.product.brand}\n" if self.product.brand else ""
         description_text = f"{self.product.description}\n" if self.product.description else ""
 
@@ -2241,7 +2244,7 @@ class ProductHandler:
             f"{description_text}\n"
             f"{attribute_text}"
             f"{variants_text}"
-            f"{self.format_price()}\n"
+            f"{self.format_price(out_of_stock=out_of_stock)}\n"
         )
 
 
@@ -2320,12 +2323,12 @@ class ProductHandler:
 
 
 
-    def send_product_message(self, chat_id, buttons=True):
+    def send_product_message(self, chat_id, buttons=True, out_of_stock=None):
         """ارسال محصول با دکمه‌های سریع"""
         from AI.settings import BASE_DIR
         try:
             photos = [
-                types.InputMediaPhoto(open(os.path.join(BASE_DIR, self.product.main_image.path), 'rb'), caption=self.generate_caption(), parse_mode='HTML')
+                types.InputMediaPhoto(open(os.path.join(BASE_DIR, self.product.main_image.path), 'rb'), caption=self.generate_caption(out_of_stock=out_of_stock), parse_mode='HTML')
             ] + [
                 types.InputMediaPhoto(open(os.path.join(BASE_DIR, i.image.path), 'rb')) for i in self.product.images.all()
             ]
@@ -2342,7 +2345,7 @@ class ProductHandler:
                 
         except Exception as e:
             error_message = traceback.format_exc()
-            print(f"Error in send_product_message: {e}\n{error_message}")
+            print(f"Error in send_product_message: {e}")
 
     def send_buttons(self, chat_id):
         """ارسال سریع دکمه‌ها بدون تأخیر"""
@@ -2692,11 +2695,17 @@ class ProductHandler:
                         cart_item.quantity += 1
                         cart_item.save()
                     else:
-                        self.app.answer_callback_query(
-                            call.id, 
-                            t(call.message, "max_stock_limit", max_stock=max_stock),
-                            show_alert=True
-                        )
+                        if max_stock == 0:
+                            self.app.answer_callback_query(
+                                call.id,
+                                t(call.message, "out_of_stock")
+                            )
+                        else:
+                            self.app.answer_callback_query(
+                                call.id, 
+                                t(call.message, "max_stock_limit", max_stock=max_stock),
+                                show_alert=True
+                            )
                         return
                         
             elif action == "decrease":
@@ -2721,11 +2730,17 @@ class ProductHandler:
 
         except ValidationError as ve:
             max_stock = variant.stock if variant else product.stock
-            self.app.answer_callback_query(
-                call.id, 
-                t(call.message, "max_stock_limit", max_stock=max_stock), 
-                show_alert=True
-            )
+            if max_stock == 0:
+                self.app.answer_callback_query(
+                    call.id,
+                    t(call.message, "out_of_stock")
+                )
+            else:
+                self.app.answer_callback_query(
+                    call.id, 
+                    t(call.message, "max_stock_limit", max_stock=max_stock),
+                    show_alert=True
+                )
             return
         except Exception as e:
             print(f"Error in handle_buttons: {traceback.format_exc()}")
@@ -2755,7 +2770,7 @@ class ProductHandler:
             cart_item_exists = False
             
             if selected_values:
-                variant = self.get_variant_by_selected_values(product, selected_values)
+                variant = self.get_variant_by_selected_values(selected_values)
 
             # 🆕 جستجوی دقیق CartItem
             cart_item = None
@@ -4994,7 +5009,7 @@ class UltraVideoPrompter:
         # 2) فایل وجود ندارد؟
         if not os.path.exists(video_path):
             print("❌ ERROR: Video file does NOT exist!")
-            bot.send_message(user_id, "❌ ویدیو یافت نشد.")
+            # bot.send_message(user_id, "❌ ویدیو یافت نشد.")
             return
 
         # ---------------------------------------------------------

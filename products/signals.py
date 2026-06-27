@@ -8,6 +8,7 @@ from django.dispatch import receiver
 from django.conf import settings
 from asgiref.sync import sync_to_async
 
+import telebot_router
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telebot import TeleBot, types
@@ -86,6 +87,7 @@ def send_album_and_button(channel_id, product, photos, attributes):
 
         # --- 1. واکشی اطلاعات صاحب فروشگاه ---
         owner_lang, store_id, product_id, chat_id = helper(product)
+        buyer_lang = ProfileModel.objects.get(tel_id=chat_id).lang
 
 
         # --- 2. ارسال آلبوم ---
@@ -98,10 +100,10 @@ def send_album_and_button(channel_id, product, photos, attributes):
 
         # --- 4. ارسال دکمه با TeleBot ---
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton( buy_now_text, url=f"{SITE_DOMAIN}/pay/telegrambot/?start=store_{store_id}_product_{product_id}" ))
+        markup.add(types.InlineKeyboardButton( buy_now_text, url=f"{SITE_DOMAIN}/pay/telegrambot/?start=store_{store_id}_product_{product_id}_lang_{buyer_lang}" ))
 
 
-        bot.send_message(channel_id, "👇👇👇👇👇👇👇👇", reply_markup=markup)
+        bot.send_message(channel_id, "👇👇👇👇👇👇👇👇👇", reply_markup=markup)
 
     except Exception as e:
         print(f"⚠ Error in send_album_and_button:{traceback.format_exc()}")

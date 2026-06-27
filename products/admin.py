@@ -1,3 +1,5 @@
+import re
+from django.core.exceptions import ValidationError
 from django.contrib import admin
 from .models import (
     Category, Product, ProductAttribute, Store,
@@ -161,7 +163,7 @@ class StoreAdmin(admin.ModelAdmin):
         "id",
         "name",
         "owner",
-        "markant_id",
+        "iban",
         "lang",
         "is_verified",
         "verification_level",
@@ -173,7 +175,7 @@ class StoreAdmin(admin.ModelAdmin):
 
     search_fields = (
         "name",
-        "markant_id",
+        "iban",
         "owner__tel_id",
         "owner__user__username",
         "owner__user__email",
@@ -207,6 +209,17 @@ class StoreAdmin(admin.ModelAdmin):
         return "—"
     subscription_end.short_description = "Expiry"
 
+    def clean(self):
 
+        super().clean()
+
+        if self.iban:
+
+            self.iban = self.iban.upper().strip()
+
+            if not re.match(r"^IR\d{24}$", self.iban):
+                raise ValidationError({
+                    "iban": "شماره شبا باید با IR شروع شود و ۲۶ کاراکتر باشد."
+                })
 
 

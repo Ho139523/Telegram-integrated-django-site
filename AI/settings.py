@@ -216,6 +216,7 @@ LOGGING = {
 
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -225,14 +226,17 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 
 CORS_ALLOWED_ORIGINS = [
     "https://intellium.ir",
     "https://intellium.ir:8443",
+    "https://adept-smart-trade-nexus.base44.app",
+    "http://localhost"
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

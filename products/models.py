@@ -35,7 +35,13 @@ class Store(models.Model):
     tel_group = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram group ID")
     tel_channel = models.CharField(default="@", max_length=20, unique=True, null=True, blank=True, verbose_name="Telegram channel ID")
     lang = models.CharField(max_length=10, choices=get_language_choices(), default='en', unique=False, null=False, blank=True)
-    markant_id = models.CharField(max_length=36, verbose_name="Markant ID", unique=False, null=False, blank=False)
+    iban = models.CharField(
+        max_length=26,
+        blank=True,
+        null=True,
+        verbose_name="شماره شبا",
+        help_text="شماره شبا باید با IR شروع شود."
+    )
     tagline = models.CharField(max_length=120, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
 

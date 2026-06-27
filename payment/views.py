@@ -11,6 +11,8 @@ from django.conf import settings
 from asgiref.sync import sync_to_async
 from AI.settings import SITE_DOMAIN
 from telbot.sessions import SessionManager
+from dotenv import load_dotenv
+import os
 
 # 🧩 مدل‌ها و پکیج‌های پروژه
 from .zarinpal import ZarinPal
@@ -18,7 +20,8 @@ from products.models import Product
 from accounts.models import ProfileModel
 from payment.models import Transaction, Sale, Cart, CartItem
 from utils.variables.TOKEN import TOKEN, api_id, api_hash, BOT_ID
-#---from products.signals import t, async_helper
+from products.signals import helper
+from utils.telbot.functions import ProductHandler, t
 from django.db import transaction as db_transaction
 from django.db import models
 
@@ -62,199 +65,346 @@ async def async_get_variants_text(product):
 
     return "\n".join(lines) + "\n\n"
 
-#---async def send_album_and_button_async(channel_id, product, photos, out_of_stock=False):
-    #---"""ارسال آلبوم محصول با کپشن مشابه ProductHandler و دکمه خرید یا درخواست موجود کردن"""
-    #---print(f"\n🚀 [send_album_and_button_async] Sending product {product.name} | out_of_stock={out_of_stock}")
-    #---try:
-        #---client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-        #---await client.connect()
-#---
-        #---if not await client.is_user_authorized():
-            #---print("⚠️ Telethon session not authorized!")
-            #---return
-#---
-        #---# 🖼️ آپلود تصاویر
-        #---media = []
-        #---for path in photos:
-            #---try:
-                #---file = await client.upload_file(path)
-                #---media.append(file)
-                #---print(f"📷 Uploaded image: {path}")
-            #---except Exception as e:
-                #---print(f"⚠️ Failed to upload {path}: {e}")
-#---
-        #---# ✏️ خواندن فیلدها به‌صورت امن از ORM
-        #---brand = await sync_to_async(lambda: product.brand)()
-        #---description = await sync_to_async(lambda: product.description)()
-        #---attributes = await sync_to_async(lambda: list(product.attributes.all()))()
-        #---discount = await sync_to_async(lambda: product.discount)()
-        #---price = await sync_to_async(lambda: product.price)()
-        #---final_price = await sync_to_async(lambda: product.final_price)()
-#---
-        #---# ساخت متن‌ها
-        #---brand_text = f"🔖 برند کالا: {brand}\n" if brand else ""
-        #---description_text = f"{description}\n" if description else ""
-#---
-        #---attribute_text = ""
-        #---if attributes:
-            #---attribute_text = "\n✨ ".join(
-                #---[f"{attr.key}: {attr.value}" if attr.value else f"{attr.key}" for attr in attributes]
-            #---)
-            #---attribute_text = f"✨ {attribute_text}\n\n"
-#---
-        #---variants_text = await async_get_variants_text(product)
-#---
-        #---# اگر محصول تمام شده باشد
-        #---if out_of_stock:
-            #---formatted_price = "{:,.0f}".format(float(price))
-            #---formatted_final_price = "{:,.0f}".format(float(final_price))
-            #---if discount > 0:
-                #---price_text = (
-                    #---f"🏃 {discount}% تخفیف\n"
-                    #---f"💵 قیمت: <s>{formatted_price}</s> تومان ⬅ {formatted_final_price} تومان"
-                #---)
-            #---else:
-                #---price_text = f"💵 قیمت: {formatted_price} تومان"
-            #---price_text += "\n❌❌  <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n❌❌ <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n❌❌  <b style={fontsize:45;}>اتمام موجودی</b>  ❌❌\n\n"
-            #---formatted_price = "{:,.0f}".format(float(price))
-            #---formatted_final_price = "{:,.0f}".format(float(final_price))
-            #---
-#---
-        #---caption = (
-            #---f"\n⭕️ <b>نام کالا:</b> {product.name}\n"
-            #---f"{brand_text}"
-            #---f"<b>کد کالا:</b> {product.code}\n\n"
-            #---f"{description_text}\n"
-            #---f"{attribute_text}"
-            #---f"{variants_text}"
-            #---f"{price_text}\n"
-        #---)
-#---
-#---
-        #---# 🧩 ساخت دکمه
-        #---markup = types.InlineKeyboardMarkup()
-        #---owner_lang, store_id, product_id, chat_id = await async_helper(product)
-#---
-        #---if out_of_stock:
-            #---#ترجمه‌ی متن دکمه ---
-            #---request_product_text = await t(owner_lang, "request_restock")
-            #---markup.add(types.InlineKeyboardButton(request_product_text, callback_data=f"request_{product.id}"))
-        #---else:
-            #---markup.add(types.InlineKeyboardButton("🛒 همین حالا بخرش", url=f"https://intelium.ir/buy/?pid={product.id}"))
-#---
-        #---# 📤 ارسال آلبوم
-        #---if media:
-            #---await client.send_file(channel_id, media, caption=caption, parse_mode="HTML")
-        #---else:
-            #---await client.send_message(channel_id, caption, parse_mode="HTML")
-#---
-        #---# ارسال دکمه با ربات
-        #---bot.send_message(channel_id, "👇👇👇👇👇👇👇👇", reply_markup=markup)
-#---
-        #---print("✅ [send_album_and_button_async] Message sent successfully.\n")
-        #---await client.disconnect()
-#---
-    #---except Exception as e:
-        #---print(f"❌ Error in send_album_and_button_async: {e}")
-        #---traceback.print_exc()
-
-
-def send_album_and_button(channel_id, product, photos, out_of_stock=False):
-    """نسخه sync برای استفاده در Django"""
-    print(f"⚙️ [send_album_and_button] channel={channel_id}, product={product.name}, out_of_stock={out_of_stock}")
+def request_restock(channel_id, product, photos, attributes):
+    """ارسال آلبوم محصول با کپشن مشابه ProductHandler و دکمه خرید یا درخواست موجود کردن"""
+    print(f"\n🚀 [send_album_and_button_async] Sending product {product.name}")
     try:
-        asyncio.run(send_album_and_button_async(channel_id, product, photos, out_of_stock))
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(send_album_and_button_async(channel_id, product, photos, out_of_stock))
+        owner_lang, store_id, product_id, chat_id = helper(product)
+        handler = ProductHandler(bot, product, SITE_DOMAIN, photos=photos, attributes=attributes, chat_id=chat_id)
+        handler.send_product_message(channel_id, buttons=False, out_of_stock=True)
+
+        # 🧩 ساخت دکمه
+        markup = types.InlineKeyboardMarkup()
+        owner_lang, store_id, product_id, chat_id = helper(product)
+
+        #ترجمه‌ی متن دکمه ---
+        request_product_text = t("message", "request_restock", lang=owner_lang)
+        markup.add(types.InlineKeyboardButton(request_product_text, callback_data=f"request_{product.id}"))
+        
+
+        # ارسال دکمه با ربات
+        bot.send_message(channel_id, "👇👇👇👇👇👇👇👇👇", reply_markup=markup)
+
+        print("✅ [send_album_and_button_async] Message sent successfully.\n")
+
     except Exception as e:
-        print(f"⚠️ send_album_and_button() failed: {e}")
-        traceback.print_exc()
+        print(f"❌ Error in send_album_and_button_async: {traceback.format_exc()}")
+
 
 
 # ==========================================================
 # 💳 درخواست پرداخت
 # ==========================================================
-@csrf_exempt
+from django.core.cache import cache
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
+import traceback
+
+
 def send_request(request):
-    if request.method == 'GET':
-        try:
-            payment_id = request.GET.get('pid')
-            print(f"Payment ID: {payment_id}")
 
-            payment_data = cache.get(f'payment_{payment_id}')
-            if not payment_data:
-                return JsonResponse({'error': 'لینک پرداخت منقضی شده است'}, status=400)
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed"},
+            status=405
+        )
 
-            tel_id = payment_data['tel_id']
-            profile = ProfileModel.objects.get(tel_id=tel_id)
-            cart = Cart.objects.get(profile=profile)
-            cart_items = CartItem.objects.filter(cart=cart)
+    try:
 
-            if not cart_items.exists():
-                return JsonResponse({"error": "سبد خرید خالی است"}, status=400)
+        payment_id = request.GET.get("pid")
 
-            # محاسبه مبلغ کل (به ریال)
-            amount = sum(item.total_price() for item in cart_items) * 10
-            
-            # محاسبه تقسیم‌های پرداخت
-            splits = []
-            sellers_split = cart.get_sellers_split()
-            
-            for seller, seller_amount in sellers_split.items():
-                if hasattr(seller, 'zarinpal_merchant_id') and seller.zarinpal_merchant_id:
-                    splits.append({
-                        "merchant_id": seller.zarinpal_merchant_id,
-                        "amount": int(seller_amount * 10)  # تبدیل به ریال
-                    })
-
-            description = f"پرداخت سبد خرید شامل {cart_items.count()} کالا"
-
-            # ارسال درخواست پرداخت با تقسیم
-            response = pay.send_split_request(
-                amount=int(amount),
-                description=description,
-                splits=splits,
-                email=None,
-                mobile=profile.phone
+        if not payment_id:
+            return JsonResponse(
+                {"error": "شناسه پرداخت نامعتبر است"},
+                status=400
             )
 
+        print(f"Payment ID: {payment_id}")
 
+        payment_data = cache.get(f"payment_{payment_id}")
 
-
-            
-            if not response.get("success"):
-                return JsonResponse({"error": response.get("message", "خطا در اتصال به درگاه")}, status=400)
-
-            authority = response.get("authority")
-            if not authority:
-                return JsonResponse({"error": "Failed to get authority from ZarinPal"}, status=400)
-
-            # ایجاد تراکنش
-            transaction = Transaction.objects.create(
-                profile=profile,
-                cart=cart,
-                amount=amount // 10,  # ذخیره به تومان
-                authority=authority,
-                status="pending"
+        if not payment_data:
+            return JsonResponse(
+                {"error": "لینک پرداخت منقضی شده است"},
+                status=400
             )
-            
-            # ایجاد تقسیم‌های پرداخت
-            transaction.create_split_payments()
 
-            cache.delete(f'payment_{payment_id}')
-            print("=" * 50)
-            print("PAYMENT REDIRECT URL:")
-            print(response["url"])
-            print("=" * 50)
-            
-            return HttpResponseRedirect(response["url"])
+        tel_id = payment_data["tel_id"]
 
+        profile = ProfileModel.objects.get(
+            tel_id=tel_id
+        )
 
-        except Exception as e:
-            print(f"Error in send_request: {e}")
-            return JsonResponse({"error": f"Error: {traceback.format_exc()}"}, status=500)
+        cart = Cart.objects.get(
+            profile=profile
+        )
+
+        cart_items = CartItem.objects.filter(
+            cart=cart
+        )
+
+        if not cart_items.exists():
+            return JsonResponse(
+                {"error": "سبد خرید خالی است"},
+                status=400
+            )
+
+        # مبلغ کل (ریال)
+        amount = int(
+            sum(
+                item.total_price()
+                for item in cart_items
+            ) * 10
+        )
+
+        # -----------------------------
+        # ساخت wages برای زرین پال
+        # -----------------------------
+        splits = []
+
+        sellers_split = cart.get_sellers_split()
+
+        if len(sellers_split) > 5:
+
+            return JsonResponse(
+                {
+                    "error":
+                    "حداکثر ۵ فروشنده در یک تراکنش پشتیبانی می‌شود."
+                },
+                status=400
+            )
+
+        total_split_amount = 0
+
+        for seller, seller_amount in sellers_split.items():
+
+            if not seller.iban:
+
+                return JsonResponse(
+                    {
+                        "error":
+                        f"فروشگاه «{seller.name}» شماره شبا ثبت نکرده است."
+                    },
+                    status=400
+                )
+
+            seller_amount_rial = int(
+                seller_amount * 10
+            )
+
+            total_split_amount += seller_amount_rial
+
+            splits.append({
+                "iban": seller.iban,
+                "amount": seller_amount_rial,
+                "description":
+                    f"سهم فروشگاه {seller.name}"
+            })
+
+        # طبق محدودیت زرین پال
+        # فقط اگر سهم فروشندگان از مبلغ کل بیشتر شد خطا بده
+        if total_split_amount > amount:
+        
+            return JsonResponse(
+                {
+                    "error":
+                    "مجموع سهم فروشندگان نباید بیشتر از مبلغ کل باشد."
+                },
+                status=400
+            )
+
+        description = (
+            f"پرداخت سبد خرید شامل "
+            f"{cart_items.count()} کالا"
+        )
+
+        response = pay.send_split_request(
+            amount=amount,
+            description=description,
+            splits=splits,
+            email=None,
+            mobile=profile.phone
+        )
+
+        if not response.get("success"):
+
+            return JsonResponse(
+                {
+                    "error":
+                    response.get(
+                        "message",
+                        "خطا در اتصال به درگاه"
+                    ),
+                    "code":
+                    response.get(
+                        "error_code"
+                    )
+                },
+                status=400
+            )
+
+        authority = response.get(
+            "authority"
+        )
+
+        if not authority:
+
+            return JsonResponse(
+                {
+                    "error":
+                    "Authority دریافت نشد"
+                },
+                status=400
+            )
+
+        transaction = Transaction.objects.create(
+            profile=profile,
+            cart=cart,
+            amount=amount // 10,   # تومان
+            authority=authority,
+            status="pending"
+        )
+
+        transaction.create_split_payments()
+
+        cache.delete(
+            f"payment_{payment_id}"
+        )
+
+        payment_url = response["url"]
+
+        print("=" * 60)
+        print("PAYMENT URL:")
+        print(payment_url)
+        print("=" * 60)
+
+        html = f"""
+        <!DOCTYPE html>
+        <html lang="fa">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport"
+                content="width=device-width, initial-scale=1.0">
+            <title>انتقال به درگاه پرداخت</title>
+
+            <style>
+                body {{
+                    font-family: sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    background: #f5f5f5;
+                    direction: rtl;
+                }}
+
+                .card {{
+                    background: white;
+                    padding: 30px;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                    text-align: center;
+                    max-width: 400px;
+                }}
+
+                .btn {{
+                    display: inline-block;
+                    margin-top: 20px;
+                    padding: 12px 24px;
+                    background: #0088cc;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 8px;
+                }}
+            </style>
+        </head>
+
+        <body>
+
+        <div class="card">
+            <h3>در حال انتقال به درگاه پرداخت...</h3>
+
+            <p>
+                اگر انتقال خودکار انجام نشد،
+                روی دکمه زیر کلیک کنید.
+            </p>
+
+            <a class="btn"
+            href="{payment_url}"
+            target="_blank">
+                ورود به درگاه پرداخت
+            </a>
+        </div>
+
+        <script>
+
+        const paymentUrl = "{payment_url}";
+
+        if (
+            window.Telegram &&
+            Telegram.WebApp &&
+            Telegram.WebApp.openLink
+        ) {{
+
+            Telegram.WebApp.openLink(
+                paymentUrl,
+                {{
+                    try_instant_view: false
+                }}
+            );
+
+            setTimeout(() => {{
+                Telegram.WebApp.close();
+            }}, 500);
+
+        }} else {{
+
+            window.location.replace(paymentUrl);
+
+        }}
+
+        </script>
+
+        </body>
+        </html>
+        """
+
+        return HttpResponse(html)
+
+    except ProfileModel.DoesNotExist:
+
+        return JsonResponse(
+            {
+                "error":
+                "پروفایل یافت نشد"
+            },
+            status=404
+        )
+
+    except Cart.DoesNotExist:
+
+        return JsonResponse(
+            {
+                "error":
+                "سبد خرید یافت نشد"
+            },
+            status=404
+        )
+
+    except Exception:
+
+        print(
+            traceback.format_exc()
+        )
+
+        return JsonResponse(
+            {
+                "error":
+                traceback.format_exc()
+            },
+            status=500
+        )
 
 
 # ==========================================================
@@ -581,11 +731,11 @@ def handle_successful_payment(transaction):
                         print(f"   کانال: {product.store.tel_channel}")
                         print(f"   محصول: {product.name}")
                         
-                        send_album_and_button(
+                        request_restock(
                             channel_id=product.store.tel_channel,
                             product=product,
                             photos=photos,
-                            out_of_stock=True,
+                            attributes=list(product.attributes.all()),
                         )
                         print("17. آلبوم ارسال شد")
                     except Exception as ex:
@@ -615,7 +765,8 @@ def send_payment_notifications(transaction, sales):
     """ارسال پیام‌های اطلاع‌رسانی پس از پرداخت موفق"""
     try:
         chat_id_buyer = transaction.profile.tel_id
-        telegram_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        from sms_ir import SmsIr
+        SmsIrsms_ir = SmsIr(str(os.environ.get('sms_api_key')), str(os.environ.get('linenumber')))
         
         # پیام به خریدار
         buyer_products = "\n".join(
@@ -625,10 +776,13 @@ def send_payment_notifications(transaction, sales):
             "✅ پرداخت شما با موفقیت انجام شد!\n"
             f"🛍️ محصولات خریداری‌شده:\n{buyer_products}\n\n"
             f"💰 مبلغ کل: {transaction.amount:,} تومان\n"
-            f"📋 کد پیگیری: {transaction.zarinpal_ref_id or '---'}"
+            f"📋 کد پیگیری زرین پال: {transaction.zarinpal_ref_id or '---'}"
         )
-        
-        requests.post(telegram_url, json={"chat_id": chat_id_buyer, "text": buyer_message})
+        print(str(transaction.profile.phone))
+        print(str(os.environ.get('linenumber')))
+        sms = SmsIrsms_ir.send_sms(str(transaction.profile.phone), buyer_message, str(os.environ.get('linenumber')))
+        print(sms.json())
+        msg = bot.send_message(chat_id=chat_id_buyer, text=buyer_message)
 
         # پیام به فروشندگان
         sellers_map = {}
@@ -658,11 +812,14 @@ def send_payment_notifications(transaction, sales):
                 f"💰 مجموع درآمد شما: {data['total_income']:,} تومان\n\n"
                 f"👤 خریدار: {buyer_info.fname} {buyer_info.lname}\n"
                 f"📞 تلفن: {buyer_info.phone}\n"
-                f"🏠 آدرس: {address_text}"
+                f"🏠 آدرس: {address_text}\n\n"
+                f"کد تراکنش: {transaction.transaction_id}"
             )
-            requests.post(telegram_url, json={"chat_id": chat_id_seller, "text": seller_message})
+
+            SmsIrsms_ir.send_sms(str(data["store"].owner.phone), seller_message, str(os.environ.get('linenumber')))
+            bot.send_message(chat_id=chat_id_seller, text=seller_message)
     except Exception as e:
-        print(f"❌ Error sending notifications: {e}")
+        print(f"❌ Error sending notifications: {traceback.format_exc()}")
 
 
 
@@ -816,6 +973,9 @@ class TelegramBotRedirectView(View):
             return redirect('error_page')
         
         telegram_url = f"https://t.me/{bot_id}?start={urllib.parse.quote(start_param)}"
+        lang = urllib.parse.quote(start_param)
+        lang = lang.split("_")
+        lang = lang[-1]
         home_url = reverse('mainpage:home')
         
         # HTML با JavaScript برای باز کردن تلگرام در پس‌زمینه
@@ -831,6 +991,7 @@ class TelegramBotRedirectView(View):
             <body>
                 <div style="text-align:center; padding:20px;">
                     <h2>در حال انتقال به ربات...</h2>
+                    <h3 style="color: red">{t("message", "VPN_required", lang=lang)}</h3>
                     
                     <script>
                         // بررسی اگر در WebView تلگرام هستیم
@@ -852,8 +1013,8 @@ class TelegramBotRedirectView(View):
                         // ===== مهم: بعد از 3 ثانیه صفحه را به سایت اصلی منتقل کن =====
                         setTimeout(function() {{
                             // این خط صفحه فعلی را به آدرس سایت اصلی منتقل می‌کند
-                            window.location.href = 'https://intelleum.ir:8443';
-                        }}, 3000);
+                            window.location.href = 'https://intelleum.ir';
+                        }}, 30000);
                         
                     </script>
                     
@@ -864,7 +1025,7 @@ class TelegramBotRedirectView(View):
                             🔗 باز کردن ربات
                         </a>
                         <br>
-                        <a href="https://intelleum.ir:8443" style="display:inline-block; margin-top:10px; padding:8px 16px; background:#28a745; color:white; text-decoration:none; border-radius:5px;">
+                        <a href="https://intelleum.ir" style="display:inline-block; margin-top:10px; padding:8px 16px; background:#28a745; color:white; text-decoration:none; border-radius:5px;">
                             🏠 رفتن به سایت اصلی
                         </a>
                     </p>

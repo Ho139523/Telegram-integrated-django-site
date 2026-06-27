@@ -707,11 +707,11 @@ translations = {
         "ar": "الرجاء إدخال علامة المنتج التجارية (اختياري):"
     },
     "enter_product_price": {
-        "fa": "لطفاً قیمت محصول را وارد کنید:",
-        "en": "Please enter the product price:",
-        "ru": "Пожалуйста, введите цену товара:",
-        "zh": "请输入产品价格：",
-        "ar": "الرجاء إدخال سعر المنتج:"
+        "fa": "لطفاً قیمت محصول را به تومان وارد کنید:",
+        "en": "Please enter the product price in Toman:",
+        "ru": "Пожалуйста, введите цену товара в Томанах:",
+        "zh": "请输入产品价格（单位：托曼）：",
+        "ar": "الرجاء إدخال سعر المنتج بالتومان:"
     },
     "enter_discount": {
         "fa": "درصد تخفیف را وارد کنید:",
@@ -1292,11 +1292,11 @@ translations = {
         "ar": "هل يتم تخزين هذا المنتج في المستودع وفقًا لاختلافات مثل الألوان أو الأحجام أو متغيرات أخرى مشابهة؟"
     },
     "accurate_inventory": {
-        "fa": "انبارداری دقیق",
-        "en": "Accurate Inventory",
-        "ru": "Точный учёт склада",
-        "zh": "精确库存管理",
-        "ar": "إدارة مخزون دقيقة"
+        "fa": "بله (انبارداری دقیق می‌کنم)",
+        "en": "Yes (I manage inventory precisely)",
+        "ru": "Да (я веду точный учёт склада)",
+        "zh": "是（我进行精确库存管理）",
+        "ar": "نعم (أدير المخزون بدقة)"
     },
     "not_necessary": {
         "fa": "نه لازم نیست",
@@ -1327,11 +1327,11 @@ translations = {
         "ar": "أدخل القيم الخاصة بـ {keyname} مفصولة بفواصل (مثل: أحمر, أزرق, أخضر)"
     },
     "add_another_variant_key": {
-        "fa": "می‌خواهید یک متغیر جدید دیگر اضافه کنید؟",
-        "en": "Do you want to add another variant key?",
-        "ru": "Хотите добавить еще один ключ варианта?",
-        "zh": "您想添加另一个变体键吗？（是/否）",
-        "ar": "هل تريد إضافة مفتاح متغير آخر؟"
+        "fa": "آیا می‌خواهید روی یک متغیر دیگر (مثل رنگ، سایز، جنس و ...) انبارداری کنید؟",
+        "en": "Do you want to manage inventory based on another variable (such as color, size, material, etc.)?",
+        "ru": "Хотите вести складской учет по другой переменной (например, цвету, размеру, материалу и т. д.)?",
+        "zh": "您想基于另一个变量（如颜色、尺寸、材质等）进行库存管理吗？",
+        "ar": "هل تريد إدارة المخزون بناءً على متغير آخر (مثل اللون أو المقاس أو الخامة وغيرها)؟"
     },
     "choose_from_options": {
         "fa": "لطفا پاسخ خود را از میان گزینه‌ها انتخاب کنید",
@@ -1499,11 +1499,11 @@ translations = {
         "ar": "بأي صيغة تريد عرض منتجاتك؟"
     },
     "product_export_caption": {
-        "fa": "📊 محصولات فروشگاه {store_name}\n📦 {total_products} محصول\n🔄 {total_variants} واریانت\n💰 ارزش موجودی: {total_stock_value:,.0f} تومان",
-        "en": "📊 Products of {store_name}\n📦 {total_products} products\n🔄 {total_variants} variants\n💰 Stock Value: {total_stock_value:,.0f}",
-        "ru": "📊 Продукты магазина {store_name}\n📦 {total_products} продуктов\n🔄 {total_variants} вариантов\n💰 Стоимость запаса: {total_stock_value:,.0f}",
-        "zh": "📊 {store_name}的产品\n📦 {total_products} 个产品\n🔄 {total_variants} 个变体\n💰 库存价值: {total_stock_value:,.0f}",
-        "ar": "📊 منتجات متجر {store_name}\n📦 {total_products} منتج\n🔄 {total_variants} متغير\n💰 قيمة المخزون: {total_stock_value:,.0f}"
+        "fa": "📊 محصولات فروشگاه {store_name}\n📦 {total_products} محصول\n🔄 {total_variants} متغیر انبارداری\n💰 ارزش موجودی: {total_stock_value:,.0f} تومان",
+        "en": "📊 Products of {store_name}\n📦 {total_products} products\n🔄 {total_variants} inventory variables\n💰 Stock Value: {total_stock_value:,.0f}",
+        "ru": "📊 Продукты магазина {store_name}\n📦 {total_products} продуктов\n🔄 {total_variants} складских переменных\n💰 Стоимость запасов: {total_stock_value:,.0f}",
+        "zh": "📊 {store_name}的产品\n📦 {total_products} 个产品\n🔄 {total_variants} 个库存变量\n💰 库存价值: {total_stock_value:,.0f}",
+        "ar": "📊 منتجات متجر {store_name}\n📦 {total_products} منتج\n🔄 {total_variants} متغيرات المخزون\n💰 قيمة المخزون: {total_stock_value:,.0f}"
     },
     'products_sheet': {
         'fa': 'محصولات',
@@ -1513,11 +1513,18 @@ translations = {
         'ar': 'المنتجات'
     },
     'variants_sheet': {
-        'fa': 'واریانت‌ها',
-        'en': 'Variants',
-        'ru': 'Варианты',
-        'zh': '变体',
-        'ar': 'المتغيرات'
+        'fa': 'متغیرهای انبارداری',
+        'en': 'Inventory Variables',
+        'ru': 'Складские переменные',
+        'zh': '库存变量',
+        'ar': 'متغيرات المخزون'
+    },
+    'variants_count': {
+        'fa': 'تعداد متغیرهای انبارداری',
+        'en': 'Inventory Variables Count',
+        'ru': 'Количество складских переменных',
+        'zh': '库存变量数量',
+        'ar': 'عدد متغيرات المخزون'
     },
     'summary_sheet': {
         'fa': 'خلاصه',
@@ -1638,13 +1645,6 @@ translations = {
         'zh': '图片数量',
         'ar': 'عدد الصور'
     },
-    'variants_count': {
-        'fa': 'تعداد واریانت‌ها',
-        'en': 'Variants Count',
-        'ru': 'Количество вариантов',
-        'zh': '变体数量',
-        'ar': 'عدد المتغيرات'
-    },
     'description': {
         'fa': 'توضیحات',
         'en': 'Description',
@@ -1667,11 +1667,11 @@ translations = {
         'ar': 'رقم المنتج'
     },
     'variant_id': {
-        'fa': 'ID واریانت',
-        'en': 'Variant ID',
-        'ru': 'ID варианта',
-        'zh': '变体ID',
-        'ar': 'رقم المتغير'
+        'fa': 'شناسه متغیر انبارداری',
+        'en': 'Inventory Variable ID',
+        'ru': 'ID складской переменной',
+        'zh': '库存变量ID',
+        'ar': 'معرّف متغير المخزون'
     },
     'sku': {
         'fa': 'SKU',
@@ -1707,20 +1707,6 @@ translations = {
         'ru': 'Неактивный',
         'zh': '非活跃',
         'ar': 'غير نشط'
-    },
-    'yes': {
-        'fa': 'دارد',
-        'en': 'Yes',
-        'ru': 'Да',
-        'zh': '有',
-        'ar': 'نعم'
-    },
-    'no': {
-        'fa': 'ندارد',
-        'en': 'No',
-        'ru': 'Нет',
-        'zh': '无',
-        'ar': 'لا'
     },
     'store_name': {
         'fa': 'نام فروشگاه',
@@ -1765,18 +1751,18 @@ translations = {
         'ar': 'المنتجات غير النشطة'
     },
     'products_with_variants': {
-        'fa': 'محصولات دارای واریانت',
-        'en': 'Products with Variants',
-        'ru': 'Товары с вариантами',
-        'zh': '有变体的产品',
-        'ar': 'المنتجات ذات المتغيرات'
+        'fa': 'محصولات دارای متغیرهای انبارداری',
+        'en': 'Products with Inventory Variables',
+        'ru': 'Товары со складскими переменными',
+        'zh': '具有库存变量的产品',
+        'ar': 'المنتجات ذات متغيرات المخزون'
     },
     'total_variants': {
-        'fa': 'تعداد کل واریانت‌ها',
-        'en': 'Total Variants',
-        'ru': 'Всего вариантов',
-        'zh': '总变体数',
-        'ar': 'إجمالي المتغيرات'
+        'fa': 'تعداد کل متغیرهای انبارداری',
+        'en': 'Total Inventory Variables',
+        'ru': 'Общее количество складских переменных',
+        'zh': '库存变量总数',
+        'ar': 'إجمالي متغيرات المخزون'
     },
     'categories_count': {
         'fa': 'تعداد دسته‌بندی‌ها',
@@ -2345,6 +2331,13 @@ translations = {
         "zh": "🔕 此视频将不再向您显示",
         "ar": "🔕 لن يتم عرض هذا الفيديو لك مرة أخرى"
     },
+    "out_of_stock": {
+        "fa": "متاسفانه این کالا در انبار موجود نیست.",
+        "en": "Unfortunately, this product is out of stock.",
+        "ru": "К сожалению, этого товара нет в наличии.",
+        "zh": "很遗憾，该商品目前缺货。",
+        "ar": "لسوء الحظ، هذا المنتج غير متوفر في المخزون."
+    },
     "enter_store_name": {
         "fa": "🖍 نام فروشگاه خود را وارد کنید:",
         "en": "🖍 Enter your store name:",
@@ -2569,5 +2562,12 @@ translations = {
         "ru": "Введите свой код продавца (Merchant Code) для шлюза {gateway}. (Это 16-значный код, предоставленный вам платёжным шлюзом.)",
         "zh": "请输入您在 {gateway} 支付网关中的商户代码（Merchant Code）。（这是支付网关分配给您的16位数字代码。）",
         "ar": "أدخل رمز التاجر (Merchant Code) الخاص بك في بوابة {gateway}. (وهو رمز مكون من 16 رقمًا يتم تخصيصه لك من قبل بوابة الدفع.)"
+    },
+    "VPN_required": {
+        "fa": "اگر در کشورهایی هستید که تلگرام فیلتر می‌باشد، نیاز است که از فیلترشکن استفاده کنید.",
+        "en": "If you are in a country where Telegram is blocked, you need to use a VPN.",
+        "ru": "Если вы находитесь в стране, где Telegram заблокирован, вам необходимо использовать VPN.",
+        "zh": "如果您所在的国家/地区屏蔽了 Telegram，则需要使用 VPN。",
+        "ar": "إذا كنت في دولة يتم فيها حظر تيليجرام، فستحتاج إلى استخدام شبكة VPN."
     },
 }

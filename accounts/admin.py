@@ -150,7 +150,7 @@ class ProfileModelAdmin(admin.ModelAdmin):
     list_display = ('display_name', 'lang', 'platform', 'created_at')
     list_filter = ('lang', PlatformFilter)
     search_fields = ('tel_id', 'bale_id', 'user__username', 'fname', 'lname', 'phone')
-    readonly_fields = ('tel_id', 'bale_id', 'user', 'created_at', 'updated_at')
+    readonly_fields = ('tel_id', 'bale_id', 'created_at', 'updated_at')
     
     def display_name(self, obj):
         """

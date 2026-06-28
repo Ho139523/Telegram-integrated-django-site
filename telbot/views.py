@@ -2421,10 +2421,8 @@ def delete_handler(message):
         remove_product(message)
 
 
-
-@app.message_handler(func=lambda message: message.text.lower() in [i.lower() for i in Category.objects.annotate(
-    lower_title=Lower('title')).filter(lower_title=message.text.lower()).values_list('title', flat=True)]
-    and not session_manager.get_user_session(message.chat.id, namespace="menu").get("add_product"))
+@app.message_handler(func=lambda message: is_category_message(message)
+    and session_manager.get_user_session(message.chat.id, namespace="menu").get("handle_subcategory") and not session_manager.get_user_session(message.chat.id, namespace="menu").get("add_product"))
 def subcategory(message):
     category_class = CategoryClass()
     category_class.handle_subcategory(message)
@@ -2772,9 +2770,8 @@ def store_payment_method(call):
 def store_payment_method_zarinpal(call):
     try:
         send_store = SendStore(app)
-        gateway = "Zarinpal"
         session = session_manager.get_user_session(call.message.chat.id, namespace="createshop")
-        app.edit_message_text(chat_id=call.message.chat.id, text = t(call.message, "enter_merchant_code", gateway=gateway), message_id=call.message.message_id, reply_markup=None)
+        app.edit_message_text(chat_id=call.message.chat.id, text = t(call.message, "enter_iban"), message_id=call.message.message_id, reply_markup=None)
         session["take_payment_method"] = False
         session["take_iban"] = True
         session_manager.set_user_session(call.message.chat.id, session, namespace="createshop")

@@ -516,6 +516,6 @@ APPEND_SLASH = False  # اضافه کن
 
 
 
-is_proxied = True
+is_proxied = False
 manual_proxy = False
 FlaskBridge = True

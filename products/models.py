@@ -8,6 +8,7 @@ from django.utils.text import slugify
 import pycountry
 from django.utils import timezone
 from datetime import timedelta
+from django.utils.text import slugify
 
 
 # =========================
@@ -194,7 +195,7 @@ class Unit(models.Model):
 # =========================
 
 class Category(models.Model):
-    title = models.CharField(max_length=50, unique=True, verbose_name='Category Title')
+    title = models.CharField(max_length=50, unique=False, verbose_name='Category Title')
     slug = models.SlugField(unique=True, verbose_name='Slug')
     status = models.BooleanField(default=True, verbose_name='Publish Status')
     parent = models.ForeignKey(
@@ -249,15 +250,29 @@ class Category(models.Model):
             "store": self.store.name if self.store else None,
         }
 
+
+    def _generate_unique_slug(self):
+        base_slug = slugify(self.slug or self.title)
+        slug = base_slug
+        counter = 1
+
+        while Category.objects.exclude(pk=self.pk).filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        return slug
+
     def save(self, *args, **kwargs):
+        self.slug = self._generate_unique_slug()
+
         is_new = self.pk is None
         super().save(*args, **kwargs)
+
         if is_new and self.parent:
             parent_category = self.parent
             if parent_category.products.exists():
                 with transaction.atomic():
                     parent_category.products.update(category=self)
-            self.save(update_fields=["parent"])
 
 
 # =========================

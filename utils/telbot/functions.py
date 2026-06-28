@@ -139,6 +139,28 @@ def get_tunnel_password():
 
 
 
+def is_category_message(message):
+    profile = ProfileModel.objects.get(tel_id=message.chat.id)
+
+    if profile.seller_mode:
+        store = profile.server_store
+    else:
+        store = Store.objects.get(owner=profile)
+
+    cat = Category.objects.annotate(
+        lower_title=Lower("title")
+    ).filter(
+        lower_title=message.text.lower(),
+        store=store
+    ).values_list('title', flat=True)
+    existance = message.text.lower() in [i.lower() for i in cat]
+    if existance:
+        return True
+    else:
+        return False
+
+
+
 # Getting website address and webhook
 
 def get_current_webhook(TOKEN=TOKEN):
@@ -848,11 +870,11 @@ class SubscriptionClass:
 
         channel_markup.add(channel_subscription_button, group_subscription_button)
         channel_markup.add(check_subscription_button)
-
-        # if not self.check_subscription(user=message.chat.id):
-            # self.bot.send_message(message.chat.id, t(message, "verify_membership"), reply_markup=channel_markup)
-            # return False
-        # return True
+        return True
+        if not self.check_subscription(user=message.chat.id):
+            self.bot.send_message(message.chat.id, t(message, "verify_membership"), reply_markup=channel_markup)
+            return False
+        return True
 
 subscription = SubscriptionClass(app)
 
@@ -898,11 +920,16 @@ def handle_products(message):
     if subscription.subscription_offer(message):
         chat_id = message.chat.id
         subcategory = message.text
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
+        if profile.seller_mode:
+            store = profile.server_store
+        else:
+            store = Store.objects.get(owner=profile)
         options = [t(message, "most_selling"), t(message, "most_expensive"), t(message, "cheapest"), t(message, "most_discounted")]
 
         markup = send_menu(message, options, "products", retun_menue)
         session = session_manager.get_user_session(chat_id, namespace="menu")
-        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True)
+        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True, store=store)
         app.send_message(chat_id, f"{current_category.get_full_path()}", reply_markup=markup)
 
 
@@ -918,6 +945,8 @@ class CategoryClass:
             try:
                 extra_menu = [t(message, "cancel_action")]
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
+                session["handle_subcategory"] = True
+                session_manager.set_user_session(message.chat.id, session, namespace="menu")
                 print(f"begining of handle_category: {session}")
                 profile = ProfileModel.objects.get(tel_id=message.chat.id)
                 if profile.seller_mode:
@@ -974,19 +1003,29 @@ class CategoryClass:
                 session["current_menu"] = message.text.lower()
                 session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
+                profile = ProfileModel.objects.get(tel_id=message.chat.id)
+                if profile.seller_mode:
+                    store = Store.objects.get(owner=profile)
+                else:
+                    store = profile.server_store
+                if not session.get("category") and not session.get("product") and not store.categories.exists():
+                    # Store has no categories
+                    app.send_message(message.chat.id, t(message, "store_empty"))
+                    return
+
                 extra_menu = ["🔙", t(message, "cancel_action")]
                 
                 if session.get("category") and session.get("category_deactivate"):
-                    current_category = Category.objects.get(title__iexact=message.text.title())
+                    current_category = Category.objects.get(title__iexact=message.text.title(), store=store)
                     children = [child.title for child in current_category.get_next_layer_categories(both=True)]
 
                 # when you want to delete you must be able to delete even deactivated cats
                 elif session.get("category") and session.get("menu_delete"):
-                    current_category = Category.objects.get(title__iexact=message.text.title())
+                    current_category = Category.objects.get(title__iexact=message.text.title(), store=store)
                     children = [child.title for child in current_category.get_next_layer_categories(both=True)]
                 
                 else:
-                    current_category = Category.objects.get(title__iexact=message.text.title(), status=True)
+                    current_category = Category.objects.get(title__iexact=message.text.title(), status=True, store=store)
                     children = [child.title for child in current_category.get_next_layer_categories()]
 
                 
@@ -1044,7 +1083,7 @@ class CategoryClass:
                         button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
                         for b in button:
                             extra_menu.remove(b) if b in extra_menu else None
-                        text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
+                        text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True, store=store).get_full_path()}"
                     markup = send_menu(message, children, message.text, extra_menu)
                     app.send_message(message.chat.id, text, reply_markup=markup)
         except Exception as e:

@@ -30,3 +30,4 @@ package.json
 .env
 *.swo
 *.swp
+db.sqlite3

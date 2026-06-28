@@ -849,10 +849,10 @@ class SubscriptionClass:
         channel_markup.add(channel_subscription_button, group_subscription_button)
         channel_markup.add(check_subscription_button)
 
-        if not self.check_subscription(user=message.chat.id):
-            self.bot.send_message(message.chat.id, t(message, "verify_membership"), reply_markup=channel_markup)
-            return False
-        return True
+        # if not self.check_subscription(user=message.chat.id):
+            # self.bot.send_message(message.chat.id, t(message, "verify_membership"), reply_markup=channel_markup)
+            # return False
+        # return True
 
 subscription = SubscriptionClass(app)
 

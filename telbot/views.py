@@ -988,6 +988,14 @@ def settings(message):
         app.send_message(message.chat.id, t(message, "settings_message"), reply_markup=markup)
 
 
+@app.message_handler(func=lambda message: message.text == t(message, "menu_create_shop"))
+def menu_create_shop(message):
+    try:
+        build_shop(message)
+    except:
+        print(traceback.format_exc())
+
+
 # profile settings handler
 @app.message_handler(func=lambda message: message.text in (translations["menu_profile"][ProfileModel.objects.get(tel_id=message.chat.id).lang]))
 def profile_setting(message):
@@ -1020,7 +1028,7 @@ def store_setting(message):
 
 
 # balance
-@app.message_handler(func=lambda message: message.text == translations["menu_balance"][ProfileModel.objects.get(tel_id=message.chat.id).lang])
+@app.message_handler(func=lambda message: message.text == translations["menu_wallet"][ProfileModel.objects.get(tel_id=message.chat.id).lang])
 def balance_menue(message):
     if subscription.subscription_offer(message):
         options = [t(message, "my_balance"), t(message, "increase_balance")]

@@ -78,7 +78,7 @@ class ProfileModel(models.Model):
     # Default Menus (keys only)
     # ----------------------------
     def default_tel_menu():
-        return ["menu_balance", "menu_buy_by_code", "menu_categories", "menu_support", "menu_settings"]
+        return ["menu_wallet", "menu_buy_by_code", "menu_categories", "menu_support", "menu_create_shop", "menu_settings"]
 
     def default_extra_button_menu():
         return ["menu_cart"]
@@ -235,21 +235,21 @@ class ProfileModel(models.Model):
 
     LEVEL_MENUS = {
         'blue': [
-            ["menu_balance", "menu_buy_by_code", "menu_categories", "menu_support", "menu_settings"],
+            ["menu_wallet", "menu_buy_by_code", "menu_categories", "menu_support", "menu_create_shop", "menu_settings"],
             ["menu_cart"],
             ["menu_become_seller", "menu_my_address", "menu_profile"],
             ["menu_language"],
             ["menu_language"],
         ],
         'green': [
-            ["menu_balance", "menu_buy_by_code", "menu_categories", "menu_support", "menu_settings"],
+            ["menu_wallet", "menu_buy_by_code", "menu_categories", "menu_support", "menu_create_shop", "menu_settings"],
             ["menu_cart"],
             ["menu_become_seller", "menu_my_address", "menu_profile"],
             ["menu_language"],
             ["menu_language"],
         ],
         'silver': [
-            ["menu_balance", "menu_quick_buy", "menu_support"],
+            ["menu_wallet", "menu_quick_buy", "menu_support"],
             ["menu_cart"],
             ["menu_become_seller", "menu_my_address", "menu_profile"],
             ["menu_language"],

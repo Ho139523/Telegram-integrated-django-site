@@ -56,6 +56,7 @@ from telebot import types
 from telebot.storage import StateMemoryStorage
 state_storage = StateMemoryStorage()
 app = TeleBot(token=TOKEN, state_storage=state_storage)
+app.timeout = 300
 
 
 from telbot.sessions import CartSessionManager, RedisStateManager, SessionManager, RedisExportManager
@@ -143,9 +144,9 @@ def is_category_message(message):
     profile = ProfileModel.objects.get(tel_id=message.chat.id)
 
     if profile.seller_mode:
-        store = profile.server_store
-    else:
         store = Store.objects.get(owner=profile)
+    else:
+        store = profile.server_store
 
     cat = Category.objects.annotate(
         lower_title=Lower("title")
@@ -153,7 +154,9 @@ def is_category_message(message):
         lower_title=message.text.lower(),
         store=store
     ).values_list('title', flat=True)
+    print(store)
     existance = message.text.lower() in [i.lower() for i in cat]
+
     if existance:
         return True
     else:
@@ -929,7 +932,7 @@ def handle_products(message):
 
         markup = send_menu(message, options, "products", retun_menue)
         session = session_manager.get_user_session(chat_id, namespace="menu")
-        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True, store=store)
+        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True)
         app.send_message(chat_id, f"{current_category.get_full_path()}", reply_markup=markup)
 
 

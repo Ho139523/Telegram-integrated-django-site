@@ -137,6 +137,8 @@ app = telebot.TeleBot(
     num_threads=5
 )
 
+app.timeout = 300
+
 
 
 
@@ -2589,6 +2591,7 @@ def edit(message):
 #####################################   BUILD SHOP  #####################################
 
 @app.message_handler(commands=['build_shop'])
+@UltraVideoPrompter(command="build_shop")
 def build_shop(message):
     try:
         session = session_manager.get_user_session(message.chat.id, namespace="createshop")

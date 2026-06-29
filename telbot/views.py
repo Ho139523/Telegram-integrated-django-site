@@ -1933,13 +1933,15 @@ def sup(message):
 @app.message_handler(state=Support.text)
 def sup_text(message):
     try:
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
+        store = profile.server_store
         sup_markup = types.InlineKeyboardMarkup()
         client_markup = types.InlineKeyboardMarkup()
 
         sup_markup.add(types.InlineKeyboardButton(text=t(message, "reply"), callback_data="پاسخ"))
         client_markup.add(types.InlineKeyboardButton(text=t(message, "end_chat"), callback_data=t(message, "end_chat")))
 
-        app.send_message(chat_id=5629898030,
+        app.send_message(chat_id=store.owner.tel_id,
                          text=t(message, "user_message_received", user_id=message.from_user.id, username=message.from_user.username, text=escape_special_characters(message.text))
 ,
                          reply_markup=sup_markup, parse_mode="HTML")

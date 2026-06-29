@@ -154,7 +154,6 @@ def is_category_message(message):
         lower_title=message.text.lower(),
         store=store
     ).values_list('title', flat=True)
-    print(store)
     existance = message.text.lower() in [i.lower() for i in cat]
 
     if existance:

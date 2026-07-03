@@ -511,11 +511,14 @@ REDIS_URL = "redis://127.0.0.1:6379/0"
 
 
 # AI/settings.py
-APPEND_SLASH = False  # اضافه کن
+APPEND_SLASH = False
 
 
 
 
-is_proxied = False
+is_proxied = True
 manual_proxy = False
 FlaskBridge = True
+
+
+ENABLE_SPLIT_PAYMENT = False

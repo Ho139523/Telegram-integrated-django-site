@@ -419,7 +419,6 @@ def on_skip_callback(call):
 
 # Start handler
 @app.message_handler(commands=['start'])
-@UltraVideoPrompter(command="start")
 def start(message):
     try:
         tel_id = message.from_user.id
@@ -1012,6 +1011,51 @@ def profile_setting(message):
         app.send_message(message.chat.id, t(message, "profile_settings"), reply_markup=markup)
 
 
+@app.message_handler(func=lambda message: message.text == t(message, "currency_settings"))
+def currency_setting(message):
+    # try:
+    #     if subscription.subscription_offer(message):
+    #         from utils.telbot.variables import home_menu
+    #         profile = ProfileModel.objects.get(tel_id=message.chat.id)
+    #         text = t(message, "currency_setting_description", current_currency=profile.currency)
+    #         if Store.objects.filter(owner=profile).exists():
+    #             text += "\n\n" + t(message, "currency_setting_warning")
+    #         currancies = [name.split(" - ")[1] for code, name in ProfileModel.get_currency_choices()]
+    #         paginator = InlineKeyboardPaginator(user_id=message.chat.id, items=currancies, per_page=24, row_size=3, remember_last_page=False)
+    #         buttons, layout = paginator.get_buttons_for_sendmarkup()
+
+    #         handlers = {"prev": lambda a: None, "next": lambda b: None}  # Define handlers for prev and next buttons if needed
+    #         currancies = [curr for curr in ProfileModel.get_currency_choices()]
+    #         for code, name in currancies:
+    #             if name in buttons:
+    #                 name = name.split(" - ")[1]
+    #                 buttons[name]["callback_data"] = f"currncy_{code}"
+    #                 handlers[f'currency_{code}'] = lambda a: None
+            
+    #         buttons[t(message, "close")] = {'callback_data': 'currency_close', 'index': len(buttons)+2}
+    #         handlers["currency_close"] = lambda a: None
+    #         layout.append(1)
+
+    #         data = session_manager.get_user_session(message.chat.id, namespace="currency")
+    #         data["state"] = "currency_selection"
+    #         session_manager.set_user_session(message.chat.id, data, namespace="currency")
+
+    #         # ایجاد کیبورد
+    #         markup = SendMarkup(
+    #             bot=app,
+    #             chat_id=message.chat.id,
+    #             text=text,
+    #             buttons=buttons,
+    #             button_layout=layout,
+    #             handlers=handlers
+    #         )
+    #         markup.send()
+    pass
+    # except Exception as e:
+    #     error_details = traceback.format_exc()
+    #     print(f"Error in currency_setting: {e}\nDetails:\n{error_details}")
+
+
 @app.message_handler(func=lambda message: message.text == t(message, "menu_store"))
 def store_setting(message):
     if subscription.subscription_offer(message):
@@ -1185,7 +1229,7 @@ def generate_sales_pdf(store, sales_data, font_path, chat_id):
         rtl(t("message", "sale_statistics_index", chat_id=chat_id)),
         rtl(t("message", "sale_statistics_date", chat_id=chat_id)),
         rtl(t("message", "sale_statistics_quantity", chat_id=chat_id)),
-        rtl(t("message", "sale_statistics_total_cost", chat_id=chat_id)),
+        rtl(t("message", "sale_statistics_total_cost", chat_id=chat_id, currency=t("message", ProfileModel.objects.get(tel_id=chat_id).currency, chat_id=chat_id))),
         rtl(t("message", "sale_statistics_product_name", chat_id=chat_id)),
     ]
 
@@ -2360,13 +2404,15 @@ def handle_export_products(message):
         else:
             cache_info = " (from cache)" if result.get('from_cache') else ""
             user_lang = result.get('user_lang', 'en')
+            profile = ProfileModel.objects.get(tel_id=message.chat.id)
             
             # استفاده از تابع t برای ترجمه caption
             caption = t(message, 'product_export_caption', 
                        store_name=result['store_name'],
                        total_products=result['metadata']['total_products'],
                        total_variants=result['metadata']['total_variants'],
-                       total_stock_value=result['metadata']['total_stock_value'])
+                       total_stock_value=result['metadata']['total_stock_value'],
+                       currency=t(message, profile.currency))
             
             if cache_info:
                 caption += f" {cache_info}"
@@ -3103,9 +3149,10 @@ def show_balance(message):
     try:
         if subscription.subscription_offer(message):
             user_id = message.from_user.id
-            balance = ProfileModel.objects.get(tel_id=user_id).credit
+            profile = ProfileModel.objects.get(tel_id=user_id)
+            balance= profile.credit
             formatted_balance = "{:,.2f}".format(float(balance))
-            app.send_message(message.chat.id, t(message, "user_balance", formatted_balance=formatted_balance))
+            app.send_message(message.chat.id, t(message, "user_balance", formatted_balance=formatted_balance, currency=t(message, profile.currency)))
     except:
         app.send_message(message.chat.id, traceback.format_exc())
     

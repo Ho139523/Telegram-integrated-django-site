@@ -218,13 +218,22 @@ def send_request(request):
             f"{cart_items.count()} کالا"
         )
 
-        response = pay.send_split_request(
-            amount=amount,
-            description=description,
-            splits=splits,
-            email=None,
-            mobile=profile.phone
-        )
+        if settings.ENABLE_SPLIT_PAYMENT:
+
+            response = pay.send_split_request(
+                amount=amount,
+                description=description,
+                splits=splits,
+                mobile=profile.phone,
+            )
+
+        else:
+
+            response = pay.send_request(
+                amount=amount,
+                description=description,
+                mobile=profile.phone,
+            )
 
         if not response.get("success"):
 

@@ -180,13 +180,6 @@ translations = {
         "zh": "数量",
         "ar": "الكمية"
     },
-    "sale_statistics_total_cost": {
-        "fa": "قیمت کل (تومان)",
-        "en": "Total Cost (Toman)",
-        "ru": "Общая стоимость (Toman)",
-        "zh": "总价（托曼）",
-        "ar": "التكلفة الكلية (تومان)"
-    },
     "sale_statistics_product_name": {
         "fa": "نام محصول",
         "en": "Product Name",
@@ -280,11 +273,11 @@ translations = {
         "ar": "🛒 سلة الشراء",
     },
     "menu_become_seller": {
-        "fa": "✅ فروشنده شو",
-        "en": "✅ Become a Seller",
-        "ru": "✅ Стать продавцом",
-        "zh": "✅ 成为卖家",
-        "ar": "✅ أصبح بائعاً",
+        "fa": "👨‍💼 پنل فروشندگی",
+        "en": "👨‍💼 Seller Panel",
+        "ru": "👨‍💼 Панель продавца",
+        "zh": "👨‍💼 卖家面板",
+        "ar": "👨‍💼 لوحة البائع"
     },
     "menu_my_address": {
         "fa": "🚚 آدرس پستی من",
@@ -706,13 +699,6 @@ translations = {
         "zh": "请输入产品品牌（可选）：",
         "ar": "الرجاء إدخال علامة المنتج التجارية (اختياري):"
     },
-    "enter_product_price": {
-        "fa": "لطفاً قیمت محصول را به تومان وارد کنید:",
-        "en": "Please enter the product price in Toman:",
-        "ru": "Пожалуйста, введите цену товара в Томанах:",
-        "zh": "请输入产品价格（单位：托曼）：",
-        "ar": "الرجاء إدخال سعر المنتج بالتومان:"
-    },
     "enter_discount": {
         "fa": "درصد تخفیف را وارد کنید:",
         "en": "Please enter the discount percentage:",
@@ -847,11 +833,11 @@ translations = {
         "ar": "الرجاء إدخال علامة المنتج التجارية (اختياري):"
     },
     "enter_product_price": {
-        "fa": "لطفاً قیمت محصول را وارد کنید:",
-        "en": "Please enter the product price:",
-        "ru": "Пожалуйста, введите цену товара:",
-        "zh": "请输入产品价格：",
-        "ar": "الرجاء إدخال سعر المنتج:"
+        "fa": "لطفاً قیمت محصول را وارد کنید ({currency}):",
+        "en": "Please enter the product price ({currency}):",
+        "ru": "Пожалуйста, введите цену товара ({currency}):",
+        "zh": "请输入产品价格（{currency}）：",
+        "ar": "الرجاء إدخال سعر المنتج ({currency}):"
     },
     "enter_discount": {
         "fa": "درصد تخفیف را وارد کنید:",
@@ -1044,11 +1030,11 @@ translations = {
         "ar": "اختر الفئة أو الفئة الفرعية التي تريد حذفها"
     },
     "delete_category_warning": {
-        "fa": "دقت کنید که با حذف یک دسته بندی زیر دسته ها و کالاهای محتوای آن ها نیز حذف میشوند.",
-        "en": "Note that deleting a category will also remove its subcategories and the products within them.",
-        "ru": "Обратите внимание: при удалении категории будут удалены также её подкатегории и товары.",
-        "zh": "请注意，删除类别时，其子类别和其中的商品也会被删除。",
-        "ar": "انتبه، عند حذف فئة سيتم أيضًا حذف الفئات الفرعية والمنتجات بداخلها."
+        "fa": "⚠️ توجه: با حذف یک دسته‌بندی، تمامی زیر‌دسته‌ها و کالاهای مرتبط با آن نیز به‌صورت دائمی حذف خواهند شد.",
+        "en": "⚠️ Warning: Deleting a category will permanently remove all its subcategories and associated products.",
+        "ru": "⚠️ Внимание: при удалении категории все её подкатегории и связанные товары будут удалены безвозвратно.",
+        "zh": "⚠️ 警告：删除类别将永久移除其所有子类别及关联商品。",
+        "ar": "⚠️ تحذير: سيؤدي حذف فئة إلى حذف جميع الفئات الفرعية والمنتجات المرتبطة بها بشكل دائم."
     },
     "enter_product_code": {
         "fa": "لطفاً کد کالای مورد نظر را وارد کنید:",
@@ -1100,11 +1086,11 @@ translations = {
         "ar": "إلى أي فئة ينتمي المنتج الذي تبحث عنه؟"
     },
     "add_subcategory_select_parent": {
-        "fa": "دسته بندی که می خوای اضافه کنی جزء کدام زیر دسته است؟",
-        "en": "Which subcategory should the category you want to add belong to?",
-        "ru": "К какой подкатегории должна относиться добавляемая категория?",
-        "zh": "您要添加的类别属于哪个子类别？",
-        "ar": "إلى أي فئة فرعية تنتمي الفئة التي تريد إضافتها؟"
+            "fa": "✏️ عنوان زیردسته‌ای که می‌خواهید به این دسته اضافه کنید را بنویسید.\n\n📂 یا از لیست زیر، یکی از زیردسته‌های موجود را انتخاب کنید تا به سطح پایین‌تر بروید.\n\n⬅️ برای بازگشت به سطح بالاتر، از دکمه بازگشت استفاده کنید.",
+        "en": "✏️ Enter the title of the subcategory you want to add to this category.\n\n📂 Or select one of the existing subcategories below to go to a lower level.\n\n⬅️ Use the back button to go to the parent level.",
+        "ru": "✏️ Введите название подкатегории, которую вы хотите добавить в эту категорию.\n\n📂 Или выберите одну из существующих подкатегорий ниже, чтобы перейти на уровень ниже.\n\n⬅️ Используйте кнопку назад, чтобы перейти на уровень выше.",
+        "zh": "✏️ 输入要添加到此类别的子类别名称。\n\n📂 或从下面选择现有的子类别以进入更低级别。\n\n⬅️ 使用返回按钮返回上一级。",
+        "ar": "✏️ أدخل عنوان الفئة الفرعية التي تريد إضافتها إلى هذه الفئة.\n\n📂 أو اختر واحدة من الفئات الفرعية الموجودة أدناه للانتقال إلى مستوى أدنى.\n\n⬅️ استخدم زر الرجوع للعودة إلى المستوى الأعلى."
     },
     "select_subcategory_for_product": {
         "fa": "کالایی که می خواهید اضافه کنید جزء کدام زیر دسته است؟",
@@ -1140,13 +1126,6 @@ translations = {
         "ru": "В вашем магазине нет категорий или подкатегорий для удаления.",
         "zh": "您的商店没有可删除的类别或子类别。",
         "ar": "متجرك لا يحتوي على أي فئات أو فئات فرعية للحذف."
-    },
-    "user_balance": {
-        "fa": "موجودی شما: {formatted_balance} تومان",
-        "en": "Your balance: {formatted_balance} USD",
-        "ru": "Ваш баланс: {formatted_balance} рублей",
-        "zh": "您的余额：{formatted_balance} 元",
-        "ar": "رصيدك: {formatted_balance} دولار"
     },
     "my_balance": {
         "fa": "💰 موجودی من",
@@ -1497,13 +1476,6 @@ translations = {
         "ru": "В каком формате вы хотите просмотреть свои товары?",
         "zh": "您想以哪种格式查看您的商品？",
         "ar": "بأي صيغة تريد عرض منتجاتك؟"
-    },
-    "product_export_caption": {
-        "fa": "📊 محصولات فروشگاه {store_name}\n📦 {total_products} محصول\n🔄 {total_variants} متغیر انبارداری\n💰 ارزش موجودی: {total_stock_value:,.0f} تومان",
-        "en": "📊 Products of {store_name}\n📦 {total_products} products\n🔄 {total_variants} inventory variables\n💰 Stock Value: {total_stock_value:,.0f}",
-        "ru": "📊 Продукты магазина {store_name}\n📦 {total_products} продуктов\n🔄 {total_variants} складских переменных\n💰 Стоимость запасов: {total_stock_value:,.0f}",
-        "zh": "📊 {store_name}的产品\n📦 {total_products} 个产品\n🔄 {total_variants} 个库存变量\n💰 库存价值: {total_stock_value:,.0f}",
-        "ar": "📊 منتجات متجر {store_name}\n📦 {total_products} منتج\n🔄 {total_variants} متغيرات المخزون\n💰 قيمة المخزون: {total_stock_value:,.0f}"
     },
     'products_sheet': {
         'fa': 'محصولات',
@@ -1870,11 +1842,11 @@ translations = {
         "ar": "🏪 عنوان متجرك:\n\n"
     },
     "cart_summary": {
-        "fa": "🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{total_price:,.0f} تومان",
-        "en": "🛒 Your Cart:\n\n💰 Total Amount To Pay:\t{total_price:,.0f} Toman",
-        "ru": "🛒 Ваша корзина:\n\n💰 Общая сумма к оплате:\t{total_price:,.0f} Туман",
-        "zh": "🛒 您的购物车：\n\n💰 应付总金额：\t{total_price:,.0f} 图曼",
-        "ar": "🛒 سلة التسوق الخاصة بك:\n\n💰 المبلغ الإجمالي المستحق:\t{total_price:,.0f} تومان"
+        "fa": "🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{total_price:,.0f} {currency}",
+        "en": "🛒 Your Cart:\n\n💰 Total Amount To Pay:\t{total_price:,.0f} {currency}",
+        "ru": "🛒 Ваша корзина:\n\n💰 Общая сумма к оплате:\t{total_price:,.0f} {currency}",
+        "zh": "🛒 您的购物车：\n\n💰 应付总金额：\t{total_price:,.0f} {currency}",
+        "ar": "🛒 سلة التسوق الخاصة بك:\n\n💰 المبلغ الإجمالي المستحق:\t{total_price:,.0f} {currency}"
     },
     "checkout": {
         "fa": "✅ تکمیل خرید و پرداخت",
@@ -1890,12 +1862,36 @@ translations = {
         "zh": "📜 您的订单发票：\n\n",
         "ar": "📜 فاتورة طلباتك:"
     },
+    "user_balance": {
+        "fa": "موجودی شما: {formatted_balance} {currency}",
+        "en": "Your balance: {formatted_balance} {currency}",
+        "ru": "Ваш баланс: {formatted_balance} {currency}",
+        "zh": "您的余额：{formatted_balance} {currency}",
+        "ar": "رصيدك: {formatted_balance} {currency}"
+    },
+
+    "product_export_caption": {
+        "fa": "📊 محصولات فروشگاه {store_name}\n📦 {total_products} محصول\n🔄 {total_variants} متغیر انبارداری\n💰 ارزش موجودی: {total_stock_value:,.0f} {currency}",
+        "en": "📊 Products of {store_name}\n📦 {total_products} products\n🔄 {total_variants} inventory variables\n💰 Stock Value: {total_stock_value:,.0f} {currency}",
+        "ru": "📊 Продукты магазина {store_name}\n📦 {total_products} продуктов\n🔄 {total_variants} складских переменных\n💰 Стоимость запасов: {total_stock_value:,.0f} {currency}",
+        "zh": "📊 {store_name}的产品\n📦 {total_products} 个产品\n🔄 {total_variants} 个库存变量\n💰 库存价值: {total_stock_value:,.0f} {currency}",
+        "ar": "📊 منتجات متجر {store_name}\n📦 {total_products} منتج\n🔄 {total_variants} متغيرات المخزون\n💰 قيمة المخزون: {total_stock_value:,.0f} {currency}"
+    },
+
     "total_amount": {
-        "fa": "🧮 <b>مجموع کل:</b> {total_price:,.0f} تومان",
-        "en": "🧮 <b>Total amount:</b> {total_price:,.0f} Toman",
-        "ru": "🧮 <b>Общая сумма:</b> {total_price:,.0f} туман",
-        "zh": "🧮 <b>总金额：</b> {total_price:,.0f} 图曼",
-        "ar": "🧮 <b>إجمالي المبلغ:</b> {total_price:,.0f} تومان"
+        "fa": "🧮 <b>مجموع کل:</b> {total_price:,.0f} {currency}",
+        "en": "🧮 <b>Total amount:</b> {total_price:,.0f} {currency}",
+        "ru": "🧮 <b>Общая сумма:</b> {total_price:,.0f} {currency}",
+        "zh": "🧮 <b>总金额：</b> {total_price:,.0f} {currency}",
+        "ar": "🧮 <b>إجمالي المبلغ:</b> {total_price:,.0f} {currency}"
+    },
+
+    "sale_statistics_total_cost": {
+        "fa": "قیمت کل ({currency})",
+        "en": "Total Cost ({currency})",
+        "ru": "Общая стоимость ({currency})",
+        "zh": "总价（{currency}）",
+        "ar": "التكلفة الكلية ({currency})"
     },
     "address": {
         "fa": "آدرس: {address_text}",
@@ -2036,13 +2032,6 @@ translations = {
         "ru": "Элемент удалён из корзины",
         "zh": "购物车中的商品已被移除",
         "ar": "تمت إزالة العنصر من السلة"
-    },
-    "cart_summary": {
-        "fa": "🛒 سبد خرید شما:\n\n💰 مجموع مبلغ قابل پرداخت:\t{total_price:,.0f} تومان",
-        "en": "🛒 Your cart:\n\n💰 Total payable amount:\t{total_price:,.0f} Toman",
-        "ru": "🛒 Ваша корзина:\n\n💰 Общая сумма к оплате:\t{total_price:,.0f} Toman",
-        "zh": "🛒 您的购物车：\n\n💰 应付总额：\t{total_price:,.0f} 托曼",
-        "ar": "🛒 سلة التسوق الخاصة بك:\n\n💰 إجمالي المبلغ المستحق:\t{total_price:,.0f} تومان"
     },
     "cart_load_error": {
         "fa": "خطا در بارگذاری سبد خرید!",
@@ -2576,4 +2565,32 @@ translations = {
         "zh": "请输入您的伊朗银行账号（IBAN）以接收收入。\n（24位数字并带有“IR”前缀，例如：IR000000000000000000000000）",
         "ar": "يرجى إدخال رقم الشبا (IBAN) الخاص بك لاستلام الأرباح.\n(24 رقماً مع بادئة IR، مثال: IR000000000000000000000000)",
     },
+    "currency_settings": {
+        "fa": "💲 واحد پولی",
+        "en": "💲 Currency",
+        "ru": "💲 Валюта",
+        "zh": "💲 货币",
+        "ar": "💲 العملة"
+    },
+    "currency_setting_description": {
+        "fa": "واحد پولی که می خواهید با آن خرید کنید را انتخاب کنید.\n\n واحد پولی فعلی شما: {current_currency}",
+        "en": "Select the currency you want to use for purchases.\n\n Your current currency: {current_currency}",
+        "ru": "Выберите валюту, которую вы хотите использовать для покупок. \n\n Ваша текущая валюта: {current_currency}",
+        "zh": "选择您希望用于购买的货币。\n\n 您当前的货币: {current_currency}",
+        "ar": "اختر العملة التي تريد استخدامها للشراء.\n\n العملة الحالية لديك: {current_currency}"
+    },
+    "currency_setting_warning": {
+        "fa": "⚠️ توجه: دقت کنید که این واحد پولی پروفایل شما به عنوان خریدار می باشد و با واحد پورلی فروشگاه شما متفاوت است. لطفاً در صورت نیاز به تغییر واحد پولی فروشگاه خود به پنل فروشندگی مراجعه کنید.",
+        "en": "⚠️ Note: Please be aware that this currency is for your buyer profile and may differ from your store's currency. If you need to change your store's currency, please visit the seller panel.",
+        "ru": "⚠️ Внимание: Обратите внимание, что эта валюта предназначена для вашего профиля покупателя и может отличаться от валюты вашего магазина. Если вам нужно изменить валюту вашего магазина, пожалуйста, посетите панель продавца.",
+        "zh": "⚠️ 注意：请注意，此货币用于您的买家资料，可能与您的商店货币不同。如果您需要更改商店的货币，请访问卖家面板。",
+        "ar": "⚠️ ملاحظة: يرجى العلم أن هذه العملة مخصصة لملفك الشخصي كمشتري وقد تختلف عن عملة متجرك. إذا كنت بحاجة إلى تغيير عملة متجرك، يرجى زيارة لوحة البائع."
+    },
+    "IRT": {
+    "fa": "تومان",
+    "en": "Toman",
+    "ru": "Томан",
+    "zh": "托曼",
+    "ar": "تومان"
+}
 }

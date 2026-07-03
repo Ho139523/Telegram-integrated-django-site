@@ -1,5 +1,6 @@
 #functions.py
 from email import message
+from locale import currency
 import profile
 from pydoc import describe
 
@@ -279,7 +280,7 @@ class InlineKeyboardPaginator:
             items=None,
             per_page=10,
             row_size=3,
-            remember_last_page=False,
+            remember_last_page=True,
             redis_host="localhost",
             redis_port=6379
     ):
@@ -971,7 +972,7 @@ class CategoryClass:
                         session["menu_delete"] = False
                         session_manager.set_user_session(message.chat.id, session, namespace="menu")
                         return
-                    text = t(message, "delete_category_title_prompt") + "\n\n" + t(message, "delete_category_warning")
+                    text = t(message, "delete_category_title_prompt")
                 elif session.get("category") and session.get("menu_add"):
                     if not store.categories.exists():
                         self.add_category(message)
@@ -1143,7 +1144,8 @@ class CategoryClass:
             session["delete_sure"] = True
             markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure')
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
-            app.send_message(message.chat.id, t(message, "confirm_delete_category"), reply_markup=markup)
+            text = t(message, "confirm_delete_category")  + "\n\n" + t(message, "delete_category_warning")
+            app.send_message(message.chat.id, text, reply_markup=markup)
         except Exception as e:
             print(traceback.format_exc())
         
@@ -1248,10 +1250,12 @@ class ProductBot:
         session["brand_d"] =  None if message.text == t(message, "no_brand") else message.text
 
         session_manager.set_user_session(message.chat.id, session, namespace="add_product")
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
+        currency = profile.currency
 
         # ارسال منو برای وارد کردن قیمت
         markup = send_menu(message, [t(message, "cancel_action")], message.text)
-        self.bot.send_message(message.chat.id, t(message, "enter_product_price"), reply_markup=markup)
+        self.bot.send_message(message.chat.id, t(message, "enter_product_price", currency=currency), reply_markup=markup)
 
 
 
@@ -3028,7 +3032,7 @@ class SendCart(SendMarkup):
 
             # محاسبه قیمت کل و متن
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
-            self.text = t(message, "cart_summary", total_price=self.total_price)
+            self.text = t(message, "cart_summary", total_price=self.total_price, currency=self.profile.currency)
 
             # ایجاد دکمه‌ها و layout
             self.buttons = self._generate_buttons(self.message_obj)
@@ -3078,7 +3082,7 @@ class SendCart(SendMarkup):
         # این متد حالا می‌تواند از self.cart استفاده کند، زیرا در ابتدای __init__ تنظیم شده است.
         total_price = self.cart.total_price() # از متد مدل Cart استفاده می‌کند
         
-        text = t(message, "cart_summary", total_price=total_price)
+        text = t(message, "cart_summary", total_price=total_price, currency=self.profile.currency)
         
         return text
 
@@ -3532,7 +3536,7 @@ class SendCart(SendMarkup):
             for index, item in enumerate(cart_items, start=1):
                 invoice_text += f"{index}) {item.product.name}  -  "
                 invoice_text += f"{item.product.final_price:,.0f} x {item.quantity}\n\n"
-            invoice_text += t(message, "total_amount", total_price=total_price)
+            invoice_text += t(message, "total_amount", total_price=total_price, currency=t(message, profile.currency))
 
             address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
             try:

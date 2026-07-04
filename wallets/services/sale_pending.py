@@ -1,4 +1,4 @@
-# wallets/services/deposit.py
+# wallets/services/sale_pending.py
 
 from decimal import Decimal
 
@@ -11,42 +11,38 @@ from wallets.models import (
 
 
 @transaction.atomic
-def deposit(
+def sale_pending(
     *,
-    wallet,
+    seller_wallet,
     currency,
     amount: Decimal,
-    description: str = "",
     reference_id=None,
 ):
 
     if amount <= 0:
         raise ValueError(
-            "Deposit amount must be positive."
+            "Amount must be positive."
         )
 
     balance, _ = (
         WalletBalance.objects
         .select_for_update()
         .get_or_create(
-            wallet=wallet,
+            wallet=seller_wallet,
             currency=currency,
         )
     )
 
-    balance.available += amount
+    balance.pending += amount
 
     balance.save(
-        update_fields=["available"]
+        update_fields=["pending"]
     )
 
-    entry = WalletEntry.objects.create(
-        wallet=wallet,
+    return WalletEntry.objects.create(
+        wallet=seller_wallet,
         currency=currency,
         amount=amount,
-        type=WalletEntry.Type.DEPOSIT,
-        description=description,
+        type=WalletEntry.Type.SALE_PENDING,
         reference_id=reference_id,
     )
-
-    return entry

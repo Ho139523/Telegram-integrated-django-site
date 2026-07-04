@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='profilemodel',
             name='server_store',
-            field=models.ForeignKey(default=accounts.models.ProfileModel.get_default_store, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='connected_profiles', to='products.store', verbose_name='Server Store'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='connected_profiles', to='products.store', verbose_name='Server Store'),
         ),
         migrations.AddField(
             model_name='profilemodel',

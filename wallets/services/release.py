@@ -1,4 +1,4 @@
-# wallets/services/deposit.py
+# wallets/services/release.py
 
 from decimal import Decimal
 
@@ -11,42 +11,44 @@ from wallets.models import (
 
 
 @transaction.atomic
-def deposit(
+def release(
     *,
     wallet,
     currency,
     amount: Decimal,
-    description: str = "",
+    to_pending=False,
+    description="",
     reference_id=None,
 ):
 
-    if amount <= 0:
-        raise ValueError(
-            "Deposit amount must be positive."
-        )
-
-    balance, _ = (
+    balance = (
         WalletBalance.objects
         .select_for_update()
-        .get_or_create(
+        .get(
             wallet=wallet,
             currency=currency,
         )
     )
 
-    balance.available += amount
+    if balance.locked < amount:
+        raise ValueError(
+            "Insufficient locked balance."
+        )
 
-    balance.save(
-        update_fields=["available"]
-    )
+    balance.locked -= amount
 
-    entry = WalletEntry.objects.create(
+    if to_pending:
+        balance.pending += amount
+    else:
+        balance.available += amount
+
+    balance.save()
+
+    return WalletEntry.objects.create(
         wallet=wallet,
         currency=currency,
         amount=amount,
-        type=WalletEntry.Type.DEPOSIT,
+        type=WalletEntry.Type.RELEASE,
         description=description,
         reference_id=reference_id,
     )
-
-    return entry

@@ -87,149 +87,12 @@ class ProfileModel(models.Model):
         return ["menu_become_seller", "menu_my_address", "menu_profile", "menu_store"]
 
     def default_profile_menu():
-        return ["menu_language", "currency_settings"]
+        return ["menu_language"]
     
     def default_store_menu():
-        return ["menu_language", "currency_settings"]
+        return ["menu_language"]
 
-    def get_default_store():
-        from products.models import Store  # import inside function to avoid circular import
-        try:
-            return Store.objects.get(name="Intelleum").pk
-        except Store.DoesNotExist:
-            return None  # fallback, so migrations won't break
     
-    @staticmethod
-    def get_currency_choices():
-        currencies = []
-
-        for currency in pycountry.currencies:
-            if currency.alpha_3 == "IRR":
-                # جایگزین IRR با IRT
-                currencies.append(
-                    (
-                        "IRT",
-                        f"IRT - Iranian Toman"
-                    )
-                )
-            currencies.append(
-                (
-                    currency.alpha_3,
-                    f"{currency.alpha_3} - {currency.name}"
-                )
-            )
-
-        return sorted(currencies, key=lambda x: x[1])
-
-    def get_currency(self):
-        """
-        بر اساس کشور کاربر، واحد پولی مناسب را برمی‌گرداند.
-        """
-        country_currency_map = {
-            'IR': 'IRT',  # Iran
-            'US': 'USD',  # United States
-            'GB': 'GBP',  # United Kingdom
-            'EU': 'EUR',  # European Union
-            'RU': 'RUB',  # Russia
-            'CN': 'CNY',  # China
-            'AE': 'AED',  # United Arab Emirates
-            'IN': 'INR',  # India
-            'JP': 'JPY',  # Japan
-            'CA': 'CAD',  # Canada
-            'AU': 'AUD',  # Australia
-            'BR': 'BRL',  # Brazil
-            'ZA': 'ZAR',  # South Africa
-            'MX': 'MXN',  # Mexico
-            'KR': 'KRW',  # South Korea
-            'SA': 'SAR',  # Saudi Arabia
-            'TR': 'TRY',  # Turkey
-            'EG': 'EGP',  # Egypt
-            'NG': 'NGN',  # Nigeria
-            'PK': 'PKR',  # Pakistan
-            'IQ': 'IQD',  # Iraq
-            'OM': 'OMR', # Omman
-            'QA': 'QAR', # Qatar
-            'AF': 'AFN', # Afghanistan
-            'KW': 'KWD', # Kuwait
-            'BH': 'BHD', # Bahrain
-            'LB': 'LBP', # Lebanon
-            'SY': 'SYP', # Syria
-            'YE': 'YER', # Yemen
-            'TM': 'TMT', # Turkmenistan
-            'ARM': 'AMD', # Armenia
-            'AZ': 'AZN', # Azerbaijan
-            'GE': 'GEL', # Georgia
-            'KZ': 'KZT', # Kazakhstan
-            'UZ': 'UZS', # Uzbekistan
-            'KG': 'KGS', # Kyrgyzstan
-            'TJ': 'TJS', # Tajikistan
-            'MN': 'MNT', # Mongolia
-            'BD': 'BDT', # Bangladesh
-            'LK': 'LKR', # Sri Lanka
-            'TH': 'THB', # Thailand
-            'VN': 'VND', # Vietnam
-            'MY': 'MYR', # Malaysia
-            'SG': 'SGD', # Singapore
-            'NZ': 'NZD', # New Zealand
-            'PH': 'PHP', # Philippines
-            'ID': 'IDR', # Indonesia
-            'KH': 'KHR', # Cambodia
-        }
-
-        if self.lang:
-            lang_country_map = {
-                'fa': 'IR',
-                'en': 'US',
-                'ar': 'AE',
-                'ru': 'RU',
-                'zh': 'CN',
-                'es': 'ES',
-                'fr': 'FR',
-                'de': 'DE',
-                'it': 'IT',
-                'pt': 'PT',
-                'ja': 'JP',
-                'ko': 'KR',
-                'tr': 'TR',
-                'eg': 'EG',
-                'ng': 'NG',
-                'pk': 'PK',
-                'iq': 'IQ',
-                'om': 'OM',
-                'qa': 'QA',
-                'af': 'AF',
-                'kw': 'KW',
-                'bh': 'BH',
-                'lb': 'LB',
-                'sy': 'SY',
-                'ye': 'YE',
-                'tm': 'TM',
-                'am': 'AM',
-                'az': 'AZ',
-                'ge': 'GE',
-                'kz': 'KZ',
-                'uz': 'UZ',
-                'kg': 'KG',
-                'tj': 'TJ',
-                'mn': 'MN',
-                'bd': 'BD',
-                'lk': 'LK',
-                'th': 'TH',
-                'vn': 'VN',
-                'my': 'MY',
-                'sg': 'SG',
-                'nz': 'NZ',
-                'ph': 'PH',
-                'id': 'ID',
-                'kh': 'KH',
-            }
-            country_code = lang_country_map.get(self.lang, None)
-            if country_code:
-                return country_currency_map.get(country_code, 'USD')
-
-        return 'USD'
-
-    # ----------------------------
     # Fields
     # ----------------------------
     user = models.OneToOneField(User, unique=True, null=True, on_delete=models.SET_NULL, blank=True)
@@ -262,7 +125,6 @@ class ProfileModel(models.Model):
     tweeter = models.CharField(max_length=120, blank=True, null=True, verbose_name="Tweeter ID")
     telegram = models.CharField(max_length=120, blank=True, null=True, verbose_name="Telegram ID")
     bale = models.CharField(max_length=120, blank=True, null=True, verbose_name="Bale ID")
-    credit = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, blank=True)
     tel_id = models.CharField(
         max_length=20,
         validators=[int_list_validator(sep=''), MinLengthValidator(5)],
@@ -295,14 +157,17 @@ class ProfileModel(models.Model):
     server_store = models.ForeignKey(
         "products.Store",
         on_delete=models.SET_NULL,
-        default=get_default_store,
         null=True,
         blank=False,
         related_name="connected_profiles",
         verbose_name="Server Store"
     )
     hidden_videos = models.JSONField(default=dict, blank=True, null=False, verbose_name="Hidden Videos")
-    currency = models.CharField(max_length=3, choices=get_currency_choices(), default='IRT', verbose_name='Currency')
+    preferred_currency = models.ForeignKey(
+        "wallets.Currency",
+        on_delete=models.PROTECT,
+        default="USD",
+    )
 
     # -------------------------
     # helper methods for hidden_videos

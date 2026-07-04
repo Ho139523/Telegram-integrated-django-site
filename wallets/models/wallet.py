@@ -1,20 +1,26 @@
-# wallets/models/wallet.py
+# wallets/models/wallet.p
+from django.db import models
+from accounts.models import ProfileModel
 
-class Currency(models.Model):
-    code = models.CharField(
-        max_length=3,
-        primary_key=True,
+
+class Wallet(models.Model):
+
+    profile = models.OneToOneField(
+        ProfileModel,
+        on_delete=models.CASCADE,
+        related_name="wallet",
     )
 
-    name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
-    symbol = models.CharField(max_length=10)
-
-    decimals = models.PositiveSmallIntegerField(default=2)
-
-    is_active = models.BooleanField(default=True)
-
-    is_crypto = models.BooleanField(default=False)
+    is_active = models.BooleanField(
+        default=True
+    )
 
     def __str__(self):
-        return self.code
+        return f"Wallet<{self.profile}>"
+
+
+

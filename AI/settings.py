@@ -133,6 +133,7 @@ INSTALLED_APPS = [
     'subscription',
     'payments.apps.PaymentsConfig',
     'balebot',
+    'wallets.apps.WalletsConfig',
 ]
 
 
@@ -522,3 +523,13 @@ FlaskBridge = True
 
 
 ENABLE_SPLIT_PAYMENT = False
+
+
+
+WALLET_SETTINGS = {
+    "TREASURY_TEL_ID": "SYSTEM_TREASURY",
+    "TREASURY_FIRST_NAME": "Intelleum",
+    "TREASURY_LAST_NAME": "Treasury",
+}
+
+

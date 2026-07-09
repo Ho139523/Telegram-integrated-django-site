@@ -2048,30 +2048,28 @@ def product(message):
 
 
 
-@app.message_handler(func=lambda m: m.text == t(m, "menu_add") and session_manager.can_execute(m.chat.id))
+@app.message_handler(func=lambda m: m.text == t(m, "menu_add") and
+                     session_manager.get_user_session(m.chat.id, namespace="menu").get("category")
+                     and session_manager.can_execute(m.chat.id))
 @UltraVideoPrompter(command="اضافه➕")
-def add_handler(message):
-    session = session_manager.get_user_session(message.chat.id, namespace="delete_product")
-    session["enter_product_code_to_delete"] = False
-    session_manager.set_user_session(message.chat.id, session, namespace="delete_product")
-    session = session_manager.get_user_session(message.chat.id, namespace="menu")
-    session["menu_add"] = True
-    session["menu_delete"] = False
-    session["menu_deactivate"] = False
-    session_manager.set_user_session(message.chat.id, session, namespace="menu")
-
-    if session.get("category"):
-        # Category deletion
+def add_category_handler(message):
+    try:
         session_manager.lock(message.chat.id, "menu_add")
         category_class = CategoryClass()
         category_class.handle_category(message)
+    except:
+        print(traceback.format_exc())
 
-    elif session.get("product"):
-        # Product deletion
+
+@app.message_handler(func=lambda m: m.text == t(m, "menu_add") and
+                     session_manager.get_user_session(m.chat.id, namespace="menu").get("product")
+                     and session_manager.can_execute(m.chat.id))
+def add_product_handler(message):
+    try:
         session_manager.lock(message.chat.id, "product_add")
         add_product(message)
-
-
+    except:
+        print(traceback.format_exc())
 
 #####################################    ADD PRODUCT    #####################################
 

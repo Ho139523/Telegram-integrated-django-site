@@ -1,4 +1,5 @@
 from django.db import models, transaction
+from django.db.models import Q
 from decimal import Decimal
 from accounts.models import User, ProfileModel
 from django.core.exceptions import ValidationError
@@ -212,6 +213,21 @@ class Category(models.Model):
         verbose_name = "Category"
         verbose_name_plural = "Categories"
         ordering = ["position"]
+        constraints = [
+            # دسته‌های ریشه
+            models.UniqueConstraint(
+                fields=["store", "title"],
+                condition=Q(parent__isnull=True),
+                name="unique_root_category_per_store",
+            ),
+
+            # زیردسته‌ها
+            models.UniqueConstraint(
+                fields=["store", "parent", "title"],
+                condition=Q(parent__isnull=False),
+                name="unique_child_category_per_parent",
+            ),
+        ]
 
     def get_parents(self):
         parents = []

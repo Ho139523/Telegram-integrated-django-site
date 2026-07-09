@@ -222,7 +222,7 @@ class Category(models.Model):
         return parents
 
     def get_full_path(self):
-        return " > ".join([p.title for p in reversed(self.get_parents())] + [self.title])
+        return " / ".join([p.title for p in reversed(self.get_parents())] + [self.title])
 
     def get_all_subcategories(self):
         subcategories = set()
@@ -262,17 +262,21 @@ class Category(models.Model):
 
         return slug
 
+    
+
     def save(self, *args, **kwargs):
         self.slug = self._generate_unique_slug()
 
+        # self.full_clean()   # <-- اعتبارسنجی
+
         is_new = self.pk is None
+
         super().save(*args, **kwargs)
 
         if is_new and self.parent:
-            parent_category = self.parent
-            if parent_category.products.exists():
+            if self.parent.products.exists():
                 with transaction.atomic():
-                    parent_category.products.update(category=self)
+                    self.parent.products.update(category=self)
 
 
 # =========================

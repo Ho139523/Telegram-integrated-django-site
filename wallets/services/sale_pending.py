@@ -1,7 +1,7 @@
 # wallets/services/sale_pending.py
 
 from decimal import Decimal
-
+from wallets.services.utils import operation_exists
 from django.db import transaction
 
 from wallets.models import (
@@ -17,8 +17,14 @@ def sale_pending(
     currency,
     amount: Decimal,
     reference_id=None,
+    operation_id=None,
 ):
 
+    if operation_exists(
+        operation_id=operation_id,
+        entry_type=WalletEntry.Type.SALE_PENDING,
+    ):
+        return
     if amount <= 0:
         raise ValueError(
             "Amount must be positive."
@@ -45,4 +51,5 @@ def sale_pending(
         amount=amount,
         type=WalletEntry.Type.SALE_PENDING,
         reference_id=reference_id,
+        operation_id=operation_id,
     )

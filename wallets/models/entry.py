@@ -1,6 +1,7 @@
 from django.db import models
 from wallets.models.wallet import Wallet
 from wallets.models.currency import Currency
+from uuid import uuid4
 
 
 class WalletEntry(models.Model):
@@ -69,6 +70,12 @@ class WalletEntry(models.Model):
         auto_now_add=True
     )
 
+    operation_id = models.UUIDField(
+        default=uuid4,
+        editable=False,
+        db_index=True,
+    )
+
     class Meta:
 
         ordering = ["-created_at"]
@@ -81,6 +88,9 @@ class WalletEntry(models.Model):
 
             models.Index(
                 fields=["wallet", "created_at"]
+            ),
+            models.Index(
+                fields=["operation_id"]
             ),
         ]
 

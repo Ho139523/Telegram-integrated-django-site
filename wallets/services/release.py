@@ -1,7 +1,7 @@
 # wallets/services/release.py
 
 from decimal import Decimal
-
+from wallets.services.utils import operation_exists
 from django.db import transaction
 
 from wallets.models import (
@@ -19,7 +19,14 @@ def release(
     to_pending=False,
     description="",
     reference_id=None,
+    operation_id=None,
 ):
+
+    if operation_exists(
+        operation_id=operation_id,
+        entry_type=WalletEntry.Type.RELEASE,
+    ):
+        return
 
     balance = (
         WalletBalance.objects
@@ -51,4 +58,5 @@ def release(
         type=WalletEntry.Type.RELEASE,
         description=description,
         reference_id=reference_id,
+        operation_id=operation_id,
     )

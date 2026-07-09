@@ -83,6 +83,35 @@ class SessionManager:
     def reset_user_session(self, user_id, namespace="default"):
         self.delete(user_id, namespace)
 
+    def lock(self, user_id, operation, namespace="menu"):
+        session = self.get(user_id, namespace)
+        session["lock"] = operation
+        self.set(user_id, session, namespace)
+
+    def unlock(self, user_id, namespace="menu"):
+        session = self.get(user_id, namespace)
+        session.pop("lock", None)
+        self.set(user_id, session, namespace)
+
+    def is_locked(self, user_id, namespace="menu"):
+        session = self.get(user_id, namespace)
+        return session.get("lock")
+
+    def can_execute(self, user_id, operation=None, namespace="menu"):
+        """
+        اگر قفلی وجود نداشته باشد True
+        اگر operation مشخص شده باشد فقط همان عملیات اجازه ادامه دارد.
+        """
+        lock = self.is_locked(user_id, namespace)
+
+        if lock is None:
+            return True
+
+        if operation is not None:
+            return lock == operation
+
+        return False
+
 
 ############################################## SEND CART ##############################################
 

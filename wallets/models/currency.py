@@ -19,4 +19,4 @@ class Currency(models.Model):
     is_crypto = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.code
+        return str(self.code)

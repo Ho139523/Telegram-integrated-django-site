@@ -1,7 +1,7 @@
 # wallets/services/withdrawal.py
 
 from decimal import Decimal
-
+from wallets.services.utils import operation_exists
 from django.db import transaction
 
 from wallets.models import (
@@ -20,8 +20,14 @@ def withdraw(
     provider: str,
     destination: str,
     fee: Decimal = Decimal("0"),
+    operation_id=None,
 ):
 
+    if operation_exists(
+        operation_id=operation_id,
+        entry_type=WalletEntry.Type.WITHDRAW,
+    ):
+        return
     total_amount = amount + fee
 
     balance = (
@@ -63,6 +69,7 @@ def withdraw(
         amount=-total_amount,
         type=WalletEntry.Type.WITHDRAW,
         description=f"Withdrawal #{withdrawal.pk}",
+        operation_id=operation_id,
     )
 
     return withdrawal

@@ -1,7 +1,7 @@
 # wallets/services/sale_release.py
 
 from decimal import Decimal
-
+from wallets.services.utils import operation_exists
 from django.db import transaction
 
 from wallets.models import (
@@ -22,8 +22,14 @@ def sale_release(
     amount: Decimal,
     commission: Decimal,
     reference_id=None,
+    operation_id=None,
 ):
 
+    if operation_exists(
+        operation_id=operation_id,
+        entry_type=WalletEntry.Type.SALE_RELEASE,
+    ):
+        return
     seller_balance = (
         WalletBalance.objects
         .select_for_update()
@@ -103,4 +109,5 @@ def sale_release(
             type=WalletEntry.Type.COMMISSION,
             reference_id=reference_id,
             description="Platform commission received",
+            operation_id=operation_id,
         )

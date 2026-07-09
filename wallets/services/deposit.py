@@ -1,7 +1,7 @@
 # wallets/services/deposit.py
 
 from decimal import Decimal
-
+from wallets.services.utils import operation_exists
 from django.db import transaction
 
 from wallets.models import (
@@ -15,10 +15,16 @@ def deposit(
     *,
     wallet,
     currency,
-    amount: Decimal,
-    description: str = "",
+    amount,
+    description="",
     reference_id=None,
+    operation_id=None,
 ):
+    if operation_exists(
+        operation_id=operation_id,
+        entry_type=WalletEntry.Type.DEPOSIT,
+    ):
+        return
 
     if amount <= 0:
         raise ValueError(
@@ -47,6 +53,7 @@ def deposit(
         type=WalletEntry.Type.DEPOSIT,
         description=description,
         reference_id=reference_id,
+        operation_id=operation_id,
     )
 
     return entry

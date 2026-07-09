@@ -155,6 +155,7 @@ def is_category_message(message):
         lower_title=message.text.lower(),
         store=store
     ).values_list('title', flat=True)
+        
     existance = message.text.lower() in [i.lower() for i in cat]
 
     if existance:
@@ -932,8 +933,8 @@ def handle_products(message):
 
         markup = send_menu(message, options, "products", retun_menue)
         session = session_manager.get_user_session(chat_id, namespace="menu")
-        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True)
-        app.send_message(chat_id, f"{current_category.get_full_path()}", reply_markup=markup)
+        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True, store=store)
+        app.send_message(chat_id, t(message, "current_category", cat_path=current_category.get_full_path()), reply_markup=markup, parse_mode="Markdown")
 
 
 ############################  CATEGORY MENU  ############################
@@ -967,7 +968,10 @@ class CategoryClass:
                     session["delete_sure"] = False
                     session_manager.set_user_session(message.chat.id, session, namespace="menu")
                 elif session.get("category") and session.get("menu_delete"):
-                    if not store.categories.exists():
+                    print(store)
+                    print(store.categories.all())
+
+                    if not Category.objects.filter(store=store).exists():
                         app.send_message(message.chat.id, t(message, "no_category_to_delete"))
                         session["menu_delete"] = False
                         session_manager.set_user_session(message.chat.id, session, namespace="menu")
@@ -977,7 +981,11 @@ class CategoryClass:
                     if not store.categories.exists():
                         self.add_category(message)
                         return
-                    text = t(message, "add_subcategory_select_parent")
+                    if session.get("created"):
+                        text = t(message, "category_added_successfully") + t(message, "add_or_select_category")
+                        session["created"] = False
+                    else:
+                        text = t(message, "add_or_select_category")
                 elif session.get("category") and session.get("category_deactivate"):
                     text = t(message, "choose_category_toggle")
                 elif session.get("product"):
@@ -993,8 +1001,10 @@ class CategoryClass:
                 cats = Category.objects.filter(parent__isnull=True, status=True, store=store).values_list('title', flat=True)
                 if session.get("category") and session.get("category_deactivate"):
                     cats = Category.objects.filter(parent__isnull=True, store=store).values_list('title', flat=True)
+                if session.get("category") and session.get("menu_delete"):
+                    cats = Category.objects.filter(parent__isnull=True, store=store).values_list('title', flat=True)
                 markup = send_menu(message, cats, message.text, extra_menu, extra_cols=1)
-                app.send_message(message.chat.id, text, reply_markup=markup)
+                app.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
             except Exception as e:
                 app.send_message(message.chat.id, "خطایی رخ داده است. لطفاً دوباره تلاش کنید.")
                 print(f"Error: {traceback.format_exc()}")
@@ -1079,16 +1089,41 @@ class CategoryClass:
                         session["delete_sure"] = False
                         session_manager.set_user_session(message.chat.id, session, namespace="menu")
                     elif session.get("category") and session.get("menu_delete"):
-                        text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True).get_full_path()}"
+                        text = t(message, "delete_subcategory_midlayer_prompt", cat=session['current_menu'])
                     elif session.get("category") and session.get("category_deactivate"):
-                        text = f"{Category.objects.get(title__iexact=session['current_menu']).get_full_path()}"
+                        cat = Category.objects.get(title__iexact=session['current_menu'], store=store)
+                        if cat.status:
+                            status = t(message, "deactivate_category")
+                        else:
+                            status = t(message, "activate_category")
+                        if session.get("category_status_changed") is not None:
+                            if session.get("category_status_changed")[0] is True:
+                                changed_successfully = t(message, "category_activated_successfully", cat=session['category_status_changed'][1])
+                            elif session.get("category_status_changed")[0] is False:
+                                changed_successfully = t(message, "category_deactivated_successfully", cat=session['category_status_changed'][1])
+                            text = changed_successfully + "\n\n" + t(message, "toggle_subcategory_midlayer_prompt", cat=session['current_menu'], activation_status=status)
+                            print(f"category_status_changed: {session.get('category_status_changed')}")
+                        else:
+                            text = t(message, "toggle_subcategory_midlayer_prompt", cat=session['current_menu'], activation_status=status)
                     else:
                         button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
                         for b in button:
                             extra_menu.remove(b) if b in extra_menu else None
-                        text = f"{Category.objects.get(title__iexact=session['current_menu'], status=True, store=store).get_full_path()}"
+
+                        cat_path = Category.objects.get(title__iexact=session['current_menu'], status=True, store=store).get_full_path()
+                        session['parent_for_new'] = session['current_menu']
+                        session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                        if profile.seller_mode:
+                            if session.get("product"):
+                                text = t(message, "select_product_subcategory")
+                            else:
+                                deep_level = t(message, "deeperlevel")
+                                text = t(message, "enter_subcategory_title", deeper_level=deep_level, cat_path=cat_path)
+                        else:
+                            text = t(message, "select_product_subcategory", cat_path=cat_path)
+
                     markup = send_menu(message, children, message.text, extra_menu)
-                    app.send_message(message.chat.id, text, reply_markup=markup)
+                    app.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
         except Exception as e:
             print(f"Error: {traceback.format_exc()}")
 
@@ -1102,10 +1137,15 @@ class CategoryClass:
 
             # IMPORTANT: Only set current_menu if we are actually inside a category
             if session.get("current_menu"):
+                print("we are in add_category and current_menu is set")
                 # user is inside a category, so add to that category
                 session["parent_for_new"] = session["current_menu"]
+                cat_path = Category.objects.get(title__iexact=session['current_menu'], status=True, store=Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.chat.id))).get_full_path()
+                text = t(message, "enter_subcategory_title_no_children", cat_path=cat_path)
             else:
+                print("we are in add_category and current_menu is NOT set")
                 # user is in root menu
+                text = t(message, "add_category_no_category_exists")
                 session["parent_for_new"] = None  
 
             button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
@@ -1116,7 +1156,8 @@ class CategoryClass:
             markup = send_menu(message, [], 'cat_delete_sure', extra_menu)
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
-            app.send_message(message.chat.id, t(message, "enter_new_category_title"), reply_markup=markup)
+
+            app.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
         except Exception as e:
             print(traceback.format_exc())
@@ -1130,9 +1171,9 @@ class CategoryClass:
             markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure')
             cat = Category.objects.get(title__iexact=session.get("current_menu"), store__owner__tel_id=message.chat.id)
             if cat.status:
-                app.send_message(message.chat.id, t(message, "confirm_deactivate_category"), reply_markup=markup)
+                app.send_message(message.chat.id, t(message, "confirm_deactivate_category", cat=cat.title), reply_markup=markup, parse_mode="Markdown")
             else:
-                app.send_message(message.chat.id, t(message, "confirm_activate_category"), reply_markup=markup)
+                app.send_message(message.chat.id, t(message, "confirm_activate_category", cat=cat.title), reply_markup=markup, parse_mode="Markdown")
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
         except Exception as e:
             print(traceback.format_exc())
@@ -1144,8 +1185,8 @@ class CategoryClass:
             session["delete_sure"] = True
             markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure')
             session_manager.set_user_session(message.chat.id, session, namespace="menu")
-            text = t(message, "confirm_delete_category")  + "\n\n" + t(message, "delete_category_warning")
-            app.send_message(message.chat.id, text, reply_markup=markup)
+            text = t(message, "confirm_delete_category", cat=session['current_menu'])  + "\n\n" + t(message, "delete_category_warning")
+            app.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
         except Exception as e:
             print(traceback.format_exc())
         
@@ -1251,7 +1292,7 @@ class ProductBot:
 
         session_manager.set_user_session(message.chat.id, session, namespace="add_product")
         profile = ProfileModel.objects.get(tel_id=message.chat.id)
-        currency = profile.currency
+        currency = t(message, str(profile.preferred_currency))
 
         # ارسال منو برای وارد کردن قیمت
         markup = send_menu(message, [t(message, "cancel_action")], message.text)
@@ -1372,9 +1413,10 @@ class ProductBot:
         try:
             session = session_manager.get_user_session(message.chat.id, namespace="add_product")
             session["ask_variant_decision"] = True
-                
+            profile = ProfileModel.objects.get(tel_id=message.chat.id)
+            store = Store.objects.get(owner=profile) if profile.seller_mode else profile.server_store
 
-            selected_category = Category.objects.get(title__iexact=message.text.strip(), status=True)
+            selected_category = Category.objects.get(title__iexact=message.text.strip(), status=True, store=store)
             print(selected_category.id)
             session["category_id"] = selected_category.id
             
@@ -1787,7 +1829,7 @@ class ProductBot:
             if not category_id:
                 self.bot.send_message(chat_id, t(message, "invalid_selected_category"))
                 return
-            category = Category.objects.get(id=category_id, status=True)
+            category = Category.objects.get(id=category_id, status=True, store=store)
 
             # Product basic info
             name = session.get("name_d")
@@ -1877,7 +1919,7 @@ class ProductBot:
             for image_path in additional_images:
                 ProductImage.objects.create(product=product, image=image_path)
 
-
+            session_manager.unlock(message.chat.id)
             session["code"] = product.code
             session_manager.set_user_session(chat_id, session, namespace="add_product")
 
@@ -1892,6 +1934,7 @@ class ProductBot:
 
     def delete(self, message: Message):
         try:
+            session = session_manager.get_user_session(message.chat.id, namespace="delete_product")
             if message.text == t(message, "cancel_action"):
                 self.cancle_request(message)
             else:
@@ -1899,7 +1942,8 @@ class ProductBot:
                 try:
                     product = Product.objects.get(code=code)
                 except Product.DoesNotExist:
-                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
+                    print("delete product not found")
+                    self.bot.send_message(message.chat.id, t(message, "product_code_not_found"), parse_mode="Markdown")
                     return
                 try:
                     product = Product.objects.get(code=code, store__owner__tel_id=message.chat.id)
@@ -1913,7 +1957,6 @@ class ProductBot:
                 producthandler.send_product_message(chat_id=message.chat.id, buttons=False)
 
                 # ذخیره اطلاعات محصول در Redis
-                session = session_manager.get_user_session(message.chat.id, namespace="delete_product")
                 session['enter_product_code_to_delete'] = False
                 session['delete_product_confirm'] = True
                 session['code'] = code
@@ -1964,11 +2007,13 @@ class ProductBot:
 
     def deactivate(self, message):
         try:
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
             code = message.text
             try:
                 product = Product.objects.get(code=code)
             except Product.DoesNotExist:
-                self.bot.send_message(message.chat.id, t(message, "product_code_not_found"))
+                print("deactivate product not found")
+                self.bot.send_message(message.chat.id, t(message, "product_code_not_found"), parse_mode="Markdown")
                 return
             try:
                 product = Product.objects.get(code=code, store__owner__tel_id=message.chat.id)
@@ -2018,6 +2063,7 @@ class ProductBot:
                             product.status = True
                             product.save()
 
+                        session_manager.unlock(message.chat.id)
                         # ارسال پیام موفقیت‌آمیز به کاربر
                         action_text = t(message, "activated") if product.status else t(message, "deactivated")
                         self.bot.send_message(message.chat.id, t(message, "product_toggled", action=action_text))
@@ -3032,7 +3078,7 @@ class SendCart(SendMarkup):
 
             # محاسبه قیمت کل و متن
             self.total_price = sum(item.total_price() for item in self.cart.items.all())
-            self.text = t(message, "cart_summary", total_price=self.total_price, currency=self.profile.currency)
+            self.text = t(message, "cart_summary", total_price=self.total_price, currency=t(message, str(self.profile.preferred_currency)))
 
             # ایجاد دکمه‌ها و layout
             self.buttons = self._generate_buttons(self.message_obj)
@@ -3082,7 +3128,7 @@ class SendCart(SendMarkup):
         # این متد حالا می‌تواند از self.cart استفاده کند، زیرا در ابتدای __init__ تنظیم شده است.
         total_price = self.cart.total_price() # از متد مدل Cart استفاده می‌کند
         
-        text = t(message, "cart_summary", total_price=total_price, currency=self.profile.currency)
+        text = t(message, "cart_summary", total_price=total_price, currency=t(message, self.str(profile.preferred_currency)))
         
         return text
 
@@ -3536,7 +3582,7 @@ class SendCart(SendMarkup):
             for index, item in enumerate(cart_items, start=1):
                 invoice_text += f"{index}) {item.product.name}  -  "
                 invoice_text += f"{item.product.final_price:,.0f} x {item.quantity}\n\n"
-            invoice_text += t(message, "total_amount", total_price=total_price, currency=t(message, profile.currency))
+            invoice_text += t(message, "total_amount", total_price=total_price, currency=t(message, str(profile.preferred_currency)))
 
             address = Address.objects.filter(profile=profile, shipping_is_active=True).first()
             try:

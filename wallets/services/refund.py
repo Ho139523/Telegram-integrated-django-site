@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 
+from wallets.services.utils import operation_exists
 from django.db import transaction
 
 from wallets.models import (
@@ -18,7 +19,14 @@ def refund(
     amount: Decimal,
     description="",
     reference_id=None,
+    operation_id=None,
 ):
+
+    if operation_exists(
+        operation_id=operation_id,
+        entry_type=WalletEntry.Type.REFUND,
+    ):
+        return
 
     if amount <= 0:
         raise ValueError(
@@ -47,4 +55,5 @@ def refund(
         type=WalletEntry.Type.REFUND,
         description=description,
         reference_id=reference_id,
+        operation_id=operation_id,
     )

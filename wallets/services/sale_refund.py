@@ -1,7 +1,7 @@
 # wallets/services/sale_refund.py
 
 from decimal import Decimal
-
+from wallets.services.utils import operation_exists
 from django.db import transaction
 
 from wallets.models import (
@@ -18,8 +18,14 @@ def sale_refund(
     currency,
     amount: Decimal,
     reference_id=None,
+    operation_id=None,
 ):
 
+    if operation_exists(
+        operation_id=operation_id,
+        entry_type=WalletEntry.Type.SALE_REFUND,
+    ):
+        return
     seller_balance = (
         WalletBalance.objects
         .select_for_update()
@@ -68,4 +74,5 @@ def sale_refund(
         amount=amount,
         type=WalletEntry.Type.REFUND,
         reference_id=reference_id,
+        operation_id=operation_id,
     )

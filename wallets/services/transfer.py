@@ -1,7 +1,7 @@
 # wallets/services/transfer.py
 
 from decimal import Decimal
-
+from wallets.services.utils import operation_exists
 from django.db import transaction
 
 from wallets.models import (
@@ -19,8 +19,14 @@ def transfer(
     amount: Decimal,
     description="",
     reference_id=None,
+    operation_id=None,
 ):
 
+    if operation_exists(
+        operation_id=operation_id,
+        entry_type=WalletEntry.Type.TRANSFER_IN,
+    ):
+        return
     if from_wallet.pk == to_wallet.pk:
         raise ValueError(
             "Cannot transfer to yourself."
@@ -71,4 +77,5 @@ def transfer(
         type=WalletEntry.Type.TRANSFER_IN,
         description=description,
         reference_id=reference_id,
+        operation_id=operation_id,
     )

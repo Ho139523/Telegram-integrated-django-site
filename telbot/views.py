@@ -24,6 +24,7 @@ from django.conf import settings as sett
 from datetime import datetime
 import pycountry
 from django.conf import settings
+from webcolors import names
 from AI.settings import SITE_DOMAIN
 
 # support imports
@@ -1876,44 +1877,89 @@ def change_lang(message):
 # Back to Previous Menu
 @app.message_handler(func=lambda message: message.text == "🔙")
 def handle_back(message):
-    if subscription.subscription_offer(message):
-        try:
-            session = session_manager.get_user_session(message.chat.id, namespace="menu")
-            profile = ProfileModel.objects.get(tel_id=message.chat.id)
-            if profile.seller_mode:
-                store = profile.server_store
-            else:
-                store = Store.objects.get(owner=profile)
-            try:
-                print(f'beginging of handle back\nsession["current_menu"]: {session["current_menu"]}')
-                if session.get("category") and session.get("category_deactivate"):
-                    previous_category_title = Category.objects.get(
-                        title__iexact=session["current_menu"], store=store
-                    ).get_parents()[0].title
-                else:
-                    previous_category_title = Category.objects.get(
-                        title__iexact=session["current_menu"], status=True, store=store
-                    ).get_parents()[0].title
+    if not subscription.subscription_offer(message):
+        return
 
-                if session.get("category") and session.get("menu_add"):
-                    session["parent_for_new"] = previous_category_title
-                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
+    try:
+        session = session_manager.get_user_session(
+            message.chat.id,
+            namespace="menu",
+        )
 
-                fake_message = message
-                fake_message.text = previous_category_title
-                subcategory(fake_message)
-            except IndexError as e:
-                if "list index out of range" in str(e):
-                    print('meme')
-                    if session.get("category") and session.get("menu_add"):
-                        session["parent_for_new"] = None
-                        session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                    fake_message = message
-                    fake_message.text = t(message, "menu_categories")
-                    category_client(fake_message)
-        except Exception as e:
-            print(traceback.format_exc())
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
 
+        if profile.seller_mode:
+            store = Store.objects.get(owner=profile)
+        else:
+            store = profile.server_store
+
+        current_category_id = session.get("current_category_id")
+
+        # اگر در ریشه هستیم
+        if current_category_id is None:
+
+            if session.get("category") and session.get("menu_add"):
+                session["parent_for_new"] = None
+                session_manager.set_user_session(
+                    message.chat.id,
+                    session,
+                    namespace="menu",
+                )
+
+            fake_message = message
+            fake_message.text = t(message, "menu_categories")
+            category_client(fake_message)
+            return
+
+        status = None if session.get("category") and session.get("category_deactivate") else True
+
+        current_category = Category.objects.select_related("parent").get(
+            pk=current_category_id,
+            store=store,
+            **({} if status is None else {"status": True}),
+        )
+
+        parent = current_category.parent
+
+        # اگر دسته فعلی ریشه است
+        if parent is None:
+
+            session["current_category_id"] = None
+            session["current_menu"] = None
+
+            if session.get("category") and session.get("menu_add"):
+                session["parent_for_new"] = None
+
+            session_manager.set_user_session(
+                message.chat.id,
+                session,
+                namespace="menu",
+            )
+
+            fake_message = message
+            fake_message.text = t(message, "menu_categories")
+            category_client(fake_message)
+            return
+
+        # یک سطح بالا برو
+        session["current_category_id"] = parent.parent_id
+        session["current_menu"] = parent.title.lower()
+
+        if session.get("category") and session.get("menu_add"):
+            session["parent_for_new"] = parent.id
+
+        session_manager.set_user_session(
+            message.chat.id,
+            session,
+            namespace="menu",
+        )
+
+        fake_message = message
+        fake_message.text = parent.title
+        subcategory(fake_message)
+
+    except Exception:
+        print(traceback.format_exc())
 
 
 # fill address and phone nukber field for the payment link to be activated
@@ -2055,6 +2101,9 @@ def product(message):
 def add_category_handler(message):
     try:
         session_manager.lock(message.chat.id, "menu_add")
+        session = session_manager.get_user_session(message.chat.id, namespace="menu")
+        session["menu_add"] = True
+        session_manager.set_user_session(message.chat.id, session, namespace="menu")
         category_class = CategoryClass()
         category_class.handle_category(message)
     except:
@@ -2520,7 +2569,7 @@ def get_new_category(message):
         print(f"parent_title: {parent_title}")
         parent = None
         if parent_title:
-            parent = Category.objects.filter(title__iexact=parent_title, status=True, store=store).first()
+            parent = Category.objects.filter(pk=parent_title, status=True, store=store).first()
             print(parent)
         
 
@@ -2539,10 +2588,18 @@ def get_new_category(message):
 
         # Update session (stay in same parent unless user navigates elsewhere)
         if parent:
-            session["current_menu"] = parent.title
-            session["parent_for_new"] = parent.title   # 🔑 keep parent locked
+            session["current_menu"] = cat.title
+            print(f"current_menu = cat.title : {cat.title}")
+            if parent.parent:
+                session["current_category_id"] = parent.parent.id
+            else:
+                session["current_category_id"] = None
+            print(f"current_category_id = cat.id : {cat.id}")
+            session["parent_for_new"] = parent.id   # 🔑 keep parent locked
+            print(f"parent_for_new = parent.id : {parent.id}")
         else:
             session["current_menu"] = None
+            session["current_category_id"] = None
             session["parent_for_new"] = None
 
         session["get_new_category"] = False
@@ -2576,66 +2633,173 @@ def delete_cat_subcat(message):
     except Exception as e:
         print(traceback.format_exc())
 
+
 @app.message_handler(func=lambda message: message.text == t(message, "yes_im_sure"))
 def cat_delete(message):
     try:
-        session = session_manager.get_user_session(message.chat.id, namespace="menu")
-        if session_manager.get_user_session(message.chat.id, namespace="menu").get("delete_sure"):
-            cat = Category.objects.get(title__iexact=session.get("current_menu"), store__owner__tel_id=message.chat.id)
-            parent = cat.get_parents()
+        
+        session = session_manager.get_user_session(
+            message.chat.id,
+            namespace="menu",
+        )
+
+        category_class = CategoryClass()
+
+        if session.get("delete_sure"):
+
+            cat = Category.objects.select_related("parent", "store").get(
+                pk=session["current_category_id"],
+                store__owner__tel_id=message.chat.id,
+            )
+
+            parent = cat.parent
+
             cat.delete()
-            category_class = CategoryClass()
+
             if not cat.store.categories.exists():
                 category(message)
                 return
+
             if parent:
-                print(f"parent: {parent}")
-                print(f"subcategories: {parent[0].get_all_subcategories()}")
-                for child in parent:
-                    if child.get_all_subcategories():
-                        message.text = child.title
-                        session["current_menu"] = child.title
-                        session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                        category_class.handle_subcategory(message)
-                        break
-                    if len(parent) == 1:
-                        message.text = parent[0].title
-                        category_class.handle_category(message)
+                if parent.get_all_subcategories():
+
+                    session["current_category_id"] = parent.parent.id
+                    session["current_menu"] = parent.title.lower()
+
+                    session_manager.set_user_session(
+                        message.chat.id,
+                        session,
+                        namespace="menu",
+                    )
+
+                    message.text = parent.title
+                    category_class.handle_subcategory(message)
+                    session["current_category_id"] = parent.id
+
+                else:
+                    print("thanks")
+                    
+                    session["current_menu"] = parent.title.lower()
+                    
+
+                    print(cat.title)
+                    print(parent.title)
+                    print(parent.parent.title)
+                    if parent.get_all_subcategories():
+                        print(1111)
+                        session["current_category_id"] = parent.id
+                        message.text = parent.title.lower()
+                    else:
+                        if parent.parent.parent:
+                            session["current_category_id"] = parent.parent.parent.id
+                        else:
+                            session["current_category_id"] = None
+                        message.text = parent.parent.title.lower()
+
+
+                    print(f"session['current_category_id'] = parent.parent_id ==> {session['current_category_id']}\nsession['current_menu'] = parent.title.lower() ==> {session['current_menu']}")
+                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
+                    category_class.handle_subcategory(message)
+                    session["current_category_id"] = parent.parent.id
+                    session_manager.set_user_session(message.chat.id, session, namespace="menu")
+
             else:
+
+                session["current_category_id"] = None
+                session["current_menu"] = None
+
+                session_manager.set_user_session(
+                    message.chat.id,
+                    session,
+                    namespace="menu",
+                )
+
                 category_class.handle_category(message)
+
             session["menu_delete"] = True
             session["delete_sure"] = False
-        elif session_manager.get_user_session(message.chat.id, namespace="menu").get("deactivate_category_sure"):
-            cat = Category.objects.get(title__iexact=session.get("current_menu"), store__owner__tel_id=message.chat.id)
-            if cat.status:
-                cat.status = False
-            else:
-                cat.status = True
-            cat.save()
-            session["category_status_changed"] = [cat.status, cat.title]
-            session["current_menu"] = cat.title
-            parent = cat.get_parents()
+            session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
-            category_class = CategoryClass()
-            
+        elif session.get("deactivate_category_sure"):
+
+            cat = Category.objects.select_related("parent").get(
+                pk=session["current_category_id"],
+                store__owner__tel_id=message.chat.id,
+            )
+
+
+            cat.status = not cat.status
+            cat.save(update_fields=["status"])
+
+            session["category_status_changed"] = [
+                cat.status,
+                cat.title,
+            ]
+
+            parent = cat.parent
+
             if cat.get_all_subcategories():
+
+                if parent:
+                    session["current_category_id"] = cat.parent.id
+                else:
+                    session["current_category_id"] = None
+                session["current_menu"] = cat.title.lower()
+
+                session_manager.set_user_session(
+                    message.chat.id,
+                    session,
+                    namespace="menu",
+                )
                 message.text = cat.title
-                session["current_menu"] = cat.title
-                session_manager.set_user_session(message.chat.id, session, namespace="menu")
                 category_class.handle_subcategory(message)
+                
+                session["current_category_id"] = cat.id
+
             else:
-                session["current_menu"] = parent[0].title
-                session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                message.text = parent[0].title
-                print(message.text)
-                category_class.handle_subcategory(message)
-            
+
+                if parent:
+
+                    session["current_category_id"] = parent.parent.id
+
+                    session["current_menu"] = cat.title.lower()
+
+                    session_manager.set_user_session(
+                        message.chat.id,
+                        session,
+                        namespace="menu",
+                    )
+
+                    message.text = parent.title
+                    category_class.handle_subcategory(message)
+
+                    session["current_category_id"] = parent.id
+
+                else:
+
+                    session["current_category_id"] = None
+                    session["current_menu"] = None
+
+                    session_manager.set_user_session(
+                        message.chat.id,
+                        session,
+                        namespace="menu",
+                    )
+
+                    category_class.handle_category(message)
+
             session["category_status_changed"] = None
             session["deactivate_category_sure"] = False
-        session_manager.unlock(message.chat.id)
-        session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
-    except Exception as e:
+        session_manager.unlock(message.chat.id)
+
+        session_manager.set_user_session(
+            message.chat.id,
+            session,
+            namespace="menu",
+        )
+
+    except Exception:
         print(traceback.format_exc())
 
 

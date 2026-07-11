@@ -13,7 +13,7 @@ from django.utils import timezone
 ### ----------------------------
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('title', 'status', 'parent', 'position', 'store')
+    list_display = ('id', 'title', 'status', 'parent', 'position', 'store')
     list_filter = ('status', 'store')
     search_fields = ('title', 'slug')
     prepopulated_fields = {'slug': ('title',)}

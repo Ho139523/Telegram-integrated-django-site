@@ -141,7 +141,13 @@ def get_tunnel_password():
 
 
 
+
 def is_category_message(message):
+    session = session_manager.get_user_session(
+        message.chat.id,
+        namespace="menu",
+    )
+
     profile = ProfileModel.objects.get(tel_id=message.chat.id)
 
     if profile.seller_mode:
@@ -149,19 +155,21 @@ def is_category_message(message):
     else:
         store = profile.server_store
 
-    cat = Category.objects.annotate(
+    queryset = Category.objects.annotate(
         lower_title=Lower("title")
     ).filter(
-        lower_title=message.text.lower(),
-        store=store
-    ).values_list('title', flat=True)
-        
-    existance = message.text.lower() in [i.lower() for i in cat]
-
-    if existance:
-        return True
+        lower_title=message.text.strip().lower(),
+        store=store,
+    )
+    print(queryset)
+    parent_id = session.get("current_category_id")
+    print(parent_id)
+    if parent_id is None:
+        queryset = queryset.filter(parent__isnull=True)
     else:
-        return False
+        queryset = queryset.filter(parent_id=parent_id)
+    
+    return queryset.exists()
 
 
 
@@ -943,6 +951,72 @@ class CategoryClass:
 
     def __init__(self):
         pass
+    
+
+    def get_current_category(
+        self,
+        *,
+        message,
+        store,
+        title,
+        status=None,
+    ):
+        """
+        دسته انتخاب‌شده را نسبت به مسیر فعلی کاربر پیدا می‌کند
+        و مسیر کاربر را نیز در Session به‌روزرسانی می‌کند.
+        """
+
+        from django.core.exceptions import ValidationError
+
+        chat_id = message.chat.id
+        print(f"get current_category / message.text = {message.text}")
+        session = session_manager.get_user_session(
+            chat_id,
+            namespace="menu",
+        )
+
+        queryset = Category.objects.filter(
+            store=store,
+            title__iexact=title.strip(),
+        )
+        print(queryset)
+
+        parent_id = session.get("current_category_id")
+        print(parent_id)
+
+        if parent_id is None:
+            queryset = queryset.filter(parent__isnull=True)
+        else:
+            queryset = queryset.filter(parent_id=parent_id)
+            print(queryset)
+
+        if status is not None:
+            queryset = queryset.filter(status=status)
+
+        try:
+            category = queryset.select_related(
+                "parent",
+                "store",
+            ).get()
+        except Category.DoesNotExist:
+            raise ValidationError(
+                t(message, key="category_not_found")
+            )
+        if category is None:
+            raise ValidationError(
+                f'"{title}" is not a valid category in the current path.'
+            )
+
+        session["current_category_id"] = category.id
+        session["current_menu"] = category.title.lower()
+
+        session_manager.set_user_session(
+            chat_id,
+            session,
+            namespace="menu",
+        )
+
+        return category, session
 
     def handle_category(self, message):
         if subscription.subscription_offer(message):
@@ -950,6 +1024,7 @@ class CategoryClass:
                 extra_menu = [t(message, "cancel_action")]
                 session = session_manager.get_user_session(message.chat.id, namespace="menu")
                 session["handle_subcategory"] = True
+                session["current_category_id"] = None
                 session_manager.set_user_session(message.chat.id, session, namespace="menu")
                 print(f"begining of handle_category: {session}")
                 profile = ProfileModel.objects.get(tel_id=message.chat.id)
@@ -957,6 +1032,7 @@ class CategoryClass:
                     store = Store.objects.get(owner=profile)
                 else:
                     store = profile.server_store
+
                 if not session.get("category") and not session.get("product") and not store.categories.exists():
                     # Store has no categories
                     app.send_message(message.chat.id, t(message, "store_empty"))
@@ -1011,121 +1087,241 @@ class CategoryClass:
 
     def handle_subcategory(self, message):
         try:
-            if subscription.subscription_offer(message):
-                session = session_manager.get_user_session(message.chat.id, namespace="menu")
-                session["current_menu"] = message.text.lower()
-                session_manager.set_user_session(message.chat.id, session, namespace="menu")
+            if not subscription.subscription_offer(message):
+                return
 
-                profile = ProfileModel.objects.get(tel_id=message.chat.id)
+            session = session_manager.get_user_session(
+                message.chat.id,
+                namespace="menu"
+            )
+
+            profile = ProfileModel.objects.get(tel_id=message.chat.id)
+
+            if profile.seller_mode:
+                store = Store.objects.get(owner=profile)
+            else:
+                store = profile.server_store
+
+            if (
+                not session.get("category")
+                and not session.get("product")
+                and not store.categories.exists()
+            ):
+                app.send_message(message.chat.id, t(message, "store_empty"))
+                return
+
+            extra_menu = ["🔙", t(message, "cancel_action")]
+
+            show_all = (
+                (session.get("category") and session.get("category_deactivate"))
+                or
+                (session.get("category") and session.get("menu_delete"))
+            )
+            current_category, session = self.get_current_category(
+                message=message,
+                store=store,
+                title=message.text,
+                status=None if show_all else True,
+            )
+
+            children_qs = current_category.get_next_layer_categories(
+                both=show_all
+            )
+
+            children = list(children_qs.values_list("title", flat=True))
+
+            print(f"begining of handle_subcategory: {session}")
+
+            if not children:
+
+                if session.get("category") and session.get("menu_delete"):
+
+                    self.delete_sure(message)
+
+                    try:
+                        message.text = current_category.get_parents()[0].title
+                    except Exception:
+                        pass
+
+                elif session.get("category") and session.get("menu_add"):
+
+                    self.add_category(message)
+
+                    try:
+                        message.text = current_category.get_parents()[0].title
+                    except Exception:
+                        pass
+
+                elif session.get("category") and session.get("category_deactivate"):
+
+                    self.deactivate_category_sure(message)
+
+                else:
+
+                    if session.get("product_cat_selection"):
+                        ProductBot(app).get_category(message)
+                    else:
+                        fake_message = message
+                        fake_message.text = "hi"
+                        handle_products(fake_message)
+
+                return
+
+            if not session.get("category") and not session.get("product"):
+
+                extra_menu = retun_menue
+
+            elif session.get("category"):
+
+                if session.get("menu_delete"):
+
+                    button = t(message, "delete_category_and_subcategories")
+
+                    if button not in extra_menu:
+                        extra_menu.append(button)
+
+                elif session.get("category_deactivate"):
+
+                    has_active_children = children_qs.filter(
+                        status=True
+                    ).exists()
+
+                    if current_category.status:
+                        button = t(message, "deactivate_category")
+                    else:
+                        button = t(message, "activate_category")
+
+                    if button not in extra_menu:
+                        extra_menu.append(button)
+
+            if (
+                session.get("category")
+                and session.get("menu_delete")
+                and session.get("delete_sure")
+            ):
+
+                text = t(message, "category_deleted_successfully")
+
+                session["delete_sure"] = False
+
+                session_manager.set_user_session(
+                    message.chat.id,
+                    session,
+                    namespace="menu",
+                )
+
+            elif session.get("category") and session.get("menu_delete"):
+
+                text = t(
+                    message,
+                    "delete_subcategory_midlayer_prompt",
+                    cat=session["current_menu"],
+                )
+
+            elif session.get("category") and session.get("category_deactivate"):
+                
+                if current_category.status:
+                    status = t(message, "deactivate_category")
+                else:
+                    status = t(message, "activate_category")
+
+                if session.get("category_status_changed") is not None:
+
+                    if session["category_status_changed"][0]:
+
+                        changed_successfully = t(
+                            message,
+                            "category_activated_successfully",
+                            cat=session["category_status_changed"][1],
+                        )
+
+                    else:
+
+                        changed_successfully = t(
+                            message,
+                            "category_deactivated_successfully",
+                            cat=session["category_status_changed"][1],
+                        )
+
+                    text = (
+                        changed_successfully
+                        + "\n\n"
+                        + t(
+                            message,
+                            "toggle_subcategory_midlayer_prompt",
+                            cat=session["current_menu"],
+                            activation_status=status,
+                        )
+                    )
+
+                else:
+
+                    text = t(
+                        message,
+                        "toggle_subcategory_midlayer_prompt",
+                        cat=session["current_menu"],
+                        activation_status=status,
+                    )
+
+            else:
+
+                for button in (
+                    t(message, "delete_category_and_subcategories"),
+                    t(message, "deactivate_category"),
+                ):
+                    if button in extra_menu:
+                        extra_menu.remove(button)
+
+                cat_path = current_category.get_full_path()
+
+                session["parent_for_new"] = current_category.id
+
+                session_manager.set_user_session(
+                    message.chat.id,
+                    session,
+                    namespace="menu",
+                )
+
                 if profile.seller_mode:
-                    store = Store.objects.get(owner=profile)
-                else:
-                    store = profile.server_store
-                if not session.get("category") and not session.get("product") and not store.categories.exists():
-                    # Store has no categories
-                    app.send_message(message.chat.id, t(message, "store_empty"))
-                    return
 
-                extra_menu = ["🔙", t(message, "cancel_action")]
-                
-                if session.get("category") and session.get("category_deactivate"):
-                    current_category = Category.objects.get(title__iexact=message.text.title(), store=store)
-                    children = [child.title for child in current_category.get_next_layer_categories(both=True)]
+                    if session.get("product"):
 
-                # when you want to delete you must be able to delete even deactivated cats
-                elif session.get("category") and session.get("menu_delete"):
-                    current_category = Category.objects.get(title__iexact=message.text.title(), store=store)
-                    children = [child.title for child in current_category.get_next_layer_categories(both=True)]
-                
-                else:
-                    current_category = Category.objects.get(title__iexact=message.text.title(), status=True, store=store)
-                    children = [child.title for child in current_category.get_next_layer_categories()]
+                        text = t(message, "select_product_subcategory")
 
-                
-                print(f"begining of handle_subcategory: {session}")
-                
-
-                if children == []:
-                    if session.get("category") and session.get("menu_delete"):
-                        self.delete_sure(message)
-                        try:
-                            message.text = current_category.get_parents()[0].title
-                        except:
-                            pass
-                    elif session.get("category") and session.get("menu_add"):
-                        self.add_category(message)
-                        try:
-                            print(current_category)
-                            print(current_category.get_parents())
-                            message.text = current_category.get_parents()[0].title
-                        except:
-                            pass
-                    elif session.get("category") and session.get("category_deactivate"):
-                        self.deactivate_category_sure(message)
-                        # message.text = current_category.get_parents()[0].title
                     else:
-                        if session.get('product_cat_selection'):
-                            a = ProductBot(app)
-                            a.get_category(message)
-                        else:
-                            fake_message = message
-                            fake_message.text = "hi"
-                            handle_products(fake_message)
+
+                        text = t(
+                            message,
+                            "enter_subcategory_title",
+                            deeper_level=t(message, "deeperlevel"),
+                            cat_path=cat_path,
+                        )
+
                 else:
-                    if not session.get("category") and not session.get("product"):
-                        extra_menu = retun_menue
-                    elif session.get("category"):
-                        if session.get("menu_delete"):
-                            button = t(message, "delete_category_and_subcategories")
-                            extra_menu.append(button) if button not in extra_menu else extra_menu
-                        elif session.get("category_deactivate"):
-                            if not [child.title for child in current_category.get_next_layer_categories(status=True)]:
-                                button = t(message, "activate_category")
-                            else:
-                                button = t(message, "deactivate_category")
-                            extra_menu.append(button) if button not in extra_menu else extra_menu
-                    if session.get("category") and session.get("menu_delete") and session.get("delete_sure"):
-                        text = t(message, "category_deleted_successfully")
-                        session["delete_sure"] = False
-                        session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                    elif session.get("category") and session.get("menu_delete"):
-                        text = t(message, "delete_subcategory_midlayer_prompt", cat=session['current_menu'])
-                    elif session.get("category") and session.get("category_deactivate"):
-                        cat = Category.objects.get(title__iexact=session['current_menu'], store=store)
-                        if cat.status:
-                            status = t(message, "deactivate_category")
-                        else:
-                            status = t(message, "activate_category")
-                        if session.get("category_status_changed") is not None:
-                            if session.get("category_status_changed")[0] is True:
-                                changed_successfully = t(message, "category_activated_successfully", cat=session['category_status_changed'][1])
-                            elif session.get("category_status_changed")[0] is False:
-                                changed_successfully = t(message, "category_deactivated_successfully", cat=session['category_status_changed'][1])
-                            text = changed_successfully + "\n\n" + t(message, "toggle_subcategory_midlayer_prompt", cat=session['current_menu'], activation_status=status)
-                            print(f"category_status_changed: {session.get('category_status_changed')}")
-                        else:
-                            text = t(message, "toggle_subcategory_midlayer_prompt", cat=session['current_menu'], activation_status=status)
-                    else:
-                        button = [t(message, "delete_category_and_subcategories"), t(message, "deactivate_category")]
-                        for b in button:
-                            extra_menu.remove(b) if b in extra_menu else None
 
-                        cat_path = Category.objects.get(title__iexact=session['current_menu'], status=True, store=store).get_full_path()
-                        session['parent_for_new'] = session['current_menu']
-                        session_manager.set_user_session(message.chat.id, session, namespace="menu")
-                        if profile.seller_mode:
-                            if session.get("product"):
-                                text = t(message, "select_product_subcategory")
-                            else:
-                                deep_level = t(message, "deeperlevel")
-                                text = t(message, "enter_subcategory_title", deeper_level=deep_level, cat_path=cat_path)
-                        else:
-                            text = t(message, "select_product_subcategory", cat_path=cat_path)
+                    text = t(
+                        message,
+                        "select_product_subcategory",
+                        cat_path=cat_path,
+                    )
 
-                    markup = send_menu(message, children, message.text, extra_menu)
-                    app.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
-        except Exception as e:
-            print(f"Error: {traceback.format_exc()}")
+            markup = send_menu(
+                message,
+                children,
+                message.text,
+                extra_menu,
+            )
+
+            app.send_message(
+                message.chat.id,
+                text,
+                reply_markup=markup,
+                parse_mode="Markdown",
+            )
+
+        except Exception:
+            print(traceback.format_exc())
+
 
     def add_category(self, message):
         try:
@@ -1139,8 +1335,9 @@ class CategoryClass:
             if session.get("current_menu"):
                 print("we are in add_category and current_menu is set")
                 # user is inside a category, so add to that category
-                session["parent_for_new"] = session["current_menu"]
-                cat_path = Category.objects.get(title__iexact=session['current_menu'], status=True, store=Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.chat.id))).get_full_path()
+                session["parent_for_new"] = session["current_category_id"]
+                store = Store.objects.get(owner=ProfileModel.objects.get(tel_id=message.chat.id))
+                cat_path = Category.objects.get(pk=session["current_category_id"], status=True, store=store).get_full_path()
                 text = t(message, "enter_subcategory_title_no_children", cat_path=cat_path)
             else:
                 print("we are in add_category and current_menu is NOT set")
@@ -1169,7 +1366,7 @@ class CategoryClass:
             session = session_manager.get_user_session(message.chat.id, namespace="menu")
             session["deactivate_category_sure"] = True
             markup = send_menu(message, [t(message, "yes_im_sure"), t(message, "cancel_action")], 'cat_delete_sure')
-            cat = Category.objects.get(title__iexact=session.get("current_menu"), store__owner__tel_id=message.chat.id)
+            cat = Category.objects.get(pk=session["current_category_id"], store__owner__tel_id=message.chat.id)
             if cat.status:
                 app.send_message(message.chat.id, t(message, "confirm_deactivate_category", cat=cat.title), reply_markup=markup, parse_mode="Markdown")
             else:

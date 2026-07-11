@@ -518,8 +518,8 @@ APPEND_SLASH = False
 
 
 is_proxied = True
-manual_proxy = True
-FlaskBridge = False
+manual_proxy = False
+FlaskBridge = True
 
 
 ENABLE_SPLIT_PAYMENT = False

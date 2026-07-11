@@ -2677,16 +2677,11 @@ def cat_delete(message):
                     session["current_category_id"] = parent.id
 
                 else:
-                    print("thanks")
                     
                     session["current_menu"] = parent.title.lower()
                     
 
-                    print(cat.title)
-                    print(parent.title)
-                    print(parent.parent.title)
                     if parent.get_all_subcategories():
-                        print(1111)
                         session["current_category_id"] = parent.id
                         message.text = parent.title.lower()
                     else:
@@ -2697,7 +2692,6 @@ def cat_delete(message):
                         message.text = parent.parent.title.lower()
 
 
-                    print(f"session['current_category_id'] = parent.parent_id ==> {session['current_category_id']}\nsession['current_menu'] = parent.title.lower() ==> {session['current_menu']}")
                     session_manager.set_user_session(message.chat.id, session, namespace="menu")
                     category_class.handle_subcategory(message)
                     session["current_category_id"] = parent.parent.id

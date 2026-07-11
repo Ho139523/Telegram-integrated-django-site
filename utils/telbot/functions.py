@@ -161,9 +161,7 @@ def is_category_message(message):
         lower_title=message.text.strip().lower(),
         store=store,
     )
-    print(queryset)
     parent_id = session.get("current_category_id")
-    print(parent_id)
     if parent_id is None:
         queryset = queryset.filter(parent__isnull=True)
     else:
@@ -969,7 +967,6 @@ class CategoryClass:
         from django.core.exceptions import ValidationError
 
         chat_id = message.chat.id
-        print(f"get current_category / message.text = {message.text}")
         session = session_manager.get_user_session(
             chat_id,
             namespace="menu",
@@ -979,16 +976,13 @@ class CategoryClass:
             store=store,
             title__iexact=title.strip(),
         )
-        print(queryset)
 
         parent_id = session.get("current_category_id")
-        print(parent_id)
 
         if parent_id is None:
             queryset = queryset.filter(parent__isnull=True)
         else:
             queryset = queryset.filter(parent_id=parent_id)
-            print(queryset)
 
         if status is not None:
             queryset = queryset.filter(status=status)

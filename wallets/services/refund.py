@@ -1,59 +1,58 @@
-# wallets/services/refund.py
-
-from decimal import Decimal
-
-from wallets.services.utils import operation_exists
 from django.db import transaction
+from wallets.events.publisher import EventPublisher
 
-from wallets.models import (
-    WalletBalance,
-    WalletEntry,
+from wallets.constants import Services
+from wallets.models import WalletEntry
+
+from wallets.repositories import (
+    BalanceRepository,
+    EntryRepository,
 )
+
+from wallets.services.base import validate_positive
+from wallets.services.decorators import idempotent
+
+from wallets.events.factory import EventFactory
 
 
 @transaction.atomic
+@idempotent(Services.REFUND)
 def refund(
     *,
     wallet,
     currency,
-    amount: Decimal,
+    amount,
     description="",
     reference_id=None,
     operation_id=None,
 ):
 
-    if operation_exists(
-        operation_id=operation_id,
-        entry_type=WalletEntry.Type.REFUND,
-    ):
-        return
+    validate_positive(amount)
 
-    if amount <= 0:
-        raise ValueError(
-            "Amount must be positive."
-        )
-
-    balance, _ = (
-        WalletBalance.objects
-        .select_for_update()
-        .get_or_create(
-            wallet=wallet,
-            currency=currency,
-        )
+    balance, _ = BalanceRepository.get_or_create_for_update(
+        wallet=wallet,
+        currency=currency,
     )
 
     balance.available += amount
 
-    balance.save(
-        update_fields=["available"]
+    BalanceRepository.save(
+        balance,
+        fields=["available"],
     )
 
-    return WalletEntry.objects.create(
+    entry = EntryRepository.create(
         wallet=wallet,
         currency=currency,
         amount=amount,
-        type=WalletEntry.Type.REFUND,
+        entry_type=WalletEntry.Type.REFUND,
         description=description,
         reference_id=reference_id,
         operation_id=operation_id,
     )
+
+    EventPublisher.publish(
+        EventFactory.refund(entry)
+    )
+
+    return entry

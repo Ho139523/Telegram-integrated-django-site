@@ -71,8 +71,8 @@ class WalletEntry(models.Model):
     )
 
     operation_id = models.UUIDField(
-        default=uuid4,
-        editable=False,
+        null=True,
+        blank=True,
         db_index=True,
     )
 

@@ -1,62 +1,86 @@
-# wallets/services/release.py
-
-from decimal import Decimal
-from wallets.services.utils import operation_exists
 from django.db import transaction
+from wallets.events.publisher import EventPublisher
 
-from wallets.models import (
-    WalletBalance,
-    WalletEntry,
+from wallets.constants import Services
+from wallets.models import WalletEntry
+
+from wallets.repositories import (
+    BalanceRepository,
+    EntryRepository,
+)
+
+from wallets.services.base import ensure_balance
+from wallets.services.decorators import idempotent
+
+from wallets.events.factory import EventFactory
+
+from wallets.services.base import (
+    validate_positive,
+    ensure_balance,
 )
 
 
 @transaction.atomic
+@idempotent(Services.RELEASE)
 def release(
     *,
     wallet,
     currency,
-    amount: Decimal,
+    amount,
     to_pending=False,
     description="",
     reference_id=None,
     operation_id=None,
 ):
 
-    if operation_exists(
-        operation_id=operation_id,
-        entry_type=WalletEntry.Type.RELEASE,
-    ):
-        return
-
-    balance = (
-        WalletBalance.objects
-        .select_for_update()
-        .get(
-            wallet=wallet,
-            currency=currency,
-        )
+    validate_positive(amount)
+    
+    balance = BalanceRepository.get_for_update(
+        wallet=wallet,
+        currency=currency,
     )
 
-    if balance.locked < amount:
-        raise ValueError(
-            "Insufficient locked balance."
-        )
+    ensure_balance(
+        balance,
+        "locked",
+        amount,
+    )
 
     balance.locked -= amount
 
     if to_pending:
         balance.pending += amount
+        fields = [
+            "locked",
+            "pending",
+        ]
     else:
         balance.available += amount
+        fields = [
+            "locked",
+            "available",
+        ]
 
-    balance.save()
+    BalanceRepository.save(
+        balance,
+        fields=fields,
+    )
 
-    return WalletEntry.objects.create(
+    entry = EntryRepository.create(
         wallet=wallet,
         currency=currency,
         amount=amount,
-        type=WalletEntry.Type.RELEASE,
+        entry_type=WalletEntry.Type.RELEASE,
         description=description,
         reference_id=reference_id,
         operation_id=operation_id,
     )
+
+    EventPublisher.publish(
+        EventFactory.release(
+            entry,
+            to_pending=to_pending,
+        )
+    )
+
+    return entry

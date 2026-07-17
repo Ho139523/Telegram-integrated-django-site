@@ -1,12 +1,14 @@
-# wallets/services/withdrawal_fail.py
-
 from django.db import transaction
 from django.utils import timezone
+
+from wallets.events.publisher import EventPublisher
 
 from wallets.models import (
     Withdrawal,
     WalletBalance,
 )
+
+from wallets.events.factory import EventFactory
 
 
 @transaction.atomic
@@ -59,6 +61,12 @@ def fail_withdrawal(
             "status",
             "processed_at",
         ]
+    )
+
+    EventPublisher.publish(
+        EventFactory.withdrawal_failed(
+            withdrawal
+        )
     )
 
     return withdrawal

@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 
+from wallets.services.decorators import idempotent
 from wallets.models import ExchangeRate
 
 

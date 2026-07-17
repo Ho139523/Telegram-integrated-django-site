@@ -939,7 +939,7 @@ def handle_products(message):
 
         markup = send_menu(message, options, "products", retun_menue)
         session = session_manager.get_user_session(chat_id, namespace="menu")
-        current_category = Category.objects.get(title__iexact=session["current_menu"], status=True, store=store)
+        current_category = Category.objects.get(pk=session["current_category_id"], status=True, store=store)
         app.send_message(chat_id, t(message, "current_category", cat_path=current_category.get_full_path()), reply_markup=markup, parse_mode="Markdown")
 
 
@@ -1430,29 +1430,102 @@ import os
 import traceback
 from django.conf import settings
 
-def download_and_save_image(file_id, bot):
+import requests
+import os
+import logging
+import traceback
+import uuid
+from datetime import datetime
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+
+logger = logging.getLogger(__name__)
+
+def download_and_save_image(file_id, bot, subdirectory="product_images"):
+    """
+    نسخه پیشرفته دانلود عکس با استفاده از Django Storage
+
+    Args:
+        file_id (str): شناسه فایل در تلگرام
+        bot (TeleBot): نمونه از بات تلگرام
+        subdirectory (str): زیرمسیر برای ذخیره فایل
+
+    Returns:
+        str: مسیر نسبی فایل ذخیره شده یا None در صورت خطا
+    """
     try:
-        # دانلود فایل
-        file_info = bot.get_file(file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
+        # ============================================
+        # تنظیمات - اینجا را ویرایش کنید
+        # ============================================
+        PROXY_BASE_URL = "http://intellium.ir:80"
+        # ============================================
 
-        # مسیر ذخیره‌سازی
-        save_dir = os.path.join(settings.MEDIA_ROOT, "product_images")
-        os.makedirs(save_dir, exist_ok=True)  # ایجاد مسیر در صورت عدم وجود
+        logger.info(f"Starting download for file_id: {file_id}")
 
-        file_name = file_info.file_path.split('/')[-1]  # نام فایل از فایل‌پث استخراج می‌شود
-        file_path = os.path.join(save_dir, file_name)
+        # مرحله 1: دریافت اطلاعات فایل
+        get_file_url = f"{PROXY_BASE_URL}/bot{bot.token}/getFile"
 
-        # ذخیره فایل در سیستم
-        with open(file_path, 'wb') as new_file:
-            new_file.write(downloaded_file)
+        response = requests.get(
+            get_file_url,
+            params={'file_id': file_id},
+            timeout=30
+        )
 
-        # بازگشت به مسیر نسبی برای Django
-        relative_file_path = os.path.join("product_images", file_name)
+        if response.status_code != 200:
+            logger.error(f"Failed to get file info: Status {response.status_code}")
+            return None
 
-        return relative_file_path  # مسیر نسبی برای استفاده در قالب
+        file_info = response.json()
+
+        if not file_info.get('ok'):
+            logger.error(f"Telegram API error: {file_info}")
+            return None
+
+        file_path = file_info['result']['file_path']
+        logger.info(f"File path: {file_path}")
+
+        # مرحله 2: دانلود فایل
+        download_url = f"{PROXY_BASE_URL}/file/bot{bot.token}/{file_path}"
+
+        file_response = requests.get(
+            download_url,
+            timeout=60
+        )
+
+        if file_response.status_code != 200:
+            logger.error(f"Failed to download file: Status {file_response.status_code}")
+            return None
+
+        # مرحله 3: تعیین پسوند
+        file_extension = os.path.splitext(file_path)[1]
+        if not file_extension:
+            content_type = file_response.headers.get('Content-Type', '')
+            if 'jpeg' in content_type or 'jpg' in content_type:
+                file_extension = '.jpg'
+            elif 'png' in content_type:
+                file_extension = '.png'
+            else:
+                file_extension = '.bin'
+
+        # مرحله 4: تولید نام فایل
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = uuid.uuid4().hex[:8]
+        file_name = f"{timestamp}_{unique_id}{file_extension}"
+
+        # مرحله 5: ذخیره با Django Storage
+        relative_path = f"{subdirectory}/{file_name}"
+
+        # استفاده از ContentFile برای ذخیره
+        content_file = ContentFile(file_response.content)
+        saved_path = default_storage.save(relative_path, content_file)
+
+        logger.info(f"File saved with Django Storage: {saved_path}")
+
+        return saved_path
+
     except Exception as e:
-        print(f"خطا در ذخیره تصویر: {traceback.format_exc()}")
+        logger.error(f"Error in download_and_save_image_advanced: {traceback.format_exc()}")
         return None
 
 
@@ -1603,18 +1676,19 @@ class ProductBot:
     def get_category(self, message: Message):
         try:
             session = session_manager.get_user_session(message.chat.id, namespace="add_product")
+            session2 = session_manager.get_user_session(message.chat.id, namespace="menu")
             session["ask_variant_decision"] = True
             profile = ProfileModel.objects.get(tel_id=message.chat.id)
             store = Store.objects.get(owner=profile) if profile.seller_mode else profile.server_store
 
-            selected_category = Category.objects.get(title__iexact=message.text.strip(), status=True, store=store)
+            selected_category = Category.objects.get(pk=session2["current_category_id"], status=True, store=store)
             print(selected_category.id)
             session["category_id"] = selected_category.id
             
             session_manager.set_user_session(message.chat.id, session, namespace="add_product")
 
             markup = send_menu(message, [t(message, "accurate_inventory"), t(message, "not_necessary")], "main menu", [t(message, "cancel_action")])
-            self.bot.send_message(message.chat.id, t(message, "ask_variant_decision"), reply_markup=markup)
+            self.bot.send_message(message.chat.id, t(message, "ask_variant_decision"), reply_markup=markup, parse_mode="Markdown")
         except Category.DoesNotExist:
             self.bot.send_message(message.chat.id, t(message, "invalid_selected_category"))
 
@@ -1630,7 +1704,7 @@ class ProductBot:
             session["variantkey"] = True
             session_manager.set_user_session(message.chat.id, session, namespace="add_product")
             markup = send_menu(message, [t(message, "cancel_action")], message.text)
-            self.bot.send_message(message.chat.id, t(message, "enter_variant_key"), reply_markup=markup)
+            self.bot.send_message(message.chat.id, t(message, "enter_variant_key"), reply_markup=markup, parse_mode="Markdown")
         except Exception as e:
             print(traceback.format_exc())
 
@@ -1685,11 +1759,7 @@ class ProductBot:
                 "main menu",
                 [t(message, "cancel_action")]
             )
-            self.bot.send_message(
-                message.chat.id,
-                t(message, "add_another_variant_key"),
-                reply_markup=markup
-            )
+            self.bot.send_message(message.chat.id, t(message, "add_another_variant_key"), reply_markup=markup, parse_mode="Markdown")
 
         except Exception as e:
             print(traceback.format_exc())
@@ -4124,7 +4194,7 @@ class SendLocation:
             items = [item for item in get_country_choices(self.profile.lang)]
             items_name = [item[1] for item in get_country_choices(self.profile.lang)]
             items_code = [item[0] for item in get_country_choices(self.profile.lang)]
-            paginator = InlineKeyboardPaginator(user_id=self.user_id, items=items_name, per_page=24, row_size=3, remember_last_page=True)
+            paginator = InlineKeyboardPaginator(user_id=self.user_id, items=items_name, per_page=15, row_size=3, remember_last_page=True)
             buttons, layout = paginator.get_buttons_for_sendmarkup()
 
             handlers = {"prev": self.handle_prev, "next": self.handle_next}

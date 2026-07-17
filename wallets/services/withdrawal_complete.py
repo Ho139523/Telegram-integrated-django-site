@@ -1,12 +1,14 @@
-# wallets/services/withdrawal_complete.py
-
 from django.db import transaction
 from django.utils import timezone
+
+from wallets.events.publisher import EventPublisher
 
 from wallets.models import (
     Withdrawal,
     WalletBalance,
 )
+
+from wallets.events.factory import EventFactory
 
 
 @transaction.atomic
@@ -60,6 +62,12 @@ def complete_withdrawal(
             "processed_at",
             "external_reference",
         ]
+    )
+
+    EventPublisher.publish(
+        EventFactory.withdrawal_completed(
+            withdrawal
+        )
     )
 
     return withdrawal

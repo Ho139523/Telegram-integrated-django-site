@@ -1,7 +1,7 @@
 const http = require('http');
 const https = require('https');
 
-const WORKER_URL = 'https://domainfront-relay.m-r-husseinmohammadi.workers.dev';
+const WORKER_URL = 'https://telegram-relay.m-r-husseinmohammadi.workers.dev';
 const AUTH_KEY = 'M_r_HUSSEIN2079139523';
 const PORT = 8085;
 

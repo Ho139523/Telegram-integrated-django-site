@@ -72,6 +72,12 @@ class Withdrawal(models.Model):
         blank=True
     )
 
+    operation_id = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
     class Meta:
 
         ordering = [

@@ -1,55 +1,61 @@
 # wallets/services/sale_pending.py
 
-from decimal import Decimal
-from wallets.services.utils import operation_exists
 from django.db import transaction
+from wallets.events.publisher import EventPublisher
 
-from wallets.models import (
-    WalletBalance,
-    WalletEntry,
+from wallets.constants import Services
+
+from wallets.models import WalletEntry
+
+from wallets.services.base import (
+    get_balance,
+    log_entry,
+    validate_positive,
 )
+
+from wallets.services.decorators import idempotent
+
+from wallets.events.factory import EventFactory
 
 
 @transaction.atomic
+@idempotent(Services.SALE_PENDING)
 def sale_pending(
     *,
     seller_wallet,
     currency,
-    amount: Decimal,
+    amount,
     reference_id=None,
     operation_id=None,
 ):
 
-    if operation_exists(
-        operation_id=operation_id,
-        entry_type=WalletEntry.Type.SALE_PENDING,
-    ):
-        return
-    if amount <= 0:
-        raise ValueError(
-            "Amount must be positive."
-        )
+    validate_positive(amount)
 
-    balance, _ = (
-        WalletBalance.objects
-        .select_for_update()
-        .get_or_create(
-            wallet=seller_wallet,
-            currency=currency,
-        )
+    balance = get_balance(
+        wallet=seller_wallet,
+        currency=currency,
+        create=True,
     )
 
     balance.pending += amount
 
     balance.save(
-        update_fields=["pending"]
+        update_fields=[
+            "pending",
+        ]
     )
 
-    return WalletEntry.objects.create(
+    entry = log_entry(
         wallet=seller_wallet,
         currency=currency,
         amount=amount,
-        type=WalletEntry.Type.SALE_PENDING,
+        entry_type=WalletEntry.Type.SALE_PENDING,
         reference_id=reference_id,
         operation_id=operation_id,
     )
+
+    EventPublisher.publish(
+        EventFactory.sale_pending(entry)
+    )
+
+    return entry

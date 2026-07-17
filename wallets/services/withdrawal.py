@@ -1,17 +1,31 @@
 # wallets/services/withdrawal.py
 
 from decimal import Decimal
-from wallets.services.utils import operation_exists
+from wallets.events.publisher import EventPublisher
+
 from django.db import transaction
 
+from wallets.constants import Services
+
 from wallets.models import (
-    WalletBalance,
-    WalletEntry,
     Withdrawal,
+    WalletEntry,
 )
+
+from wallets.services.base import (
+    get_balance,
+    ensure_balance,
+    log_entry,
+)
+
+from wallets.services.decorators import idempotent
+
+from wallets.events.factory import EventFactory
+from wallets.services.base import validate_positive
 
 
 @transaction.atomic
+@idempotent(Services.WITHDRAW)
 def withdraw(
     *,
     wallet,
@@ -22,30 +36,27 @@ def withdraw(
     fee: Decimal = Decimal("0"),
     operation_id=None,
 ):
+    
+    validate_positive(amount)
 
-    if operation_exists(
-        operation_id=operation_id,
-        entry_type=WalletEntry.Type.WITHDRAW,
-    ):
-        return
-    total_amount = amount + fee
+    if fee < 0:
+        raise ValueError("Fee cannot be negative.")
 
-    balance = (
-        WalletBalance.objects
-        .select_for_update()
-        .get(
-            wallet=wallet,
-            currency=currency,
-        )
+    total = amount + fee
+
+    balance = get_balance(
+        wallet=wallet,
+        currency=currency,
     )
 
-    if balance.available < total_amount:
-        raise ValueError(
-            "Insufficient balance."
-        )
+    ensure_balance(
+        balance,
+        "available",
+        total,
+    )
 
-    balance.available -= total_amount
-    balance.locked += total_amount
+    balance.available -= total
+    balance.locked += total
 
     balance.save(
         update_fields=[
@@ -61,15 +72,20 @@ def withdraw(
         fee=fee,
         provider=provider,
         destination=destination,
+        operation_id=operation_id,
     )
 
-    WalletEntry.objects.create(
+    entry = log_entry(
         wallet=wallet,
         currency=currency,
-        amount=-total_amount,
-        type=WalletEntry.Type.WITHDRAW,
+        amount=-total,
+        entry_type=WalletEntry.Type.WITHDRAW,
         description=f"Withdrawal #{withdrawal.pk}",
         operation_id=operation_id,
+    )
+
+    EventPublisher.publish(
+        EventFactory.withdraw(withdrawal)
     )
 
     return withdrawal

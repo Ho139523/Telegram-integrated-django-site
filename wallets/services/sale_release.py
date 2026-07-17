@@ -1,113 +1,115 @@
 # wallets/services/sale_release.py
 
-from decimal import Decimal
-from wallets.services.utils import operation_exists
 from django.db import transaction
 
-from wallets.models import (
-    WalletBalance,
-    WalletEntry,
+from wallets.constants import Services
+from wallets.models import WalletEntry
+
+from wallets.services.base import (
+    get_balance,
+    log_entry,
+    ensure_balance,
+    validate_positive,
 )
 
 from wallets.services.treasury import (
     get_treasury_wallet,
 )
 
+from wallets.services.decorators import idempotent
+
+from wallets.events.factory import EventFactory
+from wallets.events.publisher import EventPublisher
+
 
 @transaction.atomic
+@idempotent(Services.SALE_RELEASE)
 def sale_release(
     *,
     seller_wallet,
     currency,
-    amount: Decimal,
-    commission: Decimal,
+    amount,
+    commission,
     reference_id=None,
     operation_id=None,
 ):
 
-    if operation_exists(
-        operation_id=operation_id,
-        entry_type=WalletEntry.Type.SALE_RELEASE,
-    ):
-        return
-    seller_balance = (
-        WalletBalance.objects
-        .select_for_update()
-        .get(
-            wallet=seller_wallet,
-            currency=currency,
-        )
-    )
-
-    if seller_balance.pending < amount:
-        raise ValueError(
-            "Insufficient pending balance."
-        )
+    validate_positive(amount)
 
     if commission < 0:
         raise ValueError(
             "Commission cannot be negative."
         )
 
-    net_amount = amount - commission
+    net = amount - commission
 
-    if net_amount < 0:
+    if net < 0:
         raise ValueError(
             "Commission cannot exceed amount."
         )
 
-    treasury_wallet = get_treasury_wallet()
-
-    treasury_balance, _ = (
-        WalletBalance.objects
-        .select_for_update()
-        .get_or_create(
-            wallet=treasury_wallet,
-            currency=currency,
-        )
+    seller = get_balance(
+        wallet=seller_wallet,
+        currency=currency,
     )
 
-    # آزادسازی مبلغ فروشنده
-    seller_balance.pending -= amount
-    seller_balance.available += net_amount
+    ensure_balance(
+        seller,
+        "pending",
+        amount,
+    )
 
-    seller_balance.save(
+    treasury = get_balance(
+        wallet=get_treasury_wallet(),
+        currency=currency,
+        create=True,
+    )
+
+    seller.pending -= amount
+    seller.available += net
+
+    seller.save(
         update_fields=[
             "pending",
             "available",
         ]
     )
 
-    # انتقال کارمزد به خزانه
-    if commission > 0:
+    if commission:
+        treasury.available += commission
 
-        treasury_balance.available += commission
-
-        treasury_balance.save(
+        treasury.save(
             update_fields=[
-                "available"
+                "available",
             ]
         )
 
-    # ثبت رویداد فروش برای فروشنده
-    WalletEntry.objects.create(
+    seller_entry = log_entry(
         wallet=seller_wallet,
         currency=currency,
         amount=amount,
-        type=WalletEntry.Type.SALE_RELEASE,
+        entry_type=WalletEntry.Type.SALE_RELEASE,
         reference_id=reference_id,
+        operation_id=operation_id,
         description="Sale released",
     )
 
-    # ثبت دریافت کارمزد برای خزانه
-    if commission > 0:
-
-        WalletEntry.objects.create(
-            wallet=treasury_wallet,
+    if commission:
+        log_entry(
+            wallet=treasury.wallet,
             currency=currency,
             amount=commission,
-            type=WalletEntry.Type.COMMISSION,
+            entry_type=WalletEntry.Type.COMMISSION,
             reference_id=reference_id,
-            description="Platform commission received",
             operation_id=operation_id,
+            description="Platform commission received",
         )
+
+    EventPublisher.publish(
+        EventFactory.sale_release(
+            seller_entry,
+            commission=commission,
+        )
+    )
+
+    return seller_entry

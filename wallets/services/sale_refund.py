@@ -1,78 +1,95 @@
 # wallets/services/sale_refund.py
 
-from decimal import Decimal
-from wallets.services.utils import operation_exists
 from django.db import transaction
+from wallets.events.publisher import EventPublisher
 
-from wallets.models import (
-    WalletBalance,
-    WalletEntry,
+from wallets.constants import Services
+
+from wallets.models import WalletEntry
+
+from wallets.services.base import (
+    get_balance,
+    log_entry,
+    ensure_balance,
+    validate_positive,
 )
+
+from wallets.services.decorators import idempotent
+
+from wallets.events.factory import EventFactory
 
 
 @transaction.atomic
+@idempotent(Services.SALE_REFUND)
 def sale_refund(
     *,
     seller_wallet,
     buyer_wallet,
     currency,
-    amount: Decimal,
+    amount,
     reference_id=None,
     operation_id=None,
 ):
 
-    if operation_exists(
-        operation_id=operation_id,
-        entry_type=WalletEntry.Type.SALE_REFUND,
-    ):
-        return
-    seller_balance = (
-        WalletBalance.objects
-        .select_for_update()
-        .get(
-            wallet=seller_wallet,
-            currency=currency,
-        )
+    validate_positive(amount)
+
+    seller = get_balance(
+        wallet=seller_wallet,
+        currency=currency,
     )
 
-    if seller_balance.pending < amount:
-        raise ValueError(
-            "Insufficient pending balance."
-        )
-
-    buyer_balance, _ = (
-        WalletBalance.objects
-        .select_for_update()
-        .get_or_create(
-            wallet=buyer_wallet,
-            currency=currency,
-        )
+    ensure_balance(
+        seller,
+        "pending",
+        amount,
     )
 
-    seller_balance.pending -= amount
-    buyer_balance.available += amount
-
-    seller_balance.save(
-        update_fields=["pending"]
+    buyer = get_balance(
+        wallet=buyer_wallet,
+        currency=currency,
+        create=True,
     )
 
-    buyer_balance.save(
-        update_fields=["available"]
+    seller.pending -= amount
+    buyer.available += amount
+
+    seller.save(
+        update_fields=[
+            "pending",
+        ]
     )
 
-    WalletEntry.objects.create(
+    buyer.save(
+        update_fields=[
+            "available",
+        ]
+    )
+
+    seller_entry = log_entry(
         wallet=seller_wallet,
         currency=currency,
         amount=-amount,
-        type=WalletEntry.Type.SALE_REFUND,
+        entry_type=WalletEntry.Type.SALE_REFUND,
         reference_id=reference_id,
+        operation_id=operation_id,
+        description="Sale refunded",
     )
 
-    WalletEntry.objects.create(
+    buyer_entry = log_entry(
         wallet=buyer_wallet,
         currency=currency,
         amount=amount,
-        type=WalletEntry.Type.REFUND,
+        entry_type=WalletEntry.Type.REFUND,
         reference_id=reference_id,
         operation_id=operation_id,
+        description="Refund received",
     )
+
+    EventPublisher.publish(
+        EventFactory.sale_refund(
+            seller_entry=seller_entry,
+            buyer_entry=buyer_entry,
+        )
+    )
+
+    return buyer_entry

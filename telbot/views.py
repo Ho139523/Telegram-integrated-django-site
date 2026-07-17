@@ -353,11 +353,11 @@ def handle_activation_account(message):
 def handle_store_product_start(message):
     try:
         parts = message.text.split("_")
-        if len(parts) != 4:  # باید بشه: /start store {store_id} product {product_id}
+        if len(parts) != 6:  # باید بشه: /start store {store_id} product {product_id}
             app.send_message(message.chat.id, "لینک خرید معتبر نیست.")
             return
 
-        _, store_id, _, product_id = parts  # /start store_5_product_12
+        _, store_id, _, product_id, _, lang = parts  # /start store_5_product_12
 
         
 
@@ -2132,7 +2132,7 @@ def add_product(message):
                 try:
                     if not get_user_store(message).categories.exists():
                         # فروشگاه هیچ دسته‌بندی ندارد
-                        app.send_message(message.chat.id, t(message, "no_categories_to_add_product"))
+                        app.send_message(message.chat.id, t(message, "no_categories_to_add_product"), parse_mode="Markdown")
                         return
 #                    product_bot.get_name(message)
                     markup = send_menu(message, [t(message, "cancel_action")], message.text)
@@ -2527,8 +2527,12 @@ def category(message):
             app.send_message(message.chat.id, t(message, "not_a_seller_edit_categories"))
 
 
-@app.message_handler(func=lambda m: m.text == t(m, "menu_delete") and session_manager.can_execute(m.chat.id))
-def delete_handler(message):
+
+@app.message_handler(func=lambda m: m.text == t(m, "menu_delete") 
+                     and session_manager.get_user_session(m.chat.id, namespace="menu").get("category") and
+                     session_manager.can_execute(m.chat.id))
+@UltraVideoPrompter(command="حذف➖")
+def delete_category_handler(message):
     session = session_manager.get_user_session(message.chat.id, namespace="menu")
     session["menu_delete"] = True
     session["menu_add"] = False
@@ -2536,16 +2540,26 @@ def delete_handler(message):
     session_manager.set_user_session(message.chat.id, session, namespace="menu")
 
 
-    if session.get("category"):
-        # Category deletion
-        session_manager.lock(message.chat.id, "delete_product")
-        category_class = CategoryClass()
-        category_class.handle_category(message)
+    session_manager.lock(message.chat.id, "delete_product")
+    category_class = CategoryClass()
+    category_class.handle_category(message)
 
-    elif session.get("product"):
-        # Product deletion
-        session_manager.lock(message.chat.id, "delete_product")
-        remove_product(message)
+
+
+
+@app.message_handler(func=lambda m: m.text == t(m, "menu_delete") 
+                     and session_manager.get_user_session(m.chat.id, namespace="menu")["product"] and
+                     session_manager.can_execute(m.chat.id))
+def delete_product_handler(message):
+    session = session_manager.get_user_session(message.chat.id, namespace="menu")
+    session["menu_delete"] = True
+    session["menu_add"] = False
+    session["menu_deactivate"] = False
+    session_manager.set_user_session(message.chat.id, session, namespace="menu")
+
+
+    session_manager.lock(message.chat.id, "delete_product")
+    remove_product(message)
 
 
 @app.message_handler(func=lambda message: is_category_message(message))
@@ -3078,6 +3092,10 @@ def submit_store(call):
 
         for i in msg:
             if not session.get(f"{i}"):
+                if i == "store_description":
+                    msg_info = t("message", "store_description_not_set", profile=profile)
+                    app.answer_callback_query(call.id, msg_info, show_alert=True)
+                    return
                 item = str(msg[i])
                 msg_info = t("message", "store_info_not_filled_yet", profile=profile, item=item)
                 app.answer_callback_query(call.id, msg_info, show_alert=True)

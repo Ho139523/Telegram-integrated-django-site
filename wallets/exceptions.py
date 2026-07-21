@@ -41,3 +41,6 @@ class WithdrawalNotPending(WalletError):
 
 class CurrencyConversionNotFound(WalletError):
     pass
+
+class InvalidCommission(ValueError):
+    pass

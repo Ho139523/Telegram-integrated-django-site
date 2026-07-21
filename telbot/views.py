@@ -33,6 +33,7 @@ from telebot.handler_backends import MemoryHandlerBackend, State, StatesGroup
 from telebot import custom_filters
 
 # Variables imports
+from utils.balebot.helpers import get_profile
 from utils.variables.TOKEN import BOT_ID
 from utils.variables.TOKEN import TOKEN
 from utils.variables.CHANNELS import my_channels_with_atsign, my_channels_without_atsign
@@ -1079,13 +1080,16 @@ def store_setting(message):
 @app.message_handler(func=lambda message: message.text == translations["menu_wallet"][ProfileModel.objects.get(tel_id=message.chat.id).lang])
 def balance_menue(message):
     if subscription.subscription_offer(message):
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
         options = [t(message, "my_balance"), t(message, "increase_balance")]
+        if Store.objects.filter(owner=profile).first():
+            options.append(t(message, "withdraw"))
         home_menue = ["🏡"]
         ##############################
         #attention you can do so
         #from utils.telbot.variables import home_menu
         ##############################
-        markup = send_menu(message, options, "balance_category", home_menue)
+        markup = send_menu(message, options, "balance_category", home_menue, cols=2)
         app.send_message(message.chat.id, t(message, "balance_menue"), reply_markup=markup)
 
 # language settings handler
@@ -2097,7 +2101,7 @@ def product(message):
 @app.message_handler(func=lambda m: m.text == t(m, "menu_add") and
                      session_manager.get_user_session(m.chat.id, namespace="menu").get("category")
                      and session_manager.can_execute(m.chat.id))
-@UltraVideoPrompter(command="اضافه➕")
+@UltraVideoPrompter(command="menu_add")
 def add_category_handler(message):
     try:
         session_manager.lock(message.chat.id, "menu_add")
@@ -2531,7 +2535,7 @@ def category(message):
 @app.message_handler(func=lambda m: m.text == t(m, "menu_delete") 
                      and session_manager.get_user_session(m.chat.id, namespace="menu").get("category") and
                      session_manager.can_execute(m.chat.id))
-@UltraVideoPrompter(command="حذف➖")
+@UltraVideoPrompter(command="menu_delete")
 def delete_category_handler(message):
     session = session_manager.get_user_session(message.chat.id, namespace="menu")
     session["menu_delete"] = True
@@ -2814,6 +2818,7 @@ def cat_delete(message):
 @app.message_handler(func=lambda message: message.text == t(message, "menu_deactivate")
                     and session_manager.get_user_session(message.chat.id, namespace="menu").get("category")
                     and session_manager.can_execute(message.chat.id))
+@UltraVideoPrompter(command="menu_deactivate")
 def deactivate_category(message):
     try:
         if subscription.subscription_offer(message):
@@ -3370,17 +3375,47 @@ def answer_text(message):
 
 
 # show balance
+from wallets.services import wallet_summary
+
+
 def show_balance(message):
-    # Example: Fetch and send user balance
+
     try:
+
         if subscription.subscription_offer(message):
-            user_id = message.from_user.id
-            profile = ProfileModel.objects.get(tel_id=user_id)
-            balance= profile.credit
-            formatted_balance = "{:,.2f}".format(float(balance))
-            app.send_message(message.chat.id, t(message, "user_balance", formatted_balance=formatted_balance, currency=t(message, str(profile.preferred_currency))))
-    except:
-        app.send_message(message.chat.id, traceback.format_exc())
+
+            profile = ProfileModel.objects.get(
+                tel_id=message.from_user.id,
+            )
+
+            summary = wallet_summary(
+                wallet=profile.wallet,
+                currency=profile.preferred_currency,
+            )
+
+            app.send_message(
+
+                message.chat.id,
+
+                t(
+                    message,
+                    "user_balance",
+
+                    available=f"{summary['available']:,.0f}",
+                    pending=f"{summary['pending']:,.0f}",
+                    locked=f"{summary['locked']:,.0f}",
+                    total=f"{summary['total']:,.0f}",
+
+                    currency=profile.preferred_currency.symbol,
+                ),
+            )
+
+    except Exception:
+
+        app.send_message(
+            message.chat.id,
+            traceback.format_exc(),
+        )
     
 
 def ask_for_product_code(message):

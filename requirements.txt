@@ -1,4 +1,6 @@
 absl-py==2.4.0
+aiofiles==25.1.0
+aiogram==3.29.1
 aiohappyeyeballs==2.6.1
 aiohttp @ file:///home/hussein2079/Downloads/pyrobale/aiohttp-3.13.5-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl#sha256=b18f31b80d5a33661e08c89e202edabf1986e9b49c42b4504371daeaa11b47c1
 aiosignal==1.4.0
@@ -25,7 +27,7 @@ billiard==4.2.4
 bleach==6.3.0
 bs4==0.0.2
 celery==5.6.2
-certifi==2026.4.22
+certifi==2026.6.17
 certipy==0.2.3
 cffi==2.0.0
 charset-normalizer==3.4.7
@@ -35,6 +37,7 @@ click-plugins==1.1.1.2
 click-repl==0.3.0
 comm==0.2.3
 contourpy==1.3.3
+coverage==7.15.2
 crispy-bootstrap5==2025.6
 cron_descriptor==2.0.6
 cryptography==46.0.4
@@ -69,6 +72,7 @@ fonttools==4.62.1
 fqdn==1.5.1
 frozenlist==1.8.0
 gast==0.7.0
+git-filter-repo==2.47.0
 google-pasta==0.2.0
 greenlet==3.5.0
 grpcio==1.80.0
@@ -77,6 +81,7 @@ h11==0.16.0
 h5py==3.14.0
 httpcore==1.0.9
 httpx==0.28.1
+hypothesis==6.156.6
 idna==3.13
 ipykernel==7.2.0
 ipython==9.13.0
@@ -110,6 +115,7 @@ kiwisolver==1.5.0
 kombu==5.6.2
 lark==1.3.1
 libclang==18.1.1
+magic-filter==1.0.12
 Mako==1.3.12
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
@@ -124,6 +130,7 @@ nbclient==0.10.4
 nbconvert==7.17.1
 nbformat==5.10.4
 nest-asyncio==1.6.0
+nodeenv==1.10.0
 notebook==7.5.6
 notebook_shim==0.2.4
 numpy==2.4.4
@@ -146,6 +153,8 @@ prompt_toolkit==3.0.52
 propcache==0.4.1
 protobuf==7.34.1
 psutil==7.2.2
+psycopg==3.3.4
+psycopg-binary==3.3.4
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pyaes==1.6.1
@@ -157,7 +166,9 @@ pydantic_core==2.46.3
 Pygments==2.20.0
 PyJWT==2.11.0
 pyparsing==3.3.2
+pyright==1.1.410
 pyrobale @ file:///home/hussein2079/Downloads/pyrobale/pyrobale-0.6.19-py3-none-any.whl#sha256=1b495743c76776b56712db68a55955cf3278ca6a59eb6b9af21f5f7e94a4ce80
+PySocks==1.7.1
 pyTelegramBotAPI==4.30.0
 python-bidi==0.6.7
 python-crontab==3.3.0
@@ -172,7 +183,7 @@ redis==7.1.0
 redis-lock==0.2.0
 referencing==0.37.0
 reportlab==4.4.9
-requests==2.33.1
+requests==2.34.2
 requests-oauthlib==2.0.0
 rfc3339-validator==0.1.4
 rfc3986-validator==0.1.1
@@ -184,9 +195,11 @@ seaborn==0.13.2
 Send2Trash==2.1.0
 setuptools==69.0.3
 six==1.17.0
+smsir-python==1.0.8
 sniffio==1.3.1
 social-auth-app-django==5.7.0
 social-auth-core==4.8.3
+sortedcontainers==2.4.0
 soupsieve==2.8.3
 SQLAlchemy==2.0.49
 sqlparse==0.5.5
@@ -206,7 +219,8 @@ typing_extensions==4.15.0
 tzdata==2026.2
 tzlocal==5.3.1
 uri-template==1.3.0
-urllib3==2.6.3
+urllib3==2.7.0
+uvicorn==0.48.0
 vine==5.1.0
 wcwidth==0.6.0
 webcolors==25.10.0

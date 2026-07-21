@@ -10,3 +10,4 @@ from .withdrawal_fail import fail_withdrawal
 from .sale_pending import sale_pending
 from .sale_release import sale_release
 from .sale_refund import sale_refund
+from .summary import wallet_summary

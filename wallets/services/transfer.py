@@ -1,9 +1,10 @@
 # wallets/services/transfer.py
 
 from django.db import transaction
-from wallets.events.publisher import EventPublisher
 
 from wallets.constants import Services
+from wallets.events.factory import EventFactory
+from wallets.events.publisher import EventPublisher
 
 from wallets.models import WalletEntry
 
@@ -15,8 +16,6 @@ from wallets.services.base import (
 )
 
 from wallets.services.decorators import idempotent
-
-from wallets.events.factory import EventFactory
 
 
 @transaction.atomic
@@ -39,21 +38,42 @@ def transfer(
             "Cannot transfer to yourself."
         )
 
-    sender = get_balance(
-        wallet=from_wallet,
+    #
+    # Always lock wallets in a deterministic order
+    # to prevent deadlocks.
+    #
+    if from_wallet.id < to_wallet.id:
+        first_wallet = from_wallet
+        second_wallet = to_wallet
+        sender_is_first = True
+    else:
+        first_wallet = to_wallet
+        second_wallet = from_wallet
+        sender_is_first = False
+
+    first_balance = get_balance(
+        wallet=first_wallet,
         currency=currency,
+        create=not sender_is_first,
     )
+
+    second_balance = get_balance(
+        wallet=second_wallet,
+        currency=currency,
+        create=sender_is_first,
+    )
+
+    if sender_is_first:
+        sender = first_balance
+        receiver = second_balance
+    else:
+        sender = second_balance
+        receiver = first_balance
 
     ensure_balance(
         sender,
         "available",
         amount,
-    )
-
-    receiver = get_balance(
-        wallet=to_wallet,
-        currency=currency,
-        create=True,
     )
 
     sender.available -= amount

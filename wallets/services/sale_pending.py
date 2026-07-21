@@ -1,6 +1,7 @@
 # wallets/services/sale_pending.py
 
 from django.db import transaction
+
 from wallets.events.publisher import EventPublisher
 
 from wallets.constants import Services
@@ -9,6 +10,7 @@ from wallets.models import WalletEntry
 
 from wallets.services.base import (
     get_balance,
+    ensure_balance,
     log_entry,
     validate_positive,
 )
@@ -34,13 +36,20 @@ def sale_pending(
     balance = get_balance(
         wallet=seller_wallet,
         currency=currency,
-        create=True,
     )
 
+    ensure_balance(
+        balance,
+        "available",
+        amount,
+    )
+
+    balance.available -= amount
     balance.pending += amount
 
     balance.save(
         update_fields=[
+            "available",
             "pending",
         ]
     )
@@ -52,6 +61,7 @@ def sale_pending(
         entry_type=WalletEntry.Type.SALE_PENDING,
         reference_id=reference_id,
         operation_id=operation_id,
+        description="Sale pending",
     )
 
     EventPublisher.publish(

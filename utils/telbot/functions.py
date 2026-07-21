@@ -1585,7 +1585,7 @@ class ProductBot:
 
 
             # ارسال پیام برای درخواست درصد تخفیف
-            self.bot.send_message(message.chat.id, t(message, "enter_discount"))
+            self.bot.send_message(message.chat.id, t(message, "enter_discount"), parse_mode="Markdown")
         except ValueError:
             # مدیریت خطای تبدیل مقدار نامعتبر
             self.bot.send_message(message.chat.id, t(message, "price_not_number"))
@@ -1806,7 +1806,7 @@ class ProductBot:
                 first_combo = combinations[0]
                 combo_text = " ".join([f"{keys[i]}: {first_combo[i]}" for i in range(len(keys))])
 
-                self.bot.send_message(chat_id, t(message, "enter_variant_stock", combo=combo_text))
+                self.bot.send_message(chat_id, t(message, "enter_variant_stock", combo=combo_text, unit="عدد"), parse_mode="Markdown")
             else:
                 markup = send_menu(
                     message,
@@ -1872,8 +1872,8 @@ class ProductBot:
                 combo_text = " ".join([f"{keys[i]}: {combinations[index][i]}" for i in range(len(keys))])
                 print(f"combo_text: {combo_text}")
                 session_manager.set_user_session(message.chat.id, session, namespace="add_product")
-                print(t(message, "variant_stock_question", combo_text=combo_text))
-                self.bot.send_message(chat_id, t(message, "variant_stock_question", combo_text=combo_text))
+                print(t(message, "variant_stock_question", combo_text=combo_text, unit="عدد"))
+                self.bot.send_message(chat_id, t(message, "variant_stock_question", combo_text=combo_text, unit="عدد"), parse_mode="Markdown")
             else:
                 # تمام ترکیب‌ها تکمیل شده‌اند
                 session["variants_stock_values"] = False
@@ -1881,7 +1881,7 @@ class ProductBot:
     
                 # نمایش خلاصه و درخواست توضیحات
                 total = sum(item["stock"] for item in variants_stock)
-                text = t(message, "variant_stock_saved", total=total) + "\n\n" + t(message, "enter_description")
+                text = t(message, "variant_stock_saved", total=total, unit="عدد") + "\n\n" + t(message, "enter_description")
                 
                 markup = send_menu(
                     message,
@@ -1889,7 +1889,7 @@ class ProductBot:
                     "main menu",
                     [t(message, "cancel_action")]
                 )
-                self.bot.send_message(chat_id, text, reply_markup=markup)
+                self.bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
 
 
                 session_manager.set_user_session(chat_id, session, namespace="add_product")
@@ -2185,7 +2185,7 @@ class ProductBot:
             session_manager.set_user_session(chat_id, session, namespace="add_product")
 
             # Send success message
-            self.bot.send_message(chat_id, t(message, "product_saved"))
+            self.bot.send_message(chat_id, t(message, "product_saved"), parse_mode="Markdown")
             
 
         except Exception as e:
@@ -5294,6 +5294,7 @@ class UltraVideoPrompter:
             # 2) چاپ وضعیت پروفایل
             print("Language:", lang)
             print("hidden_videos =", profile.hidden_videos if profile else None)
+            # self.command = t(message, self.command)
             print("command =", self.command)
 
             # ---------------------------------------------------------
@@ -5349,7 +5350,7 @@ class UltraVideoPrompter:
                 bot.send_video(
                     user_id,
                     cached.file_id,
-                    caption="🎬 راهنما",
+                    caption=t(message, str(self.command) + "_videoprompt_caption"),
                     reply_markup=markup,
                     parse_mode="HTML"
                 )

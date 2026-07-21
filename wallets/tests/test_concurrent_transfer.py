@@ -1,4 +1,4 @@
-# wallets/tests/test_concurrent_withdraw.py
+# wallets/tests/test_concurrent_transfer.py
 
 from decimal import Decimal
 from threading import Thread
@@ -9,17 +9,16 @@ from accounts.models import ProfileModel
 
 from wallets.models import (
     Currency,
-    Withdrawal,
     WalletEntry,
 )
 
 from wallets.services import (
     deposit,
-    withdraw,
+    transfer,
 )
 
 
-class ConcurrentWithdrawTests(TransactionTestCase):
+class ConcurrentTransferTests(TransactionTestCase):
 
     reset_sequences = True
 
@@ -31,20 +30,27 @@ class ConcurrentWithdrawTests(TransactionTestCase):
             symbol="$",
         )
 
-        self.wallet = (
+        self.sender = (
             ProfileModel.objects.create(
                 tel_id="10001",
-                fname="Seller",
+                fname="Sender",
+            ).wallet
+        )
+
+        self.receiver = (
+            ProfileModel.objects.create(
+                tel_id="10002",
+                fname="Receiver",
             ).wallet
         )
 
         deposit(
-            wallet=self.wallet,
+            wallet=self.sender,
             currency=self.currency,
             amount=Decimal("100"),
         )
 
-    def test_two_parallel_withdrawals(self):
+    def test_two_parallel_transfers(self):
 
         successes = []
         failures = []
@@ -53,12 +59,11 @@ class ConcurrentWithdrawTests(TransactionTestCase):
 
             try:
 
-                withdraw(
-                    wallet=self.wallet,
+                transfer(
+                    from_wallet=self.sender,
+                    to_wallet=self.receiver,
                     currency=self.currency,
                     amount=Decimal("80"),
-                    provider="bank",
-                    destination="IR123",
                 )
 
                 successes.append(True)
@@ -76,12 +81,16 @@ class ConcurrentWithdrawTests(TransactionTestCase):
         t1.join()
         t2.join()
 
-        balance = self.wallet.balances.get(
+        sender_balance = self.sender.balances.get(
+            currency=self.currency,
+        )
+
+        receiver_balance = self.receiver.balances.get(
             currency=self.currency,
         )
 
         #
-        # فقط یک برداشت باید موفق شود.
+        # فقط یکی باید موفق شود.
         #
         self.assertEqual(
             len(successes),
@@ -94,42 +103,44 @@ class ConcurrentWithdrawTests(TransactionTestCase):
         )
 
         #
-        # موجودی نهایی
+        # موجودی فرستنده
         #
         self.assertEqual(
-            balance.available,
+            sender_balance.available,
             Decimal("20"),
         )
 
+        #
+        # موجودی گیرنده
+        #
         self.assertEqual(
-            balance.locked,
+            receiver_balance.available,
             Decimal("80"),
         )
 
         #
-        # فقط یک درخواست برداشت ایجاد شده باشد.
-        #
-        self.assertEqual(
-            Withdrawal.objects.count(),
-            1,
-        )
-
-        #
-        # Deposit + Withdraw
+        # Deposit + TransferOut + TransferIn
         #
         self.assertEqual(
             WalletEntry.objects.count(),
-            2,
+            3,
         )
 
-        withdrawal = Withdrawal.objects.first()
-
-        self.assertEqual(
-            withdrawal.amount,
-            Decimal("80"),
+        entries = list(
+            WalletEntry.objects.order_by("id")
         )
 
         self.assertEqual(
-            withdrawal.status,
-            Withdrawal.Status.PENDING,
+            entries[0].type,
+            WalletEntry.Type.DEPOSIT,
+        )
+
+        self.assertEqual(
+            entries[1].type,
+            WalletEntry.Type.TRANSFER_OUT,
+        )
+
+        self.assertEqual(
+            entries[2].type,
+            WalletEntry.Type.TRANSFER_IN,
         )

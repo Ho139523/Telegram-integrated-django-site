@@ -166,7 +166,7 @@ class ProfileModel(models.Model):
     preferred_currency = models.ForeignKey(
         "wallets.Currency",
         on_delete=models.PROTECT,
-        default="USD",
+        default="IRT",
     )
 
     # -------------------------

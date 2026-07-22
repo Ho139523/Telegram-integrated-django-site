@@ -1935,7 +1935,8 @@ class ProductBot:
         self.bot.send_message(
             message.chat.id,
             t(message, "enter_ads_features"),
-            reply_markup=markup
+            reply_markup=markup,
+            parse_mode="Markdown"
         )
 
         # ارسال منو اصلی
@@ -1971,7 +1972,8 @@ class ProductBot:
             self.bot.send_message(
                 message.chat.id,
                 t(message, "enter_ads_features"),
-                reply_markup=markup
+                reply_markup=markup,
+                parse_mode="Markdown"
             )
         except Exception as e:
             self.bot.send_message(message.chat.id, "خطا در ذخیره ویژگی رخ داده است.")

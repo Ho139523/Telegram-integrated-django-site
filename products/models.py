@@ -15,28 +15,79 @@ from django.utils.text import slugify
 # =========================
 #  STORE MODEL
 # =========================
+# =========================
+#  STORE MODEL
+# =========================
 class Store(models.Model):
+
     # ----------------------------
     # Language choices
     # ----------------------------
+
     def get_language_choices():
         languages = []
+
         for lang in pycountry.languages:
-            if hasattr(lang, 'alpha_2'):
-                languages.append((lang.alpha_2, lang.name))
-        return sorted(languages, key=lambda x: x[1])
+
+            if hasattr(lang, "alpha_2"):
+                languages.append(
+                    (
+                        lang.alpha_2,
+                        lang.name
+                    )
+                )
+
+        return sorted(
+            languages,
+            key=lambda x: x[1]
+        )
 
     owner = models.OneToOneField(
-        ProfileModel, 
-        on_delete=models.CASCADE, 
-        related_name="owned_store", 
+        ProfileModel,
+        on_delete=models.CASCADE,
+        related_name="owned_store",
         verbose_name="Owner Profile"
     )
-    name = models.CharField(max_length=100, unique=True, verbose_name='Store Name')
-    logo = models.ImageField(upload_to="store_logos/", blank=True, null=True, verbose_name="Store Logo")
-    tel_group = models.CharField(default="@", max_length=20, null=True, blank=True, verbose_name="Telegram group ID")
-    tel_channel = models.CharField(default="@", max_length=20, unique=True, null=True, blank=True, verbose_name="Telegram channel ID")
-    lang = models.CharField(max_length=10, choices=get_language_choices(), default='en', unique=False, null=False, blank=True)
+
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Store Name"
+    )
+
+    logo = models.ImageField(
+        upload_to="store_logos/",
+        blank=True,
+        null=True,
+        verbose_name="Store Logo"
+    )
+
+    tel_group = models.CharField(
+        default="@",
+        max_length=20,
+        null=True,
+        blank=True,
+        verbose_name="Telegram group ID"
+    )
+
+    tel_channel = models.CharField(
+        default="@",
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="Telegram channel ID"
+    )
+
+    lang = models.CharField(
+        max_length=10,
+        choices=get_language_choices(),
+        default="en",
+        unique=False,
+        null=False,
+        blank=True
+    )
+
     iban = models.CharField(
         max_length=26,
         blank=True,
@@ -44,122 +95,306 @@ class Store(models.Model):
         verbose_name="شماره شبا",
         help_text="شماره شبا باید با IR شروع شود."
     )
-    tagline = models.CharField(max_length=120, blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
 
-    banner_image = models.ImageField(upload_to="store_banners/", blank=True, null=True)
-    intro_video = models.FileField(upload_to="store_intro_videos/", blank=True, null=True)  # یا URLField
+    currency = models.ForeignKey(
+        "wallets.Currency",
+        on_delete=models.PROTECT,
+        default="IRT",
+    )
 
-    website = models.URLField(blank=True, null=True)
-    support_phone = models.CharField(max_length=30, blank=True, null=True)
-    support_email = models.EmailField(blank=True, null=True)
+    tagline = models.CharField(
+        max_length=120,
+        blank=True,
+        null=True
+    )
 
-    is_verified = models.BooleanField(default=False)
-    verification_level = models.CharField(max_length=20, default="basic")  # basic/verified/premium
+    description = models.TextField(
+        blank=True,
+        null=True
+    )
 
-    legal_name = models.CharField(max_length=200, blank=True, null=True)
-    company_type = models.CharField(max_length=20, blank=True, null=True)  # individual/company
-    tax_id = models.CharField(max_length=50, blank=True, null=True)
+    banner_image = models.ImageField(
+        upload_to="store_banners/",
+        blank=True,
+        null=True
+    )
 
-    min_order_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0)
-    lead_time_days = models.PositiveIntegerField(default=1)
+    intro_video = models.FileField(
+        upload_to="store_intro_videos/",
+        blank=True,
+        null=True
+    )
 
-    payment_terms = models.TextField(blank=True, null=True)
-    return_policy = models.TextField(blank=True, null=True)
+    website = models.URLField(
+        blank=True,
+        null=True
+    )
 
-    # اگر دوست داری لینک‌ها را راحت نگه داری:
-    social_links = models.JSONField(default=dict, blank=True)  # {"instagram":"...", "linkedin":"..."}
+    support_phone = models.CharField(
+        max_length=30,
+        blank=True,
+        null=True
+    )
 
-    
-    status = models.BooleanField(default=False)
+    support_email = models.EmailField(
+        blank=True,
+        null=True
+    )
+
+    is_verified = models.BooleanField(
+        default=False
+    )
+
+    verification_level = models.CharField(
+        max_length=20,
+        default="basic"
+    )
+
+    legal_name = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True
+    )
+
+    company_type = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True
+    )
+
+    tax_id = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True
+    )
+
+    min_order_amount = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0
+    )
+
+    lead_time_days = models.PositiveIntegerField(
+        default=1
+    )
+
+    # =====================================================
+    # RETURN POLICY
+    # =====================================================
+
+    return_period_days = models.PositiveIntegerField(
+        default=7,
+        verbose_name="مدت زمان مجاز مرجوعی کالا",
+        help_text=(
+            "تعداد روزهایی که خریدار می‌تواند کالا را مرجوع کند. "
+            "این مقدار در لحظه فروش روی Sale ذخیره می‌شود."
+        )
+    )
+
+    payment_terms = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    return_policy = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    social_links = models.JSONField(
+        default=dict,
+        blank=True
+    )
+
+    status = models.BooleanField(
+        default=False
+    )
 
     class Meta:
+
         verbose_name = "Store"
         verbose_name_plural = "Stores"
 
-
-    
     def __str__(self):
         return self.name
 
+    # =====================================================
+    # RETURN POLICY HELPERS
+    # =====================================================
 
+    def get_return_period(self):
+        """
+        مدت زمان مجاز مرجوعی فعلی فروشگاه.
+        """
 
-    # متدهای کمکی برای آدرس
+        return timedelta(
+            days=self.return_period_days
+        )
+
+    def get_sale_release_at(self, created_at=None):
+        """
+        محاسبه زمان آزادسازی مبلغ فروشنده
+        بر اساس سیاست فعلی فروشگاه.
+
+        نکته:
+        این متد فقط برای محاسبه در لحظه ایجاد Sale است.
+        پس از ایجاد Sale، مقدار محاسبه‌شده باید
+        روی خود Sale ذخیره شود.
+        """
+
+        if created_at is None:
+            created_at = timezone.now()
+
+        return (
+            created_at
+            + self.get_return_period()
+        )
+
+    # =====================================================
+    # ADDRESS
+    # =====================================================
+
     def get_address(self):
-        """آدرس فروشگاه را برمی‌گرداند (از مدل Address)"""
-        if hasattr(self, 'store_address'):
+        """
+        آدرس فروشگاه را برمی‌گرداند.
+        """
+
+        if hasattr(self, "store_address"):
             return self.store_address
+
         return None
 
     def set_address(self, address_data):
-        """تنظیم آدرس برای فروشگاه"""
-        from django.core.exceptions import ValidationError
-        
-        # حذف آدرس قبلی اگر وجود داشته باشد
-        if hasattr(self, 'store_address'):
+
+        if hasattr(self, "store_address"):
             self.store_address.delete()
-        
-        # ایجاد آدرس جدید
+
         try:
+
             address = Address.objects.create(
                 store=self,
                 **address_data
             )
+
             return address
+
         except Exception as e:
-            raise ValidationError(f"خطا در ایجاد آدرس: {str(e)}")
+
+            raise ValidationError(
+                f"خطا در ایجاد آدرس: {str(e)}"
+            )
 
     @property
     def full_address(self):
-        """آدرس کامل فروشگاه را به صورت متنی برمی‌گرداند"""
+
         addr = self.get_address()
+
         if addr:
+
             parts = []
+
             if addr.shipping_line1:
-                parts.append(addr.shipping_line1)
+                parts.append(
+                    addr.shipping_line1
+                )
+
             if addr.shipping_line2:
-                parts.append(addr.shipping_line2)
+                parts.append(
+                    addr.shipping_line2
+                )
+
             if addr.shipping_city:
-                parts.append(addr.shipping_city)
+                parts.append(
+                    addr.shipping_city
+                )
+
             if addr.shipping_province:
-                parts.append(addr.shipping_province)
+                parts.append(
+                    addr.shipping_province
+                )
+
             if addr.shipping_country:
-                parts.append(addr.shipping_country)
+                parts.append(
+                    addr.shipping_country
+                )
+
             if addr.shipping_zip_code:
-                parts.append(f"کد پستی: {addr.shipping_zip_code}")
-            
+
+                parts.append(
+                    f"کد پستی: {addr.shipping_zip_code}"
+                )
+
             return "، ".join(parts)
-        # Fallback به فیلدهای قدیمی
+
         parts = []
+
         if self.address:
             parts.append(self.address)
+
         if self.city:
             parts.append(self.city)
+
         if self.province:
             parts.append(self.province)
-        
+
         if self.owner.lang == "fa":
-            return "، ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
-        else:
-            return ", ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
 
+            return (
+                "، ".join(parts)
+                if parts
+                else t(
+                    "message",
+                    "address_not_set",
+                    chat_id=self.owner.tel_id
+                )
+            )
 
+        return (
+            ", ".join(parts)
+            if parts
+            else t(
+                "message",
+                "address_not_set",
+                chat_id=self.owner.tel_id
+            )
+        )
 
     @property
     def short_address(self):
+
         addr = self.get_address()
+
         if addr:
+
             parts = []
+
             if addr.shipping_country:
-                parts.append(addr.shipping_country_name)
+                parts.append(
+                    addr.shipping_country_name
+                )
+
             if addr.shipping_province:
-                parts.append(addr.shipping_province_name)
+                parts.append(
+                    addr.shipping_province_name
+                )
+
             if addr.shipping_city:
-                parts.append(addr.shipping_city_name)
-        if self.owner.lang == "fa":
-            return "، ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
-        else:
-            return ", ".join(parts) if parts else t('message', 'address_not_set', chat_id=self.owner.tel_id)
+                parts.append(
+                    addr.shipping_city_name
+                )
+
+            return (
+                "، ".join(parts)
+                if self.owner.lang == "fa"
+                else ", ".join(parts)
+            )
+
+        return t(
+            "message",
+            "address_not_set",
+            chat_id=self.owner.tel_id
+        )
+
 
 
 

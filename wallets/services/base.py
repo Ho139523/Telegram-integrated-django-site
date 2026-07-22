@@ -7,7 +7,7 @@ def get_balance(
     *,
     wallet,
     currency,
-    create=False,
+    create=True,
     for_update=True,
 ):
     """

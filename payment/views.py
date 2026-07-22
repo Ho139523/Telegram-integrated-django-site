@@ -13,6 +13,8 @@ from AI.settings import SITE_DOMAIN
 from telbot.sessions import SessionManager
 from dotenv import load_dotenv
 import os
+from django.db import transaction as db_transaction
+from decimal import Decimal
 
 # 🧩 مدل‌ها و پکیج‌های پروژه
 from .zarinpal import ZarinPal
@@ -24,6 +26,9 @@ from products.signals import helper
 from utils.telbot.functions import ProductHandler, t
 from django.db import transaction as db_transaction
 from django.db import models
+from payment.services.sale_service import SaleService
+from products.models import ProductVariant
+from wallets.models.balance import WalletBalance
 
 # 🟩 تنظیمات عمومی
 pay = ZarinPal()
@@ -104,138 +109,207 @@ import traceback
 def send_request(request):
 
     if request.method != "GET":
+
         return JsonResponse(
-            {"error": "Method not allowed"},
+            {
+                "error":
+                "Method not allowed"
+            },
             status=405
         )
 
+    transaction = None
+
     try:
 
-        payment_id = request.GET.get("pid")
+        # ==================================================
+        # PAYMENT ID
+        # ==================================================
+
+        payment_id = request.GET.get(
+            "pid"
+        )
 
         if not payment_id:
+
             return JsonResponse(
-                {"error": "شناسه پرداخت نامعتبر است"},
+                {
+                    "error":
+                    "شناسه پرداخت نامعتبر است"
+                },
                 status=400
             )
 
-        print(f"Payment ID: {payment_id}")
+        print(
+            f"Payment ID: {payment_id}"
+        )
 
-        payment_data = cache.get(f"payment_{payment_id}")
+        # ==================================================
+        # PAYMENT CACHE
+        # ==================================================
+
+        payment_cache_key = (
+            f"payment_{payment_id}"
+        )
+
+        payment_data = cache.get(
+            payment_cache_key
+        )
 
         if not payment_data:
+
             return JsonResponse(
-                {"error": "لینک پرداخت منقضی شده است"},
+                {
+                    "error":
+                    "لینک پرداخت منقضی شده است"
+                },
                 status=400
             )
 
         tel_id = payment_data["tel_id"]
 
+        # ==================================================
+        # PROFILE
+        # ==================================================
+
         profile = ProfileModel.objects.get(
             tel_id=tel_id
         )
+
+        # ==================================================
+        # CART
+        # ==================================================
 
         cart = Cart.objects.get(
             profile=profile
         )
 
-        cart_items = CartItem.objects.filter(
-            cart=cart
-        )
-
-        if not cart_items.exists():
-            return JsonResponse(
-                {"error": "سبد خرید خالی است"},
-                status=400
+        cart_items = list(
+            CartItem.objects
+            .filter(
+                cart=cart
             )
-
-        # مبلغ کل (ریال)
-        amount = int(
-            sum(
-                item.total_price()
-                for item in cart_items
-            ) * 10
+            .select_related(
+                "product",
+                "variant",
+                "product__store",
+                "product__store__currency",
+            )
         )
 
-        # -----------------------------
-        # ساخت wages برای زرین پال
-        # -----------------------------
-        splits = []
-
-        sellers_split = cart.get_sellers_split()
-
-        if len(sellers_split) > 5:
+        if not cart_items:
 
             return JsonResponse(
                 {
                     "error":
-                    "حداکثر ۵ فروشنده در یک تراکنش پشتیبانی می‌شود."
+                    "سبد خرید خالی است"
                 },
                 status=400
             )
 
-        total_split_amount = 0
+        # ==================================================
+        # CURRENCY VALIDATION
+        # ==================================================
 
-        for seller, seller_amount in sellers_split.items():
+        currency_ids = {
+            item.product.store.currency_id
+            for item in cart_items
+        }
 
-            if not seller.iban:
+        if not currency_ids:
 
-                return JsonResponse(
-                    {
-                        "error":
-                        f"فروشگاه «{seller.name}» شماره شبا ثبت نکرده است."
-                    },
-                    status=400
-                )
-
-            seller_amount_rial = int(
-                seller_amount * 10
-            )
-
-            total_split_amount += seller_amount_rial
-
-            splits.append({
-                "iban": seller.iban,
-                "amount": seller_amount_rial,
-                "description":
-                    f"سهم فروشگاه {seller.name}"
-            })
-
-        # طبق محدودیت زرین پال
-        # فقط اگر سهم فروشندگان از مبلغ کل بیشتر شد خطا بده
-        if total_split_amount > amount:
-        
             return JsonResponse(
                 {
                     "error":
-                    "مجموع سهم فروشندگان نباید بیشتر از مبلغ کل باشد."
+                    "ارز پرداخت مشخص نیست"
                 },
                 status=400
             )
+
+        if len(currency_ids) > 1:
+
+            return JsonResponse(
+                {
+                    "error":
+                    "تمام کالاهای یک سبد خرید باید با یک ارز پرداخت شوند."
+                },
+                status=400
+            )
+
+        currency_id = next(
+            iter(currency_ids)
+        )
+
+        # ==================================================
+        # TOTAL AMOUNT
+        # ==================================================
+
+        total_amount_toman = sum(
+            item.total_price()
+            for item in cart_items
+        )
+
+        if total_amount_toman <= 0:
+
+            return JsonResponse(
+                {
+                    "error":
+                    "مبلغ پرداخت نامعتبر است"
+                },
+                status=400
+            )
+
+        # ==================================================
+        # CREATE TRANSACTION
+        # ==================================================
+
+        transaction = Transaction.objects.create(
+            profile=profile,
+            cart=cart,
+            amount=total_amount_toman,
+            currency_id=currency_id,
+            status="pending",
+        )
+
+        # ==================================================
+        # PAYMENT DESCRIPTION
+        # ==================================================
 
         description = (
             f"پرداخت سبد خرید شامل "
-            f"{cart_items.count()} کالا"
+            f"{len(cart_items)} کالا"
         )
 
-        if settings.ENABLE_SPLIT_PAYMENT:
+        # ==================================================
+        # CREATE PAYMENT AT GATEWAY
+        # ==================================================
 
-            response = pay.send_split_request(
-                amount=amount,
-                description=description,
-                splits=splits,
-                mobile=profile.phone,
+        amount_rial = int(
+            total_amount_toman * 10
+        )
+
+        response = pay.send_request(
+            amount=amount_rial,
+            description=description,
+            mobile=profile.phone,
+        )
+
+        # ==================================================
+        # PAYMENT REQUEST FAILED
+        # ==================================================
+
+        if not response.get(
+            "success"
+        ):
+
+            transaction.status = "failed"
+
+            transaction.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
             )
-
-        else:
-
-            response = pay.send_request(
-                amount=amount,
-                description=description,
-                mobile=profile.phone,
-            )
-
-        if not response.get("success"):
 
             return JsonResponse(
                 {
@@ -252,11 +326,24 @@ def send_request(request):
                 status=400
             )
 
+        # ==================================================
+        # AUTHORITY
+        # ==================================================
+
         authority = response.get(
             "authority"
         )
 
         if not authority:
+
+            transaction.status = "failed"
+
+            transaction.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
 
             return JsonResponse(
                 {
@@ -266,37 +353,73 @@ def send_request(request):
                 status=400
             )
 
-        transaction = Transaction.objects.create(
-            profile=profile,
-            cart=cart,
-            amount=amount // 10,   # تومان
-            authority=authority,
-            status="pending"
+        # ==================================================
+        # SAVE AUTHORITY
+        # ==================================================
+
+        transaction.authority = authority
+
+        transaction.save(
+            update_fields=[
+                "authority",
+                "updated_at",
+            ]
         )
 
-        transaction.create_split_payments()
+        # ==================================================
+        # REMOVE ONE-TIME PAYMENT LINK
+        # ==================================================
 
         cache.delete(
-            f"payment_{payment_id}"
+            payment_cache_key
         )
+
+        # ==================================================
+        # PAYMENT URL
+        # ==================================================
 
         payment_url = response["url"]
 
-        print("=" * 60)
-        print("PAYMENT URL:")
-        print(payment_url)
-        print("=" * 60)
+        print(
+            "=" * 60
+        )
+
+        print(
+            "PAYMENT URL:"
+        )
+
+        print(
+            payment_url
+        )
+
+        print(
+            "=" * 60
+        )
+
+        # ==================================================
+        # PAYMENT REDIRECT PAGE
+        # ==================================================
 
         html = f"""
         <!DOCTYPE html>
+
         <html lang="fa">
+
         <head>
+
             <meta charset="UTF-8">
-            <meta name="viewport"
-                content="width=device-width, initial-scale=1.0">
-            <title>انتقال به درگاه پرداخت</title>
+
+            <meta
+                name="viewport"
+                content="width=device-width, initial-scale=1.0"
+            >
+
+            <title>
+                انتقال به درگاه پرداخت
+            </title>
 
             <style>
+
                 body {{
                     font-family: sans-serif;
                     display: flex;
@@ -312,7 +435,9 @@ def send_request(request):
                     background: white;
                     padding: 30px;
                     border-radius: 16px;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                    box-shadow:
+                        0 4px 20px
+                        rgba(0,0,0,0.1);
                     text-align: center;
                     max-width: 400px;
                 }}
@@ -326,60 +451,77 @@ def send_request(request):
                     text-decoration: none;
                     border-radius: 8px;
                 }}
+
             </style>
+
         </head>
 
         <body>
 
-        <div class="card">
-            <h3>در حال انتقال به درگاه پرداخت...</h3>
+            <div class="card">
 
-            <p>
-                اگر انتقال خودکار انجام نشد،
-                روی دکمه زیر کلیک کنید.
-            </p>
+                <h3>
+                    در حال انتقال به درگاه پرداخت...
+                </h3>
 
-            <a class="btn"
-            href="{payment_url}"
-            target="_blank">
-                ورود به درگاه پرداخت
-            </a>
-        </div>
+                <p>
+                    اگر انتقال خودکار انجام نشد،
+                    روی دکمه زیر کلیک کنید.
+                </p>
 
-        <script>
+                <a
+                    class="btn"
+                    href="{payment_url}"
+                    target="_blank"
+                >
+                    ورود به درگاه پرداخت
+                </a>
 
-        const paymentUrl = "{payment_url}";
+            </div>
 
-        if (
-            window.Telegram &&
-            Telegram.WebApp &&
-            Telegram.WebApp.openLink
-        ) {{
+            <script>
 
-            Telegram.WebApp.openLink(
-                paymentUrl,
-                {{
-                    try_instant_view: false
+                const paymentUrl =
+                    "{payment_url}";
+
+                if (
+                    window.Telegram &&
+                    Telegram.WebApp &&
+                    Telegram.WebApp.openLink
+                ) {{
+
+                    Telegram.WebApp.openLink(
+                        paymentUrl,
+                        {{
+                            try_instant_view: false
+                        }}
+                    );
+
+                    setTimeout(
+                        () => {{
+                            Telegram.WebApp.close();
+                        }},
+                        500
+                    );
+
+                }} else {{
+
+                    window.location.replace(
+                        paymentUrl
+                    );
+
                 }}
-            );
 
-            setTimeout(() => {{
-                Telegram.WebApp.close();
-            }}, 500);
-
-        }} else {{
-
-            window.location.replace(paymentUrl);
-
-        }}
-
-        </script>
+            </script>
 
         </body>
+
         </html>
         """
 
-        return HttpResponse(html)
+        return HttpResponse(
+            html
+        )
 
     except ProfileModel.DoesNotExist:
 
@@ -403,6 +545,23 @@ def send_request(request):
 
     except Exception:
 
+        if transaction:
+
+            try:
+
+                transaction.status = "failed"
+
+                transaction.save(
+                    update_fields=[
+                        "status",
+                        "updated_at",
+                    ]
+                )
+
+            except Exception:
+
+                pass
+
         print(
             traceback.format_exc()
         )
@@ -423,135 +582,257 @@ def send_request(request):
 def verify(request):
     try:
 
-        authority = request.GET.get("Authority")
-        status = request.GET.get("Status")
+        # ==================================================
+        # CALLBACK DATA
+        # ==================================================
+
+        authority = request.GET.get(
+            "Authority"
+        )
+
+        status = request.GET.get(
+            "Status"
+        )
 
         if not authority:
+
             return JsonResponse(
-                {"error": "Missing authority"},
+                {
+                    "error":
+                    "Missing authority"
+                },
                 status=400
             )
 
+        # ==================================================
+        # FIND TRANSACTION
+        # ==================================================
+
         try:
-            transaction = Transaction.objects.get(
-                authority=authority
+
+            transaction = (
+                Transaction.objects
+                .select_related(
+                    "profile",
+                    "cart",
+                    "currency",
+                )
+                .get(
+                    authority=authority
+                )
             )
 
         except Transaction.DoesNotExist:
 
             return JsonResponse(
-                {"error": "Transaction not found"},
+                {
+                    "error":
+                    "Transaction not found"
+                },
                 status=404
             )
 
-        # جلوگیری از پردازش مجدد callback
-        if transaction.status == "paid":
+        # ==================================================
+        # IDEMPOTENCY
+        # ==================================================
+
+        if transaction.status == "completed":
 
             return render(
                 request,
                 "payment/tel_payment_success.html",
                 {
-                    "message": "این پرداخت قبلاً ثبت شده است."
+                    "message":
+                    "این پرداخت قبلاً با موفقیت پردازش شده است."
                 }
             )
 
-        # کاربر پرداخت را لغو کرده است
+        # ==================================================
+        # USER CANCELED PAYMENT
+        # ==================================================
+
         if status != "OK":
 
-            transaction.mark_as_canceled()
+            transaction.status = "canceled"
+
+            transaction.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
 
             return render(
                 request,
                 "payment/tel_payment_failed.html",
                 {
-                    "message": "پرداخت لغو شد."
+                    "message":
+                    "پرداخت لغو شد."
                 }
             )
 
-        # تایید پرداخت نزد زرین پال
+        # ==================================================
+        # VERIFY PAYMENT
+        # ==================================================
+
         response = pay.verify(
             authority=authority,
             amount=transaction.amount * 10
         )
 
-        print("VERIFY RESPONSE:")
-        print(response)
+        print(
+            "VERIFY RESPONSE:"
+        )
 
-        # پرداخت موفق
-        if response.get("success"):
+        print(
+            response
+        )
 
-            transaction.status = "paid"
-            transaction.zarinpal_ref_id = response.get("ref_id")
+        # ==================================================
+        # PAYMENT FAILED
+        # ==================================================
+
+        if not response.get(
+            "success"
+        ):
+
+            transaction.status = "failed"
 
             transaction.save(
                 update_fields=[
                     "status",
-                    "zarinpal_ref_id"
+                    "updated_at",
                 ]
             )
 
-            try:
-
-                # ایجاد سفارش، ثبت فروش‌ها،
-                # خالی کردن سبد و کم کردن موجودی
-                handle_successful_payment(transaction)
-
-                # پاک کردن سشن سبد خرید تلگرام
-                session_manager = SessionManager()
-
-                session_manager.reset_user_session(
-                    transaction.profile.tel_id,
-                    namespace="cart"
-                )
-
-            except Exception as e:
-
-                print(
-                    f"❌ Error in "
-                    f"handle_successful_payment: {e}"
-                )
-
-                transaction.mark_as_failed()
-
-                return render(
-                    request,
-                    "payment/tel_payment_failed.html",
-                    {
-                        "message":
-                            f"خطا در ثبت سفارش: {str(e)}"
-                    }
-                )
-
             return render(
                 request,
-                "payment/tel_payment_success.html",
+                "payment/tel_payment_failed.html",
                 {
-                    "ref_id": response.get("ref_id"),
-                    "message": "پرداخت با موفقیت انجام شد."
+                    "message":
+                    response.get(
+                        "message",
+                        "خطا در تایید پرداخت"
+                    )
                 }
             )
 
-        # تایید زرین پال ناموفق بود
-        transaction.mark_as_failed()
+        # ==================================================
+        # PAYMENT SUCCESS
+        # ==================================================
+
+        transaction.status = "paid"
+
+        transaction.zarinpal_ref_id = (
+            response.get(
+                "ref_id"
+            )
+        )
+
+        transaction.save(
+            update_fields=[
+                "status",
+                "zarinpal_ref_id",
+                "updated_at",
+            ]
+        )
+
+        # ==================================================
+        # FULFILLMENT
+        # ==================================================
+
+        try:
+
+            handle_successful_payment(
+                transaction
+            )
+
+            session_manager = SessionManager()
+
+            session_manager.reset_user_session(
+                transaction.profile.tel_id,
+                namespace="cart"
+            )
+
+        except Exception as e:
+
+            print("❌ Fulfillment failed:")
+
+            traceback.print_exc()
+
+            transaction.status = "failed"
+
+            transaction.save(
+                update_fields=[
+                    "status"
+                ]
+            )
+
+            return render(
+                request,
+                "payment/tel_payment_failed.html",
+                {
+                    "message":
+                        "پرداخت انجام شد، "
+                        "اما ثبت سفارش با خطا مواجه شد."
+                }
+            )
+
+
+        # ==================================================
+        # RESET TELEGRAM CART SESSION
+        # ==================================================
+
+        session_manager = (
+            SessionManager()
+        )
+
+        session_manager.reset_user_session(
+            transaction.profile.tel_id,
+            namespace="cart"
+        )
+
+        # ==================================================
+        # COMPLETE TRANSACTION
+        # ==================================================
+
+        transaction.status = "completed"
+
+        transaction.save(
+            update_fields=[
+                "status",
+                "updated_at",
+            ]
+        )
 
         return render(
             request,
-            "payment/tel_payment_failed.html",
+            "payment/tel_payment_success.html",
             {
+                "ref_id":
+                response.get(
+                    "ref_id"
+                ),
                 "message":
-                    response.get(
-                        "message",
-                        "خطای ناشناخته در تایید پرداخت"
-                    )
+                "پرداخت با موفقیت انجام شد."
             }
         )
 
-    except Exception as e:
+    except Exception as exc:
 
-        print(f"❌ Verify Error: {e}")
+        print(
+            "❌ Verify Error:"
+        )
+
+        print(
+            traceback.format_exc()
+        )
 
         return JsonResponse(
-            {"error": str(e)},
+            {
+                "error":
+                str(exc)
+            },
             status=500
         )
 
@@ -560,211 +841,420 @@ def verify(request):
 # ==========================================================
 def handle_successful_payment(transaction):
     try:
+
         print("1. شروع پردازش تراکنش")
-        if transaction.status != "paid" or not transaction.cart:
-            print("❌ تراکنش paid نیست یا سبد خرید ندارد")
+
+        if (
+            transaction.status != "paid"
+            or not transaction.cart
+        ):
+            print(
+                "❌ تراکنش paid نیست یا سبد خرید ندارد"
+            )
             return
-        print(f"2. پردازش تراکنش: {transaction.id}")
+
+        print(
+            f"2. پردازش تراکنش: {transaction.id}"
+        )
 
         out_of_stock_products = set()
-        print("3. شروع تراکنش دیتابیس")
-        
-        with db_transaction.atomic():
-            sales = []
-            cart_items = list(transaction.cart.items.select_related("product", "variant"))
 
-            print(f"4. تعداد آیتم‌های سبد خرید: {len(cart_items)}")
-            
-            for index, cart_item in enumerate(cart_items):
+        print(
+            "3. شروع تراکنش دیتابیس"
+        )
+
+        with db_transaction.atomic():
+
+            sales = []
+
+            cart_items = list(
+                transaction.cart.items.select_related(
+                    "product",
+                    "variant",
+                    "product__store",
+                )
+            )
+
+            print(
+                f"4. تعداد آیتم‌های سبد خرید: "
+                f"{len(cart_items)}"
+            )
+
+            for index, cart_item in enumerate(
+                cart_items
+            ):
+
                 product = cart_item.product
+
                 quantity = cart_item.quantity
-                print(f"\n{'='*50}")
-                print(f"آیتم {index + 1}: {product.name} (ID: {product.id})")
-                print(f"تعداد: {quantity}")
-                
-                # 🔥 بررسی مستقیم از دیتابیس برای اطمینان
-                from payment.models import ProductVariant
-                actual_has_variants = ProductVariant.objects.filter(product=product).exists()
-                print(f"has_variants() نتیجه: {product.has_variants()}")
-                print(f"بررسی مستقیم دیتابیس: {actual_has_variants}")
-                print(f"واریانت در cart_item: {cart_item.variant}")
-                print(f"تعداد واریانت‌ها در دیتابیس: {product.get_active_variants_count()}")
-                
+
                 variant = cart_item.variant
-                
-                # ===============================
-                # 🧩 منطق اصلی با قابلیت انتخاب خودکار واریانت
-                # ===============================
-                
-                # اگر در دیتابیس واقعاً واریانت دارد
+
+                print(
+                    f"\n{'=' * 50}"
+                )
+
+                print(
+                    f"آیتم {index + 1}: "
+                    f"{product.name} "
+                    f"(ID: {product.id})"
+                )
+
+                print(
+                    f"تعداد: {quantity}"
+                )
+
+                # ==================================================
+                # 1. مبلغ معتبر
+                # ==================================================
+
+                total_price = Decimal(
+                    cart_item.total_price()
+                )
+
+                if total_price <= 0:
+
+                    raise ValueError(
+                        f"مبلغ فروش محصول "
+                        f"'{product.name}' معتبر نیست."
+                    )
+
+                print(
+                    f"✅ مبلغ معتبر: "
+                    f"{total_price}"
+                )
+
+                # ==================================================
+                # 2. بررسی و تعیین موجودی
+                # ==================================================
+
+                actual_has_variants = (
+                    ProductVariant.objects
+                    .filter(
+                        product=product
+                    )
+                    .exists()
+                )
+
                 if actual_has_variants:
-                    print("5. محصول در دیتابیس واریانت دارد")
-                    
-                    # اگر واریانت انتخاب نشده، سعی کن یکی انتخاب کنی
+
+                    print(
+                        "5. محصول دارای واریانت است"
+                    )
+
                     if not variant:
-                        print("⚠️ واریانت انتخاب نشده - جستجوی واریانت مناسب")
-                        
-                        # گزینه 1: اولین واریانت با موجودی کافی
-                        available_variants = product.variants.filter(stock__gte=quantity)
-                        
-                        if available_variants.exists():
-                            variant = available_variants.first()
-                            print(f"   ✅ واریانت پیدا شد: {variant} (موجودی: {variant.stock})")
-                            
-                            # آپدیت cart_item با واریانت پیدا شده
-                            cart_item.variant = variant
-                            cart_item.save(update_fields=["variant"])
-                            print(f"   CartItem آپدیت شد با واریانت ID: {variant.id}")
-                        else:
-                            # گزینه 2: اولین واریانت موجود
-                            first_variant = product.variants.first()
-                            if first_variant:
-                                print(f"   ⚠️ واریانت با موجودی کافی یافت نشد، استفاده از اولین واریانت: {first_variant}")
-                                print(f"   موجودی واریانت: {first_variant.stock}, درخواست: {quantity}")
-                                
-                                if first_variant.stock < quantity:
-                                    error_msg = f"موجودی واریانت '{first_variant}' کافی نیست (موجودی: {first_variant.stock}, درخواست: {quantity})"
-                                    print(f"❌ {error_msg}")
-                                    raise ValueError(error_msg)
-                                
-                                variant = first_variant
-                                cart_item.variant = variant
-                                cart_item.save(update_fields=["variant"])
-                                print(f"   CartItem آپدیت شد با واریانت ID: {variant.id}")
-                            else:
-                                error_msg = f"هیچ واریانتی برای محصول '{product.name}' یافت نشد!"
-                                print(f"❌ {error_msg}")
-                                raise ValueError(error_msg)
-                    
-                    # اکنون variant حتماً مقدار دارد
-                    print(f"6. پردازش واریانت: {variant} (ID: {variant.id})")
-                    print(f"   موجودی واریانت قبل: {variant.stock}")
-                    
-                    if variant.stock < quantity:
-                        error_msg = f"موجودی واریانت {variant} کافی نیست (موجودی: {variant.stock}, درخواست: {quantity})"
-                        print(f"❌ {error_msg}")
-                        raise ValueError(error_msg)
-                    
-                    # کاهش موجودی واریانت
-                    variant.stock -= quantity
-                    variant.save()
-                    print(f"7. واریانت ذخیره شد - موجودی بعد: {variant.stock}")
-                    
-                    # sync موجودی محصول اصلی
-                    print("8. شروع sync موجودی محصول اصلی")
-                    product.refresh_from_db(fields=["stock"])
-                    print(f"   موجودی محصول قبل از sync: {product.stock}")
-                    
-                    # استفاده از system_update=True در save
-                    product.save(system_update=True)
-                    
-                    print(f"   موجودی محصول بعد از sync: {product.stock}")
-                    
-                    # ایجاد رکورد فروش
-                    sale = Sale.objects.create(
-                        transaction=transaction,
-                        product=product,
-                        seller=product.store,
-                        quantity=quantity,
-                        unit_price=int(variant.final_price),
-                        total_price=int(cart_item.total_price()),
-                    )
-                    sales.append(sale)
-                    print(f"9. فروش ثبت شد - Sale ID: {sale.id}")
-                
+
+                        print(
+                            "⚠️ واریانت انتخاب نشده"
+                        )
+
+                        variant = (
+                            product.variants
+                            .select_for_update()
+                            .filter(
+                                stock__gte=quantity
+                            )
+                            .first()
+                        )
+
+                        if not variant:
+
+                            raise ValueError(
+                                f"موجودی هیچ واریانتی "
+                                f"برای محصول "
+                                f"'{product.name}' "
+                                f"کافی نیست."
+                            )
+
+                        cart_item.variant = variant
+
+                        cart_item.save(
+                            update_fields=[
+                                "variant"
+                            ]
+                        )
+
+                    else:
+
+                        variant = (
+                            ProductVariant.objects
+                            .select_for_update()
+                            .get(
+                                pk=variant.pk
+                            )
+                        )
+
+                    # ==================================================
+                    # 3. موجودی واریانت کافی است؟
+                    # ==================================================
+
+                    if (
+                        variant.stock
+                        < quantity
+                    ):
+
+                        raise ValueError(
+                            f"موجودی واریانت "
+                            f"'{variant}' کافی نیست."
+                        )
+
                 else:
-                    print("10. محصول واقعاً بدون واریانت است")
-                    
-                    print(f"   موجودی محصول قبل: {product.stock}")
-                    
-                    if product.stock < quantity:
-                        error_msg = f"موجودی محصول {product} کافی نیست (موجودی: {product.stock}, درخواست: {quantity})"
-                        print(f"❌ {error_msg}")
-                        raise ValueError(error_msg)
-                    
-                    # کاهش موجودی محصول
-                    product.stock -= quantity
-                    product.save(system_update=True)
-                    
-                    print(f"   موجودی محصول بعد: {product.stock}")
-                    print("12. محصول ذخیره شد")
-                    
-                    # ایجاد رکورد فروش
-                    sale = Sale.objects.create(
-                        transaction=transaction,
-                        product=product,
-                        seller=product.store,
-                        quantity=quantity,
-                        unit_price=int(product.final_price),
-                        total_price=int(cart_item.total_price()),
+
+                    print(
+                        "5. محصول بدون واریانت است"
                     )
-                    sales.append(sale)
-                    print(f"13. فروش ثبت شد - Sale ID: {sale.id}")
-                
-                # ===============================
-                # 📣 OUT OF STOCK NOTIFICATION
-                # ===============================
-                print("14. بررسی اتمام موجودی")
-                product.refresh_from_db()
-                print(f"   محصول: {product.name}")
-                print(f"   موجودی در دیتابیس: {product.stock}")
-                
-                # بررسی موجودی صفر
-                stock_to_check = product.stock
+
+                    product = (
+                        Product.objects
+                        .select_for_update()
+                        .get(
+                            pk=product.pk
+                        )
+                    )
+
+                    # ==================================================
+                    # 3. موجودی محصول کافی است؟
+                    # ==================================================
+
+                    if (
+                        product.stock
+                        < quantity
+                    ):
+
+                        raise ValueError(
+                            f"موجودی محصول "
+                            f"'{product.name}' "
+                            f"کافی نیست."
+                        )
+
+                # ==================================================
+                # 4. فروشنده Wallet دارد؟
+                # ==================================================
+
+                seller = product.store
+
+                seller_owner = seller.owner
+
+                seller_wallet = (
+                    seller_owner.wallet
+                )
+
+                if not seller_wallet:
+
+                    raise ValueError(
+                        f"فروشنده محصول "
+                        f"'{product.name}' "
+                        f"Wallet ندارد."
+                    )
+
+                print(
+                    f"✅ Wallet فروشنده موجود است: "
+                    f"{seller_wallet.pk}"
+                )
+
+                # ==================================================
+                # 5. WalletBalance برای Currency
+                # ==================================================
+
+                balance, created = (
+                    WalletBalance.objects
+                    .get_or_create(
+                        wallet=seller_wallet,
+                        currency=transaction.currency,
+                        defaults={
+                            "available": 0,
+                            "pending": 0,
+                        },
+                    )
+                )
+
+                print(
+                    "✅ WalletBalance آماده است"
+                )
+
+                # ==================================================
+                # 6. کاهش موجودی
+                # ==================================================
+
                 if actual_has_variants:
-                    total_variant_stock = product.variants.aggregate(total=models.Sum("stock"))["total"] or 0
-                    stock_to_check = total_variant_stock
-                    print(f"   مجموع موجودی واریانت‌ها: {total_variant_stock}")
-                
-                print(f"   موجودی برای بررسی: {stock_to_check}")
-                
+
+                    variant.stock -= quantity
+
+                    variant.save(
+                        update_fields=[
+                            "stock"
+                        ]
+                    )
+
+                    print(
+                        f"موجودی واریانت بعد از کاهش: "
+                        f"{variant.stock}"
+                    )
+
+                    product.refresh_from_db(
+                        fields=[
+                            "stock"
+                        ]
+                    )
+
+                    product.save(
+                        system_update=True
+                    )
+
+                else:
+
+                    product.stock -= quantity
+
+                    product.save(
+                        system_update=True
+                    )
+
+                    print(
+                        f"موجودی محصول بعد از کاهش: "
+                        f"{product.stock}"
+                    )
+
+                # ==================================================
+                # 7. ایجاد Sale
+                # ==================================================
+
+                sale = Sale.create_from_store(
+                    transaction=transaction,
+                    product=product,
+                    seller=seller,
+                    quantity=quantity,
+                    unit_price=int(
+                        total_price / quantity
+                    ),
+                    total_price=int(
+                        total_price
+                    ),
+                    variant=variant,
+                )
+
+                print(
+                    f"✅ Sale ساخته شد: "
+                    f"{sale.id}"
+                )
+
+                # ==================================================
+                # 8. انتقال سهم فروش به pending
+                # ==================================================
+
+                SaleService.create_pending_sale_from_payment(
+                    sale=sale
+                )
+
+                print(
+                    "✅ سهم فروشنده به pending منتقل شد"
+                )
+
+                sales.append(
+                    sale
+                )
+
+                # ==================================================
+                # OUT OF STOCK
+                # ==================================================
+
+                product.refresh_from_db()
+
+                if actual_has_variants:
+
+                    total_variant_stock = (
+                        product.variants
+                        .aggregate(
+                            total=models.Sum(
+                                "stock"
+                            )
+                        )[
+                            "total"
+                        ]
+                        or 0
+                    )
+
+                    stock_to_check = (
+                        total_variant_stock
+                    )
+
+                else:
+
+                    stock_to_check = (
+                        product.stock
+                    )
+
                 if (
                     stock_to_check == 0
                     and product.store.tel_channel
-                    and product.id not in out_of_stock_products
+                    and product.id
+                    not in out_of_stock_products
                 ):
-                    print("15. محصول تمام شده است - ارسال اعلان")
-                    out_of_stock_products.add(product.id)
+
+                    out_of_stock_products.add(
+                        product.id
+                    )
 
                     photos = []
+
                     if product.main_image:
-                        photos.append(product.main_image.path)
-                        print(f"   تصویر اصلی: {product.main_image.path}")
-                    
-                    product_images = [img.image.path for img in product.images.all()]
-                    photos += product_images
-                    print(f"   تعداد تصاویر اضافی: {len(product_images)}")
+
+                        photos.append(
+                            product.main_image.path
+                        )
+
+                    photos += [
+                        image.image.path
+                        for image
+                        in product.images.all()
+                    ]
 
                     try:
-                        print("16. ارسال آلبوم به کانال")
-                        print(f"   کانال: {product.store.tel_channel}")
-                        print(f"   محصول: {product.name}")
-                        
+
                         request_restock(
-                            channel_id=product.store.tel_channel,
+                            channel_id=(
+                                product
+                                .store
+                                .tel_channel
+                            ),
                             product=product,
                             photos=photos,
-                            attributes=list(product.attributes.all()),
+                            attributes=list(
+                                product.attributes.all()
+                            ),
                         )
-                        print("17. آلبوم ارسال شد")
-                    except Exception as ex:
-                        print(f"⚠️ خطا در ارسال آلبوم اتمام موجودی: {ex}")
+
+                    except Exception:
+
                         traceback.print_exc()
 
-            print(f"\n{'='*50}")
-            print("پردازش تمام آیتم‌ها تکمیل شد")
-            
-            print("ارسال نوتیفیکیشن‌ها...")
-            send_payment_notifications(transaction, sales)
+            # ==================================================
+            # نوتیفیکیشن
+            # ==================================================
 
-            print("پاک کردن سبد خرید...")
+            send_payment_notifications(
+                transaction,
+                sales
+            )
+
+            # ==================================================
+            # پاک کردن سبد
+            # ==================================================
+
             transaction.cart.items.all().delete()
-            print("✅ پردازش تراکنش با موفقیت کامل شد")
 
-    except Exception as e:
-        print(f"\n❌❌❌ خطا در handle_successful_payment: {e}")
-        print(f"❌ تراکنش: {transaction.id if transaction else 'N/A'}")
+            print(
+                "✅ پردازش تراکنش با موفقیت کامل شد"
+            )
+
+    except Exception:
+
+        print(
+            "❌❌❌ خطا در "
+            "handle_successful_payment"
+        )
+
         traceback.print_exc()
+
         raise
 
 
@@ -836,8 +1326,8 @@ def send_payment_notifications(transaction, sales):
 ################ SERIALISERS ##################
 
 from rest_framework import viewsets, permissions
-from .models import Cart, CartItem, Transaction, SplitPayment, Sale
-from .serializers import CartSerializer, CartItemSerializer, TransactionSerializer, SplitPaymentSerializer, SaleSerializer
+from .models import Cart, CartItem, Transaction, Sale
+from .serializers import CartSerializer, CartItemSerializer, SaleSerializer
 from rest_framework.permissions import IsAuthenticated
 
 
@@ -864,28 +1354,10 @@ class CartItemViewSet(viewsets.ModelViewSet):
     serializer_class = CartItemSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-class TransactionViewSet(viewsets.ModelViewSet):
-    serializer_class = TransactionSerializer
-    permission_classes = [IsAuthenticated]  # فقط کاربران واردشده
-
-    def get_queryset(self):
-        user = self.request.user
-        try:
-            profile = user.profilemodel
-            return Transaction.objects.filter(profile=profile)
-        except ProfileModel.DoesNotExist:
-            return Transaction.objects.none()
-
-    def perform_create(self, serializer):
-        profile = self.request.user.profilemodel
-        serializer.save(profile=profile)
 
 
 
-class SplitPaymentViewSet(viewsets.ModelViewSet):
-    queryset = SplitPayment.objects.all()
-    serializer_class = SplitPaymentSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
 
 class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.all()

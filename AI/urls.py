@@ -38,8 +38,6 @@ from products.views import (
 from payment.views import (
     CartViewSet,
     CartItemViewSet,
-    TransactionViewSet,
-    SplitPaymentViewSet,
     SaleViewSet,
 )
 
@@ -84,8 +82,6 @@ router.register(r'product-option-values', ProductOptionValueViewSet)
 # Payment
 router.register(r'carts', CartViewSet, basename='cart')
 router.register(r'cart-items', CartItemViewSet)
-router.register(r'transactions', TransactionViewSet, basename='transaction')
-router.register(r'split-payments', SplitPaymentViewSet)
 router.register(r'sales', SaleViewSet)
 
 # Telegram Bot

@@ -1,5 +1,36 @@
-class NotificationService:
+# payment/services/notification_service.py
 
-    def payment_success(self, transaction, sales):
+class PaymentNotificationService:
 
-        raise NotImplementedError
+    def notify(
+        self,
+        *,
+        transaction,
+        sales,
+    ):
+
+        self.notify_buyer(
+            transaction,
+            sales
+        )
+
+        self.notify_sellers(
+            transaction,
+            sales
+        )
+
+    def notify_buyer(
+        self,
+        transaction,
+        sales,
+    ):
+
+        pass
+
+    def notify_sellers(
+        self,
+        transaction,
+        sales,
+    ):
+
+        pass

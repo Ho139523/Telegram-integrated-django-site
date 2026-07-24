@@ -31,3 +31,4 @@ package.json
 *.swo
 *.swp
 db.sqlite3
+*.swj

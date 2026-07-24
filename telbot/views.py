@@ -371,6 +371,13 @@ def handle_store_product_start(message):
         start(message)
 
         product = Product.objects.get(code=product_id)
+
+        print(lang)
+
+        if not product.status:
+            app.send_message(message.chat.id, t(message, "product_disabled_by_seller"))
+            return
+
         attributes = product.attributes.all()
         product_handler = ProductHandler(app, Product.objects.get(code=product_id), current_site, attributes=attributes, chat_id=message.chat.id)
         product_handler.send_product_message(message.chat.id)

@@ -17,7 +17,7 @@ from wallets.services.decorators import idempotent
 
 
 @transaction.atomic
-@idempotent(Services.SALE_PENDING)
+@idempotent(Services.SALE_CREDIT)
 def sale_credit(
     *,
     seller_wallet,

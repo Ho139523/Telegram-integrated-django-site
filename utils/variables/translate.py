@@ -2723,4 +2723,11 @@ translations = {
         "zh": "🏦 提现",
         "ar": "🏦 سحب الأموال"
     },
+    "menu_add_product_videoprompt_caption": {
+        "fa": "🎬 راهنمای افزودن کالا",
+        "en": "🎬 Product Addition Guide",
+        "ru": "🎬 Руководство по добавлению товара",
+        "zh": "🎬 商品添加指南",
+        "ar": "🎬 دليل إضافة المنتج"
+    },
 }

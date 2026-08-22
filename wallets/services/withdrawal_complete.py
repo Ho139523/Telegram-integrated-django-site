@@ -1,3 +1,5 @@
+# wallets/services/withdrawal_complete.py
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -16,6 +18,18 @@ def complete_withdrawal(
     withdrawal: Withdrawal,
     external_reference: str | None = None,
 ):
+    """
+    Complete a withdrawal after the external provider
+    has confirmed the transfer.
+
+    Valid transition:
+
+        PENDING -> COMPLETED
+        PROCESSING -> COMPLETED
+
+    The locked balance is released permanently because
+    the money has been transferred externally.
+    """
 
     withdrawal = (
         Withdrawal.objects
@@ -23,9 +37,13 @@ def complete_withdrawal(
         .get(pk=withdrawal.pk)
     )
 
-    if withdrawal.status != Withdrawal.Status.PENDING:
+    if withdrawal.status not in (
+        Withdrawal.Status.PENDING,
+        Withdrawal.Status.PROCESSING,
+    ):
         raise ValueError(
-            "Withdrawal is not pending."
+            "Withdrawal cannot be completed "
+            f"from status '{withdrawal.status}'."
         )
 
     balance = (
@@ -47,14 +65,18 @@ def complete_withdrawal(
     balance.locked -= total
 
     balance.save(
-        update_fields=["locked"]
+        update_fields=[
+            "locked",
+        ]
     )
 
     withdrawal.status = Withdrawal.Status.COMPLETED
     withdrawal.processed_at = timezone.now()
 
     if external_reference:
-        withdrawal.external_reference = external_reference
+        withdrawal.external_reference = (
+            external_reference
+        )
 
     withdrawal.save(
         update_fields=[

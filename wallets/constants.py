@@ -11,3 +11,4 @@ class Services:
     SALE_PENDING = "sale_pending"
     SALE_RELEASE = "sale_release"
     SALE_REFUND = "sale_refund"
+    SALE_CREDIT = "sale_credit"

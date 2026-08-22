@@ -12,7 +12,7 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
-    list_display = ('product', 'seller', 'transaction', 'quantity', 'total_price', 'created_at')
+    list_display = ('product', "is_released", 'seller', 'quantity', 'total_price', 'created_at', 'transaction')
     list_filter = ('product', 'seller', 'transaction')
     ordering = ['created_at']
 

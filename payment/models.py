@@ -365,37 +365,45 @@ class Sale(models.Model):
         editable=False,
     )
 
+
+    release_operation_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+    )
+
+
     transaction = models.ForeignKey(
         Transaction,
         on_delete=models.CASCADE,
-        related_name="sales"
+        related_name="sales",
     )
 
     product = models.ForeignKey(
         Product,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
 
     variant = models.ForeignKey(
         "products.ProductVariant",
         on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True,
     )
 
     seller = models.ForeignKey(
         Store,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
 
     quantity = models.PositiveIntegerField(
         null=True,
-        blank=True
+        blank=True,
     )
 
     unit_price = models.PositiveIntegerField(
         null=True,
-        blank=True
+        blank=True,
     )
 
     currency = models.ForeignKey(
@@ -406,7 +414,7 @@ class Sale(models.Model):
 
     total_price = models.PositiveIntegerField(
         null=True,
-        blank=True
+        blank=True,
     )
 
     # =====================================================
@@ -414,15 +422,22 @@ class Sale(models.Model):
     # =====================================================
 
     return_period_days = models.PositiveIntegerField(
-        verbose_name="مدت مجاز مرجوعی در زمان فروش"
+        verbose_name="مدت مجاز مرجوعی در زمان فروش",
     )
 
     release_at = models.DateTimeField(
-        verbose_name="زمان آزاد شدن مبلغ فروشنده"
+        verbose_name="زمان آزاد شدن مبلغ فروشنده",
+    )
+
+    # زمان واقعی آزاد شدن مبلغ
+    released_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="زمان آزادسازی مبلغ",
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     def __str__(self):
@@ -437,7 +452,15 @@ class Sale(models.Model):
     @property
     def is_release_due(self):
 
-        return timezone.now() >= self.release_at
+        return (
+            self.released_at is None
+            and timezone.now() >= self.release_at
+        )
+
+    @property
+    def is_released(self):
+
+        return self.released_at is not None
 
     # =====================================================
     # FACTORY
@@ -474,13 +497,10 @@ class Sale(models.Model):
             product=product,
             variant=variant,
             seller=seller,
-
             currency=transaction.currency,
-
             quantity=quantity,
             unit_price=unit_price,
             total_price=total_price,
-
             return_period_days=return_period_days,
             release_at=release_at,
         )

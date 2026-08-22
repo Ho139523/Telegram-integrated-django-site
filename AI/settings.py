@@ -506,11 +506,12 @@ AXES_FAILURE_LIMIT = 5
 AXES_LOCK_OUT_AT_FAILURE = True
 
 
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_BROKER_URL = "redis://localhost:6379/0"
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
 CELERY_TIMEZONE = 'Asia/Tehran'
+CELERY_ENABLE_UTC = True
 
 
 REDIS_URL = "redis://127.0.0.1:6379/0"
@@ -524,7 +525,7 @@ APPEND_SLASH = False
 
 is_proxied = False
 manual_proxy = False
-FlaskBridge = True
+FlaskBridge = False
 
 
 ENABLE_SPLIT_PAYMENT = False

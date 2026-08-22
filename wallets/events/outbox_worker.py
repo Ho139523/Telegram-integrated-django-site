@@ -1,3 +1,5 @@
+# wallets/events/outbox_worker.py
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -8,53 +10,38 @@ from wallets.events.deserializer import deserialize
 
 
 class OutboxWorker:
-    """
-    Reads unpublished events from the Outbox table
-    and dispatches them safely.
-
-    Every event is processed in its own transaction.
-    """
 
     DEFAULT_BATCH_SIZE = 100
 
     @classmethod
     def process(cls, batch_size=None):
 
-        batch_size = batch_size or cls.DEFAULT_BATCH_SIZE
-
-        while True:
-
-            processed = cls._process_batch(batch_size)
-
-            if processed == 0:
-                break
-
-    @classmethod
-    def _process_batch(cls, batch_size):
+        batch_size = (
+            batch_size
+            or cls.DEFAULT_BATCH_SIZE
+        )
 
         processed = 0
 
         while processed < batch_size:
 
-            event = cls._lock_next_event()
+            result = cls._process_next_event()
 
-            if event is None:
+            if not result:
                 break
-
-            cls._process_event(event)
 
             processed += 1
 
-        return processed
-
-    @staticmethod
-    def _lock_next_event():
+    @classmethod
+    def _process_next_event(cls):
 
         with transaction.atomic():
 
-            return (
+            record = (
                 OutboxEvent.objects
-                .select_for_update(skip_locked=True)
+                .select_for_update(
+                    skip_locked=True
+                )
                 .filter(
                     published=False,
                 )
@@ -62,53 +49,55 @@ class OutboxWorker:
                 .first()
             )
 
-    @classmethod
-    def _process_event(cls, record):
+            if record is None:
+                return False
 
-        try:
+            try:
 
-            event = deserialize(
-                record.event_type,
-                record.payload,
+                event = deserialize(
+                    record.event_type,
+                    record.payload,
+                )
+
+                event_bus.publish(event)
+
+            except Exception as exc:
+
+                #
+                # We are still holding the row lock.
+                #
+                # Persist the failure while the lock is held.
+                #
+
+                record.retries += 1
+                record.error = str(exc)
+
+                record.save(
+                    update_fields=[
+                        "retries",
+                        "error",
+                    ]
+                )
+
+                #
+                # Do NOT raise.
+                #
+                # We want this transaction to commit the
+                # retry information.
+                #
+
+                return True
+
+            record.published = True
+            record.published_at = timezone.now()
+            record.error = ""
+
+            record.save(
+                update_fields=[
+                    "published",
+                    "published_at",
+                    "error",
+                ]
             )
 
-            event_bus.publish(event)
-
-        except Exception as exc:
-
-            cls._mark_failed(
-                record,
-                exc,
-            )
-
-            return
-
-        cls._mark_published(record)
-
-    @staticmethod
-    def _mark_published(record):
-
-        record.published = True
-        record.published_at = timezone.now()
-        record.error = ""
-
-        record.save(
-            update_fields=[
-                "published",
-                "published_at",
-                "error",
-            ]
-        )
-
-    @staticmethod
-    def _mark_failed(record, exc):
-
-        record.retries += 1
-        record.error = str(exc)
-
-        record.save(
-            update_fields=[
-                "retries",
-                "error",
-            ]
-        )
+            return True

@@ -1,3 +1,5 @@
+# wallets/services/withdrawal_fail.py
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -13,8 +15,18 @@ from wallets.events.factory import EventFactory
 
 @transaction.atomic
 def fail_withdrawal(
-    withdrawal,
+    withdrawal: Withdrawal,
 ):
+    """
+    Fail a withdrawal and release the locked balance.
+
+    Valid transition:
+
+        PENDING -> FAILED
+        PROCESSING -> FAILED
+
+    The locked amount is returned to available balance.
+    """
 
     withdrawal = (
         Withdrawal.objects
@@ -22,9 +34,13 @@ def fail_withdrawal(
         .get(pk=withdrawal.pk)
     )
 
-    if withdrawal.status != Withdrawal.Status.PENDING:
+    if withdrawal.status not in (
+        Withdrawal.Status.PENDING,
+        Withdrawal.Status.PROCESSING,
+    ):
         raise ValueError(
-            "Withdrawal is not pending."
+            "Withdrawal cannot be failed "
+            f"from status '{withdrawal.status}'."
         )
 
     balance = (

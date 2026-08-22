@@ -363,7 +363,11 @@ def handle_store_product_start(message):
         
 
         # ست کردن فروشگاه جاری
-        profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        try:
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
+        except ProfileModel.DoesNotExist:
+            start(message)
+            profile = ProfileModel.objects.get(tel_id=message.from_user.id)
         profile.server_store = Store.objects.get(id=store_id)
         profile.seller_mode = False
         profile.save()
@@ -469,7 +473,8 @@ def start(message):
             tel_id=tel_id,
             telegram=tel_username,
             fname=tel_first_name,
-            lname=tel_last_name
+            lname=tel_last_name,
+            server_store=Store.objects.get(name="Intelleum")
         )
 
         if created:
@@ -1572,39 +1577,56 @@ def payment_order_CallBack(data):
 @app.message_handler(
     func=lambda message: message.text in (t(message, "most_selling"), t(message, "most_expensive"), t(message, "most_discounted"), t(message, "cheapest")))
 def handle_ten_products(message):
-    if subscription.subscription_offer(message):
-        session = session_manager.get_user_session(message.chat.id, namespace="menu")
-        current_menu = session["current_menu"]
+    try:
+        if subscription.subscription_offer(message):
+            session = session_manager.get_user_session(message.chat.id, namespace="menu")
+            current_menu = session["current_menu"]
+            profile = ProfileModel.objects.get(tel_id=message.chat.id)
+            if profile.seller_mode:
+                store = Store.objects.get(owner=profile)
+            else:
+                store = profile.server_store
+            current_category = Category.objects.get(pk=session["current_category_id"], status=True, store=store)
 
-        if message.text == t(message, "most_discounted"):
-            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
-                lower_title=current_menu.lower(), discount__gt=0, status=True, category__status=True
-            ).order_by("discount")[:10]
-        elif message.text == t(message, "most_selling"):
-            app.send_message(message.chat.id, t(message, "most_selling_feature_not_available"))
-            return
-        elif message.text == t(message, "cheapest"):
-            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
-                lower_title=current_menu.lower(), status=True, category__status=True
-            ).order_by("-price")[:10]
-        elif message.text == t(message, "most_expensive"):
-            products = Product.objects.annotate(lower_title=Lower('category__title')).filter(
-                lower_title=current_menu.lower(), status=True, category__status=True
-            ).order_by("price")[:10]
+            if message.text == t(message, "most_discounted"):
+                products = Product.objects.filter(
+                    category=current_category,  # استفاده مستقیم از شیء
+                    discount__gt=0,
+                    status=True,
+                    category__status=True
+                ).order_by("discount")[:10]
+            elif message.text == t(message, "most_selling"):
+                app.send_message(message.chat.id, t(message, "most_selling_feature_not_available"))
+                return
+            elif message.text == t(message, "cheapest"):
+                products = Product.objects.filter(
+                    category=current_category,
+                    status=True,
+                    category__status=True
+                ).order_by("-price")[:10]
+
+            elif message.text == t(message, "most_expensive"):
+                products = Product.objects.filter(
+                    category=current_category,
+                    status=True,
+                    category__status=True
+                ).order_by("price")[:10]
 
 
-        if not products.exists():
-            app.send_message(message.chat.id, t(message, "no_products_in_category"))
-            return
+            if not products.exists():
+                app.send_message(message.chat.id, t(message, "no_products_in_category"))
+                return
 
-        for product in products:
-            try:
-                product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all(), chat_id=message.chat.id)
-                product_handler.send_product_message(message.chat.id)
-            except Exception as e:
-                app.send_message(message.chat.id, f"the error is: {e}")
+            for product in products:
+                try:
+                    product_handler = ProductHandler(app, product, current_site, attributes=product.attributes.all(), chat_id=message.chat.id)
+                    product_handler.send_product_message(message.chat.id)
+                except Exception as e:
+                    app.send_message(message.chat.id, f"the error is: {e}")
 
 
+    except:
+        print(traceback.format_exc())
 
 
 
@@ -1987,6 +2009,18 @@ def my_balance(message):
         show_balance(message)
 
 
+
+@app.message_handler(func=lambda message: message.text == t(message, "withdraw"))
+def withdraw(message):
+    if subscription.subscription_offer(message):
+        profile = ProfileModel.objects.get(tel_id=message.chat.id)
+        has_store = Store.objects.filter(owner=profile).exists()
+        if has_store:
+            app.reply_to(message, "hello")
+
+
+
+
 # Buy products with code
 @app.message_handler(func=lambda message: message.text == t(message, "menu_buy_by_code"))
 def buy_with_code(message):
@@ -2124,6 +2158,7 @@ def add_category_handler(message):
 @app.message_handler(func=lambda m: m.text == t(m, "menu_add") and
                      session_manager.get_user_session(m.chat.id, namespace="menu").get("product")
                      and session_manager.can_execute(m.chat.id))
+@UltraVideoPrompter(command="menu_add_product")
 def add_product_handler(message):
     try:
         session_manager.lock(message.chat.id, "product_add")

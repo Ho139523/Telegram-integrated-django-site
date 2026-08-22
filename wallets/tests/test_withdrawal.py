@@ -3,17 +3,13 @@ from decimal import Decimal
 from django.test import TestCase
 
 from accounts.models import ProfileModel
-
 from wallets.models import Currency
-
 from wallets.services import (
     deposit,
     withdraw,
     complete_withdrawal,
     fail_withdrawal,
 )
-
-
 
 
 class WithdrawalTests(TestCase):
@@ -26,10 +22,13 @@ class WithdrawalTests(TestCase):
             symbol="$",
         )
 
-        self.wallet = ProfileModel.objects.create(
+        self.profile = ProfileModel.objects.create(
             tel_id="10001",
             fname="Seller",
-        ).wallet
+            preferred_currency=self.currency,
+        )
+
+        self.wallet = self.profile.wallet
 
     def test_complete_withdrawal(self):
 
@@ -55,12 +54,12 @@ class WithdrawalTests(TestCase):
 
         self.assertEqual(
             balance.available,
-            Decimal("60")
+            Decimal("60"),
         )
 
         self.assertEqual(
             balance.locked,
-            Decimal("0")
+            Decimal("0"),
         )
 
     def test_fail_withdrawal(self):
@@ -87,10 +86,10 @@ class WithdrawalTests(TestCase):
 
         self.assertEqual(
             balance.available,
-            Decimal("100")
+            Decimal("100"),
         )
 
         self.assertEqual(
             balance.locked,
-            Decimal("0")
+            Decimal("0"),
         )

@@ -1,199 +1,316 @@
-import json
 import requests
 
 from django.conf import settings
 
-class ZarinPal:
+from .base import BaseGateway
 
-    def __init__(self):  
+class ZarinPal(BaseGateway):
 
-        config = settings.ZARINPAL  
+def __init__(self):
 
-        self.callback_url = config["CALLBACK_URL"]  
-        self.sandbox = config["SANDBOX"]  
-        self.merchant_id = config["MERCHANT_ID"]  
+    config = settings.ZARINPAL
 
-        gateway = "https://www.zarinpal.com" 
+    self.callback_url = config["CALLBACK_URL"]
+    self.sandbox = config["SANDBOX"]
+    self.merchant_id = config["MERCHANT_ID"]
 
-        if self.sandbox:  
+    if self.sandbox:
 
-            self.request_url = (  
-                "https://sandbox.zarinpal.com/pg/v4/payment/request.json"  
-            )  
+        self.request_url = (
+            "https://sandbox.zarinpal.com/"
+            "pg/v4/payment/request.json"
+        )
 
-            self.verify_url = (  
-                "https://sandbox.zarinpal.com/pg/v4/payment/verify.json"  
-            )  
+        self.verify_url = (
+            "https://sandbox.zarinpal.com/"
+            "pg/v4/payment/verify.json"
+        )
 
-            self.startpay_url = (  
-                "https://sandbox.zarinpal.com/pg/StartPay/{authority}"  
-            )  
+        self.startpay_url = (
+            "https://sandbox.zarinpal.com/"
+            "pg/StartPay/{authority}"
+        )
 
-        else:  
+    else:
 
-            self.request_url = (  
-                "https://api.zarinpal.com/pg/v4/payment/request.json"  
-            )  
+        self.request_url = (
+            "https://api.zarinpal.com/"
+            "pg/v4/payment/request.json"
+        )
 
-            self.verify_url = (  
-                "https://api.zarinpal.com/pg/v4/payment/verify.json"  
-            )  
+        self.verify_url = (
+            "https://api.zarinpal.com/"
+            "pg/v4/payment/verify.json"
+        )
 
-            # استفاده از دامنه اختصاصی  
-            self.startpay_url = (  
-                f"{gateway}/pg/StartPay/{{authority}}"  
-            )  
+        self.startpay_url = (
+            "https://www.zarinpal.com/"
+            "pg/StartPay/{authority}"
+        )
 
-    def send_split_request(  
-        self,  
-        amount,  
-        description,  
-        splits=None,  
-        email=None,  
-        mobile=None,  
-    ):  
+# ==========================================================
+# PAYMENT REQUEST
+# ==========================================================
 
-        if splits is None:  
-            splits = []  
+def send_request(
+    self,
+    *,
+    amount,
+    description,
+    email=None,
+    mobile=None,
+):
 
-        payload = {  
-            "merchant_id": self.merchant_id,  
-            "amount": int(amount),  
-            "callback_url": self.callback_url,  
-            "description": description,  
-            "metadata": {  
-                "mobile": str(mobile) if mobile else "",  
-                "email": email or "",  
-            }  
-        }  
+    payload = {
+        "merchant_id": self.merchant_id,
+        "amount": int(amount),
+        "callback_url": self.callback_url,
+        "description": description,
+        "metadata": {
+            "mobile": (
+                str(mobile)
+                if mobile
+                else ""
+            ),
+            "email": (
+                email
+                if email
+                else ""
+            ),
+        },
+    }
 
-        # پرداخت چندفروشنده  
-        if splits:  
-            payload["wages"] = splits  
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+    }
 
-        headers = {  
-            "accept": "application/json",  
-            "content-type": "application/json",  
-        }  
+    try:
 
-        try:  
+        print("=" * 50)
+        print("ZARINPAL REQUEST")
+        print(payload)
+        print("=" * 50)
 
-            print("=" * 50)  
-            print("ZARINPAL REQUEST")  
-            print(json.dumps(payload, indent=2, ensure_ascii=False))  
-            print("=" * 50)  
+        response = requests.post(
+            self.request_url,
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
 
-            response = requests.post(  
-                self.request_url,  
-                json=payload,  
-                headers=headers,  
-                timeout=30  
-            )  
+        print(
+            "STATUS:",
+            response.status_code,
+        )
 
-            print("STATUS:", response.status_code)  
-            print("BODY:", response.text)  
+        print(
+            "BODY:",
+            response.text,
+        )
 
-            data = response.json()  
+        try:
 
-            if (  
-                response.status_code == 200  
-                and "data" in data  
-                and "authority" in data["data"]  
-            ):  
+            data = response.json()
 
-                authority = data["data"]["authority"]  
+        except ValueError:
 
-                payment_url = self.startpay_url.format(  
-                    authority=authority  
-                )  
-
-                return {  
-                    "success": True,  
-                    "authority": authority,  
-                    "url": payment_url,  
-                }  
-
-            errors = data.get("errors", {})  
-
-            return {  
-                "success": False,  
-                "message": errors.get(  
-                    "message",  
-                    "Unknown error"  
-                ),  
-                "error_code": errors.get("code"),  
-            }  
-
-        except Exception as e:  
-
-            return {  
-                "success": False,  
-                "message": str(e),  
-            }  
-
-    def send_request(  
-        self,  
-        amount,  
-        description,  
-        email=None,  
-        mobile=None,  
-    ):  
-
-        return self.send_split_request(  
-            amount=amount,  
-            description=description,  
-            splits=[],  
-            email=email,  
-            mobile=mobile,  
-        )  
-
-    def verify(self, authority, amount):  
-
-        payload = {  
-            "merchant_id": self.merchant_id,  
-            "authority": authority,  
-            "amount": int(amount),  
-        }  
-
-        try:  
-
-            response = requests.post(  
-                self.verify_url,  
-                json=payload,  
-                timeout=30  
-            )  
-
-            data = response.json()  
-
-            print("VERIFY RESPONSE:")  
-            print(data)  
-
-            if (  
-                response.status_code == 200  
-                and data["data"]["code"] == 100  
-            ):  
-
-                return {  
-                    "success": True,  
-                    "ref_id": data["data"]["ref_id"],  
-                    "fee": data["data"]["fee"],  
-                    "fee_type": data["data"]["fee_type"],  
-                }  
-
-            return {  
-                "success": False,  
-                "message": data.get(  
-                    "errors",  
-                    {}  
-                ).get(  
-                    "message",  
-                    "Verification failed"  
-                )  
-            }  
-
-        except Exception as e:  
-
-            return {  
-                "success": False,  
-                "message": str(e)  
+            return {
+                "success": False,
+                "message": (
+                    "پاسخ نامعتبر از درگاه "
+                    "پرداخت دریافت شد."
+                ),
             }
+
+        response_data = data.get(
+            "data",
+            {}
+        )
+
+        authority = response_data.get(
+            "authority"
+        )
+
+        if (
+
+            response.status_code == 200
+            and authority
+
+        ):
+
+            return {
+                "success": True,
+                "authority": authority,
+                "url": (
+                    self.startpay_url
+                    .format(
+                        authority=authority
+                    )
+                ),
+            }
+
+        errors = data.get(
+            "errors",
+            {}
+        )
+
+        return {
+            "success": False,
+            "message": (
+                errors.get(
+                    "message"
+                )
+                or response_data.get(
+                    "message"
+                )
+                or "خطا در ایجاد درخواست پرداخت."
+            ),
+            "error_code": (
+                errors.get(
+                    "code"
+                )
+                or response_data.get(
+                    "code"
+                )
+            ),
+        }
+
+    except requests.RequestException as exc:
+
+        return {
+            "success": False,
+            "message": (
+                "خطا در ارتباط با درگاه "
+                "پرداخت."
+            ),
+            "error": str(exc),
+        }
+
+    except Exception as exc:
+
+        return {
+            "success": False,
+            "message": str(exc),
+        }
+
+# ==========================================================
+# PAYMENT VERIFICATION
+# ==========================================================
+
+def verify(
+    self,
+    *,
+    authority,
+    amount,
+):
+
+    payload = {
+        "merchant_id": self.merchant_id,
+        "authority": authority,
+        "amount": int(amount),
+    }
+
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+    }
+
+    try:
+
+        response = requests.post(
+            self.verify_url,
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+
+        try:
+
+            data = response.json()
+
+        except ValueError:
+
+            return {
+                "success": False,
+                "message": (
+                    "پاسخ نامعتبر از درگاه "
+                    "پرداخت دریافت شد."
+                ),
+            }
+
+        print("=" * 50)
+        print("ZARINPAL VERIFY")
+        print(data)
+        print("=" * 50)
+
+        response_data = data.get(
+            "data",
+            {}
+        )
+
+        code = response_data.get(
+            "code"
+        )
+
+        if (
+
+            response.status_code == 200
+            and code == 100
+
+        ):
+
+            return {
+                "success": True,
+                "ref_id": response_data.get(
+                    "ref_id"
+                ),
+                "fee": response_data.get(
+                    "fee"
+                ),
+                "fee_type": response_data.get(
+                    "fee_type"
+                ),
+            }
+
+        errors = data.get(
+            "errors",
+            {}
+        )
+
+        return {
+            "success": False,
+            "message": (
+                errors.get(
+                    "message"
+                )
+                or response_data.get(
+                    "message"
+                )
+                or "تأیید پرداخت ناموفق بود."
+            ),
+            "error_code": (
+                errors.get(
+                    "code"
+                )
+                or code
+            ),
+        }
+
+    except requests.RequestException as exc:
+
+        return {
+            "success": False,
+            "message": (
+                "خطا در ارتباط با درگاه "
+                "پرداخت هنگام تأیید."
+            ),
+            "error": str(exc),
+        }
+
+    except Exception as exc:
+
+        return {
+            "success": False,
+            "message": str(exc),
+        }

@@ -932,9 +932,9 @@ def handle_products(message):
         subcategory = message.text
         profile = ProfileModel.objects.get(tel_id=message.chat.id)
         if profile.seller_mode:
-            store = profile.server_store
-        else:
             store = Store.objects.get(owner=profile)
+        else:
+            store = profile.server_store
         options = [t(message, "most_selling"), t(message, "most_expensive"), t(message, "cheapest"), t(message, "most_discounted")]
 
         markup = send_menu(message, options, "products", retun_menue)
@@ -1155,6 +1155,7 @@ class CategoryClass:
                     if session.get("product_cat_selection"):
                         ProductBot(app).get_category(message)
                     else:
+                        print("mewl")
                         fake_message = message
                         fake_message.text = "hi"
                         handle_products(fake_message)
